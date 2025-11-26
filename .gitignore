@@ -28,6 +28,9 @@ backend/.env.local
 .claude/mcp_settings.json
 .claude/settings.local.json
 
+# MCP Configuration (contains access tokens)
+.mcp.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
