@@ -26,10 +26,12 @@ export function FirstWeekWarning({ methodologyPlanId, onClose }) {
 
   const fetchPlanConfig = async () => {
     try {
-      const response = await apiClient.get(`/api/routines/plan-config/${methodologyPlanId}`);
-      if (response.data.success) {
-        setConfig(response.data.config);
-        setWarnings(response.data.config?.warnings || []);
+      // 🎯 FIX: Removido /api/ duplicado - apiClient ya tiene /api como base
+      const response = await apiClient.get(`/routines/plan-config/${methodologyPlanId}`);
+      if (response.data?.success || response.success) {
+        const configData = response.data?.config || response.config;
+        setConfig(configData);
+        setWarnings(configData?.warnings || []);
       }
     } catch (error) {
       console.warn('No se pudo cargar configuración del plan:', error);
@@ -160,9 +162,10 @@ export function usePlanConfig(methodologyPlanId) {
 
     const fetchConfig = async () => {
       try {
-        const response = await apiClient.get(`/api/routines/plan-config/${methodologyPlanId}`);
-        if (response.data.success) {
-          setConfig(response.data.config);
+        // 🎯 FIX: Removido /api/ duplicado - apiClient ya tiene /api como base
+        const response = await apiClient.get(`/routines/plan-config/${methodologyPlanId}`);
+        if (response.data?.success || response.success) {
+          setConfig(response.data?.config || response.config);
         }
       } catch (err) {
         setError(err.message);

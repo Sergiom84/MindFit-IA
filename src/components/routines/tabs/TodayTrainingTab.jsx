@@ -729,8 +729,14 @@ export default function TodayTrainingTab({
 
       const startISO = (plan.planStartDate || planStartDate || new Date().toISOString());
       const dayId = computeDayId(startISO, 'Europe/Madrid');
+      console.log('🚀 Llamando a startSession con:', {
+        methodologyPlanId,
+        dayId,
+        startISO,
+        todaySessionData: todaySessionData?.dia
+      });
       const result = await startSession({
-        planId: methodologyPlanId,
+        methodologyPlanId,  // 🎯 FIX: Nombre correcto del parámetro
         dayId,
         dayInfo: todaySessionData,
         exerciseIndex
@@ -1814,16 +1820,23 @@ export default function TodayTrainingTab({
                     // Decidir si debemos reanudar (hay sesión activa o ya hay ejercicios realizados)
                     <Button
                       onClick={() => {
+                        // 🎯 FIX: Verificar si existe sesión en BD antes de decidir
+                        const hasExistingSession = Boolean(todayStatus?.session?.id);
+
                         console.log('🔍 DEBUG Button Click Decision:', {
+                          hasExistingSession,
+                          sessionId: todayStatus?.session?.id,
                           shouldResume,
                           hasUnfinishedWorkToday,
-                          willCallResume: (shouldResume || hasUnfinishedWorkToday),
                           todayStatusCanResume: todayStatus?.session?.canResume,
                           sessionStatus: todayStatus?.session?.session_status,
                           hasActiveSession
                         });
 
-                        if (shouldResume || hasUnfinishedWorkToday) {
+                        // 🎯 LÓGICA CORREGIDA:
+                        // - Si existe sesión en BD → Reanudar
+                        // - Si NO existe sesión en BD → Iniciar nueva
+                        if (hasExistingSession && (shouldResume || hasUnfinishedWorkToday)) {
                           handleResumeSession();
                         } else {
                           handleStartSession(0);
@@ -1840,7 +1853,8 @@ export default function TodayTrainingTab({
                       ) : (
                         <>
                           <Play className="h-5 w-5 mr-2" />
-                          {'Reanudar Entrenamiento'}
+                          {/* 🎯 FIX: Texto dinámico según exista sesión previa */}
+                          {todayStatus?.session?.id ? 'Reanudar Entrenamiento' : 'Iniciar Entrenamiento'}
                         </>
                       )}
                     </Button>
@@ -2249,10 +2263,9 @@ export default function TodayTrainingTab({
       {/* =============================================== */}
 
       {/* Modal de Calentamiento */}
+      {/* 🎯 FIX: Simplificada condición - mostrar si showWarmupModal=true y hay sessionId válido */}
       {(localState.showWarmupModal || ui.showWarmup) &&
-       (localState.pendingSessionData?.sessionId || session.sessionId) &&
-       !loadingTodayStatus &&
-       (todayStatus?.session?.session_status !== 'completed' || todayStatus?.summary?.canRetry) && (
+       (localState.pendingSessionData?.sessionId || session.sessionId) && (
         <WarmupModal
           level={(routinePlan || plan.currentPlan)?.level || 'básico'}
           sessionId={localState.pendingSessionData?.sessionId || session.sessionId}
@@ -2263,10 +2276,9 @@ export default function TodayTrainingTab({
       )}
 
       {/* Modal de Entrenamiento */}
+      {/* 🎯 FIX: Simplificada condición - mostrar si showSessionModal=true y hay effectiveSession */}
       {(localState.showSessionModal || ui.showRoutineSession) &&
-       effectiveSession &&
-       !loadingTodayStatus &&
-       (todayStatus?.session?.session_status !== 'completed' || todayStatus?.summary?.canRetry) && (
+       effectiveSession && (
         <RoutineSessionModal
           session={effectiveSession}
           sessionId={effectiveSessionId}
