@@ -1,0 +1,18 @@
+La aplicación del proyecto es de entrenamiento personal impulsado por IA. La parte que más está avanzada y en la que vamos a realizar todas las mejoras es dentro de la sección HIpetrofiav2.
+
+El flujo con el que he generado el entrenamiento es: 
+click en la  tarjeta Hipertrofiav2
+  → Hipertrofiav2ManualCard.jsx (evaluación)
+    → Se genera entrenamiento
+    → Modal de propuesta (TrainingPlanConfirmationModal.jsx)
+    → Usuario acepta
+    → WarmupModal.jsx, al finalizar:
+    → RoutineSessionModal.jsx, al finalizar:
+    → Navega a TodayTrainingTab.jsx\
+
+    Lo que quiero que compruebes es lo siguiente. Cuando se genera el entrenamniento, el mndal de propuesta, indica: Semana 1 - D1 - D5 ... pero no 
+    especifica el día de la semana. Tendría que ser, D1: Miércoles, ya que hoy es míercoles, y es el día que se ha generado
+En cambio, si se genera un lunes, será D1: LUnes.   Si se genera un martes, el D1: será martes. Jueves, viernes, sábado
+y domingo, por ahora, ofrecen realizar la opción: A - Podemos generarte un entrenamiento para el día de hoy o opción B: Comienza el lunes.
+En principio ya está implementado.
+Punto 2 a resolver. Cuando estás en el modal de ejercicios. Y te encuentras en el ter

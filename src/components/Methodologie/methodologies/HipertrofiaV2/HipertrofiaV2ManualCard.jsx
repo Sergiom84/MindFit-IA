@@ -2,7 +2,7 @@
  * HipertrofiaV2 Manual Card - Sistema de Tracking con RIR
  * Full Body con variedad de ejercicios y autorregulación
  *
- * @version 2.1.0 - Dashboard de Adaptación Mejorado
+ * @version 2.2.0 - Modal de día de inicio (Jue-Dom)
  */
 
 import React, { useEffect, useState } from 'react';
@@ -23,6 +23,7 @@ import AdaptationBlockSelection from './components/AdaptationBlockSelection.jsx'
 import AdaptationTrackingBadge from './components/AdaptationTrackingBadge.jsx';
 import AdaptationTransitionModal from './components/AdaptationTransitionModal.jsx';
 import AdaptationDashboard from '../../../HipertrofiaV2/AdaptationDashboard.jsx';
+import StartDayModal from './components/StartDayModal.jsx';
 import { useTrace } from '../../../../contexts/TraceContext';
 
 export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, startConfig }) {
@@ -43,6 +44,8 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
   const [showAdaptationSelect, setShowAdaptationSelect] = useState(false);
   const [showTransitionModal, setShowTransitionModal] = useState(false);
   const [showAdaptationDashboard, setShowAdaptationDashboard] = useState(false);
+  const [showStartDayModal, setShowStartDayModal] = useState(false);
+  const [pendingStartConfig, setPendingStartConfig] = useState(null);
 
   // Helpers: carga de progreso de adaptación
   const fetchAdaptationProgress = async () => {
@@ -179,8 +182,45 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
     }
   };
 
-  // NUEVO: Generar plan D1-D5 usando Motor MindFeed
-  const handleGenerate = async () => {
+  /**
+   * Verifica si necesita mostrar modal de selección de día
+   * Jueves-Domingo: Mostrar modal
+   * Lunes-Miércoles: Continuar directamente
+   */
+  const needsStartDayModal = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0=Dom, 1=Lun, ... 4=Jue, 5=Vie, 6=Sáb
+    // Jueves (4), Viernes (5), Sábado (6), Domingo (0) → mostrar modal
+    return dayOfWeek === 4 || dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0;
+  };
+
+  /**
+   * Handler para cuando el usuario selecciona una opción en el StartDayModal
+   */
+  const handleStartDaySelection = (selectedConfig) => {
+    console.log('📅 [STARTDAY] Opción seleccionada:', selectedConfig);
+    setPendingStartConfig(selectedConfig);
+    setShowStartDayModal(false);
+
+    // Si eligió "vinagre", primero generamos sesión suelta y luego el plan formal
+    if (selectedConfig.option === 'vinagre') {
+      track('start_day_vinagre_selected', {
+        userId: user.id,
+        startDate: selectedConfig.startDate,
+        component: 'HipertrofiaV2ManualCard'
+      });
+      // TODO: Generar sesión suelta para hoy
+      // Por ahora, continuamos con la generación del plan que empieza el lunes
+    }
+
+    // Continuar con la generación usando la configuración seleccionada
+    executeGenerate(selectedConfig);
+  };
+
+  /**
+   * Ejecuta la generación del plan con la configuración dada
+   */
+  const executeGenerate = async (configOverride = null) => {
     setGenerating(true); // Activar loading local
 
     try {
@@ -188,11 +228,11 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
 
       console.log('🏋️ [MINDFEED] Generando plan D1-D5 para nivel:', userLevel);
 
-      // 🎯 Preparar configuración de inicio (usa la pasada por props o crea una por defecto)
-      const finalStartConfig = startConfig || {
+      // 🎯 Preparar configuración de inicio
+      const finalStartConfig = configOverride || pendingStartConfig || startConfig || {
         startDate: new Date().toISOString().split('T')[0],
-        distributionOption: 'saturdays', // Por defecto, entrenar sábados
-        includeSaturdays: true
+        distributionOption: 'standard',
+        includeSaturdays: false
       };
 
       console.log('📅 [MINDFEED] Configuración de inicio:', finalStartConfig);
@@ -275,6 +315,30 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
       alert(`Error al generar plan: ${error.message}`);
     } finally {
       setGenerating(false); // Desactivar loading
+    }
+  };
+
+  /**
+   * Handler principal: Decide si mostrar modal de día o generar directamente
+   */
+  const handleGenerate = () => {
+    if (needsStartDayModal()) {
+      track('start_day_modal_shown', {
+        userId: user.id,
+        dayOfWeek: new Date().getDay(),
+        component: 'HipertrofiaV2ManualCard'
+      });
+      setShowStartDayModal(true);
+    } else {
+      // Lunes-Miércoles: Generar directamente empezando hoy
+      const defaultConfig = {
+        option: 'start_today',
+        startDate: new Date().toISOString().split('T')[0],
+        includeSaturday: false,
+        distributionOption: 'standard',
+        description: 'Empezar HOY (L-V estándar)'
+      };
+      executeGenerate(defaultConfig);
     }
   };
 
@@ -584,6 +648,14 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
         onClose={() => setShowTransitionModal(false)}
         onConfirm={handleTransition}
         block={adaptation.block}
+      />
+
+      {/* Modal de selección de día de inicio (Jue-Dom) */}
+      <StartDayModal
+        isOpen={showStartDayModal}
+        onClose={() => setShowStartDayModal(false)}
+        onSelect={handleStartDaySelection}
+        methodology="HipertrofiaV2"
       />
     </div>
   );

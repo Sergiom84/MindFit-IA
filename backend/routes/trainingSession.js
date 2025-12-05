@@ -16,79 +16,21 @@ import { pool } from '../db.js';
 import { finalizePlanIfCompleted } from '../services/methodologyPlansService.js';
 import { calculateSessionStatus } from '../services/sessionStatusService.js';
 
+// Importar helpers compartidos
+import {
+  stripDiacritics,
+  normalizeDayAbbrev
+} from '../utils/shared/dayNormalizer.js';
+import {
+  findWeekInPlan,
+  normalizePlanDays
+} from '../utils/shared/planHelpers.js';
+
 const router = express.Router();
 
 // ===============================================
-// UTILIDADES Y HELPERS
+// UTILIDADES Y HELPERS (ahora importados de shared)
 // ===============================================
-
-/**
- * Normalizar nombres de días a abreviaturas válidas
- */
-function stripDiacritics(str = '') {
-  try { return str.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch { return str; }
-}
-
-function normalizeDayAbbrev(dayName) {
-  if (!dayName) return dayName;
-  const raw = stripDiacritics(String(dayName).trim());
-  const lower = raw.toLowerCase().replace(/\.$/, '');
-  const map = {
-    'lunes': 'Lun', 'lun': 'Lun',
-    'martes': 'Mar', 'mar': 'Mar',
-    'miercoles': 'Mie', 'mie': 'Mie', 'miércoles': 'Mie',
-    'jueves': 'Jue', 'jue': 'Jue',
-    'viernes': 'Vie', 'vie': 'Vie',
-    'sabado': 'Sab', 'sab': 'Sab', 'sábado': 'Sab',
-    'domingo': 'Dom', 'dom': 'Dom',
-  };
-  return map[lower] || dayName;
-}
-
-/**
- * Helper para buscar una semana en el array de semanas del plan
- * Funciona con TODAS las metodologías (Calistenia, Heavy Duty, etc.)
- * Soporta diferentes formatos: semana, numero, week, week_number
- * @param {Array} semanas - Array de semanas del plan
- * @param {Number} weekNumber - Número de semana a buscar
- * @returns {Object|undefined} - Semana encontrada o undefined
- */
-function findWeekInPlan(semanas, weekNumber) {
-  if (!Array.isArray(semanas) || !weekNumber) return undefined;
-
-  const targetWeek = Number(weekNumber);
-  if (isNaN(targetWeek)) return undefined;
-
-  return semanas.find(s => {
-    // Intentar múltiples campos para máxima compatibilidad
-    const weekValue = s.semana || s.numero || s.week || s.week_number;
-    return Number(weekValue) === targetWeek;
-  });
-}
-
-/**
- * Normalizar días en estructura de plan
- */
-function normalizePlanDays(planDataJson) {
-  try {
-    if (!planDataJson || !Array.isArray(planDataJson.semanas)) return planDataJson;
-    return {
-      ...planDataJson,
-      semanas: planDataJson.semanas.map((sem) => ({
-        ...sem,
-        sesiones: Array.isArray(sem.sesiones)
-          ? sem.sesiones.map((ses) => ({
-              ...ses,
-              dia: normalizeDayAbbrev(ses.dia),
-            }))
-          : sem.sesiones,
-      })),
-    };
-  } catch (e) {
-    console.error('No se pudo normalizar días del plan', e);
-    return planDataJson;
-  }
-}
 
 /**
  * 🎯 FASE 3: Función DESHABILITADA - Las sesiones se crean bajo demanda

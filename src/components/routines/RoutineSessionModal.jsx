@@ -390,12 +390,14 @@ export default function RoutineSessionModal({
         }
       }
 
-      // Cerrar modal y mostrar toast
+      // Cerrar modal de tracking
       setShowSeriesTracking(false);
-      setShowExerciseToast(true);
 
-      // Si completó todas las series, cerrar ejercicio pero mantener un ciclo de descanso antes del siguiente
-      if (trackingData.set_number >= progressState.seriesTotal) {
+      // Si completó todas las series, no avanzar mientras el descanso siga activo
+      const isLastSet = trackingData.set_number >= progressState.seriesTotal;
+      const restPending = timerState.phase === 'rest' && timerState.timeLeft > 0;
+
+      if (isLastSet && !restPending) {
         const result = progressState.actions.complete(
           timerState.seriesTotal,
           timerState.spent,
@@ -403,13 +405,18 @@ export default function RoutineSessionModal({
         );
 
         if (result.hasNext) {
-          // Preparar siguiente ejercicio pero dejar un descanso activo
+          // Preparar siguiente ejercicio en estado listo (sin disparar descanso automatico)
           timerState.actions.prepareNext();
-          timerState.actions.forceRest();
-          console.log('✅ Ejercicio completado, iniciando descanso antes del siguiente', result.nextIndex);
+          setShowExerciseToast(true);
+          console.log('✅ Ejercicio completado, avanzando a ejercicio', result.nextIndex);
         } else {
           setShowEndModal(true);
         }
+      } else if (isLastSet) {
+        // Mantener contador de descanso para cerrar ejercicio al llegar a 0
+        console.log('✅ Ultima serie registrada, esperando fin de descanso para completar ejercicio');
+      } else {
+        setShowExerciseToast(true);
       }
 
     } catch (error) {

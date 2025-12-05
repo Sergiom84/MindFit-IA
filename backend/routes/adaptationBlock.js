@@ -859,4 +859,127 @@ router.post('/technique-flag', authenticateToken, async (req, res) => {
   }
 });
 
+// ============================================
+// GET /api/adaptation/problem-exercises
+// ============================================
+/**
+ * Obtiene ejercicios con problemas basándose en RIR bajo
+ * Muestra ejercicios donde el usuario llega muy cerca del fallo (RIR < 2)
+ * o muy lejos (RIR > 4), junto con recomendaciones
+ */
+router.get('/problem-exercises', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+
+    console.log('🔍 [ADAPTACIÓN] Buscando ejercicios problemáticos para usuario:', userId);
+
+    // Obtener estadísticas de RIR por ejercicio
+    const result = await pool.query(`
+      SELECT
+        exercise_name,
+        AVG(rir_reported) as avg_rir,
+        MIN(rir_reported) as min_rir,
+        MAX(rir_reported) as max_rir,
+        COUNT(*) as sets_count,
+        AVG(weight_used) as avg_weight,
+        MAX(weight_used) as max_weight,
+        -- Clasificación del problema
+        CASE
+          WHEN AVG(rir_reported) < 1 THEN 'critical'    -- Llegando al fallo
+          WHEN AVG(rir_reported) < 2 THEN 'warning'     -- Muy cerca del fallo
+          WHEN AVG(rir_reported) > 4 THEN 'too_easy'    -- Demasiado fácil
+          ELSE 'ok'
+        END as status,
+        -- Recomendación
+        CASE
+          WHEN AVG(rir_reported) < 1 THEN 'Reduce el peso un 10-15%. Debes terminar con 3-4 reps en reserva.'
+          WHEN AVG(rir_reported) < 2 THEN 'Reduce el peso un 5-10%. El RIR objetivo es 3-4 en adaptación.'
+          WHEN AVG(rir_reported) > 4 THEN 'Aumenta el peso un 5-10%. El ejercicio es demasiado ligero.'
+          ELSE 'Mantén el peso actual. Buen control del RIR.'
+        END as recommendation
+      FROM app.hypertrophy_set_logs
+      WHERE user_id = $1
+        AND created_at > NOW() - INTERVAL '30 days'
+        AND rir_reported IS NOT NULL
+      GROUP BY exercise_name
+      HAVING COUNT(*) >= 2
+      ORDER BY
+        CASE
+          WHEN AVG(rir_reported) < 2 THEN 0  -- Críticos primero
+          WHEN AVG(rir_reported) > 4 THEN 1  -- Fáciles después
+          ELSE 2                              -- OK al final
+        END,
+        AVG(rir_reported) ASC
+    `, [userId]);
+
+    // Separar por categoría
+    const problemExercises = result.rows.filter(r => r.status === 'critical' || r.status === 'warning');
+    const easyExercises = result.rows.filter(r => r.status === 'too_easy');
+    const okExercises = result.rows.filter(r => r.status === 'ok');
+
+    // Calcular resumen
+    const totalExercises = result.rows.length;
+    const criticalCount = result.rows.filter(r => r.status === 'critical').length;
+    const warningCount = result.rows.filter(r => r.status === 'warning').length;
+    const avgRirAll = result.rows.length > 0
+      ? result.rows.reduce((acc, r) => acc + parseFloat(r.avg_rir), 0) / result.rows.length
+      : null;
+
+    console.log(`📊 [ADAPTACIÓN] Análisis: ${problemExercises.length} problemas, ${easyExercises.length} fáciles, ${okExercises.length} OK`);
+
+    res.json({
+      success: true,
+      summary: {
+        totalExercises,
+        criticalCount,
+        warningCount,
+        easyCount: easyExercises.length,
+        okCount: okExercises.length,
+        avgRirAll: avgRirAll ? parseFloat(avgRirAll.toFixed(2)) : null,
+        rirTarget: '3-4',
+        overallStatus: criticalCount > 0 ? 'needs_attention' :
+                       warningCount > 2 ? 'minor_issues' : 'good'
+      },
+      exercises: {
+        problems: problemExercises.map(ex => ({
+          name: ex.exercise_name,
+          avgRir: parseFloat(parseFloat(ex.avg_rir).toFixed(2)),
+          minRir: parseFloat(ex.min_rir),
+          maxRir: parseFloat(ex.max_rir),
+          setsCount: parseInt(ex.sets_count),
+          avgWeight: parseFloat(parseFloat(ex.avg_weight).toFixed(1)),
+          status: ex.status,
+          recommendation: ex.recommendation
+        })),
+        tooEasy: easyExercises.map(ex => ({
+          name: ex.exercise_name,
+          avgRir: parseFloat(parseFloat(ex.avg_rir).toFixed(2)),
+          setsCount: parseInt(ex.sets_count),
+          avgWeight: parseFloat(parseFloat(ex.avg_weight).toFixed(1)),
+          recommendation: ex.recommendation
+        })),
+        ok: okExercises.map(ex => ({
+          name: ex.exercise_name,
+          avgRir: parseFloat(parseFloat(ex.avg_rir).toFixed(2)),
+          setsCount: parseInt(ex.sets_count),
+          avgWeight: parseFloat(parseFloat(ex.avg_weight).toFixed(1))
+        }))
+      },
+      message: criticalCount > 0
+        ? `⚠️ Tienes ${criticalCount} ejercicio(s) donde llegas muy cerca del fallo. Reduce el peso para mantener RIR 3-4.`
+        : warningCount > 0
+          ? `📊 Tienes ${warningCount} ejercicio(s) con RIR bajo. Considera reducir un poco el peso.`
+          : '✅ Tu control del RIR es adecuado. ¡Sigue así!'
+    });
+
+  } catch (error) {
+    console.error('❌ [ADAPTACIÓN] Error obteniendo ejercicios problemáticos:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error obteniendo análisis de ejercicios',
+      details: error.message
+    });
+  }
+});
+
 export default router;

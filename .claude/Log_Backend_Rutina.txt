@@ -1,0 +1,1021 @@
+🎯 today-status NUEVA LÓGICA INTELIGENTE: {
+  session_status: 'completed',
+  canResume: false,
+  decision: 'COMPLETADO ✅',
+  totalExercises: 5,
+  completedExercises: 5,
+  skippedExercises: 0,
+  cancelledExercises: 0,
+  inProgressExercises: 0,
+  pendingExercises: 0,
+  isFinished: true,
+  isCompleteSuccess: true,
+  allProcessed: true,
+  canRetry: false
+}
+🏠 CASA FIX DEBUG: {
+  planExercisesLength: 5,
+  exercisesQueryLength: 5,
+  exercisesQuerySample: {
+    exercise_order: 0,
+    exercise_name: 'Press inclinado en máquina',
+    series_total: '3',
+    series_completed: 3,
+    repeticiones: '8-12',
+    descanso_seg: 75,
+    intensidad: null,
+    tempo: null,
+    status: 'completed',
+    time_spent_seconds: 120,
+    notas: 'Trabajo de pectoral superior, empujando el peso desde posición inclinada. - SEMANA DE CALIBRACIÓN: Prioriza técnica sobre carga',        
+    sentiment: null,
+    comment: null
+  }
+}
+🔍 today-status RESPONSE DATA: {
+  session: {
+    id: 139,
+    session_status: 'completed',
+    canResume: false,
+    session_started_at: 2025-11-24T07:30:11.128Z,
+    week_number: '1',
+    day_name: 'Lun'
+  },
+  summary: {
+    total: 5,
+    completed: 5,
+    skipped: 0,
+    cancelled: 0,
+    in_progress: 0,
+    pending: 0,
+    isFinished: true,
+    isComplete: true,
+    allProcessed: true,
+    canRetry: false
+  },
+  exerciseCount: 5,
+  exercisesWithProgress: 5,
+  exerciseStatuses: [
+    {
+      order: 0,
+      status: 'completed',
+      name: 'Press inclinado en máquina'
+    },
+    {
+      order: 1,
+      status: 'completed',
+      name: 'Press de pecho en máquina'
+    },
+    {
+      order: 2,
+      status: 'completed',
+      name: 'Tríceps en máquina cerrada'
+    },
+    {
+      order: 3,
+      status: 'completed',
+      name: 'Aperturas en máquina (Pec Deck)'
+    },
+    {
+      order: 4,
+      status: 'completed',
+      name: 'Extensión de tríceps con cuerda'
+    }
+  ]
+}
+📥 GET /api/routines/sessions/today-status - 2025-11-28T12:58:15.000Z
+📥 GET /api/routines/sessions/today-status?methodology_plan_id=155&week_number=1&day_name=Lun - 2025-11-28T12:58:15.814Z
+🧭 today-status query: { methodology_plan_id: '155', week_number: '1', day_name: 'Lun' }
+📥 GET /api/routines/sessions/139/progress - 2025-11-28T12:58:15.000Z
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Lun',
+  found: true,
+  session_id: 139
+}
+🔍 Total real de ejercicios: { totalFromPlan: 5, planDayExists: true, plannedCount: 5 }
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Vie',
+  found: false,
+  session_id: undefined
+}
+🔍 Ejercicios desde workout_schedule: { fullDayName: 'Lunes', found: true, exerciseCount: 5 }
+📥 GET /api/routines/sessions/today-status - 2025-11-28T12:58:16.000Z
+📥 GET /api/routines/sessions/today-status?methodology_plan_id=155&week_number=1&day_name=Vie - 2025-11-28T12:58:16.414Z
+🧭 today-status query: { methodology_plan_id: '155', week_number: '1', day_name: 'Vie' }
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Mar',
+  found: false,
+  session_id: undefined
+}
+[calendar-schedule] Buscando sesiones en workout_schedule para plan 155, user 21
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Jue',
+  found: false,
+  session_id: undefined
+}
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Mie',
+  found: true,
+  session_id: 140
+}
+📥 GET /api/routines/sessions/today-status - 2025-11-28T12:58:16.000Z
+📥 GET /api/routines/sessions/today-status?methodology_plan_id=155&week_number=1&day_name=Mar - 2025-11-28T12:58:16.441Z
+🧭 today-status query: { methodology_plan_id: '155', week_number: '1', day_name: 'Mar' }
+📥 GET /api/routines/sessions/today-status - 2025-11-28T12:58:16.000Z
+📥 GET /api/routines/sessions/today-status?methodology_plan_id=155&week_number=1&day_name=Jue - 2025-11-28T12:58:16.444Z
+🧭 today-status query: { methodology_plan_id: '155', week_number: '1', day_name: 'Jue' }
+📊 Contadores de ejercicios: {
+  totalExercises: 5,
+  exercisesWithProgress: 5,
+  completedExercises: 5,
+  pendingExercises: 0,
+  inProgressExercises: 0,
+  skippedExercises: 0,
+  cancelledExercises: 0,
+  suma: 5
+}
+🎯 today-status NUEVA LÓGICA INTELIGENTE: {
+  session_status: 'completed',
+  canResume: false,
+  decision: 'COMPLETADO ✅',
+  totalExercises: 5,
+  completedExercises: 5,
+  skippedExercises: 0,
+  cancelledExercises: 0,
+  inProgressExercises: 0,
+  pendingExercises: 0,
+  isFinished: true,
+  isCompleteSuccess: true,
+  allProcessed: true,
+  canRetry: false
+}
+🏠 CASA FIX DEBUG: {
+  planExercisesLength: 5,
+  exercisesQueryLength: 5,
+  exercisesQuerySample: {
+    exercise_order: 0,
+    exercise_name: 'Press inclinado en máquina',
+    series_total: '3',
+    series_completed: 3,
+    repeticiones: '8-12',
+    descanso_seg: 75,
+    intensidad: null,
+    tempo: null,
+    status: 'completed',
+    time_spent_seconds: 120,
+    notas: 'Trabajo de pectoral superior, empujando el peso desde posición inclinada. - SEMANA DE CALIBRACIÓN: Prioriza técnica sobre carga',        
+    sentiment: null,
+    comment: null
+  }
+}
+🔍 today-status RESPONSE DATA: {
+  session: {
+    id: 139,
+    session_status: 'completed',
+    canResume: false,
+    session_started_at: 2025-11-24T07:30:11.128Z,
+    week_number: '1',
+    day_name: 'Lun'
+  },
+  summary: {
+    total: 5,
+    completed: 5,
+    skipped: 0,
+    cancelled: 0,
+    in_progress: 0,
+    pending: 0,
+    isFinished: true,
+    isComplete: true,
+    allProcessed: true,
+    canRetry: false
+  },
+  exerciseCount: 5,
+  exercisesWithProgress: 5,
+  exerciseStatuses: [
+    {
+      order: 0,
+      status: 'completed',
+      name: 'Press inclinado en máquina'
+    },
+    {
+      order: 1,
+      status: 'completed',
+      name: 'Press de pecho en máquina'
+    },
+    {
+      order: 2,
+      status: 'completed',
+      name: 'Tríceps en máquina cerrada'
+    },
+    {
+      order: 3,
+      status: 'completed',
+      name: 'Aperturas en máquina (Pec Deck)'
+    },
+    {
+      order: 4,
+      status: 'completed',
+      name: 'Extensión de tríceps con cuerda'
+    }
+  ]
+}
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Vie',
+  found: false,
+  session_id: undefined
+}
+📥 GET /api/routines/sessions/139/progress - 2025-11-28T12:58:16.000Z
+[calendar-schedule] Encontradas 55 sesiones en workout_schedule
+[calendar-schedule] Plan actualizado con días redistribuidos: {
+  planId: '155',
+  totalWeeks: 11,
+  firstWeek: [ 'Lun', 'Mar', 'Mie', 'Jue', 'Vie' ]
+}
+🔍 Total real de ejercicios: { totalFromPlan: 5, planDayExists: true, plannedCount: 5 }
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Mar',
+  found: false,
+  session_id: undefined
+}
+📥 GET /api/routines/calendar-schedule/155 - 2025-11-28T12:58:16.000Z
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Jue',
+  found: false,
+  session_id: undefined
+}
+📥 GET /api/routines/sessions/today-status - 2025-11-28T12:58:16.000Z
+📥 GET /api/routines/sessions/today-status?methodology_plan_id=155&week_number=1&day_name=Lun - 2025-11-28T12:58:16.544Z
+🧭 today-status query: { methodology_plan_id: '155', week_number: '1', day_name: 'Lun' }
+📥 GET /api/routines/sessions/today-status - 2025-11-28T12:58:16.000Z
+📥 GET /api/routines/sessions/today-status?methodology_plan_id=155&week_number=1&day_name=Mar - 2025-11-28T12:58:16.546Z
+🧭 today-status query: { methodology_plan_id: '155', week_number: '1', day_name: 'Mar' }
+📥 GET /api/routines/sessions/today-status - 2025-11-28T12:58:16.000Z
+📥 GET /api/routines/sessions/today-status?methodology_plan_id=155&week_number=1&day_name=Jue - 2025-11-28T12:58:16.548Z
+🧭 today-status query: { methodology_plan_id: '155', week_number: '1', day_name: 'Jue' }
+📥 GET /api/routines/sessions/today-status - 2025-11-28T12:58:16.000Z
+📥 GET /api/routines/sessions/today-status?methodology_plan_id=155&week_number=1&day_name=Vie - 2025-11-28T12:58:16.550Z
+🧭 today-status query: { methodology_plan_id: '155', week_number: '1', day_name: 'Vie' }
+🔍 Ejercicios desde workout_schedule: { fullDayName: 'Miércoles', found: false, exerciseCount: 0 }
+⚠️ workout_schedule vacío, obteniendo ejercicios desde plan_data...
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Mar',
+  found: false,
+  session_id: undefined
+}
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Lun',
+  found: true,
+  session_id: 139
+}
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Jue',
+  found: false,
+  session_id: undefined
+}
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Vie',
+  found: false,
+  session_id: undefined
+}
+🔍 Total real de ejercicios: { totalFromPlan: 5, planDayExists: true, plannedCount: 5 }
+[calendar-schedule] Buscando sesiones en workout_schedule para plan 155, user 21
+🔍 Ejercicios desde workout_schedule: { fullDayName: 'Lunes', found: true, exerciseCount: 5 }
+[calendar-schedule] Encontradas 55 sesiones en workout_schedule
+[calendar-schedule] Plan actualizado con días redistribuidos: {
+  planId: '155',
+  totalWeeks: 11,
+  firstWeek: [ 'Lun', 'Mar', 'Mie', 'Jue', 'Vie' ]
+}
+📥 GET /api/routines/sessions/today-status - 2025-11-28T12:58:16.000Z
+📥 GET /api/routines/sessions/today-status?methodology_plan_id=155&week_number=1&day_name=Mar - 2025-11-28T12:58:16.918Z
+🧭 today-status query: { methodology_plan_id: '155', week_number: '1', day_name: 'Mar' }
+📥 GET /api/routines/sessions/today-status - 2025-11-28T12:58:16.000Z
+📥 GET /api/routines/sessions/today-status?methodology_plan_id=155&week_number=1&day_name=Vie - 2025-11-28T12:58:16.920Z
+🧭 today-status query: { methodology_plan_id: '155', week_number: '1', day_name: 'Vie' }
+📥 GET /api/routines/sessions/today-status - 2025-11-28T12:58:16.000Z
+📥 GET /api/routines/sessions/today-status?methodology_plan_id=155&week_number=1&day_name=Jue - 2025-11-28T12:58:16.922Z
+🧭 today-status query: { methodology_plan_id: '155', week_number: '1', day_name: 'Jue' }
+📊 Contadores de ejercicios: {
+  totalExercises: 5,
+  exercisesWithProgress: 5,
+  completedExercises: 5,
+  pendingExercises: 0,
+  inProgressExercises: 0,
+  skippedExercises: 0,
+  cancelledExercises: 0,
+  suma: 5
+}
+🎯 today-status NUEVA LÓGICA INTELIGENTE: {
+  session_status: 'completed',
+  canResume: false,
+  decision: 'COMPLETADO ✅',
+  totalExercises: 5,
+  completedExercises: 5,
+  skippedExercises: 0,
+  cancelledExercises: 0,
+  inProgressExercises: 0,
+  pendingExercises: 0,
+  isFinished: true,
+  isCompleteSuccess: true,
+  allProcessed: true,
+  canRetry: false
+}
+🏠 CASA FIX DEBUG: {
+  planExercisesLength: 5,
+  exercisesQueryLength: 5,
+  exercisesQuerySample: {
+    exercise_order: 0,
+    exercise_name: 'Press inclinado en máquina',
+    series_total: '3',
+    series_completed: 3,
+    repeticiones: '8-12',
+    descanso_seg: 75,
+    intensidad: null,
+    tempo: null,
+    status: 'completed',
+    time_spent_seconds: 120,
+    notas: 'Trabajo de pectoral superior, empujando el peso desde posición inclinada. - SEMANA DE CALIBRACIÓN: Prioriza técnica sobre carga',        
+    sentiment: null,
+    comment: null
+  }
+}
+🔍 today-status RESPONSE DATA: {
+  session: {
+    id: 139,
+    session_status: 'completed',
+    canResume: false,
+    session_started_at: 2025-11-24T07:30:11.128Z,
+    week_number: '1',
+    day_name: 'Lun'
+  },
+  summary: {
+    total: 5,
+    completed: 5,
+    skipped: 0,
+    cancelled: 0,
+    in_progress: 0,
+    pending: 0,
+    isFinished: true,
+    isComplete: true,
+    allProcessed: true,
+    canRetry: false
+  },
+  exerciseCount: 5,
+  exercisesWithProgress: 5,
+  exerciseStatuses: [
+    {
+      order: 0,
+      status: 'completed',
+      name: 'Press inclinado en máquina'
+    },
+    {
+      order: 1,
+      status: 'completed',
+      name: 'Press de pecho en máquina'
+    },
+    {
+      order: 2,
+      status: 'completed',
+      name: 'Tríceps en máquina cerrada'
+    },
+    {
+      order: 3,
+      status: 'completed',
+      name: 'Aperturas en máquina (Pec Deck)'
+    },
+    {
+      order: 4,
+      status: 'completed',
+      name: 'Extensión de tríceps con cuerda'
+    }
+  ]
+}
+📥 GET /api/routines/sessions/today-status - 2025-11-28T12:58:16.000Z
+📥 GET /api/routines/sessions/today-status?methodology_plan_id=155&week_number=1&day_name=Lun - 2025-11-28T12:58:16.954Z
+🧭 today-status query: { methodology_plan_id: '155', week_number: '1', day_name: 'Lun' }
+📥 GET /api/routines/sessions/139/progress - 2025-11-28T12:58:16.000Z
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Vie',
+  found: false,
+  session_id: undefined
+}
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Mar',
+  found: false,
+  session_id: undefined
+}
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Jue',
+  found: false,
+  session_id: undefined
+}
+✅ Ejercicios recuperados desde plan_data: 5
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Lun',
+  found: true,
+  session_id: 139
+}
+📊 Contadores de ejercicios: {
+  totalExercises: 5,
+  exercisesWithProgress: 5,
+  completedExercises: 0,
+  pendingExercises: 0,
+  inProgressExercises: 0,
+  skippedExercises: 2,
+  cancelledExercises: 3,
+  suma: 5
+}
+🎯 today-status NUEVA LÓGICA INTELIGENTE: {
+  session_status: 'cancelled',
+  canResume: true,
+  decision: 'REANUDAR ⚠️',
+  totalExercises: 5,
+  completedExercises: 0,
+  skippedExercises: 2,
+  cancelledExercises: 3,
+  inProgressExercises: 0,
+  pendingExercises: 0,
+  isFinished: false,
+  isCompleteSuccess: false,
+  allProcessed: true,
+  canRetry: true
+}
+🏠 CASA FIX DEBUG: {
+  planExercisesLength: 5,
+  exercisesQueryLength: 5,
+  exercisesQuerySample: {
+    exercise_order: 0,
+    exercise_name: 'Sentadilla en prensa 45°',
+    series_total: '3',
+    series_completed: 0,
+    repeticiones: '8-12',
+    descanso_seg: 75,
+    intensidad: null,
+    tempo: null,
+    status: 'skipped',
+    time_spent_seconds: 0,
+    notas: 'Empuje de piernas en prensa inclinada, trabajando cuádriceps y glúteos. - SEMANA DE CALIBRACIÓN: Prioriza técnica sobre carga',
+    sentiment: 'like',
+    comment: null
+  }
+}
+🔍 today-status RESPONSE DATA: {
+  session: {
+    id: 140,
+    session_status: 'cancelled',
+    canResume: true,
+    session_started_at: 2025-11-26T20:37:47.627Z,
+    week_number: '1',
+    day_name: 'Mié'
+  },
+  summary: {
+    total: 5,
+    completed: 0,
+    skipped: 2,
+    cancelled: 3,
+    in_progress: 0,
+    pending: 0,
+    isFinished: false,
+    isComplete: false,
+    allProcessed: true,
+    canRetry: true
+  },
+  exerciseCount: 5,
+  exercisesWithProgress: 5,
+  exerciseStatuses: [
+    { order: 0, status: 'skipped', name: 'Sentadilla en prensa 45°' },
+    {
+      order: 1,
+      status: 'cancelled',
+      name: 'Sentadilla Goblet (control técnico)'
+    },
+    {
+      order: 2,
+      status: 'cancelled',
+      name: 'Sentadilla búlgara con mancuernas'
+    },
+    {
+      order: 3,
+      status: 'cancelled',
+      name: 'Extensión de rodilla unilateral en máquina'
+    },
+    {
+      order: 4,
+      status: 'skipped',
+      name: 'Extensión de cuádriceps (Leg Extension)'
+    }
+  ]
+}
+📥 GET /api/routines/sessions/today-status - 2025-11-28T12:58:17.000Z
+📥 GET /api/routines/sessions/today-status?methodology_plan_id=155&week_number=1&day_name=Mi%C3%A9 - 2025-11-28T12:58:17.192Z
+🧭 today-status query: { methodology_plan_id: '155', week_number: '1', day_name: 'Mié' }
+🔍 Total real de ejercicios: { totalFromPlan: 5, planDayExists: true, plannedCount: 5 }
+📥 GET /api/routines/sessions/140/progress - 2025-11-28T12:58:17.000Z
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Mie',
+  found: true,
+  session_id: 140
+}
+🔍 Ejercicios desde workout_schedule: { fullDayName: 'Lunes', found: true, exerciseCount: 5 }
+🔍 Total real de ejercicios: { totalFromPlan: 5, planDayExists: true, plannedCount: 5 }
+📊 Contadores de ejercicios: {
+  totalExercises: 5,
+  exercisesWithProgress: 5,
+  completedExercises: 5,
+  pendingExercises: 0,
+  inProgressExercises: 0,
+  skippedExercises: 0,
+  cancelledExercises: 0,
+  suma: 5
+}
+🎯 today-status NUEVA LÓGICA INTELIGENTE: {
+  session_status: 'completed',
+  canResume: false,
+  decision: 'COMPLETADO ✅',
+  totalExercises: 5,
+  completedExercises: 5,
+  skippedExercises: 0,
+  cancelledExercises: 0,
+  inProgressExercises: 0,
+  pendingExercises: 0,
+  isFinished: true,
+  isCompleteSuccess: true,
+  allProcessed: true,
+  canRetry: false
+}
+🏠 CASA FIX DEBUG: {
+  planExercisesLength: 5,
+  exercisesQueryLength: 5,
+  exercisesQuerySample: {
+    exercise_order: 0,
+    exercise_name: 'Press inclinado en máquina',
+    series_total: '3',
+    series_completed: 3,
+    repeticiones: '8-12',
+    descanso_seg: 75,
+    intensidad: null,
+    tempo: null,
+    status: 'completed',
+    time_spent_seconds: 120,
+    notas: 'Trabajo de pectoral superior, empujando el peso desde posición inclinada. - SEMANA DE CALIBRACIÓN: Prioriza técnica sobre carga',        
+    sentiment: null,
+    comment: null
+  }
+}
+🔍 today-status RESPONSE DATA: {
+  session: {
+    id: 139,
+    session_status: 'completed',
+    canResume: false,
+    session_started_at: 2025-11-24T07:30:11.128Z,
+    week_number: '1',
+    day_name: 'Lun'
+  },
+  summary: {
+    total: 5,
+    completed: 5,
+    skipped: 0,
+    cancelled: 0,
+    in_progress: 0,
+    pending: 0,
+    isFinished: true,
+    isComplete: true,
+    allProcessed: true,
+    canRetry: false
+  },
+  exerciseCount: 5,
+  exercisesWithProgress: 5,
+  exerciseStatuses: [
+    {
+      order: 0,
+      status: 'completed',
+      name: 'Press inclinado en máquina'
+    },
+    {
+      order: 1,
+      status: 'completed',
+      name: 'Press de pecho en máquina'
+    },
+    {
+      order: 2,
+      status: 'completed',
+      name: 'Tríceps en máquina cerrada'
+    },
+    {
+      order: 3,
+      status: 'completed',
+      name: 'Aperturas en máquina (Pec Deck)'
+    },
+    {
+      order: 4,
+      status: 'completed',
+      name: 'Extensión de tríceps con cuerda'
+    }
+  ]
+}
+📥 GET /api/routines/sessions/139/progress - 2025-11-28T12:58:17.000Z
+🔍 Ejercicios desde workout_schedule: { fullDayName: 'Miércoles', found: false, exerciseCount: 0 }
+⚠️ workout_schedule vacío, obteniendo ejercicios desde plan_data...
+✅ Ejercicios recuperados desde plan_data: 5
+📊 Contadores de ejercicios: {
+  totalExercises: 5,
+  exercisesWithProgress: 5,
+  completedExercises: 0,
+  pendingExercises: 0,
+  inProgressExercises: 0,
+  skippedExercises: 2,
+  cancelledExercises: 3,
+  suma: 5
+}
+🎯 today-status NUEVA LÓGICA INTELIGENTE: {
+  session_status: 'cancelled',
+  canResume: true,
+  decision: 'REANUDAR ⚠️',
+  totalExercises: 5,
+  completedExercises: 0,
+  skippedExercises: 2,
+  cancelledExercises: 3,
+  inProgressExercises: 0,
+  pendingExercises: 0,
+  isFinished: false,
+  isCompleteSuccess: false,
+  allProcessed: true,
+  canRetry: true
+}
+🏠 CASA FIX DEBUG: {
+  planExercisesLength: 5,
+  exercisesQueryLength: 5,
+  exercisesQuerySample: {
+    exercise_order: 0,
+    exercise_name: 'Sentadilla en prensa 45°',
+    series_total: '3',
+    series_completed: 0,
+    repeticiones: '8-12',
+    descanso_seg: 75,
+    intensidad: null,
+    tempo: null,
+    status: 'skipped',
+    time_spent_seconds: 0,
+    notas: 'Empuje de piernas en prensa inclinada, trabajando cuádriceps y glúteos. - SEMANA DE CALIBRACIÓN: Prioriza técnica sobre carga',
+    sentiment: 'like',
+    comment: null
+  }
+}
+🔍 today-status RESPONSE DATA: {
+  session: {
+    id: 140,
+    session_status: 'cancelled',
+    canResume: true,
+    session_started_at: 2025-11-26T20:37:47.627Z,
+    week_number: '1',
+    day_name: 'Mié'
+  },
+  summary: {
+    total: 5,
+    completed: 0,
+    skipped: 2,
+    cancelled: 3,
+    in_progress: 0,
+    pending: 0,
+    isFinished: false,
+    isComplete: false,
+    allProcessed: true,
+    canRetry: true
+  },
+  exerciseCount: 5,
+  exercisesWithProgress: 5,
+  exerciseStatuses: [
+    { order: 0, status: 'skipped', name: 'Sentadilla en prensa 45°' },
+    {
+      order: 1,
+      status: 'cancelled',
+      name: 'Sentadilla Goblet (control técnico)'
+    },
+    {
+      order: 2,
+      status: 'cancelled',
+      name: 'Sentadilla búlgara con mancuernas'
+    },
+    {
+      order: 3,
+      status: 'cancelled',
+      name: 'Extensión de rodilla unilateral en máquina'
+    },
+    {
+      order: 4,
+      status: 'skipped',
+      name: 'Extensión de cuádriceps (Leg Extension)'
+    }
+  ]
+}
+📥 GET /api/routines/sessions/today-status - 2025-11-28T12:58:18.000Z
+📥 GET /api/routines/sessions/today-status?methodology_plan_id=155&week_number=1&day_name=Mi%C3%A9 - 2025-11-28T12:58:18.055Z
+🧭 today-status query: { methodology_plan_id: '155', week_number: '1', day_name: 'Mié' }
+📥 GET /api/routines/sessions/140/progress - 2025-11-28T12:58:18.000Z
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Mie',
+  found: true,
+  session_id: 140
+}
+🔍 Total real de ejercicios: { totalFromPlan: 5, planDayExists: true, plannedCount: 5 }
+🔍 Ejercicios desde workout_schedule: { fullDayName: 'Miércoles', found: false, exerciseCount: 0 }
+⚠️ workout_schedule vacío, obteniendo ejercicios desde plan_data...
+✅ Ejercicios recuperados desde plan_data: 5
+📊 Contadores de ejercicios: {
+  totalExercises: 5,
+  exercisesWithProgress: 5,
+  completedExercises: 0,
+  pendingExercises: 0,
+  inProgressExercises: 0,
+  skippedExercises: 2,
+  cancelledExercises: 3,
+  suma: 5
+}
+🎯 today-status NUEVA LÓGICA INTELIGENTE: {
+  session_status: 'cancelled',
+  canResume: true,
+  decision: 'REANUDAR ⚠️',
+  totalExercises: 5,
+  completedExercises: 0,
+  skippedExercises: 2,
+  cancelledExercises: 3,
+  inProgressExercises: 0,
+  pendingExercises: 0,
+  isFinished: false,
+  isCompleteSuccess: false,
+  allProcessed: true,
+  canRetry: true
+}
+🏠 CASA FIX DEBUG: {
+  planExercisesLength: 5,
+  exercisesQueryLength: 5,
+  exercisesQuerySample: {
+    exercise_order: 0,
+    exercise_name: 'Sentadilla en prensa 45°',
+    series_total: '3',
+    series_completed: 0,
+    repeticiones: '8-12',
+    descanso_seg: 75,
+    intensidad: null,
+    tempo: null,
+    status: 'skipped',
+    time_spent_seconds: 0,
+    notas: 'Empuje de piernas en prensa inclinada, trabajando cuádriceps y glúteos. - SEMANA DE CALIBRACIÓN: Prioriza técnica sobre carga',
+    sentiment: 'like',
+    comment: null
+  }
+}
+🔍 today-status RESPONSE DATA: {
+  session: {
+    id: 140,
+    session_status: 'cancelled',
+    canResume: true,
+    session_started_at: 2025-11-26T20:37:47.627Z,
+    week_number: '1',
+    day_name: 'Mié'
+  },
+  summary: {
+    total: 5,
+    completed: 0,
+    skipped: 2,
+    cancelled: 3,
+    in_progress: 0,
+    pending: 0,
+    isFinished: false,
+    isComplete: false,
+    allProcessed: true,
+    canRetry: true
+  },
+  exerciseCount: 5,
+  exercisesWithProgress: 5,
+  exerciseStatuses: [
+    { order: 0, status: 'skipped', name: 'Sentadilla en prensa 45°' },
+    {
+      order: 1,
+      status: 'cancelled',
+      name: 'Sentadilla Goblet (control técnico)'
+    },
+    {
+      order: 2,
+      status: 'cancelled',
+      name: 'Sentadilla búlgara con mancuernas'
+    },
+    {
+      order: 3,
+      status: 'cancelled',
+      name: 'Extensión de rodilla unilateral en máquina'
+    },
+    {
+      order: 4,
+      status: 'skipped',
+      name: 'Extensión de cuádriceps (Leg Extension)'
+    }
+  ]
+}
+📥 GET /api/routines/sessions/today-status - 2025-11-28T12:58:18.000Z
+📥 GET /api/routines/sessions/today-status?methodology_plan_id=155&week_number=1&day_name=Mi%C3%A9 - 2025-11-28T12:58:18.975Z
+🧭 today-status query: { methodology_plan_id: '155', week_number: '1', day_name: 'Mié' }
+📥 GET /api/routines/sessions/140/progress - 2025-11-28T12:58:18.000Z
+🔍 Búsqueda de sesión: {
+  userId: 21,
+  methodology_plan_id: 155,
+  day_id_received: null,
+  week_number: '1',
+  day_name: 'Mie',
+  found: true,
+  session_id: 140
+}
+🔍 Total real de ejercicios: { totalFromPlan: 5, planDayExists: true, plannedCount: 5 }
+🔍 Ejercicios desde workout_schedule: { fullDayName: 'Miércoles', found: false, exerciseCount: 0 }
+⚠️ workout_schedule vacío, obteniendo ejercicios desde plan_data...
+✅ Ejercicios recuperados desde plan_data: 5
+📊 Contadores de ejercicios: {
+  totalExercises: 5,
+  exercisesWithProgress: 5,
+  completedExercises: 0,
+  pendingExercises: 0,
+  inProgressExercises: 0,
+  skippedExercises: 2,
+  cancelledExercises: 3,
+  suma: 5
+}
+🎯 today-status NUEVA LÓGICA INTELIGENTE: {
+  session_status: 'cancelled',
+  canResume: true,
+  decision: 'REANUDAR ⚠️',
+  totalExercises: 5,
+  completedExercises: 0,
+  skippedExercises: 2,
+  cancelledExercises: 3,
+  inProgressExercises: 0,
+  pendingExercises: 0,
+  isFinished: false,
+  isCompleteSuccess: false,
+  allProcessed: true,
+  canRetry: true
+}
+🏠 CASA FIX DEBUG: {
+  planExercisesLength: 5,
+  exercisesQueryLength: 5,
+  exercisesQuerySample: {
+    exercise_order: 0,
+    exercise_name: 'Sentadilla en prensa 45°',
+    series_total: '3',
+    series_completed: 0,
+    repeticiones: '8-12',
+    descanso_seg: 75,
+    intensidad: null,
+    tempo: null,
+    status: 'skipped',
+    time_spent_seconds: 0,
+    notas: 'Empuje de piernas en prensa inclinada, trabajando cuádriceps y glúteos. - SEMANA DE CALIBRACIÓN: Prioriza técnica sobre carga',
+    sentiment: 'like',
+    comment: null
+  }
+}
+🔍 today-status RESPONSE DATA: {
+  session: {
+    id: 140,
+    session_status: 'cancelled',
+    canResume: true,
+    session_started_at: 2025-11-26T20:37:47.627Z,
+    week_number: '1',
+    day_name: 'Mié'
+  },
+  summary: {
+    total: 5,
+    completed: 0,
+    skipped: 2,
+    cancelled: 3,
+    in_progress: 0,
+    pending: 0,
+    isFinished: false,
+    isComplete: false,
+    allProcessed: true,
+    canRetry: true
+  },
+  exerciseCount: 5,
+  exercisesWithProgress: 5,
+  exerciseStatuses: [
+    { order: 0, status: 'skipped', name: 'Sentadilla en prensa 45°' },
+    {
+      order: 1,
+      status: 'cancelled',
+      name: 'Sentadilla Goblet (control técnico)'
+    },
+    {
+      order: 2,
+      status: 'cancelled',
+      name: 'Sentadilla búlgara con mancuernas'
+    },
+    {
+      order: 3,
+      status: 'cancelled',
+      name: 'Extensión de rodilla unilateral en máquina'
+    },
+    {
+      order: 4,
+      status: 'skipped',
+      name: 'Extensión de cuádriceps (Leg Extension)'
+    }
+  ]
+}
+📥 GET /api/routines/sessions/140/progress - 2025-11-28T12:58:19.000Z
+📥 GET /api/users/21 - 2025-11-28T12:58:21.000Z
+📥 GET /api/adaptation/progress - 2025-11-28T12:58:21.000Z
+📊 [ADAPTACIÓN] Obteniendo progreso para usuario: 21
+📥 GET /api/training-session/today-status - 2025-11-28T12:58:21.000Z
+📥 GET /api/hipertrofiav2/priority-status/21 - 2025-11-28T12:58:21.000Z
+🔎 [PRIORITY] Consultando estado para usuario 21
+📥 GET /api/users/21 - 2025-11-28T12:58:21.000Z
+📥 GET /api/training-session/today-status - 2025-11-28T12:58:21.000Z
+📥 GET /api/adaptation/progress - 2025-11-28T12:58:22.000Z
+📊 [ADAPTACIÓN] Obteniendo progreso para usuario: 21
+📥 GET /api/api/routines/plan-config/155 - 2025-11-28T12:58:22.000Z
+📥 GET /api/hipertrofiav2/priority-status/21 - 2025-11-28T12:58:22.000Z
+🔎 [PRIORITY] Consultando estado para usuario 21
+📥 GET /api/api/routines/plan-config/155 - 2025-11-28T12:58:22.000Z
+📥 HEAD /api/health - 2025-11-28T12:58:22.000Z
+[SessionMaintenance] Ejecutando limpieza inicial...
+[SessionMaintenance] Iniciando mantenimiento de sesiones...
+Session maintenance executed: Mantenimiento completado: 0 sesiones expiradas, 0 inactivas, 0 total limpiadas
+[SessionMaintenance] Completado: Mantenimiento completado: 0 sesiones expiradas, 0 inactivas, 0 total limpiadas
+[SessionMaintenance] Estadísticas del día:
+  - Sesiones activas: 2
+  - Sesiones inactivas: 1
+  - Usuarios únicos activos: 1
+  - Logins hoy: 3
+  - Timeouts hoy: 0
+  - Duración promedio de sesión: 2 minutos

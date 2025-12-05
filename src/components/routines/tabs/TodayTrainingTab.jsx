@@ -8,8 +8,9 @@
  * ✅ Sincronización automática
  * ✅ Estado persistente entre dispositivos
  * ✅ PROBLEMA DE HOOKS RESUELTO - Sin returns tempranos problemáticos
+ * ✅ REFACTORIZADO: Helpers extraídos a utils/training
  *
- * @version 3.0.0 - Consolidación Final
+ * @version 3.1.0 - Refactorización con utils compartidos
  */
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -29,7 +30,7 @@ import {
 
 import RoutineSessionModal from '../RoutineSessionModal';
 import WarmupModal from '../WarmupModal';
-import { useWorkout } from '@/contexts/WorkoutContext'; // Mantenemos el contexto original
+import { useWorkout } from '@/contexts/WorkoutContext';
 import { useAuth } from '@/contexts/AuthContext';
 import apiClient from '@/lib/apiClient';
 
@@ -46,81 +47,12 @@ import AdaptationTrackingBadge from '../../Methodologie/methodologies/Hipertrofi
 
 import { useNavigate } from 'react-router-dom';
 
+// 🎯 UTILS COMPARTIDOS - Helpers extraídos para reutilización
+import { getTodayName, isWeekend, computeDayId } from '@/utils/training/dateHelpers';
+import { findTodaySession } from '@/utils/training/sessionFinders';
 
-
-// ===============================================
-// 🎯 HELPER FUNCTIONS
-// ===============================================
-
-function getTodayName() {
-  const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-  return days[new Date().getDay()];
-}
-
-function isWeekend() {
-  const dayOfWeek = new Date().getDay();
-  return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Domingo, 6 = Sábado
-}
-
-// Compute day_id from plan start datetime and timezone (calendar days, 1-indexed)
-function computeDayId(startISO, timezone = 'Europe/Madrid', now = new Date()) {
-  try {
-    const getParts = (d, tz) => {
-      const s = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
-      const [y, m, dd] = s.split('-').map(Number);
-      return { y, m, d: dd };
-    };
-    const s = getParts(new Date(startISO), timezone);
-    const n = getParts(now, timezone);
-    const startUTC = Date.UTC(s.y, s.m - 1, s.d);
-    const nowUTC = Date.UTC(n.y, n.m - 1, n.d);
-    const diffDays = Math.floor((nowUTC - startUTC) / 86400000) + 1;
-    return Math.max(1, diffDays);
-  } catch (error) {
-    console.warn('computeDayId fallback sin timezone:', error?.message || error);
-    const start = new Date(startISO);
-    const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-    const current = new Date();
-    const currentDateOnly = new Date(current.getFullYear(), current.getMonth(), current.getDate());
-    const diffDays = Math.floor((currentDateOnly - startDateOnly) / 86400000) + 1;
-    return Math.max(1, diffDays);
-  }
-}
-
-function findTodaySession(plan, targetDay, weekIdx = 0) {
-  const semanas = plan?.semanas;
-  if (!Array.isArray(semanas) || semanas.length === 0) return null;
-
-  const safeWeekIdx = Math.max(0, Math.min(weekIdx, semanas.length - 1));
-  const week = semanas[safeWeekIdx];
-  if (!week?.sesiones) return null;
-
-  // Normalizar nombre del día (soporta nombres completos y abreviados)
-  const normalizeDay = (day) => {
-    if (!day) return '';
-    const dayLower = day.toLowerCase();
-    // Mapeo de nombres completos y abreviados a un formato unificado
-    const dayMap = {
-      'lunes': 'lun', 'lun': 'lun',
-      'martes': 'mar', 'mar': 'mar',
-      'miércoles': 'mie', 'miercoles': 'mie', 'mié': 'mie', 'mie': 'mie',
-      'jueves': 'jue', 'jue': 'jue',
-      'viernes': 'vie', 'vier': 'vie', 'vie': 'vie',
-      'sábado': 'sab', 'sabado': 'sab', 'sáb': 'sab', 'sab': 'sab',
-      'domingo': 'dom', 'dom': 'dom'
-    };
-    return dayMap[dayLower] || dayLower.substring(0, 3);
-  };
-
-  const normalizedTarget = normalizeDay(targetDay);
-
-  // Buscar por 'dia' o 'dia_semana' (compatibilidad con diferentes formatos de prompt)
-  return week.sesiones.find((sesion) => {
-    const diaField = sesion.dia || sesion.dia_semana;
-    const normalizedDia = normalizeDay(diaField);
-    return normalizedDia === normalizedTarget;
-  }) || null;
-}
+// 🎯 COMPONENTES MODULARES - Refactorización incremental
+import { ExerciseList, RestDayCard, StartSessionCard } from './TodayTrainingTab/components';
 
 export default function TodayTrainingTab({
   routinePlan,
@@ -1801,129 +1733,51 @@ export default function TodayTrainingTab({
             {((hasToday && hasActivePlan && hasUnfinishedWorkToday) || (hasToday && hasActivePlan && loadingTodayStatus && !todayStatus)) ? (
               <section className="transition-opacity duration-300 ease-in-out opacity-100">
 
-                <div className="text-center py-6">
-                  <Dumbbell className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-white mb-2">
-                    Entrenamiento de {currentTodayName}
-                  </h3>
-                  <p className="text-gray-400 mb-4">
-                    {todaySessionData?.ejercicios?.length || 0} ejercicios programados
-                  </p>
+                {/* Componente modular para iniciar/reanudar sesión */}
+                <StartSessionCard
+                  dayName={currentTodayName}
+                  exerciseCount={todaySessionData?.ejercicios?.length || 0}
+                  hasExistingSession={Boolean(todayStatus?.session?.id)}
+                  isLoading={ui.isLoading}
+                  isLoadingStatus={loadingTodayStatus && !todayStatus}
+                  isStarting={isLoadingSession}
+                  onClick={() => {
+                    // 🎯 FIX: Verificar si existe sesión en BD antes de decidir
+                    const hasExistingSession = Boolean(todayStatus?.session?.id);
 
-                  {/* Mostrar indicador de carga si está cargando todayStatus por primera vez */}
-                  {loadingTodayStatus && !todayStatus ? (
-                    <div className="flex items-center justify-center gap-2 text-gray-400">
-                      <RefreshCw className="h-5 w-5 animate-spin" />
-                      <span>Verificando progreso...</span>
-                    </div>
-                  ) : (
-                    // Decidir si debemos reanudar (hay sesión activa o ya hay ejercicios realizados)
-                    <Button
-                      onClick={() => {
-                        // 🎯 FIX: Verificar si existe sesión en BD antes de decidir
-                        const hasExistingSession = Boolean(todayStatus?.session?.id);
+                    console.log('🔍 DEBUG Button Click Decision:', {
+                      hasExistingSession,
+                      sessionId: todayStatus?.session?.id,
+                      shouldResume,
+                      hasUnfinishedWorkToday,
+                      todayStatusCanResume: todayStatus?.session?.canResume,
+                      sessionStatus: todayStatus?.session?.session_status,
+                      hasActiveSession
+                    });
 
-                        console.log('🔍 DEBUG Button Click Decision:', {
-                          hasExistingSession,
-                          sessionId: todayStatus?.session?.id,
-                          shouldResume,
-                          hasUnfinishedWorkToday,
-                          todayStatusCanResume: todayStatus?.session?.canResume,
-                          sessionStatus: todayStatus?.session?.session_status,
-                          hasActiveSession
-                        });
+                    // 🎯 LÓGICA CORREGIDA:
+                    // - Si existe sesión en BD → Reanudar
+                    // - Si NO existe sesión en BD → Iniciar nueva
+                    if (hasExistingSession && (shouldResume || hasUnfinishedWorkToday)) {
+                      handleResumeSession();
+                    } else {
+                      handleStartSession(0);
+                    }
+                  }}
+                />
 
-                        // 🎯 LÓGICA CORREGIDA:
-                        // - Si existe sesión en BD → Reanudar
-                        // - Si NO existe sesión en BD → Iniciar nueva
-                        if (hasExistingSession && (shouldResume || hasUnfinishedWorkToday)) {
-                          handleResumeSession();
-                        } else {
-                          handleStartSession(0);
-                        }
-                      }}
-                      className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
-                      disabled={ui.isLoading || isLoadingSession || isStarting}
-                    >
-                      {isLoadingSession ? (
-                        <>
-                          <RefreshCw className="h-5 w-5 animate-spin mr-2" />
-                          Iniciando...
-                        </>
-                      ) : (
-                        <>
-                          <Play className="h-5 w-5 mr-2" />
-                          {/* 🎯 FIX: Texto dinámico según exista sesión previa */}
-                          {todayStatus?.session?.id ? 'Reanudar Entrenamiento' : 'Iniciar Entrenamiento'}
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
-
-                {/* Lista de ejercicios */}
+                {/* Lista de ejercicios - Componente modular */}
                 {todaySessionData?.ejercicios && todaySessionData.ejercicios.length > 0 && !hasCompletedSession && (
-                  <Card className="p-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <h3 className="text-xl font-semibold text-white">
-                          Sesión de {currentTodayName}
-                        </h3>
-                        <p className="text-gray-400 mt-1">
-                          {todaySessionData.ejercicios.length} ejercicios programados
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-4 text-sm text-gray-400">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          <span>~{Math.round(estimatedDuration / 60)}min</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Target className="h-4 w-4" />
-                          <span>{plan.methodologyType || 'Rutina'}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      {todaySessionData.ejercicios.map((ejercicio, index) => {
-                        // 🎯 CORRECCIÓN: Combinar datos del plan con estado desde backend
-                        const backendExercise = todayStatus?.exercises?.[index];
-
-                        const status = (() => {
-                          // Prioridad 1: Estado desde backend (todayStatus.exercises)
-                          if (backendExercise?.status) {
-                            return String(backendExercise.status).toLowerCase();
-                          }
-                          // Prioridad 2: Estado local (exerciseProgress)
-                          if (exerciseProgress[index]?.status) {
-                            return String(exerciseProgress[index].status).toLowerCase();
-                          }
-                          // Prioridad 3: Si es el ejercicio actual en sesión activa
-                          if (hasActiveSession && session.currentExerciseIndex === index) {
-                            return 'in_progress';
-                          }
-                          // Por defecto: pendiente
-                          return 'pending';
-                        })();
-
-                        const ex = {
-                          ...ejercicio,
-                          status,
-                          exercise_name: ejercicio.nombre,
-                          series_total: ejercicio.series,
-                          // 🎯 NUEVO: Agregar feedback desde backend
-                          sentiment: backendExercise?.sentiment,
-                          comment: backendExercise?.comment
-                        };
-
-                        return (
-                          <ExerciseListItem key={index} exercise={ex} index={index} />
-                        );
-                      })}
-                    </div>
-                  </Card>
+                  <ExerciseList
+                    exercises={todaySessionData.ejercicios}
+                    todayStatus={todayStatus}
+                    exerciseProgress={exerciseProgress}
+                    session={session}
+                    hasActiveSession={hasActiveSession}
+                    dayName={currentTodayName}
+                    estimatedDuration={estimatedDuration}
+                    methodologyType={plan.methodologyType || 'Rutina'}
+                  />
                 )}
               </section>
             ) : null}
@@ -2160,64 +2014,12 @@ export default function TodayTrainingTab({
             {/* =============================================== */}
 
             {hasActivePlan && !hasToday && !sessionMatchesToday && !hasCompletedSession && (
-              <div className="text-center py-12">
-                <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-white mb-2">
-                  {isWeekend() ? '🌟 Fin de Semana' : isRestDay ? 'Día de descanso' : 'Entrenamiento completado'}
-                </h3>
-
-                {isWeekend() ? (
-                  <>
-                    <p className="text-gray-400 mb-2">
-                      {new Date().getDay() === 0 ? 'Domingo' : 'Sábado'} - Día de descanso
-                    </p>
-                    <p className="text-blue-400 text-sm mb-6">
-                      🎯 Es fin de semana, toca descanso.
-                    </p>
-                    <p className="text-gray-400 text-sm mb-8">
-                      El descanso es parte fundamental del progreso.<br />
-                      Tu cuerpo necesita recuperarse para crecer más fuerte.
-                    </p>
-
-                    <div className="bg-gray-800/50 rounded-xl p-6 max-w-md mx-auto border border-gray-700">
-                      <p className="text-gray-300 mb-4">
-                        Pero si aún así quieres entrenar, podemos generar un{' '}
-                        <span className="text-yellow-400 font-semibold">entrenamiento especial para hoy</span>.
-                      </p>
-
-                      <Button
-                        onClick={handleGenerateWeekendWorkout}
-                        disabled={isLoadingWeekendWorkout}
-                        className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2 mx-auto"
-                      >
-                        {isLoadingWeekendWorkout ? (
-                          <>
-                            <div className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-full" />
-                            <span>Generando...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Dumbbell className="h-5 w-5" />
-                            <span>Entrenar Extra Hoy</span>
-                          </>
-                        )}
-                      </Button>
-
-                      <p className="text-xs text-gray-500 mt-4">
-                        Este entrenamiento no afectará tu plan semanal.<br />
-                        Se guardará en tu histórico como sesión extra.
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-gray-400 mb-6">
-                    {isRestDay ?
-                      'No hay entrenamientos programados para hoy. ¡Disfruta tu día de recuperación!' :
-                      '¡Buen trabajo! Has completado el entrenamiento de hoy.'
-                    }
-                  </p>
-                )}
-              </div>
+              <RestDayCard
+                isRestDay={isRestDay}
+                isLoadingWeekendWorkout={isLoadingWeekendWorkout}
+                onGenerateWeekendWorkout={handleGenerateWeekendWorkout}
+                showExtraInfo={true}
+              />
             )}
 
             {/* =============================================== */}

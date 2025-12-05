@@ -6,74 +6,11 @@ import { pool } from '../db.js';
 import { preSessionCleanup } from '../utils/sessionCleanup.js';
 import { ensureWorkoutScheduleV3, normalizeDayAbbrev } from '../utils/ensureScheduleV3.js';
 
+// 🎯 HELPERS COMPARTIDOS - Evitar duplicación
+import { stripDiacritics } from '../utils/shared/dayNormalizer.js';
+import { findWeekInPlan, normalizePlanDays, deriveLevelFromPlan } from '../utils/shared/planHelpers.js';
+
 const router = express.Router();
-
-// Helpers para normalizar los nombres de días a abreviaturas válidas por la BD
-function stripDiacritics(str = '') {
-  try { return str.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch { return str; }
-}
-
-
-/**
- * Helper para buscar una semana en el array de semanas del plan
- * Funciona con TODAS las metodologías (Calistenia, Heavy Duty, etc.)
- * Soporta diferentes formatos: semana, numero, week, week_number
- * @param {Array} semanas - Array de semanas del plan
- * @param {Number} weekNumber - Número de semana a buscar
- * @returns {Object|undefined} - Semana encontrada o undefined
- */
-function findWeekInPlan(semanas, weekNumber) {
-  if (!Array.isArray(semanas) || !weekNumber) return undefined;
-
-  const targetWeek = Number(weekNumber);
-  if (isNaN(targetWeek)) return undefined;
-
-  return semanas.find(s => {
-    // Intentar múltiples campos para máxima compatibilidad
-    const weekValue = s.semana || s.numero || s.week || s.week_number;
-    return Number(weekValue) === targetWeek;
-  });
-}
-function normalizePlanDays(planDataJson) {
-  try {
-    if (!planDataJson || !Array.isArray(planDataJson.semanas)) return planDataJson;
-    return {
-      ...planDataJson,
-      semanas: planDataJson.semanas.map((sem) => ({
-        ...sem,
-        sesiones: Array.isArray(sem.sesiones)
-          ? sem.sesiones.map((ses) => ({
-              ...ses,
-              dia: normalizeDayAbbrev(ses.dia),
-            }))
-          : sem.sesiones,
-      })),
-    };
-  } catch (e) {
-    console.error('No se pudo normalizar días del plan', e);
-    return planDataJson;
-  }
-}
-
-// Derivar nivel desde el plan JSON
-function deriveLevelFromPlan(planDataJson) {
-  try {
-    const candidates = [
-      planDataJson?.selected_level,
-      planDataJson?.nivel,
-      planDataJson?.level,
-      planDataJson?.perfil?.nivel,
-      planDataJson?.evaluation?.level,
-    ];
-    const raw = candidates.find(Boolean) || 'basico';
-    const s = stripDiacritics(String(raw).toLowerCase().trim());
-    if (s.includes('avan')) return 'avanzado';
-    if (s.includes('inter')) return 'intermedio';
-    return 'basico';
-  } catch {
-    return 'basico';
-  }
-}
 
 // Obtener ejercicios aleatorios de Calistenia por nivel (fallback)
 async function getRandomCalistheniaExercises(client, level = 'basico', limit = 6) {

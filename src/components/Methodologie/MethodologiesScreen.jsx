@@ -34,6 +34,9 @@ import HipertrofiaWeekendModal from '../routines/modals/HipertrofiaWeekendModal.
 import HipertrofiaFocusModal from '../routines/modals/HipertrofiaFocusModal.jsx';
 import apiClient from '@/lib/apiClient';
 
+// 🎯 HOOKS MODULARES - Refactorización incremental
+import { useMethodologyValidation } from './hooks/useMethodologyValidation';
+
 // ===============================================
 // 🎯 ESTADO LOCAL MÍNIMO PARA ESTA PANTALLA
 // ===============================================
@@ -68,119 +71,16 @@ export default function MethodologiesScreen() {
   const navigate = useNavigate();
 
   // ===============================================
-  // 🛡️ FUNCIONES DE VALIDACIÓN
+  // 🛡️ FUNCIONES DE VALIDACIÓN - Hook modular
   // ===============================================
-
-  /**
-   * Detecta si hoy es fin de semana
-   */
-  const isWeekend = () => {
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Domingo, 6 = Sábado
-  };
-
-  /**
-   * 🆕 Detecta si debe mostrar modal de día de inicio
-   * Muestra modal si es Jueves, Viernes, Sábado o Domingo
-   */
-  const shouldShowStartDayModal = () => {
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    return [0, 4, 5, 6].includes(dayOfWeek); // Dom, Jue, Vie, Sáb
-  };
-
-  /**
-   * 🆕 Detecta si debe mostrar modal de distribución de sesiones
-   * Muestra modal si comienza en día incompleto (Mar, Mié, Jue, Vie)
-   */
-  // Solo queremos ofrecer la opción de sábados en HipertrofiaV2 y únicamente si el inicio real es jueves.
-  // Dejamos este helper preparado por si en el futuro se extiende a otros días/metodologías.
-  const shouldShowDistributionModal = (config) => {
-    if (!config) return false;
-    const { sessionsFirstWeek, startDayOfWeek } = config;
-    const isThursdayStart = startDayOfWeek === 4; // 4 = jueves
-    return isThursdayStart && sessionsFirstWeek && sessionsFirstWeek < 5;
-  };
-
-  /**
-   * Nivel del usuario normalizado
-   */
-  const getUserLevel = () => {
-    const raw =
-      userData?.nivel_entrenamiento ||
-      userData?.nivel ||
-      user?.nivel_entrenamiento ||
-      user?.nivel ||
-      'Principiante';
-    const normalized = String(raw).toLowerCase();
-    if (normalized.includes('inter')) return 'Intermedio';
-    if (normalized.includes('avanz')) return 'Avanzado';
-    return 'Principiante';
-  };
-
-  /**
-   * Valida que un plan tenga datos completos antes de mostrar el modal
-   * Previene mostrar planes corruptos o incompletos
-   */
-  const validatePlanData = (planData) => {
-    console.log('🛡️ Validando datos del plan...', planData);
-
-    if (!planData) {
-      console.log('❌ Plan es null o undefined');
-      return { isValid: false, error: 'Plan no generado' };
-    }
-
-    if (typeof planData !== 'object' || Object.keys(planData).length === 0) {
-      console.log('❌ Plan está vacío o no es un objeto');
-      return { isValid: false, error: 'Plan vacío o corrupto' };
-    }
-
-    if (!planData.semanas || !Array.isArray(planData.semanas) || planData.semanas.length === 0) {
-      console.log('❌ Plan no tiene semanas válidas');
-      return { isValid: false, error: 'Plan sin semanas de entrenamiento' };
-    }
-
-    // Verificar que al menos una semana tenga sesiones
-    const hasValidSessions = planData.semanas.some(semana =>
-      semana.sesiones && Array.isArray(semana.sesiones) && semana.sesiones.length > 0
-    );
-
-    if (!hasValidSessions) {
-      console.log('❌ Plan no tiene sesiones válidas');
-      return { isValid: false, error: 'Plan sin sesiones de entrenamiento' };
-    }
-
-    // Verificar que al menos una sesión tenga ejercicios
-    // Soportar dos estructuras:
-    // 1. sesion.ejercicios[] (directo)
-    // 2. sesion.bloques[].ejercicios[] (con bloques intermedios, como en Halterofilia)
-    const hasValidExercises = planData.semanas.some(semana =>
-      semana.sesiones && semana.sesiones.some(sesion => {
-        // Estructura directa: sesion.ejercicios
-        if (sesion.ejercicios && Array.isArray(sesion.ejercicios) && sesion.ejercicios.length > 0) {
-          return true;
-        }
-
-        // Estructura con bloques: sesion.bloques[].ejercicios
-        if (sesion.bloques && Array.isArray(sesion.bloques)) {
-          return sesion.bloques.some(bloque =>
-            bloque.ejercicios && Array.isArray(bloque.ejercicios) && bloque.ejercicios.length > 0
-          );
-        }
-
-        return false;
-      })
-    );
-
-    if (!hasValidExercises) {
-      console.log('❌ Plan no tiene ejercicios válidos');
-      return { isValid: false, error: 'Plan sin ejercicios' };
-    }
-
-    console.log('✅ Plan válido - puede mostrar modal');
-    return { isValid: true };
-  };
+  const {
+    isWeekend,
+    shouldShowStartDayModal,
+    shouldShowDistributionModal,
+    getUserLevel,
+    validatePlanData,
+    userLevel
+  } = useMethodologyValidation();
 
   // ===============================================
   // 🚀 INTEGRACIÓN CON WorkoutContext

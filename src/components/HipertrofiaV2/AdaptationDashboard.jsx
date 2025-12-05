@@ -2,13 +2,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Target, CheckCircle, XCircle, Clock, TrendingUp,
   Activity, Brain, Weight, Users, AlertCircle,
-  ArrowRight, BarChart3, ChevronRight
+  ArrowRight, BarChart3, ChevronRight, Dumbbell,
+  AlertTriangle, ThumbsUp, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useTrace } from '../../contexts/TraceContext';
 
 /**
  * Dashboard del Bloque de Adaptación
  * Visualización mejorada de criterios de transición según teoría MindFeed
+ *
+ * @version 2.1.0 - Añadida sección de ejercicios problemáticos con RIR
  */
 const AdaptationDashboard = ({
   userId,
@@ -21,6 +24,8 @@ const AdaptationDashboard = ({
   const [showTransitionModal, setShowTransitionModal] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [weeklyData, setWeeklyData] = useState([]);
+  const [problemExercises, setProblemExercises] = useState(null);
+  const [showProblems, setShowProblems] = useState(true);
 
   // Trace: Montaje del dashboard
   useEffect(() => {
@@ -83,11 +88,37 @@ const AdaptationDashboard = ({
     }
   }, [showTransitionModal, userId, track]);
 
+  // Fetch ejercicios problemáticos
+  const fetchProblemExercises = useCallback(async () => {
+    try {
+      const response = await fetch('/api/adaptation/problem-exercises', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setProblemExercises(data);
+        track('problem_exercises_loaded', {
+          userId,
+          criticalCount: data.summary?.criticalCount,
+          warningCount: data.summary?.warningCount,
+          overallStatus: data.summary?.overallStatus
+        });
+      }
+    } catch (error) {
+      console.error('Error obteniendo ejercicios problemáticos:', error);
+    }
+  }, [userId, track]);
+
   useEffect(() => {
     if (userId) {
       fetchAdaptationProgress();
+      fetchProblemExercises();
     }
-  }, [userId, fetchAdaptationProgress]);
+  }, [userId, fetchAdaptationProgress, fetchProblemExercises]);
 
   const handleTransition = async () => {
     track('adaptation_transition_start', {
@@ -485,6 +516,129 @@ const AdaptationDashboard = ({
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* 🆕 Sección de Ejercicios Problemáticos */}
+          {problemExercises && (problemExercises.exercises?.problems?.length > 0 || problemExercises.exercises?.tooEasy?.length > 0) && (
+            <div className="mt-6 pt-6 border-t">
+              <button
+                onClick={() => setShowProblems(!showProblems)}
+                className="w-full flex items-center justify-between text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className={`h-5 w-5 ${
+                    problemExercises.summary?.criticalCount > 0
+                      ? 'text-red-500'
+                      : problemExercises.summary?.warningCount > 0
+                        ? 'text-yellow-500'
+                        : 'text-blue-500'
+                  }`} />
+                  <h4 className="text-sm font-medium text-gray-700">
+                    Ejercicios a mejorar ({problemExercises.exercises?.problems?.length || 0} problemas)
+                  </h4>
+                </div>
+                {showProblems ? (
+                  <ChevronUp className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
+
+              {showProblems && (
+                <div className="mt-4 space-y-3">
+                  {/* Mensaje general */}
+                  <div className={`p-3 rounded-lg text-sm ${
+                    problemExercises.summary?.overallStatus === 'needs_attention'
+                      ? 'bg-red-50 text-red-700 border border-red-200'
+                      : problemExercises.summary?.overallStatus === 'minor_issues'
+                        ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                        : 'bg-green-50 text-green-700 border border-green-200'
+                  }`}>
+                    {problemExercises.message}
+                  </div>
+
+                  {/* Ejercicios críticos/warning */}
+                  {problemExercises.exercises?.problems?.length > 0 && (
+                    <div className="space-y-2">
+                      <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        🔴 Ejercicios con RIR muy bajo (llegando al fallo)
+                      </h5>
+                      {problemExercises.exercises.problems.map((ex, idx) => (
+                        <div
+                          key={idx}
+                          className={`p-3 rounded-lg border-l-4 ${
+                            ex.status === 'critical'
+                              ? 'bg-red-50 border-red-500'
+                              : 'bg-yellow-50 border-yellow-500'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="font-medium text-gray-900">{ex.name}</p>
+                              <p className="text-sm text-gray-600">
+                                RIR medio: <span className={`font-bold ${
+                                  ex.avgRir < 1 ? 'text-red-600' : 'text-yellow-600'
+                                }`}>{ex.avgRir}</span>
+                                <span className="text-gray-400"> (objetivo: 3-4)</span>
+                              </p>
+                            </div>
+                            <div className="text-right text-xs text-gray-500">
+                              <p>{ex.setsCount} series</p>
+                              <p>{ex.avgWeight} kg</p>
+                            </div>
+                          </div>
+                          <p className="mt-2 text-sm text-gray-700 bg-white/50 p-2 rounded">
+                            💡 {ex.recommendation}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Ejercicios demasiado fáciles */}
+                  {problemExercises.exercises?.tooEasy?.length > 0 && (
+                    <div className="space-y-2 mt-4">
+                      <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        🟢 Ejercicios demasiado ligeros
+                      </h5>
+                      {problemExercises.exercises.tooEasy.map((ex, idx) => (
+                        <div key={idx} className="p-3 rounded-lg bg-blue-50 border-l-4 border-blue-400">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="font-medium text-gray-900">{ex.name}</p>
+                              <p className="text-sm text-gray-600">
+                                RIR medio: <span className="font-bold text-blue-600">{ex.avgRir}</span>
+                                <span className="text-gray-400"> (demasiado alto)</span>
+                              </p>
+                            </div>
+                            <div className="text-right text-xs text-gray-500">
+                              <p>{ex.setsCount} series</p>
+                              <p>{ex.avgWeight} kg</p>
+                            </div>
+                          </div>
+                          <p className="mt-2 text-sm text-gray-700 bg-white/50 p-2 rounded">
+                            💡 {ex.recommendation}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Ejercicios OK */}
+                  {problemExercises.exercises?.ok?.length > 0 && (
+                    <div className="mt-4">
+                      <button
+                        onClick={() => track('show_ok_exercises_clicked', { userId })}
+                        className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                      >
+                        <ThumbsUp className="h-3 w-3" />
+                        {problemExercises.exercises.ok.length} ejercicios con buen control de RIR
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
