@@ -232,13 +232,17 @@ export async function completePlanManually(planId, userId, client) {
 
 /**
  * Cancela todos los planes activos del usuario antes de crear uno nuevo
+ * IMPORTANTE: No filtra por 'origin' para asegurar que NO haya planes duplicados
  * @param {number} userId - ID del usuario
  * @param {object} client - Cliente de transacción (opcional)
+ * @param {number} exceptPlanId - ID de plan a excluir (para no cancelarse a sí mismo)
  * @returns {Promise<number>} - Número de planes cancelados
  */
-export async function cancelActivePlans(userId, client) {
+export async function cancelActivePlans(userId, client, exceptPlanId = null) {
   const runner = getRunner(client);
 
+  // Cancelar TODOS los planes activos del usuario (sin filtrar por origin)
+  // Esto previene tener múltiples planes activos simultáneos
   const result = await runner.query(
     `UPDATE app.methodology_plans
      SET status = 'cancelled',
@@ -247,9 +251,9 @@ export async function cancelActivePlans(userId, client) {
          updated_at = NOW()
      WHERE user_id = $1
        AND status = 'active'
-       AND origin = 'methodology'
+       ${exceptPlanId ? 'AND id != $2' : ''}
      RETURNING id, methodology_type`,
-    [userId]
+    exceptPlanId ? [userId, exceptPlanId] : [userId]
   );
 
   if (result.rowCount > 0) {
@@ -262,15 +266,24 @@ export async function cancelActivePlans(userId, client) {
 
 /**
  * Activa un plan de metodología como único plan activo
- * Cancela automáticamente cualquier otro plan activo
+ * Cancela automáticamente cualquier otro plan activo (excepto el que se activa)
  */
 export async function activateMethodologyPlan(userId, planId, client) {
   const runner = getRunner(client);
 
-  // 1. Cancelar planes activos anteriores
-  await cancelActivePlans(userId, runner);
+  // 1. Cancelar planes activos anteriores (excluyendo el plan que vamos a activar)
+  await cancelActivePlans(userId, runner, planId);
 
-  // 2. Activar el nuevo plan
+  // 2. Activar el nuevo plan y asegurar que es el único con is_current=true
+  // Primero desactivar todos los is_current (por si acaso)
+  await runner.query(
+    `UPDATE app.methodology_plans
+     SET is_current = FALSE
+     WHERE user_id = $1 AND is_current = TRUE AND id != $2`,
+    [userId, planId]
+  );
+
+  // 3. Activar el nuevo plan
   await runner.query(
     `UPDATE app.methodology_plans
      SET status = 'active',
