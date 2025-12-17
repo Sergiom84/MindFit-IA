@@ -54,6 +54,11 @@ import { findTodaySession } from '@/utils/training/sessionFinders';
 // 🎯 COMPONENTES MODULARES - Refactorización incremental
 import { ExerciseList, RestDayCard, StartSessionCard } from './TodayTrainingTab/components';
 
+// 🎯 ADAPTACIÓN - Nuevos componentes para evaluación de transición
+import AdaptationProgressPanel from '../../Methodologie/methodologies/HipertrofiaV2/components/AdaptationProgressPanel';
+import AdaptationTransitionModal from '../../Methodologie/methodologies/HipertrofiaV2/components/AdaptationTransitionModal';
+import { useAdaptationEvaluation } from '@/hooks/useAdaptationEvaluation';
+
 export default function TodayTrainingTab({
   routinePlan,
   methodologyPlanId,
@@ -134,6 +139,17 @@ export default function TodayTrainingTab({
   // 🎯 FASE 2: Estado para modal de prioridad muscular
   const [showPriorityModal, setShowPriorityModal] = useState(false);
   const [currentPriority, setCurrentPriority] = useState(null);
+
+  // 🎯 ADAPTACIÓN: Hook para evaluación de transición
+  const {
+    evaluation,
+    showTransitionModal,
+    evaluationLoading,
+    evaluationError,
+    evaluateAdaptationWeek,
+    resetModal,
+    setShowTransitionModal
+  } = useAdaptationEvaluation();
 
   // Nombre del día actual disponible para hooks que lo requieren
   const currentTodayName = todayName || getTodayName();
@@ -925,6 +941,12 @@ export default function TodayTrainingTab({
         }
 
         showSuccess('¡Entrenamiento completado exitosamente!');
+
+        // 🎯 ADAPTACIÓN: Evaluar semana si hay bloque activo
+        console.log('📊 Iniciando evaluación de adaptación...');
+        setTimeout(() => {
+          evaluateAdaptationWeek();
+        }, 1000); // Aguardar 1s para que los datos estén registrados
       } else {
         throw new Error('Error finalizando la sesión');
       }
@@ -933,7 +955,7 @@ export default function TodayTrainingTab({
       console.error('Error completando sesión:', error);
       setError(`Error finalizando sesión: ${error.message}`);
     }
-  }, [hasActiveSession, completeSession, session.sessionId, sessionStartTime, exerciseProgress, track, onProgressUpdate, showSuccess, setError, localState.pendingSessionData?.sessionId, fetchTodayStatus]);
+  }, [hasActiveSession, completeSession, session.sessionId, sessionStartTime, exerciseProgress, track, onProgressUpdate, showSuccess, setError, localState.pendingSessionData?.sessionId, fetchTodayStatus, evaluateAdaptationWeek]);
 
   const handleExerciseUpdate = useCallback(async (exerciseIndex, progressData) => {
     // 🎯 CORRECCIÓN: exerciseIndex YA ES el originalIndex (viene desde useExerciseProgress)
@@ -1679,7 +1701,7 @@ export default function TodayTrainingTab({
 
                 {/* 🟣 Badge de adaptación (si hay bloque activo y aún no está en D1-D5) */}
                 {adaptationState.hasBlock && plan?.metodologia !== 'HipertrofiaV2_MindFeed' && (
-                  <div className="mt-3">
+                  <div className="mt-3 space-y-4">
                     <AdaptationTrackingBadge
                       loading={adaptationState.loading}
                       hasBlock={adaptationState.hasBlock}
@@ -1687,6 +1709,13 @@ export default function TodayTrainingTab({
                       readyForTransition={adaptationState.readyForTransition}
                       onReload={fetchAdaptationProgress}
                       onTransition={() => goToMethodologies()} // que vaya a metodologías para transicionar
+                    />
+
+                    {/* 🎯 NUEVO: Panel de progreso detallado de adaptación */}
+                    <AdaptationProgressPanel
+                      userId={userId}
+                      onReadyForTransition={() => setShowTransitionModal(true)}
+                      onNeedRepeat={() => console.log('Necesita repetir')}
                     />
                   </div>
                 )}
@@ -2152,6 +2181,28 @@ export default function TodayTrainingTab({
         currentPriority={currentPriority}
         onActivate={handlePriorityActivate}
         onDeactivate={handlePriorityDeactivate}
+      />
+
+      {/* 🎯 ADAPTACIÓN: Modal de Transición */}
+      <AdaptationTransitionModal
+        isOpen={showTransitionModal}
+        onClose={() => {
+          setShowTransitionModal(false);
+          resetModal();
+        }}
+        evaluation={evaluation}
+        onTransitionSuccess={() => {
+          console.log('✅ Transición exitosa - Redirigiendo a metodologías');
+          setShowTransitionModal(false);
+          resetModal();
+          goToMethodologies?.();
+        }}
+        onRepeatBlock={() => {
+          console.log('🔄 Repetir bloque de adaptación');
+          setShowTransitionModal(false);
+          resetModal();
+          fetchAdaptationProgress();
+        }}
       />
 
       </div>
