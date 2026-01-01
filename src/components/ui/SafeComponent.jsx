@@ -14,14 +14,14 @@ import { Alert, AlertDescription } from './alert';
 /**
  * Wrapper para proteger componentes críticos con Error Boundary
  */
-const SafeComponent = ({ 
-  children, 
+const SafeComponent = ({
+  children,
   context = 'Componente',
   fallback = null,
-  showMinimalError = false 
+  showMinimalError = false
 }) => {
   // Fallback mínimo para errores en componentes pequeños
-  const MinimalErrorFallback = () => (
+  const MinimalErrorFallback = (
     <Alert className="border-red-500/20 bg-red-500/10">
       <AlertTriangle className="h-4 w-4 text-red-400" />
       <AlertDescription className="text-red-400">
@@ -30,13 +30,12 @@ const SafeComponent = ({
     </Alert>
   );
 
-  // Si se especifica un fallback personalizado, usarlo
+  // Si se especifica un fallback personalizado, usarlo directamente
   if (fallback) {
     return (
-      <ErrorBoundary 
+      <ErrorBoundary
         context={context}
-        title={`Error en ${context}`}
-        message="Este componente no se pudo cargar correctamente."
+        fallback={fallback}
       >
         {children}
       </ErrorBoundary>
@@ -46,19 +45,18 @@ const SafeComponent = ({
   // Si se pide error mínimo, usar el fallback pequeño
   if (showMinimalError) {
     return (
-      <ErrorBoundary 
+      <ErrorBoundary
         context={context}
-        title=""
-        message=""
+        fallback={MinimalErrorFallback}
       >
         {children}
       </ErrorBoundary>
     );
   }
 
-  // Error boundary completo por defecto
+  // Error boundary completo por defecto (sin fallback personalizado)
   return (
-    <ErrorBoundary 
+    <ErrorBoundary
       context={context}
       title={`Error en ${context}`}
       message="Este componente encontró un problema. Puedes intentar recargarlo o continuar navegando."

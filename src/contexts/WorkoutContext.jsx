@@ -826,6 +826,11 @@ export function WorkoutProvider({ children }) {
 
   const goToMethodologies = useCallback(() => {
     dispatch({ type: WORKOUT_ACTIONS.SET_VIEW, payload: WORKOUT_VIEWS.METHODOLOGIES });
+    // Also navigate to the methodologies page using window.location
+    // This ensures the user is actually redirected, not just internal state change
+    if (typeof window !== 'undefined' && window.location.pathname !== '/methodologies') {
+      window.location.href = '/methodologies';
+    }
   }, []);
 
   const goToTraining = useCallback(() => {
@@ -1028,7 +1033,8 @@ export function WorkoutProvider({ children }) {
       hideAllModals,
       setError: (error) => dispatch({ type: WORKOUT_ACTIONS.SET_ERROR, payload: error }),
       clearError: () => dispatch({ type: WORKOUT_ACTIONS.CLEAR_ERROR }),
-      setLoading: (loading) => dispatch({ type: WORKOUT_ACTIONS.SET_LOADING, payload: loading })
+      setLoading: (loading) => dispatch({ type: WORKOUT_ACTIONS.SET_LOADING, payload: loading }),
+      showSuccess: (message) => console.log('[WorkoutContext] Success:', message) // Added to ui object for consistency
     },
     setError: (error) => dispatch({ type: WORKOUT_ACTIONS.SET_ERROR, payload: error }),
     showSuccess: (message) => console.log('✅', message), // Temporary success handler

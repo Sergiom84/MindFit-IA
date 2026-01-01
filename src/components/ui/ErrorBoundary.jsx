@@ -68,7 +68,12 @@ class ErrorBoundary extends Component {
 
   render() {
     if (this.state.hasError) {
-      // UI de fallback personalizada
+      // Si se proporciona un fallback personalizado, usarlo
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+
+      // UI de fallback predeterminada
       return (
         <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
           <Card className="w-full max-w-md bg-gray-800 border-red-500/20">

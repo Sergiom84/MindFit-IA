@@ -1610,7 +1610,7 @@ export default function TodayTrainingTab({
   });
 
   return (
-    <SafeComponent fallback={<div>Error cargando entrenamiento de hoy</div>}>
+    <SafeComponent context="TodayTrainingTab" fallback={<div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400">Error cargando entrenamiento de hoy. Por favor, recarga la pagina.</div>}>
       <div className="space-y-6">
         {/* =============================================== */}
         {/* 🎯 ESTADOS DE CARGA Y ERROR - INLINE */}
