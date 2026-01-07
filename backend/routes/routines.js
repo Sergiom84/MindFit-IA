@@ -5,6 +5,7 @@ import authenticateToken from '../middleware/auth.js';
 import { pool } from '../db.js';
 import { preSessionCleanup } from '../utils/sessionCleanup.js';
 import { ensureWorkoutScheduleV3, normalizeDayAbbrev } from '../utils/ensureScheduleV3.js';
+import { activateMethodologyPlan } from '../services/methodologyPlansService.js';
 
 // 🎯 HELPERS COMPARTIDOS - Evitar duplicación
 import { stripDiacritics } from '../utils/shared/dayNormalizer.js';
@@ -1501,20 +1502,12 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
       );
       confirmed = Boolean(confirmResult.rows?.[0]?.confirmed);
     } catch (e) {
-      // Si la función/tables legacy no existen (42P01: relation does not exist), usar UPDATE directo
+      // Si la función/tables legacy no existen (42P01: relation does not exist), usar activateMethodologyPlan
       if (e?.code === '42P01' || String(e?.message || '').includes('routine_plans')) {
         // Revertir solo la parte fallida y continuar dentro de la transaccin
-        console.warn('⚠️ confirm_routine_plan no disponible. Aplicando UPDATE sobre app.methodology_plans');
-        const upd = await pool.query(
-          `UPDATE app.methodology_plans
-             SET status = 'active',
-                 confirmed_at = COALESCE(confirmed_at, NOW()),
-                 updated_at = NOW()
-           WHERE id = $1 AND user_id = $2 AND status IN ('draft','active')
-           RETURNING id`,
-          [methodology_plan_id, userId]
-        );
-        confirmed = upd.rowCount > 0;
+        console.warn('⚠️ confirm_routine_plan no disponible. Usando activateMethodologyPlan()');
+        await activateMethodologyPlan(userId, methodology_plan_id, client);
+        confirmed = true;
       } else {
         throw e;
       }

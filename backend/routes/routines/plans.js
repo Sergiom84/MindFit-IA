@@ -192,7 +192,7 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
        WHERE user_id = $1
          AND status = 'active'
          AND cancelled_at IS NULL
-       ORDER BY confirmed_at DESC
+       ORDER BY is_current DESC NULLS LAST, confirmed_at DESC
        LIMIT 1`,
       [userId]
     );

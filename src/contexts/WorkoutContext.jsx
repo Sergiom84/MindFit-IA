@@ -449,24 +449,46 @@ export function WorkoutProvider({ children }) {
   useEffect(() => {
     if (!user) return;
 
-    try {
-      const savedState = localStorage.getItem(`workout_state_${user.id}`);
-      if (savedState) {
-        const parsed = JSON.parse(savedState);
+    const validateAndRestoreState = async () => {
+      try {
+        const savedState = localStorage.getItem(`workout_state_${user.id}`);
+        if (savedState) {
+          const parsed = JSON.parse(savedState);
 
-        // Restaurar plan si existe
-        if (parsed.plan && parsed.plan.methodologyPlanId) {
-          dispatch({ type: WORKOUT_ACTIONS.SET_PLAN, payload: parsed.plan });
-        }
+          // Validar plan antes de restaurar
+          if (parsed.plan && parsed.plan.methodologyPlanId) {
+            try {
+              // Verificar que el plan sigue activo en el backend
+              const { getActivePlan } = await import('@/components/routines/api');
+              const activeData = await getActivePlan();
 
-        // Restaurar sesión activa si existe
-        if (parsed.session && parsed.session.status === SESSION_STATUS.IN_PROGRESS) {
-          dispatch({ type: WORKOUT_ACTIONS.UPDATE_SESSION, payload: parsed.session });
+              if (activeData.hasActivePlan &&
+                  activeData.methodology_plan_id === parsed.plan.methodologyPlanId) {
+                // Plan válido, restaurarlo
+                dispatch({ type: WORKOUT_ACTIONS.SET_PLAN, payload: parsed.plan });
+              } else {
+                // Plan obsoleto, limpiar localStorage
+                console.log('⚠️ Plan guardado obsoleto o cancelado, limpiando localStorage');
+                localStorage.removeItem(`workout_state_${user.id}`);
+              }
+            } catch (error) {
+              console.warn('Error validando plan desde localStorage:', error);
+              // En caso de error, limpiar para evitar inconsistencias
+              localStorage.removeItem(`workout_state_${user.id}`);
+            }
+          }
+
+          // Restaurar sesión activa si existe (sin cambios)
+          if (parsed.session && parsed.session.status === SESSION_STATUS.IN_PROGRESS) {
+            dispatch({ type: WORKOUT_ACTIONS.UPDATE_SESSION, payload: parsed.session });
+          }
         }
+      } catch (error) {
+        console.warn('Error cargando estado del workout desde localStorage:', error);
       }
-    } catch (error) {
-      console.warn('Error cargando estado del workout desde localStorage:', error);
-    }
+    };
+
+    validateAndRestoreState();
   }, [user]);
 
   // Guardar estado en localStorage cuando cambie
