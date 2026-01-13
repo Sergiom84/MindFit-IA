@@ -51,6 +51,9 @@ import { useNavigate } from 'react-router-dom';
 import { getTodayName, isWeekend, computeDayId } from '@/utils/training/dateHelpers';
 import { findTodaySession } from '@/utils/training/sessionFinders';
 
+// 🎯 API HELPER - Usar el mismo helper robusto que CalendarTab
+import { getTodaySessionStatus } from '../api.js';
+
 // 🎯 COMPONENTES MODULARES - Refactorización incremental
 import { ExerciseList, RestDayCard, StartSessionCard } from './TodayTrainingTab/components';
 
@@ -314,96 +317,81 @@ export default function TodayTrainingTab({
         hasToken: !!token
       });
 
-      // Construir URL con query params manualmente
-      const url = `/training-session/today-status?methodology_plan_id=${currentMethodologyPlanId}&week_number=${weekNumber}&day_name=${dayName}`;
-
-      // Usar fetch directo para tener más control
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api${url}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      // 🎯 UNIFICACIÓN: Usar el mismo helper robusto que CalendarTab
+      // Este helper:
+      // - Usa URLSearchParams para manejo seguro de null/undefined
+      // - Envía day_id cuando está disponible (más confiable)
+      // - Llama al endpoint robusto con sistema de prioridades y fallbacks
+      // - Maneja 404 internamente y retorna null
+      const data = await getTodaySessionStatus({
+        methodology_plan_id: currentMethodologyPlanId,
+        week_number: weekNumber,
+        day_name: dayName,
+        day_id: dayId  // 🌟 Ahora se envía el day_id calculado
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-
-        // 🎯 FIX: El 404 es normal cuando la sesión aún no se ha iniciado
-        if (response.status === 404) {
-          console.log('ℹ️ Sesión no iniciada aún para este día:', { methodologyPlanId: currentMethodologyPlanId, weekNumber, dayName });
-          setTodayStatus(null); // No hay sesión, mostrar botón "Comenzar"
-          return null;
-        }
-
-        console.error('❌ Error en today-status:', response.status, errorText);
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      // getTodaySessionStatus() ya maneja el 404 y retorna null
+      if (!data) {
+        console.log('ℹ️ Sesión no iniciada o día de descanso:', {
+          methodologyPlanId: currentMethodologyPlanId,
+          weekNumber,
+          dayName,
+          dayId
+        });
+        setTodayStatus(null);
+        setTodaySessionData(null);
+        return null;
       }
-
-      const data = await response.json();
 
       console.log('📥 Respuesta completa de today-status:', data);
 
-      if (data.success) {
-        // 🎯 FIX: Manejar caso de día de descanso
-        if (data.isRestDay) {
-          console.log('🛋️ Día de descanso detectado');
-          setTodayStatus(null);
-          setTodaySessionData(null);
-          return null;
-        }
+      // Data viene del helper, ya parseada
+      const normalized = {
+        session: data.session,
+        exercises: data.exercises,
+        summary: data.summary,
+        sessionNotStarted: data.sessionNotStarted || false
+      };
+      setTodayStatus(normalized);
 
-        const normalized = {
-          session: data.session,
-          exercises: data.exercises,
-          summary: data.summary,
-          sessionNotStarted: data.sessionNotStarted || false
-        };
-        setTodayStatus(normalized);
+      // 🆕 Construir estructura compatible con ExerciseList usando datos reales del backend
+      if (Array.isArray(data.exercises) && data.exercises.length > 0) {
+        const normalizedExercises = data.exercises.map((exercise, index) => ({
+          nombre: exercise.exercise_name || exercise.nombre || `Ejercicio ${index + 1}`,
+          series: String(exercise.series_total || exercise.series || '—'),
+          repeticiones: String(exercise.repeticiones || exercise.reps || '—'),
+          descanso: exercise.descanso_seg
+            ? `${exercise.descanso_seg}s`
+            : (exercise.descanso || '60s'),
+          intensidad: exercise.intensidad || null,
+          tempo: exercise.tempo || null,
+          notas: exercise.notas || '',
+          order: exercise.exercise_order ?? index
+        }));
 
-        // 🆕 Construir estructura compatible con ExerciseList usando datos reales del backend
-        if (Array.isArray(data.exercises) && data.exercises.length > 0) {
-          const normalizedExercises = data.exercises.map((exercise, index) => ({
-            nombre: exercise.exercise_name || exercise.nombre || `Ejercicio ${index + 1}`,
-            series: String(exercise.series_total || exercise.series || '—'),
-            repeticiones: String(exercise.repeticiones || exercise.reps || '—'),
-            descanso: exercise.descanso_seg
-              ? `${exercise.descanso_seg}s`
-              : (exercise.descanso || '60s'),
-            intensidad: exercise.intensidad || null,
-            tempo: exercise.tempo || null,
-            notas: exercise.notas || '',
-            order: exercise.exercise_order ?? index
-          }));
-
-          setTodaySessionData((prev) => ({
-            ...prev,
-            dia: data.session?.day_name || dayName,
-            tipo: data.session?.session_name || prev?.tipo || 'Entrenamiento del día',
-            ejercicios: normalizedExercises,
-            sessionId: data.session?.id || prev?.sessionId || null,
-            sessionStatus: data.session?.session_status || prev?.sessionStatus || null,
-            summary: data.summary
-          }));
-        } else {
-          setTodaySessionData(null);
-        }
-
-        console.log('✅ todayStatus actualizado:', {
-          session_id: data.session?.id,
-          session_status: data.session?.session_status,
-          exercises_count: data.exercises?.length,
-          completed: data.summary?.completed,
-          skipped: data.summary?.skipped,
-          cancelled: data.summary?.cancelled
-        });
-
-        return normalized;
+        setTodaySessionData((prev) => ({
+          ...prev,
+          dia: data.session?.day_name || dayName,
+          tipo: data.session?.session_name || prev?.tipo || 'Entrenamiento del día',
+          ejercicios: normalizedExercises,
+          sessionId: data.session?.id || prev?.sessionId || null,
+          sessionStatus: data.session?.session_status || prev?.sessionStatus || null,
+          summary: data.summary
+        }));
+      } else {
+        setTodaySessionData(null);
       }
 
-      console.warn('⚠️ Respuesta sin success=true:', data);
-      setTodayStatus(null);
-      return null;
+      console.log('✅ todayStatus actualizado:', {
+        session_id: data.session?.id,
+        session_status: data.session?.session_status,
+        exercises_count: data.exercises?.length,
+        completed: data.summary?.completed,
+        skipped: data.summary?.skipped,
+        cancelled: data.summary?.cancelled
+      });
+
+      return normalized;
     } catch (error) {
       console.error('❌ Error obteniendo estado del día:', error);
       setTodayStatus(null);
