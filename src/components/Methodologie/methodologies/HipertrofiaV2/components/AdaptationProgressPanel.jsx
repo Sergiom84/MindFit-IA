@@ -174,7 +174,7 @@ export default function AdaptationProgressPanel({ userId, onReadyForTransition, 
             met={latestCriteria.adherence.met}
             value={
               currentWeek
-                ? `${currentWeek.adherence_percentage?.toFixed(1) || 0}% (${currentWeek.adherence?.met ? '✓' : '✗'})`
+                ? `${(currentWeek.adherence_percentage ?? 0).toFixed(0)}% (${currentWeek.adherence_met ? '✓' : '✗'})`
                 : 'N/A'
             }
             details={`Meta: ${latestCriteria.adherence.threshold}% | Umbral: 4/5 sesiones`}
