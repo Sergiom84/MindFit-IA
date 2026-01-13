@@ -306,6 +306,21 @@ router.get('/progress', authenticateToken, async (req, res) => {
       [progress.adaptation_block_id]
     );
 
+    // 🎯 FIX: Obtener criterios de la última semana de tracking (la vista no tiene todas las columnas)
+    const latestWeekData = weeksResult.rows.length > 0 
+      ? weeksResult.rows[weeksResult.rows.length - 1] 
+      : null;
+    
+    // Calcular si todos los criterios se cumplen usando datos de tracking
+    const latestAdherenceMet = progress.latest_adherence_met ?? latestWeekData?.adherence_met ?? false;
+    const latestRirMet = progress.latest_rir_met ?? latestWeekData?.rir_met ?? false;
+    const latestTechniqueMet = latestWeekData?.technique_met ?? true; // Default true si no hay datos
+    const latestProgressMet = latestWeekData?.progress_met ?? false;
+    const allCriteriaMet = latestAdherenceMet && latestRirMet && latestTechniqueMet && latestProgressMet;
+    
+    // Contar semanas con todos los criterios cumplidos
+    const weeksCriteriaMet = weeksResult.rows.filter(w => w.all_criteria_met).length;
+
     res.json({
       success: true,
       hasActiveBlock: true,
@@ -316,29 +331,29 @@ router.get('/progress', authenticateToken, async (req, res) => {
         startDate: progress.start_date,
         status: progress.status,
         weeksTracked: progress.weeks_tracked,
-        weeksCriteriaMet: progress.weeks_criteria_met,
+        weeksCriteriaMet: weeksCriteriaMet,
         latestWeek: progress.latest_week,
-        readyForTransition: progress.ready_for_transition
+        readyForTransition: progress.ready_for_transition || allCriteriaMet
       },
       weeks: weeksResult.rows,
       latestCriteria: {
         adherence: {
-          met: progress.latest_adherence_met,
+          met: latestAdherenceMet,
           threshold: 80
         },
         rir: {
-          met: progress.latest_rir_met,
+          met: latestRirMet,
           threshold: 4
         },
         technique: {
-          met: progress.latest_technique_met,
+          met: latestTechniqueMet,
           threshold: 1
         },
         progress: {
-          met: progress.latest_progress_met,
+          met: latestProgressMet,
           threshold: 8
         },
-        allMet: progress.latest_all_criteria_met
+        allMet: allCriteriaMet
       }
     });
 
