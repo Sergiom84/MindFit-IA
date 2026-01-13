@@ -1708,8 +1708,25 @@ export default function TodayTrainingTab({
                   </div>
                 </div>
 
-                {/* 🟣 Badge de adaptación (si hay bloque activo y aún no está en D1-D5) */}
-                {adaptationState.hasBlock && plan?.metodologia !== 'HipertrofiaV2_MindFeed' && (
+                {/* 🟣 Badge de adaptación (solo para fase de adaptación inicial, NO para MindFeed/D1-D5) */}
+                {/* 🎯 FIX: Agregar validación de userId y mejor logging */}
+                {(() => {
+                  const shouldRenderAdaptation = adaptationState.hasBlock && 
+                    plan?.metodologia !== 'HipertrofiaV2_MindFeed' && 
+                    plan?.metodologia !== 'HipertrofiaV2' &&
+                    userId;
+                  
+                  if (adaptationState.hasBlock) {
+                    console.log('🔍 Condiciones AdaptationProgressPanel:', {
+                      hasBlock: adaptationState.hasBlock,
+                      metodologia: plan?.metodologia,
+                      userId: !!userId,
+                      shouldRender: shouldRenderAdaptation
+                    });
+                  }
+                  
+                  return shouldRenderAdaptation;
+                })() && (
                   <div className="mt-3 space-y-4">
                     <AdaptationTrackingBadge
                       loading={adaptationState.loading}
@@ -1720,7 +1737,7 @@ export default function TodayTrainingTab({
                       onTransition={() => goToMethodologies()} // que vaya a metodologías para transicionar
                     />
 
-                    {/* 🎯 NUEVO: Panel de progreso detallado de adaptación */}
+                    {/* 🎯 Panel de progreso detallado de adaptación (solo fase inicial) */}
                     <AdaptationProgressPanel
                       userId={userId}
                       onReadyForTransition={() => setShowTransitionModal(true)}

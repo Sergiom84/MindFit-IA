@@ -19,10 +19,26 @@ export default function AdaptationProgressPanel({ userId, onReadyForTransition, 
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // 🛡️ GUARD: Si no hay userId, no hacer fetch
+    if (!userId) {
+      console.warn('⚠️ AdaptationProgressPanel: userId no disponible, saltando fetch');
+      setLoading(false);
+      setProgressData(null);
+      return;
+    }
+
     const fetchProgress = async () => {
       try {
         setLoading(true);
+        console.log('📊 AdaptationProgressPanel: Fetching progress for userId:', userId);
         const response = await apiClient.get('/adaptation/progress');
+
+        console.log('📊 Respuesta de /adaptation/progress:', {
+          success: response.success,
+          hasActiveBlock: response.hasActiveBlock,
+          hasLatestCriteria: !!response.latestCriteria,
+          weeksCount: response.weeks?.length
+        });
 
         // 🎯 FIX: Validar hasActiveBlock ANTES de guardar datos
         if (response.success && response.hasActiveBlock && response.latestCriteria) {
@@ -34,20 +50,25 @@ export default function AdaptationProgressPanel({ userId, onReadyForTransition, 
           setError(null);
         } else {
           // No hay bloque activo o datos incompletos → no mostrar panel
+          console.log('ℹ️ AdaptationProgressPanel: No hay bloque activo o datos incompletos');
           setProgressData(null);
         }
       } catch (err) {
         console.error('Error fetching adaptation progress:', err);
         setError(err.message);
+        setProgressData(null);
       } finally {
         setLoading(false);
       }
     };
 
-    if (userId) {
-      fetchProgress();
-    }
+    fetchProgress();
   }, [userId]);
+
+  // 🛡️ GUARD: Si no hay userId, no renderizar nada
+  if (!userId) {
+    return null;
+  }
 
   if (loading) {
     return (
