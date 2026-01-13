@@ -345,15 +345,24 @@ export default function TodayTrainingTab({
       console.log('📥 Respuesta completa de today-status:', data);
 
       if (data.success) {
+        // 🎯 FIX: Manejar caso de día de descanso
+        if (data.isRestDay) {
+          console.log('🛋️ Día de descanso detectado');
+          setTodayStatus(null);
+          setTodaySessionData(null);
+          return null;
+        }
+
         const normalized = {
           session: data.session,
           exercises: data.exercises,
-          summary: data.summary
+          summary: data.summary,
+          sessionNotStarted: data.sessionNotStarted || false
         };
         setTodayStatus(normalized);
 
         // 🆕 Construir estructura compatible con ExerciseList usando datos reales del backend
-        if (Array.isArray(data.exercises)) {
+        if (Array.isArray(data.exercises) && data.exercises.length > 0) {
           const normalizedExercises = data.exercises.map((exercise, index) => ({
             nombre: exercise.exercise_name || exercise.nombre || `Ejercicio ${index + 1}`,
             series: String(exercise.series_total || exercise.series || '—'),
@@ -1506,8 +1515,12 @@ export default function TodayTrainingTab({
     canRetryToday,
     hasUnfinishedWorkToday
   } = gateLogic;
-  const isRestDay = hasActivePlan && !todaySessionData;
+  // 🎯 FIX: isRestDay solo es true cuando el backend confirma que no hay entrenamiento programado
+  const isRestDay = hasActivePlan && !todaySessionData && !loadingTodayStatus;
   const noActivePlan = !hasActivePlan;
+  
+  // 🎯 FIX: Detectar sesión programada pero no iniciada
+  const sessionNotStarted = todayStatus?.sessionNotStarted || false;
   const sessionMatchesToday = hasActiveSession && !!session?.dayName && !!todaySessionData?.dia && (
     session.dayName.toLowerCase() === todaySessionData.dia.toLowerCase()
   );
@@ -1766,11 +1779,15 @@ export default function TodayTrainingTab({
             {/* 📋 SESIÓN DEL DÍA (NO INICIADA) */}
             {/* =============================================== */}
 
-            {/* 🎯 FIX VISUAL: Mantener sección visible durante carga de todayStatus para evitar parpadeo */}
-            {/* 🎯 FIX: Añadir condición para sesión no iniciada (!todayStatus && !loadingTodayStatus) */}
+            {/* 🎯 FIX: Mostrar botón cuando:
+                1. Hay sesión activa con trabajo pendiente
+                2. Hay sesión programada pero no iniciada (sessionNotStarted)
+                3. Está cargando el estado
+            */}
             {((hasToday && hasActivePlan && hasUnfinishedWorkToday) ||
+              (hasActivePlan && sessionNotStarted && todaySessionData?.ejercicios?.length > 0) ||
               (hasToday && hasActivePlan && loadingTodayStatus && !todayStatus) ||
-              (hasToday && hasActivePlan && !loadingTodayStatus && !todayStatus && todaySessionData?.ejercicios?.length > 0)) ? (
+              (hasToday && hasActivePlan && !loadingTodayStatus && todaySessionData?.ejercicios?.length > 0)) ? (
               <section className="transition-opacity duration-300 ease-in-out opacity-100">
 
                 {/* Componente modular para iniciar/reanudar sesión */}
