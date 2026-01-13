@@ -14,7 +14,7 @@ import { Check, X, AlertCircle, TrendingUp, Zap, Target } from 'lucide-react';
 import apiClient from '@/lib/apiClient';
 
 export default function AdaptationProgressPanel({ userId, onReadyForTransition, onNeedRepeat }) {
-  const [progress, setProgress] = useState(null);
+  const [progressData, setProgressData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -25,10 +25,14 @@ export default function AdaptationProgressPanel({ userId, onReadyForTransition, 
         const response = await apiClient.get('/adaptation/progress');
 
         if (response.success && response.hasActiveBlock) {
-          setProgress(response.block);
+          setProgressData({
+            block: response.block,
+            weeks: response.weeks || [],
+            latestCriteria: response.latestCriteria || null,
+          });
           setError(null);
         } else {
-          setProgress(null);
+          setProgressData(null);
         }
       } catch (err) {
         console.error('Error fetching adaptation progress:', err);
@@ -58,13 +62,20 @@ export default function AdaptationProgressPanel({ userId, onReadyForTransition, 
     );
   }
 
-  if (error || !progress) {
+  if (error || !progressData) {
     return null; // Sin error, solo no mostrar si no hay bloque activo
   }
 
-  const { weeks = [], latestCriteria } = progress;
+  const { block, weeks = [], latestCriteria } = progressData;
+
+  // Validar que latestCriteria existe y tiene la estructura esperada
+  if (!latestCriteria || !latestCriteria.adherence || !latestCriteria.rir || !latestCriteria.technique || !latestCriteria.progress) {
+    console.warn('⚠️ latestCriteria incompleto o ausente:', latestCriteria);
+    return null;
+  }
+
   const currentWeek = weeks[weeks.length - 1];
-  const totalWeeks = progress.durationWeeks;
+  const totalWeeks = block?.durationWeeks || 4;
   const weeksCompleted = weeks.filter((w) => w.all_criteria_met).length;
 
   const getWeekProgress = () => {
@@ -153,7 +164,7 @@ export default function AdaptationProgressPanel({ userId, onReadyForTransition, 
             met={latestCriteria.adherence.met}
             value={
               currentWeek
-                ? `${currentWeek.adherence.sessions} (${currentWeek.adherence.met ? '✓' : '✗'})`
+                ? `${currentWeek.adherence_percentage?.toFixed(1) || 0}% (${currentWeek.adherence?.met ? '✓' : '✗'})`
                 : 'N/A'
             }
             details={`Meta: ${latestCriteria.adherence.threshold}% | Umbral: 4/5 sesiones`}
@@ -165,7 +176,7 @@ export default function AdaptationProgressPanel({ userId, onReadyForTransition, 
             met={latestCriteria.rir.met}
             value={
               currentWeek
-                ? `${currentWeek.rir.value?.toFixed(1) || 'N/A'}`
+                ? `${currentWeek.mean_rir?.toFixed(1) || 'N/A'}`
                 : 'N/A'
             }
             details={`Meta: ≤${latestCriteria.rir.threshold}`}
@@ -177,7 +188,7 @@ export default function AdaptationProgressPanel({ userId, onReadyForTransition, 
             met={latestCriteria.technique.met}
             value={
               currentWeek
-                ? `${currentWeek.technique.flags} flags`
+                ? `${currentWeek.technique_flags_count || 0} flags`
                 : 'N/A'
             }
             details={`Meta: <1 problema/semana`}
@@ -189,7 +200,7 @@ export default function AdaptationProgressPanel({ userId, onReadyForTransition, 
             met={latestCriteria.progress.met}
             value={
               currentWeek
-                ? `${currentWeek.progress.value?.toFixed(1) || 0}%`
+                ? `${currentWeek.weight_progress_percentage?.toFixed(1) || 0}%`
                 : 'N/A'
             }
             details={`Meta: ≥${latestCriteria.progress.threshold}% vs Sem 1`}
