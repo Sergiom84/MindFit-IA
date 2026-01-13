@@ -328,6 +328,14 @@ export default function TodayTrainingTab({
 
       if (!response.ok) {
         const errorText = await response.text();
+
+        // 🎯 FIX: El 404 es normal cuando la sesión aún no se ha iniciado
+        if (response.status === 404) {
+          console.log('ℹ️ Sesión no iniciada aún para este día:', { methodologyPlanId: currentMethodologyPlanId, weekNumber, dayName });
+          setTodayStatus(null); // No hay sesión, mostrar botón "Comenzar"
+          return null;
+        }
+
         console.error('❌ Error en today-status:', response.status, errorText);
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
@@ -1759,7 +1767,10 @@ export default function TodayTrainingTab({
             {/* =============================================== */}
 
             {/* 🎯 FIX VISUAL: Mantener sección visible durante carga de todayStatus para evitar parpadeo */}
-            {((hasToday && hasActivePlan && hasUnfinishedWorkToday) || (hasToday && hasActivePlan && loadingTodayStatus && !todayStatus)) ? (
+            {/* 🎯 FIX: Añadir condición para sesión no iniciada (!todayStatus && !loadingTodayStatus) */}
+            {((hasToday && hasActivePlan && hasUnfinishedWorkToday) ||
+              (hasToday && hasActivePlan && loadingTodayStatus && !todayStatus) ||
+              (hasToday && hasActivePlan && !loadingTodayStatus && !todayStatus && todaySessionData?.ejercicios?.length > 0)) ? (
               <section className="transition-opacity duration-300 ease-in-out opacity-100">
 
                 {/* Componente modular para iniciar/reanudar sesión */}

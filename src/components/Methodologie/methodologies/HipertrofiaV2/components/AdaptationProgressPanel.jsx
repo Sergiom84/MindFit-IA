@@ -24,14 +24,16 @@ export default function AdaptationProgressPanel({ userId, onReadyForTransition, 
         setLoading(true);
         const response = await apiClient.get('/adaptation/progress');
 
-        if (response.success && response.hasActiveBlock) {
+        // 🎯 FIX: Validar hasActiveBlock ANTES de guardar datos
+        if (response.success && response.hasActiveBlock && response.latestCriteria) {
           setProgressData({
-            block: response.block,
+            block: response.block || null,
             weeks: response.weeks || [],
-            latestCriteria: response.latestCriteria || null,
+            latestCriteria: response.latestCriteria,
           });
           setError(null);
         } else {
+          // No hay bloque activo o datos incompletos → no mostrar panel
           setProgressData(null);
         }
       } catch (err) {
@@ -62,15 +64,23 @@ export default function AdaptationProgressPanel({ userId, onReadyForTransition, 
     );
   }
 
-  if (error || !progressData) {
+  // 🎯 FIX: Validación más robusta para evitar crashes
+  if (error || !progressData || typeof progressData !== 'object') {
     return null; // Sin error, solo no mostrar si no hay bloque activo
   }
 
-  const { block, weeks = [], latestCriteria } = progressData;
+  // 🎯 FIX: Desestructuración segura con valores por defecto
+  const { block = null, weeks = [], latestCriteria = null } = progressData || {};
 
   // Validar que latestCriteria existe y tiene la estructura esperada
-  if (!latestCriteria || !latestCriteria.adherence || !latestCriteria.rir || !latestCriteria.technique || !latestCriteria.progress) {
-    console.warn('⚠️ latestCriteria incompleto o ausente:', latestCriteria);
+  if (!latestCriteria || typeof latestCriteria !== 'object') {
+    console.warn('⚠️ latestCriteria ausente o inválido:', { latestCriteria, progressData });
+    return null;
+  }
+
+  // Validar estructura de latestCriteria
+  if (!latestCriteria.adherence || !latestCriteria.rir || !latestCriteria.technique || !latestCriteria.progress) {
+    console.warn('⚠️ latestCriteria incompleto:', latestCriteria);
     return null;
   }
 
