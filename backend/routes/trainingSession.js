@@ -14,11 +14,20 @@ import express from 'express';
 import authenticateToken from '../middleware/auth.js';
 import { pool } from '../db.js';
 import { finalizePlanIfCompleted } from '../services/methodologyPlansService.js';
-import { calculateSessionStatus } from '../services/sessionStatusService.js';
+import { 
+  calculateSessionStatus,
+  SESSION_STATES
+} from '../services/sessionStatusService.js';
+
+// Importar máquina de estados para transiciones seguras
+import {
+  transition,
+  SESSION_ACTIONS,
+  createSessionContext
+} from '../services/sessionStateMachine.js';
 
 // Importar helpers compartidos
 import {
-  stripDiacritics,
   normalizeDayAbbrev
 } from '../utils/shared/dayNormalizer.js';
 import {
@@ -36,8 +45,14 @@ const router = express.Router();
  * 🎯 FASE 3: Función DESHABILITADA - Las sesiones se crean bajo demanda
  * Esta función llamaba al stored procedure create_methodology_exercise_sessions
  * que ha sido reemplazado por ensureWorkoutSchedule() + creación bajo demanda
+ * 
+ * @param {object} _client - Cliente de BD (no usado)
+ * @param {number} _userId - ID del usuario (no usado)
+ * @param {number} _methodologyPlanId - ID del plan (no usado)
+ * @param {object} _planDataJson - Datos del plan (no usado)
  */
-async function ensureMethodologySessions(client, userId, methodologyPlanId, planDataJson) {
+// eslint-disable-next-line no-unused-vars
+async function ensureMethodologySessions(_client, _userId, _methodologyPlanId, _planDataJson) {
   console.log(`📋 [ensureMethodologySessions] DESHABILITADA (FASE 3) - sesiones se crean bajo demanda`);
   // Las sesiones en methodology_exercise_sessions se crean cuando el usuario
   // inicia un entrenamiento (endpoint /sessions/start)
@@ -114,6 +129,13 @@ router.post('/start/methodology', authenticateToken, async (req, res) => {
         success: false,
         error: 'Faltan parámetros: methodology_plan_id, week_number, day_name'
       });
+    }
+
+    // 🧹 LIMPIEZA PRE-SESIÓN: Cerrar sesiones viejas en limbo antes de iniciar nueva
+    const { preSessionCleanup } = await import('../utils/sessionCleanup.js');
+    const cleanupResult = await preSessionCleanup(userId, methodology_plan_id);
+    if (cleanupResult.cleanedSessions > 0 || cleanupResult.fixedStates > 0) {
+      console.log(`🧹 Pre-limpieza: ${cleanupResult.cleanedSessions} sesiones cerradas, ${cleanupResult.fixedStates} estados corregidos`);
     }
 
     // Verificar plan y obtener plan_data
@@ -195,18 +217,33 @@ router.post('/start/methodology', authenticateToken, async (req, res) => {
       );
     }
 
-    // Marcar sesión iniciada
+    // 🔄 Validar transición de estado usando la máquina de estados
+    const currentStatus = session.session_status || SESSION_STATES.PENDING;
+    const transitionResult = transition(currentStatus, SESSION_ACTIONS.START);
+    
+    if (!transitionResult.success) {
+      // Si la sesión ya está en progreso, permitir continuar (caso de reanudación)
+      if (currentStatus === SESSION_STATES.IN_PROGRESS) {
+        console.log(`📋 Sesión ${session.id} ya en progreso, continuando...`);
+      } else {
+        console.warn(`⚠️ [StateMachine] Transición inválida: ${transitionResult.error}`);
+        // No bloqueamos, pero lo registramos
+      }
+    }
+
+    // Marcar sesión iniciada con el estado validado
+    const newStatus = transitionResult.success ? transitionResult.newState : SESSION_STATES.IN_PROGRESS;
     await client.query(
       `UPDATE app.methodology_exercise_sessions
-       SET session_status = 'in_progress',
+       SET session_status = $3,
            started_at = COALESCE(started_at, NOW()),
            session_date = COALESCE(session_date, CURRENT_DATE),
            total_exercises = $2
        WHERE id = $1`,
-      [session.id, ejercicios.length]
+      [session.id, ejercicios.length, newStatus]
     );
 
-    console.log(`✅ Sesión marcada como iniciada - ID: ${session.id}`);
+    console.log(`✅ Sesión marcada como ${newStatus} - ID: ${session.id}`);
 
     await client.query('COMMIT');
 
@@ -708,12 +745,28 @@ router.post('/complete/methodology/:sessionId', authenticateToken, async (req, r
     );
 
     // Calcular estado de sesión usando el servicio
-    const { status: sessionStatus, completionRate, metrics } = calculateSessionStatus(exercisesQuery.rows);
+    const { status: calculatedStatus, completionRate, metrics } = calculateSessionStatus(exercisesQuery.rows);
 
     const totalExercises = metrics.total;
     const completedExercises = metrics.completed;
     const skippedExercises = metrics.skipped;
     const cancelledExercises = metrics.cancelled;
+
+    // 🔄 Validar transición de estado usando la máquina de estados
+    const currentStatus = ses.rows[0].session_status || SESSION_STATES.IN_PROGRESS;
+    const sessionContext = createSessionContext(ses.rows[0], exercisesQuery.rows);
+    const transitionResult = transition(currentStatus, SESSION_ACTIONS.FINISH, sessionContext);
+    
+    // Determinar el estado final - usar el calculado si la transición es válida
+    const finalSessionStatus = transitionResult.success 
+      ? transitionResult.newState 
+      : calculatedStatus;
+    
+    if (!transitionResult.success) {
+      console.warn(`⚠️ [StateMachine] Transición al finalizar: ${transitionResult.error}. Usando estado calculado: ${calculatedStatus}`);
+    } else {
+      console.log(`🔄 [StateMachine] Transición exitosa: ${currentStatus} → ${finalSessionStatus}`);
+    }
 
     await client.query(
       `UPDATE app.methodology_exercise_sessions
@@ -729,7 +782,7 @@ router.post('/complete/methodology/:sessionId', authenticateToken, async (req, r
              ELSE total_duration_seconds
            END
        WHERE id = $1`,
-      [sessionId, sessionStatus, completedExercises, skippedExercises, cancelledExercises, totalExercises, completionRate]
+      [sessionId, finalSessionStatus, completedExercises, skippedExercises, cancelledExercises, totalExercises, completionRate]
     );
 
     // Obtener todos los ejercicios de la sesión para mover al historial
@@ -816,12 +869,17 @@ router.post('/complete/methodology/:sessionId', authenticateToken, async (req, r
       success: true,
       message: 'Sesión finalizada y datos guardados en historial',
       summary: {
-        status: sessionStatus,
+        status: finalSessionStatus,
         completionRate,
         totalExercises,
         completedExercises,
         skippedExercises,
-        cancelledExercises
+        cancelledExercises,
+        stateTransition: {
+          from: currentStatus,
+          to: finalSessionStatus,
+          valid: transitionResult.success
+        }
       }
     });
 
@@ -1887,6 +1945,66 @@ router.post('/handle-abandon/:sessionId', authenticateToken, async (req, res) =>
 });
 
 /**
+ * POST /api/training-session/cleanup-stale
+ * Limpia sesiones abandonadas/huérfanas del usuario
+ * Útil para llamar antes de crear un nuevo entrenamiento
+ */
+router.post('/cleanup-stale', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    
+    // Importar dinámicamente el servicio de limpieza
+    const { cleanupUserStaleSessions, checkUserPendingSessions } = await import('../services/sessionCleanupService.js');
+    
+    // Verificar estado antes de limpiar
+    const beforeStatus = await checkUserPendingSessions(userId);
+    
+    // Ejecutar limpieza
+    const cleanupResult = await cleanupUserStaleSessions(userId);
+    
+    // Verificar estado después
+    const afterStatus = await checkUserPendingSessions(userId);
+    
+    res.json({
+      success: cleanupResult.success,
+      message: `Limpieza completada: ${cleanupResult.cleaned || 0} sesiones procesadas`,
+      before: beforeStatus,
+      after: afterStatus,
+      details: cleanupResult.details
+    });
+    
+  } catch (error) {
+    console.error('❌ Error en cleanup-stale:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/training-session/pending-sessions
+ * Obtiene las sesiones pendientes/incompletas del usuario
+ */
+router.get('/pending-sessions', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    
+    const { checkUserPendingSessions } = await import('../services/sessionCleanupService.js');
+    const result = await checkUserPendingSessions(userId);
+    
+    res.json(result);
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo sesiones pendientes:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * PUT /api/training-session/close-active
  * Cerrar sesiones activas del usuario
  */
@@ -2112,7 +2230,7 @@ router.delete('/cancel/methodology/:sessionId', authenticateToken, async (req, r
     console.log(`🗑️ ${deleteExercisesResult.rowCount} ejercicios eliminados de sesión ${sessionId}`);
 
     // 🗑️ ELIMINAR la sesión
-    const deleteSessionResult = await client.query(
+    await client.query(
       `DELETE FROM app.methodology_exercise_sessions
        WHERE id = $1`,
       [sessionId]

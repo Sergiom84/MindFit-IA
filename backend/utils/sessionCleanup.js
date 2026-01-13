@@ -1,9 +1,12 @@
 /**
  * 🧹 Session Cleanup Utilities
  * Utilidades para limpiar sesiones en limbo y estados inconsistentes
+ * 
+ * MEJORADO: Ahora incluye limpieza de drafts y sesiones de fin de semana
  */
 
 import { pool } from '../db.js';
+import { cleanupStaleSessions } from '../services/sessionCleanupService.js';
 
 /**
  * Limpia sesiones que han quedado en limbo (in_progress por mucho tiempo)
@@ -172,22 +175,26 @@ export async function preSessionCleanup(userId, methodologyPlanId) {
 
 /**
  * Limpieza general del sistema (para ejecutar periódicamente)
- * @returns {Promise<{totalCleaned: number, totalFixed: number}>}
+ * @returns {Promise<{totalCleaned: number, totalFixed: number, draftsRemoved: number, weekendCleaned: number}>}
  */
 export async function systemWideCleanup() {
   try {
     console.log('🧹 Iniciando limpieza general del sistema...');
 
-    // Limpiar sesiones en limbo de más de 24 horas
+    // 1. Usar el servicio centralizado de limpieza
+    const cleanupResult = await cleanupStaleSessions();
+    
+    // 2. Limpiar sesiones en limbo de más de 24 horas (por si el servicio no las capturó)
     const limboQuery = await pool.query(`
       UPDATE app.methodology_exercise_sessions
-      SET session_status = 'cancelled'
+      SET session_status = 'cancelled',
+          completed_at = NOW()
       WHERE session_status = 'in_progress'
         AND started_at < NOW() - INTERVAL '24 hours'
       RETURNING id, user_id, day_name, started_at
     `);
 
-    // Corregir todos los estados inconsistentes
+    // 3. Corregir todos los estados inconsistentes
     const inconsistentQuery = await pool.query(`
       UPDATE app.methodology_exercise_sessions
       SET session_status = 'completed'
@@ -196,30 +203,70 @@ export async function systemWideCleanup() {
       RETURNING id, user_id, day_name, completed_at
     `);
 
-    const totalCleaned = limboQuery.rowCount;
+    // 4. Limpiar planes draft antiguos (más de 1 hora)
+    const draftQuery = await pool.query(`
+      DELETE FROM app.methodology_plans
+      WHERE status = 'draft'
+        AND created_at < NOW() - INTERVAL '1 hour'
+      RETURNING id, user_id, methodology_type
+    `);
+
+    // 5. Limpiar sesiones de fin de semana huérfanas (weekend-extra sin completar > 48h)
+    const weekendQuery = await pool.query(`
+      UPDATE app.methodology_exercise_sessions
+      SET session_status = 'abandoned',
+          completed_at = NOW()
+      WHERE session_type = 'weekend-extra'
+        AND session_status IN ('pending', 'in_progress')
+        AND created_at < NOW() - INTERVAL '48 hours'
+      RETURNING id, user_id
+    `);
+
+    // 6. Limpiar ejercicios de tracking huérfanos (sin sesión válida)
+    const orphanTrackingQuery = await pool.query(`
+      DELETE FROM app.exercise_session_tracking
+      WHERE methodology_session_id NOT IN (
+        SELECT id FROM app.methodology_exercise_sessions
+      )
+      RETURNING id
+    `);
+
+    const totalCleaned = limboQuery.rowCount + (cleanupResult.details?.methodology?.cancelled || 0);
     const totalFixed = inconsistentQuery.rowCount;
+    const draftsRemoved = draftQuery.rowCount + (cleanupResult.details?.drafts || 0);
+    const weekendCleaned = weekendQuery.rowCount;
+    const orphansRemoved = orphanTrackingQuery.rowCount;
 
     console.log(`✅ Limpieza general completada:`);
     console.log(`   - Sesiones en limbo canceladas: ${totalCleaned}`);
     console.log(`   - Estados inconsistentes corregidos: ${totalFixed}`);
+    console.log(`   - Drafts eliminados: ${draftsRemoved}`);
+    console.log(`   - Sesiones fin de semana abandonadas: ${weekendCleaned}`);
+    console.log(`   - Registros huérfanos eliminados: ${orphansRemoved}`);
 
-    if (totalCleaned > 0) {
+    if (limboQuery.rowCount > 0) {
       console.log('   Sesiones en limbo canceladas:');
       limboQuery.rows.forEach(row => {
         console.log(`     - Usuario ${row.user_id}, Sesión ${row.id} (${row.day_name})`);
       });
     }
 
-    if (totalFixed > 0) {
-      console.log('   Estados inconsistentes corregidos:');
-      inconsistentQuery.rows.forEach(row => {
-        console.log(`     - Usuario ${row.user_id}, Sesión ${row.id} (${row.day_name})`);
+    if (draftQuery.rowCount > 0) {
+      console.log('   Drafts eliminados:');
+      draftQuery.rows.forEach(row => {
+        console.log(`     - Usuario ${row.user_id}, Plan ${row.id} (${row.methodology_type})`);
       });
     }
 
-    return { totalCleaned, totalFixed };
+    return { 
+      totalCleaned, 
+      totalFixed, 
+      draftsRemoved, 
+      weekendCleaned,
+      orphansRemoved
+    };
   } catch (error) {
     console.error('❌ Error en limpieza general del sistema:', error);
-    return { totalCleaned: 0, totalFixed: 0 };
+    return { totalCleaned: 0, totalFixed: 0, draftsRemoved: 0, weekendCleaned: 0, orphansRemoved: 0 };
   }
 }

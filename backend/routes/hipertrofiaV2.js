@@ -30,22 +30,13 @@ import {
 
 import { logger } from '../services/hipertrofiaV2/logger.js';
 
-const router = express.Router();
+// Importar servicio centralizado de limpieza de drafts
+import { cleanUserDrafts } from '../services/routineGeneration/draftCleaner.js';
 
-/**
- * Helper: Limpiar drafts del usuario
- */
-async function cleanUserDrafts(userId, client = null) {
-  const dbClient = client || pool;
-  try {
-    await dbClient.query(
-      `DELETE FROM app.methodology_plans WHERE user_id = $1 AND status = 'draft'`,
-      [userId]
-    );
-  } catch (error) {
-    logger.error('Error limpiando drafts:', error.message);
-  }
-}
+// Importar servicio de limpieza de sesiones huérfanas
+import { cleanupUserStaleSessions } from '../services/sessionCleanupService.js';
+
+const router = express.Router();
 
 // ============================================================
 // GENERACIÓN DE PLANES
@@ -68,6 +59,12 @@ router.post('/generate-d1d5', authenticateToken, async (req, res) => {
     } = req.body;
 
     logger.always('🏋️ [MINDFEED] Generando plan D1-D5 para usuario:', userId);
+
+    // 🧹 LIMPIEZA PRE-GENERACIÓN: Cerrar sesiones huérfanas antes de generar nuevo plan
+    const cleanupResult = await cleanupUserStaleSessions(userId);
+    if (cleanupResult.cleaned > 0) {
+      logger.info(`🧹 [MINDFEED] Pre-limpieza: ${cleanupResult.cleaned} sesiones/drafts limpiados`);
+    }
 
     await dbClient.query('BEGIN');
     await cleanUserDrafts(userId, dbClient);
@@ -122,6 +119,12 @@ router.post('/generate-fullbody', authenticateToken, async (req, res) => {
     const userId = req.user?.userId || req.user?.id;
     const { nivel = 'Principiante' } = req.body;
 
+    // 🧹 LIMPIEZA PRE-GENERACIÓN: Cerrar sesiones huérfanas
+    const cleanupResult = await cleanupUserStaleSessions(userId);
+    if (cleanupResult.cleaned > 0) {
+      logger.info(`🧹 [FULLBODY] Pre-limpieza: ${cleanupResult.cleaned} sesiones/drafts limpiados`);
+    }
+
     await dbClient.query('BEGIN');
     await cleanUserDrafts(userId, dbClient);
 
@@ -171,6 +174,12 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
       selectionMode = 'full_body',
       focusGroup = null
     } = req.body;
+
+    // 🧹 LIMPIEZA PRE-GENERACIÓN: Cerrar sesiones huérfanas
+    const cleanupResult = await cleanupUserStaleSessions(userId);
+    if (cleanupResult.cleaned > 0) {
+      logger.info(`🧹 [SINGLE-DAY] Pre-limpieza: ${cleanupResult.cleaned} sesiones/drafts limpiados`);
+    }
 
     await dbClient.query('BEGIN');
 
