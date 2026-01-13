@@ -1127,9 +1127,76 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
     });
 
     if (sessionQuery.rowCount === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'No hay sesión para este día'
+      // 🎯 FIX: Si no hay sesión iniciada, verificar si hay un día programado en workout_schedule
+      // Normalizar el día para buscar en workout_schedule (usa nombres completos: "Lunes", "Martes", etc.)
+      const dayFullNameMap = {
+        'Lun': 'Lunes', 'Mar': 'Martes', 'Mie': 'Miercoles', 'Miércoles': 'Miercoles',
+        'Jue': 'Jueves', 'Vie': 'Viernes', 'Sab': 'Sabado', 'Sábado': 'Sabado', 'Dom': 'Domingo'
+      };
+      const dayFullName = dayFullNameMap[normalizedDay] || normalizedDay;
+
+      const scheduleQuery = await pool.query(
+        `SELECT id, exercises, scheduled_date, day_name
+         FROM app.workout_schedule
+         WHERE methodology_plan_id = $1 AND week_number = $2
+           AND (day_name = $3 OR day_name = $4)
+         LIMIT 1`,
+        [methodology_plan_id, week_number, normalizedDay, dayFullName]
+      );
+
+      if (scheduleQuery.rowCount === 0) {
+        // No hay día programado - es un día de descanso
+        console.log('ℹ️ No hay entrenamiento programado para este día (día de descanso)');
+        return res.status(200).json({
+          success: true,
+          session_type: 'methodology',
+          session: null,
+          exercises: [],
+          isRestDay: true,
+          message: 'Día de descanso - no hay entrenamiento programado para este día'
+        });
+      }
+
+      // Hay un día programado pero la sesión aún no se ha iniciado
+      const scheduleData = scheduleQuery.rows[0];
+      const scheduledExercises = scheduleData.exercises || [];
+
+      console.log('📋 Sesión programada pero no iniciada:', {
+        scheduled_date: scheduleData.scheduled_date,
+        exercises_count: scheduledExercises.length
+      });
+
+      // Formatear ejercicios para el frontend
+      const formattedExercises = scheduledExercises.map((ex, idx) => ({
+        exercise_order: idx + 1,
+        exercise_name: ex.nombre || ex.name || `Ejercicio ${idx + 1}`,
+        series_total: ex.series || 3,
+        series_completed: 0,
+        repeticiones: ex.repeticiones || ex.reps || '8-12',
+        descanso_seg: ex.descanso_seg || ex.descanso || 90,
+        intensidad: ex.intensidad || null,
+        tempo: ex.tempo || null,
+        status: 'pending',
+        notas: ex.notas || ''
+      }));
+
+      return res.status(200).json({
+        success: true,
+        session_type: 'methodology',
+        session: null, // No hay sesión iniciada aún
+        sessionNotStarted: true,
+        scheduledDate: scheduleData.scheduled_date,
+        exercises: formattedExercises,
+        summary: {
+          total: formattedExercises.length,
+          completed: 0,
+          skipped: 0,
+          cancelled: 0,
+          pending: formattedExercises.length,
+          isComplete: false,
+          canRetry: false
+        },
+        message: 'Sesión programada pero no iniciada. Pulsa "Comenzar Entrenamiento" para empezar.'
       });
     }
 

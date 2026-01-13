@@ -78,6 +78,36 @@ npm run render:logs:win view backend
 - 🔐 **Troubleshooting**: [`docs/RENDER_AUTH_TROUBLESHOOTING.md`](docs/RENDER_AUTH_TROUBLESHOOTING.md)
 - ✅ **Estado**: [`docs/RENDER_SETUP_COMPLETE.md`](docs/RENDER_SETUP_COMPLETE.md)
 
+### 🔍 Chrome DevTools MCP (Browser Debugging)
+
+Claude Code tiene acceso directo a Chrome DevTools para debugging en tiempo real:
+
+```bash
+# Ver errores de consola
+"¿Qué errores hay en la consola del navegador?"
+
+# Analizar peticiones de red
+"¿Por qué falla la petición a /api/routines?"
+
+# Performance
+"¿Hay problemas de rendimiento en la app?"
+
+# Screenshots y DOM
+"Toma un screenshot del modal" / "Inspecciona este elemento"
+```
+
+**📚 Documentación completa**: [`docs/CHROME_DEVTOOLS_MCP.md`](docs/CHROME_DEVTOOLS_MCP.md)
+
+**✅ Estado**: Configurado globalmente (disponible en todos los proyectos)
+
+**⚡ Capacidades**:
+
+- Ver errores de consola en tiempo real
+- Analizar peticiones HTTP y respuestas
+- Inspeccionar elementos y estilos
+- Grabar traces de performance
+- Tomar screenshots y automatizar acciones
+
 ### 🔧 Scripts de Sincronización de Puertos
 
 ```bash
