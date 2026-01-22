@@ -42,6 +42,41 @@ function toExerciseKey(name) {
   return s.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 100) || 'ejercicio';
 }
 
+function buildRejectedKeySet(rejectionList = []) {
+  const keys = new Set();
+  for (const item of rejectionList) {
+    const rawKey = item?.exercise_key ? String(item.exercise_key).trim() : '';
+    const key = rawKey || toExerciseKey(item?.exercise_name);
+    if (key) {
+      keys.add(key);
+    }
+  }
+  return keys;
+}
+
+function splitRejectedExercises(exercises, rejectedKeys) {
+  const kept = [];
+  const removed = [];
+
+  for (const exercise of Array.isArray(exercises) ? exercises : []) {
+    const name = exercise?.nombre ?? exercise?.exercise_name ?? exercise?.name;
+    if (!name) {
+      kept.push(exercise);
+      continue;
+    }
+
+    const key = toExerciseKey(name);
+    if (rejectedKeys.has(key)) {
+      removed.push({ name, key });
+      continue;
+    }
+
+    kept.push(exercise);
+  }
+
+  return { kept, removed };
+}
+
 const EQUIPMENT_PRESETS = {
   minimo: ['Peso corporal', 'Toalla resistente', 'Silla estable', 'Pared o sofa'],
   basico: ['Esterilla', 'Bandas elasticas', 'Mancuernas ajustables', 'Banco o step'],
@@ -488,6 +523,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
     const userMessage = [
       'Genera un plan de entrenamiento en casa completamente personalizado, siguiendo al pie de la letra el prompt del sistema.',
       'Evita repetir ejercicios listados en historial.combinacion.ejercicios_usados salvo que sean imprescindibles.',
+      'No incluyas ejercicios presentes en rechazos_activos; es una lista bloqueante.',
       'Responde UNICAMENTE con un objeto JSON valido.',
       JSON.stringify(aiPayload, null, 2)
     ].join('\n\n');
@@ -510,6 +546,20 @@ router.post('/generate', authenticateToken, async (req, res) => {
     }
 
     const plan = parseAIPlanResponse(aiContent);
+
+    const rejectedKeys = buildRejectedKeySet(rejectionList);
+    if (rejectedKeys.size > 0) {
+      const { kept, removed } = splitRejectedExercises(plan.plan_entrenamiento?.ejercicios, rejectedKeys);
+      if (removed.length > 0) {
+        console.warn(
+          `[HomeTraining] Eliminados ${removed.length} ejercicio(s) rechazado(s): ${removed.map(item => item.name).join(', ')}`
+        );
+        plan.plan_entrenamiento.ejercicios = kept;
+        if (kept.length === 0) {
+          throw new Error('No se pudo generar un plan sin ejercicios rechazados.');
+        }
+      }
+    }
 
     console.log(`[HomeTraining] Plan IA generado (${plan.plan_entrenamiento?.ejercicios?.length || 0} ejercicios)`);
 
@@ -1082,8 +1132,10 @@ router.post('/rejections', authenticateToken, async (req, res) => {
       for (const raw of rejections) {
         // Normalizar datos del modal
         const exercise_name = String(raw?.exercise_name || '').trim().slice(0, 255) || 'Ejercicio';
-        const exercise_key = (raw?.exercise_key && String(raw.exercise_key).trim()) || toExerciseKey(exercise_name);
+        const raw_key = raw?.exercise_key ? String(raw.exercise_key).trim() : '';
+        const exercise_key = exercise_name ? toExerciseKey(exercise_name) : (raw_key || 'ejercicio');
         const training_type = normalizeTrainingType(raw?.training_type);
+        const equipment_type = normalizeEquipmentType(raw?.equipment_type);
         const rejection_category = raw?.rejection_category || 'other';
         const rejection_reason = raw?.rejection_reason ? String(raw.rejection_reason).slice(0, 1000) : null;
         const expires_in_days = Number(raw?.expires_in_days) || null;
@@ -1107,6 +1159,19 @@ router.post('/rejections', authenticateToken, async (req, res) => {
         }
 
         console.log(`📝 Guardando feedback: ${exercise_name} - ${feedback_type} (${methodology_type})`);
+
+        await client.query(
+          `INSERT INTO app.home_exercise_rejections
+           (user_id, exercise_name, exercise_key, equipment_type, training_type, rejection_reason, rejection_category, expires_at, is_active)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
+           ON CONFLICT (user_id, exercise_key, equipment_type, training_type, is_active)
+           DO UPDATE SET rejection_reason = EXCLUDED.rejection_reason,
+                         rejection_category = EXCLUDED.rejection_category,
+                         expires_at = EXCLUDED.expires_at,
+                         rejected_at = NOW(),
+                         updated_at = NOW()`,
+          [user_id, exercise_name, exercise_key, equipment_type, training_type, rejection_reason, rejection_category, expiresAt]
+        );
 
         // Verificar si ya existe feedback para este ejercicio
         const existingResult = await client.query(

@@ -1034,6 +1034,7 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
     const { methodology_plan_id: planIdParam } = req.query;
     let { week_number, day_name } = req.query;
     const day_id = req.query?.day_id ? parseInt(req.query.day_id, 10) : null;
+    const session_date = req.query?.session_date;
 
     if (!planIdParam || (!day_id && (!week_number || !day_name))) {
       return res.status(400).json({
@@ -1052,6 +1053,30 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
     }
 
     // Resolver week/day de forma robusta
+    let session = null;
+    if (session_date) {
+      const sessionDateQuery = await pool.query(
+        `SELECT * FROM app.methodology_exercise_sessions
+         WHERE user_id = $1
+           AND methodology_plan_id = $2
+           AND session_date = $3::date
+         ORDER BY COALESCE(updated_at, started_at, created_at) DESC
+         LIMIT 1`,
+        [userId, methodology_plan_id, session_date]
+      );
+      if (sessionDateQuery.rowCount > 0) {
+        session = sessionDateQuery.rows[0];
+        week_number = session.week_number || week_number;
+        day_name = session.day_name || day_name;
+        console.log('🗓️ today-status usa session_date para encontrar sesión', {
+          session_date,
+          session_id: session.id,
+          week_number,
+          day_name
+        });
+      }
+    }
+
     // PRIORIDAD 0: Si viene session_date, usar workout_schedule por fecha (más confiable)
     if (req.query.session_date && (!week_number || !day_name)) {
       const sched = await pool.query(
@@ -1104,16 +1129,22 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
     // Buscar la sesión del día por fecha específica (más preciso)
     // 🎯 BÚSQUEDA MEJORADA: Siempre filtrar por week_number Y day_name
     // Esto evita devolver sesiones de días incorrectos
-    const sessionQuery = await pool.query(
-      `SELECT * FROM app.methodology_exercise_sessions
-       WHERE user_id = $1
-         AND methodology_plan_id = $2
-         AND week_number = $3
-         AND day_name = $4
-       ORDER BY COALESCE(updated_at, started_at, created_at) DESC
-       LIMIT 1`,
-      [userId, methodology_plan_id, week_number, normalizedDay]
-    );
+    let sessionQuery = null;
+    if (!session) {
+      sessionQuery = await pool.query(
+        `SELECT * FROM app.methodology_exercise_sessions
+         WHERE user_id = $1
+           AND methodology_plan_id = $2
+           AND week_number = $3
+           AND day_name = $4
+         ORDER BY COALESCE(updated_at, started_at, created_at) DESC
+         LIMIT 1`,
+        [userId, methodology_plan_id, week_number, normalizedDay]
+      );
+      if (sessionQuery.rowCount > 0) {
+        session = sessionQuery.rows[0];
+      }
+    }
 
     // Log detallado para debugging
     console.log('🔍 Búsqueda de sesión:', {
@@ -1122,11 +1153,12 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
       day_id_received: day_id,
       week_number,
       day_name: normalizedDay,
-      found: sessionQuery.rowCount > 0,
-      session_id: sessionQuery.rows[0]?.id
+      found: Boolean(session),
+      session_id: session?.id || sessionQuery?.rows?.[0]?.id,
+      source: session ? (session_date ? 'session_date' : 'week_day') : 'none'
     });
 
-    if (sessionQuery.rowCount === 0) {
+    if (!session) {
       // 🎯 FIX: Si no hay sesión iniciada, verificar si hay un día programado en workout_schedule
       // Normalizar el día para buscar en workout_schedule (usa nombres completos: "Lunes", "Martes", etc.)
       const dayFullNameMap = {
@@ -1199,8 +1231,6 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
         message: 'Sesión programada pero no iniciada. Pulsa "Comenzar Entrenamiento" para empezar.'
       });
     }
-
-    const session = sessionQuery.rows[0];
 
     // 🎯 CORRECCIÓN CRÍTICA: Obtener el TOTAL REAL de ejercicios del plan
     // El query de progreso solo devuelve ejercicios que YA tienen progreso guardado

@@ -112,6 +112,8 @@ export const PreferencesCard = ({
             onInputChange={handleInputChange}
             isList={true}
             displayObjects={suplementacionObjList}
+            noneOptionLabel="No tomo suplementación"
+            noneOptionValue="Ninguna"
           />
           <EditableField
             label="Alimentos Excluidos"
@@ -122,6 +124,8 @@ export const PreferencesCard = ({
             onInputChange={handleInputChange}
             isList={true}
             displayObjects={alimentosObjList}
+            noneOptionLabel="No excluyo alimentos"
+            noneOptionValue="Ninguno"
           />
         </div>
 

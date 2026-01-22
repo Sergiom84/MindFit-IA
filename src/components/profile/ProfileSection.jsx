@@ -1,6 +1,15 @@
 import { useEffect, useState, memo } from 'react';
 import { ArrowLeft, User, Activity, Target, Heart, Settings, Ruler, Dumbbell, Music } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog.jsx';
 import { useProfileState } from '../../hooks/useProfileState';
 
 // Importar todos los tabs
@@ -23,6 +32,7 @@ const ProfileSection = () => {
 
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('basic');
+  const [pendingTab, setPendingTab] = useState(null);
 
   // Usar el hook personalizado para manejar el estado del perfil
   const profileState = useProfileState();
@@ -122,6 +132,48 @@ const ProfileSection = () => {
   };
 
   const profileProgress = calculateProfileProgress();
+  const editSectionLabels = {
+    basic: 'Información básica',
+    bodyComp: 'Composición corporal',
+    bodyMeasures: 'Medidas corporales',
+    experience: 'Experiencia',
+    goals: 'Objetivos',
+    goalProgress: 'Seguimiento de progreso',
+    health: 'Salud',
+    preferences: 'Preferencias'
+  };
+
+  const getEditSectionLabel = (section) =>
+    editSectionLabels[section] || 'otra sección';
+
+  const getTabLabel = (tabId) =>
+    tabs.find(tab => tab.id === tabId)?.label || 'otra pestaña';
+
+  const handleTabChange = (tabId) => {
+    if (profileState.editingSection && activeTab !== tabId) {
+      setPendingTab(tabId);
+      return;
+    }
+    setActiveTab(tabId);
+  };
+
+  const handleCloseTabModal = () => {
+    setPendingTab(null);
+  };
+
+  const handleSaveAndSwitchTab = async () => {
+    if (!pendingTab) return;
+    await profileState.handleSave();
+    setActiveTab(pendingTab);
+    setPendingTab(null);
+  };
+
+  const handleDiscardAndSwitchTab = () => {
+    if (!pendingTab) return;
+    profileState.handleCancel();
+    setActiveTab(pendingTab);
+    setPendingTab(null);
+  };
 
   return (
     <div className="min-h-screen text-white">
@@ -166,7 +218,7 @@ const ProfileSection = () => {
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
                 activeTab === tab.id
                   ? 'bg-yellow-400 text-black'
@@ -190,9 +242,40 @@ const ProfileSection = () => {
             />
           )}
         </div>
-
-
       </div>
+      <Dialog open={!!pendingTab} onOpenChange={(open) => !open && handleCloseTabModal()}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Cambios sin guardar</DialogTitle>
+            <DialogDescription>
+              Tienes cambios sin guardar en {getEditSectionLabel(profileState.editingSection)}.
+              ¿Quieres guardar o descartar antes de cambiar a {getTabLabel(pendingTab)}?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              className="border-gray-600 text-gray-300 hover:bg-gray-800"
+              onClick={handleCloseTabModal}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="outline"
+              className="border-red-500/40 text-red-300 hover:bg-red-500/20"
+              onClick={handleDiscardAndSwitchTab}
+            >
+              Descartar
+            </Button>
+            <Button
+              className="bg-green-500 hover:bg-green-600 text-white"
+              onClick={handleSaveAndSwitchTab}
+            >
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -87,6 +87,8 @@ export const HealthTab = (props) => {
             editedData={editedData}
             onInputChange={handleInputChange}
             displayObjects={alergiasObjList}
+            noneOptionLabel="No tengo alergias"
+            noneOptionValue="Ninguna"
             {...props}
           />
 
@@ -99,6 +101,8 @@ export const HealthTab = (props) => {
             editedData={editedData}
             onInputChange={handleInputChange}
             displayObjects={medicamentosObjList}
+            noneOptionLabel="No tomo medicamentos"
+            noneOptionValue="Ninguno"
             {...props}
           />
 
@@ -111,6 +115,8 @@ export const HealthTab = (props) => {
             editedData={editedData}
             onInputChange={handleInputChange}
             displayObjects={lesionesObjList}
+            noneOptionLabel="No tengo lesiones"
+            noneOptionValue="Ninguna"
             {...props}
           />
         </div>

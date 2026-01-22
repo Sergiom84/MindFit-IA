@@ -307,12 +307,19 @@ export default function TodayTrainingTab({
       // Normalizar nombre del día actual
       const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
       const dayName = dayNames[new Date().getDay()];
+      const sessionDate = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Madrid',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(new Date());
 
       console.log('🔍 fetchTodayStatus params:', {
         methodologyPlanId: currentMethodologyPlanId,
         weekNumber,
         dayName,
         dayId,
+        sessionDate,
         startISO,
         hasToken: !!token
       });
@@ -327,7 +334,8 @@ export default function TodayTrainingTab({
         methodology_plan_id: currentMethodologyPlanId,
         week_number: weekNumber,
         day_name: dayName,
-        day_id: dayId  // 🌟 Ahora se envía el day_id calculado
+        day_id: dayId,  // 🌟 Ahora se envía el day_id calculado
+        session_date: sessionDate
       });
 
       // getTodaySessionStatus() ya maneja el 404 y retorna null

@@ -24,6 +24,13 @@ export const BasicInfoCard = ({
 }) => {
   // Esta constante ahora es local al componente y determina si SU sección está en modo edición.
   const isEditing = editingSection === 'basic'
+  const activityHelpText = [
+    'Sedentario: trabajo de oficina y poca actividad diaria.',
+    'Ligero: caminatas o ejercicio ligero 1-2 dias/semana.',
+    'Moderado: ejercicio 3-4 dias/semana.',
+    'Activo: entrenamiento 5-6 dias/semana.',
+    'Muy activo: entrenamiento intenso diario o trabajo fisico.'
+  ]
 
   return (
     <Card className="bg-gray-900 border-yellow-400/20">
@@ -117,7 +124,7 @@ export const BasicInfoCard = ({
             onInputChange={handleInputChange}
           />
           <EditableField
-            label="Peso Actual"
+            label="Peso Actual (Kg)"
             field="peso"
             value={userProfile.peso}
             type="number"
@@ -127,7 +134,7 @@ export const BasicInfoCard = ({
             onInputChange={handleInputChange}
           />
           <EditableField
-            label="Estatura"
+            label="Estatura (cm)"
             field="altura"
             value={userProfile.altura}
             type="number"
@@ -155,6 +162,7 @@ export const BasicInfoCard = ({
             editing={isEditing}
             editedData={editedData}
             onInputChange={handleInputChange}
+            helpText={activityHelpText}
             options={[
               { value: 'sedentario', label: 'Sedentario' },
               { value: 'ligero', label: 'Ligero' },

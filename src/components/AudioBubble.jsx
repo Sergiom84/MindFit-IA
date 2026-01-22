@@ -43,11 +43,16 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
   
   const audioRef = useRef(null);
   const bubbleRef = useRef(null);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const dragMovedRef = useRef(false);
+  const DRAG_THRESHOLD_PX = 6;
 
   // Dragging functionality
   const handleMouseDown = (e) => {
     if (e.target.closest('.platform-button') || e.target.closest('.control-button')) return;
     
+    dragMovedRef.current = false;
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
     setIsDragging(true);
     const rect = bubbleRef.current.getBoundingClientRect();
     setDragOffset({
@@ -59,6 +64,12 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
   const handleMouseMove = (e) => {
     if (!isDragging) return;
     
+    const deltaX = Math.abs(e.clientX - dragStartRef.current.x);
+    const deltaY = Math.abs(e.clientY - dragStartRef.current.y);
+    if (!dragMovedRef.current && (deltaX > DRAG_THRESHOLD_PX || deltaY > DRAG_THRESHOLD_PX)) {
+      dragMovedRef.current = true;
+    }
+
     const newX = Math.max(0, Math.min(window.innerWidth - 80, e.clientX - dragOffset.x));
     const newY = Math.max(0, Math.min(window.innerHeight - 80, e.clientY - dragOffset.y));
     
@@ -571,7 +582,13 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
         }`}
         style={{ left: `${position.x}px`, top: `${position.y}px` }}
         onMouseDown={handleMouseDown}
-        onClick={() => !isDragging && setIsOpen(true)}
+        onClick={() => {
+          if (isDragging || dragMovedRef.current) {
+            dragMovedRef.current = false;
+            return;
+          }
+          setIsOpen(true);
+        }}
       >
         {isPlaying ? (
           <Pause className="w-6 h-6 text-gray-900" />
