@@ -296,11 +296,24 @@ router.get('/search/by-name/:name', authenticateToken, async (req, res) => {
       [searchName]
     );
 
+    // Buscar en hipertrofia BD
+    const hipertrofiaResult = await pool.query(
+      `SELECT * FROM app."Ejercicios_Hipertrofia"
+       WHERE LOWER(nombre) = $1 OR LOWER(exercise_id::text) = $1
+       LIMIT 1`,
+      [searchName]
+    );
+
     const exercise = mockExercise ||
       (calisteniaResult.rows[0] ? {
         ...calisteniaResult.rows[0],
         name: calisteniaResult.rows[0].nombre,
         source: 'calistenia'
+      } : null) ||
+      (hipertrofiaResult.rows[0] ? {
+        ...hipertrofiaResult.rows[0],
+        name: hipertrofiaResult.rows[0].nombre,
+        source: 'hipertrofia'
       } : null);
 
     if (!exercise) {

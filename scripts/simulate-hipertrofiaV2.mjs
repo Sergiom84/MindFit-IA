@@ -9,6 +9,7 @@ const TOTAL_WEEKS = Number(process.env.TOTAL_WEEKS || 10);
 const INCLUDE_WEEK_0 = false;
 const INCLUDE_SATURDAYS = false;
 const REQUEST_PAUSE_MS = Number(process.env.REQUEST_PAUSE_MS || 0);
+const DEBUG = process.env.SIM_DEBUG === "1";
 
 const TECH_DOC_PATH = path.join("docs", "REPORTE_HIPERTROFIA_V2_TECNICO.md");
 const NARRATIVE_DOC_PATH = path.join("docs", "REPORTE_HIPERTROFIA_V2_NARRATIVO.md");
@@ -47,11 +48,51 @@ const runLog = {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const redactBody = (body) => {
+  if (!body || typeof body !== "object") return body;
+  const clone = Array.isArray(body) ? [...body] : { ...body };
+  if ("password" in clone) clone.password = "****";
+  if ("token" in clone) clone.token = "****";
+  return clone;
+};
+
+const logDebug = (...args) => {
+  if (DEBUG) {
+    console.log(...args);
+  }
+};
+
+const resolveExerciseIdByName = async (exerciseName, token, cache) => {
+  if (!exerciseName) return null;
+  if (cache.has(exerciseName)) return cache.get(exerciseName);
+  try {
+    const encodedName = encodeURIComponent(exerciseName);
+    const response = await fetchJson(`/api/exercise-catalog/search/by-name/${encodedName}`, { token });
+    const exercise = response.data?.exercise;
+    const resolved = exercise?.exercise_id ?? exercise?.id ?? null;
+    cache.set(exerciseName, resolved);
+    return resolved;
+  } catch (error) {
+    cache.set(exerciseName, null);
+    runLog.errors.push({
+      step: "resolve_exercise_id",
+      message: error.message,
+      endpoint: error.endpoint,
+      status: error.status,
+      data: error.data
+    });
+    return null;
+  }
+};
+
 const fetchJson = async (endpoint, options = {}) => {
   const { method = "GET", token, body } = options;
   const url = endpoint.startsWith("http") ? endpoint : `${API_BASE}${endpoint}`;
   const headers = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
+  const safeBody = redactBody(body);
+
+  logDebug(`➡️ ${method} ${endpoint}`, safeBody ? JSON.stringify(safeBody) : "");
 
   const startedAt = Date.now();
   const response = await fetch(url, {
@@ -69,12 +110,17 @@ const fetchJson = async (endpoint, options = {}) => {
     data = { raw: text };
   }
 
+  logDebug(`⬅️ ${method} ${endpoint} ${response.status} (${durationMs}ms)`);
+
   if (!response.ok || (data && data.success === false)) {
     const message = data?.error || data?.message || `HTTP ${response.status}`;
-    const error = new Error(message);
+    const error = new Error(`${method} ${endpoint} -> ${message}`);
     error.status = response.status;
     error.data = data;
     error.durationMs = durationMs;
+    error.endpoint = endpoint;
+    error.method = method;
+    error.requestBody = safeBody;
     throw error;
   }
 
@@ -177,6 +223,12 @@ const renderTable = (rows) => {
   return [headerLine, separator, ...bodyLines].join("\n");
 };
 
+const formatErrorDetail = (detail) => {
+  if (!detail) return "—";
+  const text = JSON.stringify(detail);
+  return text.length > 160 ? `${text.slice(0, 157)}...` : text;
+};
+
 const writeDocs = async (data) => {
   const { microcycles, deloads, sessions, totals, plan, user, progressSummary, finalStatus } = data;
   const weeks = Array.from(new Set(sessions.map((entry) => entry.week))).sort((a, b) => a - b);
@@ -213,6 +265,14 @@ const writeDocs = async (data) => {
     Semana: entry.week,
     Accion: entry.action,
     Motivo: entry.reason || "—"
+  }));
+
+  const errorTable = (data.errors || []).map((entry) => ({
+    Paso: entry.step || "—",
+    Mensaje: entry.message || "—",
+    Endpoint: entry.endpoint || "—",
+    Estado: entry.status || "—",
+    Detalle: formatErrorDetail(entry.data)
   }));
 
   const techDoc = `# Reporte tecnico - Simulacion HipertrofiaV2
@@ -265,6 +325,9 @@ ${finalStatus?.cycleState ? `- Cycle day: ${finalStatus.cycleState.cycle_day}
 ${progressSummary?.completedSessions != null ? `- Sesiones completadas: ${progressSummary.completedSessions}
 - Ejercicios completados: ${progressSummary.completedExercises}
 - Series completadas: ${progressSummary.totalSeriesCompleted}` : "Sin datos"}
+
+## Errores
+${errorTable.length ? renderTable(errorTable) : "Sin errores."}
 
 ## Observaciones
 - La semana 0 se omitio porque el endpoint de sesiones no acepta week_number=0.
@@ -374,6 +437,7 @@ const main = async () => {
     });
 
     const exerciseBaseWeights = new Map();
+    const exerciseIdCache = new Map();
     let microcycleIndex = 0;
     let deloadActive = false;
     let deloadMicrocyclesRemaining = 0;
@@ -430,11 +494,18 @@ const main = async () => {
         for (let exerciseIndex = 0; exerciseIndex < exercises.length; exerciseIndex += 1) {
           const exercise = exercises[exerciseIndex];
           const exerciseName = exercise.nombre || exercise.exercise_name || `Ejercicio ${exerciseIndex + 1}`;
-          const exerciseId = exercise.exercise_id || exercise.id || null;
+          const rawExerciseId = exercise.exercise_id || exercise.id || null;
+          let exerciseId = rawExerciseId != null && !Number.isNaN(Number(rawExerciseId))
+            ? Number(rawExerciseId)
+            : null;
           const exerciseKey = exerciseId ? String(exerciseId) : exerciseName;
 
           if (!exerciseBaseWeights.has(exerciseKey)) {
             exerciseBaseWeights.set(exerciseKey, baseWeightForExercise(exercise));
+          }
+
+          if (!exerciseId) {
+            exerciseId = await resolveExerciseIdByName(exerciseName, token, exerciseIdCache);
           }
 
           const baseWeight = exerciseBaseWeights.get(exerciseKey);
@@ -445,32 +516,40 @@ const main = async () => {
 
           const seriesTotal = Number(exercise.series || 3);
           const reps = parseReps(exercise.reps_objetivo || exercise.repeticiones);
-          const rir = round(3.1 + ((exerciseIndex % 3) * 0.1), 2);
+          const rir = 3;
           const setsToLog = deloadActive ? Math.max(1, Math.ceil(seriesTotal * 0.5)) : seriesTotal;
 
-          for (let setNumber = 1; setNumber <= setsToLog; setNumber += 1) {
-            await fetchJson("/api/hipertrofiav2/save-set", {
-              method: "POST",
-              token,
-              body: {
-                userId,
-                methodologyPlanId,
-                sessionId,
-                exerciseId,
-                exerciseName,
-                setNumber,
-                weight,
-                reps,
-                rir,
-                isWarmup: false
-              }
-            });
+          if (exerciseId) {
+            for (let setNumber = 1; setNumber <= setsToLog; setNumber += 1) {
+              await fetchJson("/api/hipertrofiav2/save-set", {
+                method: "POST",
+                token,
+                body: {
+                  userId,
+                  methodologyPlanId,
+                  sessionId,
+                  exerciseId,
+                  exerciseName,
+                  setNumber,
+                  weight,
+                  reps,
+                  rir,
+                  isWarmup: false
+                }
+              });
 
-            sessionLog.totals.sets += 1;
-            runLog.totals.sets += 1;
-            const volumeLoad = weight * reps;
-            sessionLog.totals.volumeLoad += volumeLoad;
-            runLog.totals.volumeLoad += volumeLoad;
+              sessionLog.totals.sets += 1;
+              runLog.totals.sets += 1;
+              const volumeLoad = weight * reps;
+              sessionLog.totals.volumeLoad += volumeLoad;
+              runLog.totals.volumeLoad += volumeLoad;
+            }
+          } else {
+            runLog.errors.push({
+              step: "save_set_skipped",
+              message: `Sin exercise_id para "${exerciseName}", se omiten sets`,
+              data: { sessionId, weekNumber, cycleDay }
+            });
           }
 
           await fetchJson(`/api/training-session/progress/methodology/${sessionId}/${exerciseIndex}`, {
@@ -581,9 +660,18 @@ const main = async () => {
 
     await writeDocs(runLog);
   } catch (error) {
-    runLog.errors.push({ step: "fatal", message: error.message });
+    runLog.errors.push({
+      step: "fatal",
+      message: error.message,
+      endpoint: error.endpoint,
+      status: error.status,
+      data: error.data
+    });
     await writeDocs(runLog);
     console.error("❌ Error en simulacion:", error.message);
+    if (error.data) {
+      console.error("Detalles:", JSON.stringify(error.data, null, 2));
+    }
     process.exit(1);
   }
 };

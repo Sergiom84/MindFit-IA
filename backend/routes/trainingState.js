@@ -317,11 +317,16 @@ router.post('/cancel-plan', authenticateToken, async (req, res) => {
 
     if (result.rowCount === 0) {
       result = await client.query(`
+        WITH latest AS (
+          SELECT id
+          FROM methodology_plans
+          WHERE user_id = $1 AND status = 'active'
+          ORDER BY created_at DESC
+          LIMIT 1
+        )
         UPDATE methodology_plans
         SET status = 'cancelled', cancelled_at = NOW(), is_current = FALSE
-        WHERE user_id = $1 AND status = 'active'
-        ORDER BY created_at DESC
-        LIMIT 1
+        WHERE id IN (SELECT id FROM latest)
         RETURNING id, methodology_type
       `, [userId]);
 

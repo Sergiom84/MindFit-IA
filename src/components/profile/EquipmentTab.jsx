@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export function EquipmentTab() {
+export function EquipmentTab({ onEquipmentChange }) {
   const [catalog, setCatalog] = useState([]);
   const [curated, setCurated] = useState([]);
   const [custom, setCustom] = useState([]);
+  const [noEquipment, setNoEquipment] = useState(false);
   const [search, setSearch] = useState('');
   const [adding, setAdding] = useState(false);
   const [newCustom, setNewCustom] = useState('');
@@ -20,8 +21,11 @@ export function EquipmentTab() {
     ]).then(([cat, user]) => {
       if (cat?.success) setCatalog(cat.catalog || []);
       if (user?.success) {
-        setCurated(user.curated || []);
-        setCustom(user.custom || []);
+        const curatedItems = user.curated || [];
+        const hasNone = curatedItems.some(item => item.key === 'no_equipment');
+        setNoEquipment(hasNone);
+        setCurated(curatedItems.filter(item => item.key !== 'no_equipment'));
+        setCustom(hasNone ? [] : (user.custom || []));
       }
     }).catch(console.error);
   }, []);
@@ -68,6 +72,7 @@ export function EquipmentTab() {
   const toggleCurated = async (code, labelFallback = null, levelFallback = null) => {
     const token = localStorage.getItem('token');
     if (!token) return;
+    if (noEquipment) return;
     const isSelected = curatedKeys.has(code);
     try {
       if (isSelected) {
@@ -82,6 +87,7 @@ export function EquipmentTab() {
           : { key: code, label: labelFallback || code, level: levelFallback };
         setCurated(prev => [...prev, newEntry]);
       }
+      onEquipmentChange?.();
     } catch (e) {
       console.error('toggleCurated error', e);
     }
@@ -92,6 +98,7 @@ export function EquipmentTab() {
     if (!name) return;
     const token = localStorage.getItem('token');
     if (!token) return;
+    if (noEquipment) return;
     setAdding(true);
     try {
       const resp = await fetch('/api/equipment/custom', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ name }) });
@@ -99,6 +106,7 @@ export function EquipmentTab() {
       if (data?.success && data.item) {
         setCustom(prev => [data.item, ...prev]);
         setNewCustom('');
+        onEquipmentChange?.();
       }
     } catch (e) {
       console.error('addCustom error', e);
@@ -113,13 +121,79 @@ export function EquipmentTab() {
     try {
       await fetch(`/api/equipment/custom/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
       setCustom(prev => prev.filter(c => c.id !== id));
+      onEquipmentChange?.();
     } catch (e) {
       console.error('removeCustom error', e);
     }
   };
 
+  const toggleNoEquipment = async (checked) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      if (checked) {
+        await fetch('/api/equipment/user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ equipment_type: 'no_equipment' })
+        });
+
+        await Promise.all([
+          ...curated.map(item =>
+            fetch(`/api/equipment/user/${item.key}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}` }
+            })
+          ),
+          ...custom.map(item =>
+            fetch(`/api/equipment/custom/${item.id}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}` }
+            })
+          )
+        ]);
+
+        setCurated([]);
+        setCustom([]);
+        setNoEquipment(true);
+        onEquipmentChange?.();
+        return;
+      }
+
+      await fetch('/api/equipment/user/no_equipment', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNoEquipment(false);
+      onEquipmentChange?.();
+    } catch (e) {
+      console.error('toggleNoEquipment error', e);
+    }
+  };
+
   return (
     <div className="space-y-8">
+      <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+        <h3 className="text-lg font-semibold text-white mb-3">Sin equipamiento</h3>
+        <label className="flex items-center gap-2 text-sm text-gray-300">
+          <input
+            type="checkbox"
+            checked={noEquipment}
+            onChange={(e) => toggleNoEquipment(e.target.checked)}
+            className="h-4 w-4 accent-yellow-400"
+          />
+          No tengo equipamiento
+        </label>
+        {noEquipment && (
+          <p className="text-xs text-gray-400 mt-2">
+            Puedes desmarcarlo para volver a seleccionar equipamiento.
+          </p>
+        )}
+      </div>
+
       <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
         <h3 className="text-xl font-semibold text-white mb-4">Catálogo de equipamiento</h3>
         <input
@@ -127,7 +201,10 @@ export function EquipmentTab() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar… (mancuernas, trx, esterilla)"
-          className="w-full mb-4 px-3 py-2 rounded bg-gray-900/60 text-gray-200 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+          disabled={noEquipment}
+          className={`w-full mb-4 px-3 py-2 rounded border border-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400 ${
+            noEquipment ? 'bg-gray-900/30 text-gray-500' : 'bg-gray-900/60 text-gray-200'
+          }`}
         />
 
         {/* Columnas rápidas con presets clicables */}
@@ -140,7 +217,12 @@ export function EquipmentTab() {
                   <button
                     key={`${col.level}-${p.code}-${p.label}`}
                     onClick={() => toggleCurated(p.code)}
-                    className={`px-3 py-1 rounded-full text-sm border transition ${curatedKeys.has(p.code) ? 'bg-yellow-400 text-black border-yellow-400' : 'bg-gray-900/60 text-gray-200 border-gray-700 hover:bg-gray-800'}`}
+                    disabled={noEquipment}
+                    className={`px-3 py-1 rounded-full text-sm border transition ${
+                      curatedKeys.has(p.code)
+                        ? 'bg-yellow-400 text-black border-yellow-400'
+                        : 'bg-gray-900/60 text-gray-200 border-gray-700 hover:bg-gray-800'
+                    } ${noEquipment ? 'opacity-50 cursor-not-allowed' : ''}`}
                     title={p.label}
                   >
                     {p.label}
@@ -167,16 +249,21 @@ export function EquipmentTab() {
               <div key={level} className="mb-4">
                 <h4 className="text-sm uppercase tracking-wide text-gray-400 mb-2">{level}</h4>
                 <div className="flex flex-wrap gap-2">
-                  {grouped[level].map(item => (
-                    <button
-                      key={item.code}
-                      onClick={() => toggleCurated(item.code)}
-                      className={`px-3 py-1 rounded-full text-sm border transition ${curatedKeys.has(item.code) ? 'bg-yellow-400 text-black border-yellow-400' : 'bg-gray-900/60 text-gray-200 border-gray-700 hover:bg-gray-800'}`}
-                      title={item.name}
-                    >
-                      {item.name}
-                    </button>
-                  ))}
+                    {grouped[level].map(item => (
+                      <button
+                        key={item.code}
+                        onClick={() => toggleCurated(item.code)}
+                        disabled={noEquipment}
+                        className={`px-3 py-1 rounded-full text-sm border transition ${
+                          curatedKeys.has(item.code)
+                            ? 'bg-yellow-400 text-black border-yellow-400'
+                            : 'bg-gray-900/60 text-gray-200 border-gray-700 hover:bg-gray-800'
+                        } ${noEquipment ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={item.name}
+                      >
+                        {item.name}
+                      </button>
+                    ))}
                   {grouped[level].length === 0 && (
                     <span className="text-gray-500 text-sm">Sin resultados</span>
                   )}
@@ -210,9 +297,16 @@ export function EquipmentTab() {
               value={newCustom}
               onChange={(e) => setNewCustom(e.target.value)}
               placeholder="p. ej. Bicicleta estática, Comba pesada"
-              className="flex-1 px-3 py-2 rounded bg-gray-900/60 text-gray-200 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              disabled={noEquipment}
+              className={`flex-1 px-3 py-2 rounded border border-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400 ${
+                noEquipment ? 'bg-gray-900/30 text-gray-500' : 'bg-gray-900/60 text-gray-200'
+              }`}
             />
-            <button onClick={addCustom} disabled={adding || !newCustom.trim()} className="px-4 py-2 rounded bg-yellow-400 text-black font-semibold disabled:opacity-60">
+            <button
+              onClick={addCustom}
+              disabled={noEquipment || adding || !newCustom.trim()}
+              className="px-4 py-2 rounded bg-yellow-400 text-black font-semibold disabled:opacity-60"
+            >
               {adding ? 'Añadiendo…' : 'Añadir'}
             </button>
           </div>

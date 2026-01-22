@@ -22,6 +22,11 @@ export const useProfileState = () => {
     comidas_diarias: '', // UI -> DB: comidas_por_dia
     suplementacion: [],
     alimentos_excluidos: [],
+    // Preferencias entrenamiento IA (user_profiles)
+    usar_preferencias_ia: null,
+    dias_preferidos_entrenamiento: [],
+    ejercicios_por_dia_preferido: '',
+    semanas_entrenamiento: '',
     // Objetivos y Metas
     objetivo_principal: '',
     meta_peso: '',
@@ -46,6 +51,7 @@ export const useProfileState = () => {
     muslos: '',
     cuello: '',
     antebrazos: '',
+    cadera: '',
     // Documentación médica
     medical_docs: [],
   }), [])
@@ -79,6 +85,13 @@ export const useProfileState = () => {
     comidas_diarias: u.comidas_por_dia ?? '',
     suplementacion: u.suplementacion || [],
     alimentos_excluidos: u.alimentos_excluidos || [],
+    // Preferencias entrenamiento IA
+    usar_preferencias_ia: u.usar_preferencias_ia ?? null,
+    dias_preferidos_entrenamiento: Array.isArray(u.dias_preferidos_entrenamiento)
+      ? u.dias_preferidos_entrenamiento
+      : [],
+    ejercicios_por_dia_preferido: u.ejercicios_por_dia_preferido ?? '',
+    semanas_entrenamiento: u.semanas_entrenamiento ?? '',
     // Objetivos y Metas
     objetivo_principal: u.objetivo_principal || '',
     meta_peso: u.meta_peso ?? '',
@@ -102,7 +115,8 @@ export const useProfileState = () => {
     brazos: u.brazos ?? '',
     muslos: u.muslos ?? '',
     cuello: u.cuello ?? '',
-    antebrazos: u.antebrazos ?? ''
+    antebrazos: u.antebrazos ?? '',
+    cadera: u.cadera ?? ''
   }), [defaultProfile])
 
   const mapUiToDb = (data = {}) => {
@@ -124,7 +138,7 @@ export const useProfileState = () => {
       delete payload.enfoque
     }
     // Normalizar numéricos comunes
-    ;['edad','peso','altura','grasa_corporal','masa_muscular','agua_corporal','metabolismo_basal','cintura','pecho','brazos','muslos','cuello','antebrazos','frecuencia_semanal','meta_peso','meta_grasa']
+    ;['edad','peso','altura','grasa_corporal','masa_muscular','agua_corporal','metabolismo_basal','cintura','pecho','brazos','muslos','cuello','antebrazos','cadera','frecuencia_semanal','meta_peso','meta_grasa']
       .forEach(k => { if (k in payload) payload[k] = toNumber(payload[k]) })
     return payload
   }
@@ -374,6 +388,79 @@ export const useProfileState = () => {
     setEditedData({})
   }
 
+  const saveProfileData = async (data = {}) => {
+    if (!data || Object.keys(data).length === 0) return false
+
+    setUserProfile(prev => ({ ...prev, ...data }))
+
+    try {
+      const token = localStorage.getItem('token')
+      const userStr = localStorage.getItem('user')
+      const u = userStr ? JSON.parse(userStr) : null
+      if (!token || !u?.id) return false
+
+      const payload = mapUiToDb(data)
+
+      const resp = await fetch(`/api/users/${u.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      })
+
+      if (!resp.ok) {
+        console.error('Error guardando perfil:', await resp.text())
+        return false
+      }
+
+      return true
+    } catch (e) {
+      console.error('Error en saveProfileData:', e)
+      return false
+    }
+  }
+
+  const saveTrainingPreferences = async (data = {}) => {
+    if (!data || Object.keys(data).length === 0) return false
+
+    setUserProfile(prev => ({ ...prev, ...data }))
+
+    try {
+      const token = localStorage.getItem('token')
+      const userStr = localStorage.getItem('user')
+      const u = userStr ? JSON.parse(userStr) : null
+      if (!token || !u?.id) return false
+
+      const payload = {
+        usar_preferencias_ia: data.usar_preferencias_ia,
+        dias_preferidos_entrenamiento: data.dias_preferidos_entrenamiento,
+        ejercicios_por_dia_preferido: data.ejercicios_por_dia_preferido,
+        semanas_entrenamiento: data.semanas_entrenamiento
+      }
+
+      const resp = await fetch(`/api/users/${u.id}/training-preferences`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      })
+
+      if (!resp.ok) {
+        console.error('Error guardando preferencias de entrenamiento:', await resp.text())
+        return false
+      }
+
+      return true
+    } catch (e) {
+      console.error('Error en saveTrainingPreferences:', e)
+      return false
+    }
+  }
+
   const handleInputChange = (field, value) => {
     setEditedData(prev => ({
       ...prev,
@@ -389,6 +476,8 @@ export const useProfileState = () => {
     handleSave,
     handleCancel,
     handleInputChange,
+    saveProfileData,
+    saveTrainingPreferences,
     sexoOptions,
     getSexoLabel,
     getNivelActividadLabel,
