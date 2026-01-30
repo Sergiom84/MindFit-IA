@@ -7,6 +7,122 @@ import pool from '../../db.js';
 import { logger } from './logger.js';
 
 /**
+ * Calcula ajuste de entrenamiento según ciclo menstrual (si aplica)
+ * Reutiliza la lógica del endpoint /api/menstrual-cycle/training-adjustment
+ * @param {number} userId
+ * @returns {Promise<object|null>}
+ */
+async function getMenstrualTrainingAdjustment(userId) {
+  try {
+    const sexoResult = await pool.query(
+      `SELECT sexo FROM app.users WHERE id = $1`,
+      [userId]
+    );
+    const sexo = sexoResult.rows[0]?.sexo;
+    if (sexo !== 'femenino') return null;
+
+    const configResult = await pool.query(
+      `SELECT * FROM app.user_menstrual_config WHERE user_id = $1 AND tracking_enabled = true`,
+      [userId]
+    );
+    if (configResult.rows.length === 0) return null;
+
+    const config = configResult.rows[0];
+    const today = new Date().toISOString().split('T')[0];
+
+    const logResult = await pool.query(
+      `SELECT * FROM app.menstrual_daily_log WHERE user_id = $1 AND log_date = $2`,
+      [userId, today]
+    );
+    const todayLog = logResult.rows[0] || null;
+
+    let cycleDay = null;
+    let phase = null;
+
+    if (config.last_period_start) {
+      const lastPeriod = new Date(config.last_period_start);
+      const todayDate = new Date(today);
+      const diffDays = Math.floor((todayDate - lastPeriod) / (1000 * 60 * 60 * 24)) + 1;
+      cycleDay = diffDays % config.cycle_length || config.cycle_length;
+
+      if (config.uses_hormonal_contraceptives) {
+        phase = 'hormonal';
+      } else if (cycleDay <= config.period_length) {
+        phase = 'menstrual';
+      } else if (cycleDay <= Math.floor(config.cycle_length * 0.5)) {
+        phase = 'follicular';
+      } else if (cycleDay <= Math.floor(config.cycle_length * 0.5) + 3) {
+        phase = 'ovulation';
+      } else {
+        phase = 'luteal';
+      }
+    }
+
+    let adjustment = {
+      type: 'normal',
+      volumeModifier: 0,
+      intensityModifier: 0,
+      message: 'Sin ajustes necesarios'
+    };
+
+    if (todayLog) {
+      if (todayLog.pain_level >= 4) {
+        adjustment = {
+          type: 'low_impact',
+          volumeModifier: -0.3,
+          intensityModifier: -0.3,
+          message: 'Malestar alto. Reducimos impacto y volumen.',
+          reason: 'high_pain'
+        };
+      } else if (todayLog.energy_level <= 2 || todayLog.sleep_quality <= 2) {
+        adjustment = {
+          type: 'reduce_volume',
+          volumeModifier: -0.2,
+          intensityModifier: -0.1,
+          message: 'Energía/sueño bajos. Reducimos volumen.',
+          reason: 'low_energy'
+        };
+      } else if (todayLog.energy_level >= 4 && todayLog.pain_level <= 2) {
+        adjustment = {
+          type: 'optimal',
+          volumeModifier: 0,
+          intensityModifier: 0,
+          message: 'Estado óptimo. Puedes entrenar normal.',
+          reason: 'optimal_state'
+        };
+      }
+    } else if (phase === 'menstrual') {
+      adjustment = {
+        type: 'menstrual_phase',
+        volumeModifier: -0.15,
+        intensityModifier: -0.2,
+        message: 'Fase menstrual. Ajuste suave para gestionar fatiga.',
+        reason: 'menstrual_phase'
+      };
+    } else if (phase === 'luteal' && cycleDay && cycleDay > config.cycle_length - 5) {
+      adjustment = {
+        type: 'late_luteal',
+        volumeModifier: -0.1,
+        intensityModifier: -0.1,
+        message: 'Fase premenstrual. Ajuste ligero.',
+        reason: 'premenstrual'
+      };
+    }
+
+    return {
+      hasConfig: true,
+      cycleDay,
+      phase,
+      todayLog,
+      adjustment
+    };
+  } catch (error) {
+    logger.warn('⚠️ [CYCLE] Ajuste menstrual no disponible:', error.message);
+    return null;
+  }
+}
+
+/**
  * Helper genérico para llamar funciones SQL
  * @param {object} res - Response object de Express
  * @param {string} queryText - Query SQL a ejecutar
@@ -366,6 +482,9 @@ export const overlapControllers = {
   async getCurrentSessionWithAdjustments(req, res) {
     try {
       const { userId, cycleDay } = req.params;
+      if (req.user?.userId && Number(req.user.userId) !== Number(userId)) {
+        return res.status(403).json({ success: false, error: 'No autorizado' });
+      }
       logger.debug(`🔍 [SESSION+OVERLAP] Obteniendo D${cycleDay} para usuario ${userId}`);
 
       // Obtener nivel del usuario
@@ -421,6 +540,9 @@ export const overlapControllers = {
         return res.status(404).json({ success: false, error: `Sesión D${cycleDay} no encontrada` });
       }
 
+      // Ajuste por ciclo menstrual (solo mujeres con tracking activo)
+      const menstrualAdjustment = await getMenstrualTrainingAdjustment(Number(userId));
+
       // Detectar solapamiento (solo principiantes)
       let adjustedSession = { ...currentSession };
       let overlapInfo = null;
@@ -455,11 +577,37 @@ export const overlapControllers = {
         }
       }
 
+      // Aplicar ajuste menstrual a la sesión si corresponde
+      if (menstrualAdjustment?.adjustment) {
+        const exercisesKey = adjustedSession?.ejercicios ? 'ejercicios' : (adjustedSession?.exercises ? 'exercises' : null);
+        if (exercisesKey && adjustedSession[exercisesKey]?.length) {
+        const { volumeModifier = 0, intensityModifier = 0, message, reason } = menstrualAdjustment.adjustment;
+        if (volumeModifier !== 0 || intensityModifier !== 0) {
+          adjustedSession[exercisesKey] = adjustedSession[exercisesKey].map(ex => {
+            const newSeries = Math.max(1, Math.round(Number(ex.series || 1) * (1 + volumeModifier)));
+            const baseIntensity = Number(ex.intensidad_porcentaje ?? adjustedSession.intensity_percentage ?? 0);
+            const hasIntensity = Number.isFinite(baseIntensity) && baseIntensity > 0;
+            const newIntensity = hasIntensity
+              ? Math.min(100, Math.max(5, Math.round(baseIntensity * (1 + intensityModifier))))
+              : ex.intensidad_porcentaje;
+
+            return {
+              ...ex,
+              series: newSeries,
+              intensidad_porcentaje: hasIntensity ? newIntensity : ex.intensidad_porcentaje,
+              notas: `${ex.notas || ''} [Ajuste ciclo: ${reason || 'menstrual'} - ${message}]`.trim()
+            };
+          });
+        }
+      }
+      }
+
       res.json({
         success: true,
         session: adjustedSession,
         overlap_detected: overlapInfo?.overlap !== 'none',
         overlap_info: overlapInfo,
+        menstrual_adjustment: menstrualAdjustment,
         nivel,
         current_week: currentWeekNumber
       });

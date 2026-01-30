@@ -42,11 +42,15 @@ export default function RoutineSessionModal({
   isOpen = true,
   onProgressUpdate,
 }) {
+  const [adjustedSession, setAdjustedSession] = useState(null);
+  const [menstrualAdjustment, setMenstrualAdjustment] = useState(null);
+
   // Datos de la sesión (soporta "ejercicios" y fallback a "exercises")
   const exercises = useMemo(() => {
-    const base = Array.isArray(session?.ejercicios)
-      ? session.ejercicios
-      : (Array.isArray(session?.exercises) ? session.exercises : []);
+    const sourceSession = adjustedSession || session;
+    const base = Array.isArray(sourceSession?.ejercicios)
+      ? sourceSession.ejercicios
+      : (Array.isArray(sourceSession?.exercises) ? sourceSession.exercises : []);
 
     // Normalizar ids y orden para evitar desfaces entre UI y API (usamos el índice como fuente de verdad)
     return base.map((ex, idx) => ({
@@ -63,14 +67,15 @@ export default function RoutineSessionModal({
       // Orden para mostrar (1-based)
       displayOrder: idx + 1
     }));
-  }, [session?.ejercicios, session?.exercises]);
+  }, [adjustedSession, session?.ejercicios, session?.exercises]);
 
   // Hooks de estado (siempre llamar hooks, validar después)
-  const progressState = useExerciseProgress(session, exercises);
+  const sourceSession = adjustedSession || session;
+  const progressState = useExerciseProgress(sourceSession, exercises);
   const timerState = useExerciseTimer(progressState.currentExercise, progressState.seriesTotal, 45, allowManualTimer);
-  const sessionPatterns = useMemo(() => extractSessionPatterns(session), [session]);
-  const isHypertrofiaV2 = session?.metodologia === 'HipertrofiaV2_MindFeed' || session?.metodologia === 'HipertrofiaV2';
-  const trackingFlag = session?.tracking_enabled ?? session?.trackingEnabled;
+  const sessionPatterns = useMemo(() => extractSessionPatterns(sourceSession), [sourceSession]);
+  const isHypertrofiaV2 = sourceSession?.metodologia === 'HipertrofiaV2_MindFeed' || sourceSession?.metodologia === 'HipertrofiaV2';
+  const trackingFlag = sourceSession?.tracking_enabled ?? sourceSession?.trackingEnabled;
   const requiresSeriesTracking = isHypertrofiaV2 || trackingFlag === undefined
     ? true
     : Boolean(trackingFlag);
@@ -196,6 +201,47 @@ export default function RoutineSessionModal({
     loadExistingFeedback();
     return () => { cancelled = true; };
   }, [sessionId, isOpen]);
+
+  // 🔄 Ajuste menstrual aplicado sobre la sesión (HipertrofiaV2)
+  useEffect(() => {
+    const cycleDay = session?.ciclo_dia || session?.cycle_day;
+    if (!isHypertrofiaV2 || !cycleDay) return;
+
+    const loadAdjustedSession = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+        if (!token || !userProfile?.id) return;
+
+        const resp = await fetch(
+          `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/hipertrofiav2/current-session-with-adjustments/${userProfile.id}/${cycleDay}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data?.session) {
+          setAdjustedSession(prev => ({
+            ...(session || {}),
+            ...data.session,
+            metodologia: session?.metodologia || data.session?.metodologia
+          }));
+          if (data.menstrual_adjustment?.adjustment) {
+            setMenstrualAdjustment(data.menstrual_adjustment);
+          }
+        }
+      } catch (err) {
+        console.error('Error aplicando ajuste menstrual en sesión HipertrofiaV2:', err);
+      }
+    };
+
+    loadAdjustedSession();
+  }, [isHypertrofiaV2, session, session?.ciclo_dia, session?.cycle_day]);
 
   // 🎯 Cargar progresión del ejercicio actual (para sugerencias de peso)
   useEffect(() => {
@@ -512,6 +558,14 @@ export default function RoutineSessionModal({
 
           {/* Body - Vista del ejercicio */}
           <div className="p-6 space-y-4">
+            {menstrualAdjustment?.adjustment && (
+              <div className="p-3 rounded-lg border border-pink-500/40 bg-pink-500/10 text-pink-100 text-sm">
+                <div className="font-semibold">Ajuste por ciclo menstrual</div>
+                <div className="text-pink-100/90">
+                  {menstrualAdjustment.adjustment.message}
+                </div>
+              </div>
+            )}
             <ExerciseSessionView
               exercise={progressState.currentExercise}
               exerciseIndex={progressState.currentIndex}

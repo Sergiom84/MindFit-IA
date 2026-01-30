@@ -2,6 +2,8 @@
 
 ## 30.01.2026
 
+- HipertrofiaV2 ahora aplica ajustes de volumen/intensidad según el ajuste menstrual diario para usuarias femeninas, integrando el endpoint de ciclo en `/api/hipertrofiav2/current-session-with-adjustments`.
+- La UI de sesiones de HipertrofiaV2 consume el ajuste menstrual y muestra aviso en el modal de sesión; se fusiona la sesión ajustada desde backend con la local.
 - Habilitado el módulo de ciclo menstrual: la API ahora expone `/api/menstrual-cycle` y la app muestra la pestaña solo cuando el backend confirma usuarios femeninos, alineando la ruta de navegación (`/menstrual-cycle`) con el router.
 - Ajustado el estado activo en `/api/training/state` para ignorar planes cancelados/draft y la cancelación de rutina ahora desmarca `is_current` para evitar bloqueos al generar planes nuevos.
 - Planes con inicio en lunes: el modal final cambia a "Guardar plan" y la pestaña de hoy respeta la fecha de inicio futura para no mostrar sesión el viernes.
