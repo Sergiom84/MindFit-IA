@@ -39,6 +39,7 @@ export default function ImageCorrection() {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [showResults, setShowResults] = useState(false);
   const [exercises, setExercises] = useState(FALLBACK_EXERCISES);
+  const cardBase = 'bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg';
 
   // Normaliza la respuesta del endpoint de fotos al formato esperado por la UI
   const normalizePhotoAnalysis = (payload, fallbackExercise) => {
@@ -265,37 +266,37 @@ export default function ImageCorrection() {
   return (
     <div className="space-y-8">
       {/* Información del módulo */}
-      <Card className="bg-black/80 border-blue-400/20">
+      <Card className={`${cardBase} border-l-2 border-l-sky-400/40`}>
         <CardHeader>
-          <CardTitle className="text-white flex items-center">
-            <ImageIcon className="w-5 h-5 mr-2 text-blue-400" />
+          <CardTitle className="text-white flex items-center font-urbanist">
+            <ImageIcon className="w-5 h-5 mr-2 text-sky-300" />
             Iniciar Análisis por Imagen
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-gray-300/70">
             Sube fotografías (frontal, lateral, posterior) para obtener un análisis postural detallado usando inteligencia artificial.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="flex items-center space-x-3 p-3 bg-blue-500/10 rounded-lg border border-blue-400/20">
-              <Camera className="w-8 h-8 text-blue-400" />
+            <div className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg border border-white/10 border-l-2 border-l-sky-400/40">
+              <Camera className="w-8 h-8 text-sky-300" />
               <div>
                 <h4 className="text-white font-medium">Múltiples Ángulos</h4>
-                <p className="text-gray-400 text-sm">Frontal, lateral y posterior</p>
+                <p className="text-gray-300/70 text-sm">Frontal, lateral y posterior</p>
               </div>
             </div>
-            <div className="flex items-center space-x-3 p-3 bg-blue-500/10 rounded-lg border border-blue-400/20">
-              <Eye className="w-8 h-8 text-blue-400" />
+            <div className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg border border-white/10 border-l-2 border-l-sky-400/40">
+              <Eye className="w-8 h-8 text-sky-300" />
               <div>
                 <h4 className="text-white font-medium">Análisis Postural</h4>
-                <p className="text-gray-400 text-sm">Detección de desalineaciones</p>
+                <p className="text-gray-300/70 text-sm">Detección de desalineaciones</p>
               </div>
             </div>
-            <div className="flex items-center space-x-3 p-3 bg-blue-500/10 rounded-lg border border-blue-400/20">
-              <Target className="w-8 h-8 text-blue-400" />
+            <div className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg border border-white/10 border-l-2 border-l-sky-400/40">
+              <Target className="w-8 h-8 text-sky-300" />
               <div>
                 <h4 className="text-white font-medium">Feedback Detallado</h4>
-                <p className="text-gray-400 text-sm">Correcciones específicas</p>
+                <p className="text-gray-300/70 text-sm">Correcciones específicas</p>
               </div>
             </div>
           </div>
@@ -309,13 +310,13 @@ export default function ImageCorrection() {
       />
 
       {/* Subida de fotos */}
-      <Card className="bg-black/80 border-blue-400/20">
+      <Card className={`${cardBase} border-l-2 border-l-sky-400/40`}>
         <CardHeader>
-          <CardTitle className="text-white flex items-center">
-            <Upload className="w-5 h-5 mr-2 text-blue-400" />
+          <CardTitle className="text-white flex items-center font-urbanist">
+            <Upload className="w-5 h-5 mr-2 text-sky-300" />
             Subir Fotos para Análisis
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-gray-300/70">
             Selecciona múltiples imágenes de tu ejercicio desde diferentes ángulos.
           </CardDescription>
         </CardHeader>
@@ -332,7 +333,7 @@ export default function ImageCorrection() {
             
             <Button 
               onClick={handlePickPhotos}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-white/10 text-white border border-white/10 hover:bg-white/20"
             >
               <Upload className="w-4 h-4 mr-2" /> 
               Seleccionar Fotos
@@ -343,7 +344,7 @@ export default function ImageCorrection() {
                 <Button
                   onClick={handleAnalyzePhotos}
                   disabled={isAnalyzing}
-                  className="bg-yellow-400 text-black hover:bg-yellow-300 font-semibold"
+                  className="bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 font-semibold shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]"
                 >
                   <Brain className="w-4 h-4 mr-2" />
                   {isAnalyzing ? 'Analizando...' : `Analizar ${photos.length} Foto${photos.length > 1 ? 's' : ''}`}
@@ -352,7 +353,7 @@ export default function ImageCorrection() {
                 <Button
                   onClick={clearAllPhotos}
                   variant="outline"
-                  className="border-red-400 text-red-400 hover:bg-red-400/10"
+                  className="border-red-400/60 text-red-300 hover:bg-red-500/10"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Limpiar Todo
@@ -361,7 +362,7 @@ export default function ImageCorrection() {
             )}
 
             {isAnalyzing && (
-              <Badge className="bg-blue-500 animate-pulse">
+              <Badge className="bg-sky-500/20 text-sky-200 border border-sky-400/40 animate-pulse">
                 Procesando imágenes...
               </Badge>
             )}
@@ -375,7 +376,7 @@ export default function ImageCorrection() {
               </h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {photos.map((photo) => (
-                  <div key={photo.id} className="relative group rounded-lg overflow-hidden border border-blue-400/20">
+                  <div key={photo.id} className="relative group rounded-lg overflow-hidden border border-white/10">
                     <img 
                       src={photo.url} 
                       alt={photo.name} 

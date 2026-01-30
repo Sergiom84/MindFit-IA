@@ -156,17 +156,17 @@ const TrainingPreferencesCard = () => {
 
   if (loading) {
     return (
-      <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
+      <div className="bg-neutral-900/70 rounded-2xl p-6 border border-white/10 ring-1 ring-white/5">
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-700 rounded w-1/3 mb-4"></div>
-          <div className="h-4 bg-gray-700 rounded w-2/3"></div>
+          <div className="h-6 bg-white/10 rounded w-1/3 mb-4"></div>
+          <div className="h-4 bg-white/10 rounded w-2/3"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
+    <div className="bg-neutral-900/70 rounded-2xl p-6 border border-white/10 ring-1 ring-white/5">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -174,31 +174,31 @@ const TrainingPreferencesCard = () => {
             <Calendar className="w-6 h-6 text-yellow-400" />
           </div>
           <div>
-            <h3 className="text-xl font-semibold text-white">Preferencias de Entrenamiento</h3>
-            <p className="text-sm text-gray-400">Configura tu planificación semanal</p>
+            <h3 className="text-xl font-semibold font-urbanist text-white">Preferencias de Entrenamiento</h3>
+            <p className="text-sm text-gray-300/70">Configura tu planificación semanal</p>
           </div>
         </div>
       </div>
 
       {/* Switch ON/OFF */}
-      <div className="mb-6 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+      <div className="mb-6 p-4 bg-white/5 rounded-lg border border-white/10">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <label className="text-sm font-medium text-white flex items-center gap-2">
               <span>🤖 Activar Preferencias Personalizadas</span>
             </label>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-300/70 mt-1">
               {usarPreferenciasIA
                 ? '✅ ON - La IA tomará en cuenta tus preferencias de entrenamiento'
                 : '⏸️ OFF - La IA generará entrenamientos estándar'}
             </p>
           </div>
-          <button
-            onClick={() => setUsarPreferenciasIA(!usarPreferenciasIA)}
-            className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-200 focus:outline-none ${
-              usarPreferenciasIA ? 'bg-yellow-400' : 'bg-gray-600'
-            }`}
-          >
+            <button
+              onClick={() => setUsarPreferenciasIA(!usarPreferenciasIA)}
+              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                usarPreferenciasIA ? 'bg-yellow-400' : 'bg-white/10'
+              }`}
+            >
             <span
               className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform duration-200 ${
                 usarPreferenciasIA ? 'translate-x-7' : 'translate-x-1'
@@ -210,7 +210,7 @@ const TrainingPreferencesCard = () => {
 
       {/* Días preferidos */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-300 mb-3">
+        <label className="block text-sm font-medium text-gray-200/80 mb-3">
           Días de la semana para entrenar
         </label>
         <div className="grid grid-cols-7 gap-2">
@@ -222,7 +222,7 @@ const TrainingPreferencesCard = () => {
                 py-3 px-2 rounded-lg text-sm font-medium transition-all duration-200
                 ${diasPreferidos.includes(dia.id)
                   ? 'bg-yellow-400 text-gray-900 hover:bg-yellow-500'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
                 }
               `}
             >
@@ -230,14 +230,14 @@ const TrainingPreferencesCard = () => {
             </button>
           ))}
         </div>
-        <p className="text-xs text-gray-400 mt-2">
+        <p className="text-xs text-gray-300/70 mt-2">
           Seleccionados: {diasPreferidos.length} {diasPreferidos.length === 1 ? 'día' : 'días'}
         </p>
       </div>
 
       {/* Semanas de entrenamiento */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-300 mb-3">
+        <label className="block text-sm font-medium text-gray-200/80 mb-3">
           Duración del plan de entrenamiento
         </label>
         <div className="flex items-center gap-4">
@@ -247,23 +247,23 @@ const TrainingPreferencesCard = () => {
             max="8"
             value={semanasEntrenamiento}
             onChange={(e) => setSemanasEntrenamiento(parseInt(e.target.value))}
-            className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-yellow-400"
+            className="flex-1 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-yellow-400"
           />
           <span className="text-2xl font-bold text-yellow-400 min-w-[80px] text-center">
             {semanasEntrenamiento}
-            <span className="text-sm text-gray-400 ml-1">
+            <span className="text-sm text-gray-300/70 ml-1">
               {semanasEntrenamiento === 1 ? 'semana' : 'semanas'}
             </span>
           </span>
         </div>
-        <p className="text-xs text-gray-400 mt-2">
+        <p className="text-xs text-gray-300/70 mt-2">
           La IA generará un plan progresivo de {semanasEntrenamiento} {semanasEntrenamiento === 1 ? 'semana' : 'semanas'}
         </p>
       </div>
 
       {/* Ejercicios por día */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+        <label className="block text-sm font-medium text-gray-200/80 mb-3 flex items-center gap-2">
           <Dumbbell className="w-4 h-4" />
           Ejercicios por sesión (4-15)
         </label>
@@ -274,13 +274,13 @@ const TrainingPreferencesCard = () => {
             max="15"
             value={ejerciciosPorDia}
             onChange={(e) => handleEjerciciosChange(e.target.value)}
-            className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-yellow-400"
+            className="flex-1 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-yellow-400"
           />
           <span className="text-2xl font-bold text-yellow-400 min-w-[60px] text-center">
             {ejerciciosPorDia}
           </span>
         </div>
-        <p className="text-xs text-gray-400 mt-2">
+        <p className="text-xs text-gray-300/70 mt-2">
           La IA generará exactamente esta cantidad de ejercicios por sesión
         </p>
       </div>
@@ -304,7 +304,7 @@ const TrainingPreferencesCard = () => {
       <button
         onClick={handleSave}
         disabled={saving}
-        className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-gray-900 font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+        className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:bg-white/10 disabled:text-gray-500 disabled:cursor-not-allowed text-gray-900 font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
       >
         {saving ? (
           <>
@@ -320,8 +320,8 @@ const TrainingPreferencesCard = () => {
       </button>
 
       {/* Info adicional */}
-      <div className="mt-4 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
-        <p className="text-xs text-gray-400 leading-relaxed">
+      <div className="mt-4 p-4 bg-white/5 rounded-lg border border-white/10">
+        <p className="text-xs text-gray-300/70 leading-relaxed">
           <strong className="text-yellow-400">💡 Tip:</strong> Estas preferencias se aplicarán cuando generes un <strong>plan de metodología Casa</strong> (desde Metodologías → Entrenamiento en Casa).
           {usarPreferenciasIA && (
             <span className="block mt-2 text-green-400">
@@ -329,7 +329,7 @@ const TrainingPreferencesCard = () => {
             </span>
           )}
           {!usarPreferenciasIA && (
-            <span className="block mt-2 text-gray-500">
+            <span className="block mt-2 text-gray-300/60">
               ⏸️ Preferencias desactivadas: La IA usará valores estándar (4 semanas, 8 ejercicios/día).
             </span>
           )}

@@ -23,7 +23,8 @@ export default function SeriesTrackingModal({
   suggestedWeight = null,
   onSave,
   onClose,
-  neuralOverlap = null
+  neuralOverlap = null,
+  isMandatory = false
 }) {
   const [weight, setWeight] = useState(suggestedWeight ? String(suggestedWeight) : '');
   const [reps, setReps] = useState('');
@@ -107,25 +108,32 @@ export default function SeriesTrackingModal({
     if (rirValue === 3) return '3 más posibles (Óptimo)';
     return '4+ más posibles';
   };
+  const getRIRAccent = (rirValue) => {
+    if (rirValue <= 1) return 'border-orange-400/40 text-orange-200';
+    if (rirValue >= 2 && rirValue <= 3) return 'border-emerald-400/40 text-emerald-200';
+    return 'border-sky-400/40 text-sky-200';
+  };
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4">
-      <div className="bg-gray-900 rounded-xl w-full max-w-md border border-yellow-400/30">
+      <div className="bg-neutral-900/95 rounded-2xl w-full max-w-md border border-white/10 ring-1 ring-white/10 shadow-[0_40px_90px_-60px_rgba(0,0,0,0.9)]">
         {/* Header */}
-        <div className="bg-gradient-to-r from-yellow-600 to-orange-600 p-4 rounded-t-xl">
+        <div className="bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 p-4 rounded-t-2xl border-b border-white/10">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-bold text-white text-lg">
-                📊 Registrar Serie {seriesNumber}/{totalSeries}
+              <h3 className="font-semibold font-urbanist text-gray-900 text-lg">
+                Registrar Serie {seriesNumber}/{totalSeries}
               </h3>
-              <p className="text-yellow-100 text-sm">{exerciseName}</p>
+              <p className="text-gray-800/80 text-sm">{exerciseName}</p>
             </div>
-            <button
-              onClick={onClose}
-              className="text-white hover:text-gray-300 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {!isMandatory && (
+              <button
+                onClick={onClose}
+                className="text-gray-900/70 hover:text-gray-900 transition-colors bg-black/10 border border-black/10 rounded-full p-2"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -205,10 +213,10 @@ export default function SeriesTrackingModal({
                 <button
                   key={value}
                   onClick={() => setRir(value)}
-                  className={`py-3 rounded-lg font-bold transition-all ${
+                  className={`py-3 rounded-xl font-bold transition-all border ${
                     rir === value
-                      ? 'bg-yellow-400 text-gray-900 scale-105'
-                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-gray-900 border-transparent shadow-[0_12px_30px_-18px_rgba(250,204,21,0.7)] scale-105'
+                      : `bg-white/5 ${getRIRAccent(value)} hover:bg-white/10`
                   }`}
                 >
                   {value}
@@ -258,16 +266,18 @@ export default function SeriesTrackingModal({
 
           {/* Botones */}
           <div className="flex gap-3 pt-2">
-            <button
-              onClick={onClose}
-              className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
-            >
-              Cancelar
-            </button>
+            {!isMandatory && (
+              <button
+                onClick={onClose}
+                className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                Cancelar
+              </button>
+            )}
             <button
               onClick={handleSave}
               disabled={!weight || !reps}
-              className="flex-1 py-3 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              className="flex-1 py-3 bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 text-gray-900 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)] flex items-center justify-center gap-2"
             >
               <Check className="w-5 h-5" />
               Guardar Serie

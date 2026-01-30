@@ -54,6 +54,7 @@ const StartDayConfirmationModal = ({ isOpen, onClose, onConfirm, methodology }) 
             description: 'Entrenas hoy, mañana y el sábado, descansas el domingo, continúas el lunes',
             startDate: 'today',
             sessionsFirstWeek: 3,
+            includeSaturdays: true,
             color: 'purple'
           }
         ];
@@ -75,6 +76,7 @@ const StartDayConfirmationModal = ({ isOpen, onClose, onConfirm, methodology }) 
             description: 'Entrenas hoy y mañana, descansas el domingo, continúas el lunes',
             startDate: 'today',
             sessionsFirstWeek: 2,
+            includeSaturdays: true,
             color: 'green'
           },
           {
@@ -105,6 +107,7 @@ const StartDayConfirmationModal = ({ isOpen, onClose, onConfirm, methodology }) 
             description: 'Entrenas hoy, descansas el domingo, continúas el lunes',
             startDate: 'today',
             sessionsFirstWeek: 1,
+            includeSaturdays: true,
             color: 'green'
           }
         ];
@@ -144,6 +147,7 @@ const StartDayConfirmationModal = ({ isOpen, onClose, onConfirm, methodology }) 
     onConfirm({
       startDate: option.startDate,
       sessionsFirstWeek: option.sessionsFirstWeek,
+      includeSaturdays: option.includeSaturdays,
       isHomeTraining: option.startDate === 'home_training_today',
       startDayOfWeek: effectiveStartDay // 0=Dom ... 6=Sáb (solo usamos jueves para sábados)
     });
@@ -152,24 +156,26 @@ const StartDayConfirmationModal = ({ isOpen, onClose, onConfirm, methodology }) 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-neutral-900/95 border border-white/10 ring-1 ring-white/5 shadow-2xl backdrop-blur-xl rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex justify-between items-center">
+        <div className="sticky top-0 bg-neutral-900/95 border-b border-white/10 p-6 flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Calendar className="w-7 h-7 text-blue-500" />
+            <h2 className="text-2xl font-semibold font-urbanist text-white flex items-center gap-3">
+              <span className="h-10 w-10 rounded-full border border-yellow-400/30 bg-yellow-500/10 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-yellow-300" />
+              </span>
               Hoy es {currentDay}
             </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-sm text-gray-300/70 mt-2">
               ¿Cuándo quieres comenzar tu plan de {methodology}?
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-300/70 hover:text-white hover:bg-white/10 transition-colors"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -183,34 +189,34 @@ const StartDayConfirmationModal = ({ isOpen, onClose, onConfirm, methodology }) 
               <button
                 key={option.id}
                 onClick={() => setSelectedOption(option.id)}
-                className={`w-full text-left p-5 rounded-xl border-2 transition-all ${
+                className={`w-full text-left p-5 rounded-xl border transition-all ${
                   isSelected
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'
+                    ? 'border-yellow-400/50 bg-gradient-to-br from-yellow-500/10 via-yellow-400/5 to-transparent shadow-[0_20px_40px_-30px_rgba(250,204,21,0.5)]'
+                    : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
                 }`}
               >
                 <div className="flex items-start gap-4">
-                  <div className={`p-3 rounded-lg ${
-                    option.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/30' :
-                    option.color === 'green' ? 'bg-green-100 dark:bg-green-900/30' :
-                    option.color === 'purple' ? 'bg-purple-100 dark:bg-purple-900/30' :
-                    'bg-orange-100 dark:bg-orange-900/30'
+                  <div className={`p-3 rounded-lg border border-white/10 ${
+                    option.color === 'blue' ? 'bg-blue-500/10' :
+                    option.color === 'green' ? 'bg-emerald-500/10' :
+                    option.color === 'purple' ? 'bg-violet-500/10' :
+                    'bg-orange-500/10'
                   }`}>
                     <Icon className={`w-6 h-6 ${
-                      option.color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
-                      option.color === 'green' ? 'text-green-600 dark:text-green-400' :
-                      option.color === 'purple' ? 'text-purple-600 dark:text-purple-400' :
-                      'text-orange-600 dark:text-orange-400'
+                      option.color === 'blue' ? 'text-blue-300' :
+                      option.color === 'green' ? 'text-emerald-300' :
+                      option.color === 'purple' ? 'text-violet-300' :
+                      'text-orange-300'
                     }`} />
                   </div>
                   <div className="flex-1">
                     <h3 className={`font-semibold text-lg mb-1 ${
-                      isSelected ? 'text-blue-900 dark:text-blue-100' : 'text-gray-900 dark:text-white'
+                      isSelected ? 'text-yellow-200' : 'text-white'
                     }`}>
                       {option.title}
                     </h3>
                     <p className={`text-sm ${
-                      isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-400'
+                      isSelected ? 'text-yellow-200/80' : 'text-gray-300/70'
                     }`}>
                       {option.description}
                     </p>
@@ -222,10 +228,10 @@ const StartDayConfirmationModal = ({ isOpen, onClose, onConfirm, methodology }) 
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-6 flex gap-3">
+        <div className="sticky bottom-0 bg-neutral-900/95 border-t border-white/10 p-6 flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-6 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            className="flex-1 px-6 py-3 rounded-xl border border-white/10 text-gray-200/80 font-semibold hover:bg-white/10 transition-colors"
           >
             Cancelar
           </button>
@@ -234,8 +240,8 @@ const StartDayConfirmationModal = ({ isOpen, onClose, onConfirm, methodology }) 
             disabled={!selectedOption}
             className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-colors ${
               selectedOption
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]'
+                : 'bg-white/10 text-gray-500 cursor-not-allowed'
             }`}
           >
             Continuar

@@ -1556,6 +1556,7 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
 
     const userId = req.user?.userId || req.user?.id;
     const { methodology_plan_id } = req.body;
+    const incomingStartConfig = req.body?.startConfig || req.body?.start_config || null;
 
     if (!methodology_plan_id) {
       client.release();
@@ -1564,6 +1565,88 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
         error: 'methodology_plan_id es requerido'
       });
     }
+
+    const formatLocalDate = (value) => {
+      if (!value) return null;
+      const date = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(date.getTime())) return null;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const getNextMonday = (baseDate) => {
+      const today = baseDate instanceof Date ? baseDate : new Date();
+      const dayOfWeek = today.getDay();
+      const daysUntilMonday = (8 - dayOfWeek) % 7;
+      const offsetDays = daysUntilMonday === 0 ? 7 : daysUntilMonday;
+      const nextMonday = new Date(today);
+      nextMonday.setDate(today.getDate() + offsetDays);
+      nextMonday.setHours(0, 0, 0, 0);
+      return nextMonday;
+    };
+
+    const resolveStartDate = (config) => {
+      if (!config) return null;
+
+      const localRaw = config.startDateLocal || config.start_date_local;
+      if (localRaw) {
+        const parsed = new Date(`${localRaw}T00:00:00`);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed;
+        }
+      }
+
+      const isoRaw = config.startDateISO || config.start_date_iso;
+      if (isoRaw) {
+        const parsed = new Date(isoRaw);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed;
+        }
+      }
+
+      const rawStart = String(config.startDate || config.start_date || '').toLowerCase();
+      if (rawStart === 'today' || rawStart === 'home_training_today') {
+        return new Date();
+      }
+      if (rawStart === 'next_monday') {
+        return getNextMonday(new Date());
+      }
+
+      if (config.startDate || config.start_date) {
+        const parsed = new Date(config.startDate || config.start_date);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed;
+        }
+      }
+
+      return null;
+    };
+
+    const toIntOrNull = (value) => {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : null;
+    };
+
+    const toBoolOrNull = (value) => {
+      if (value === true || value === 'true') return true;
+      if (value === false || value === 'false') return false;
+      return null;
+    };
+
+    const resolvedStartDate = resolveStartDate(incomingStartConfig);
+    const startConfigOverride = incomingStartConfig ? {
+      sessions_first_week: toIntOrNull(
+        incomingStartConfig.sessionsFirstWeek ?? incomingStartConfig.sessions_first_week
+      ),
+      distribution_option: incomingStartConfig.distributionOption ?? incomingStartConfig.distribution_option ?? null,
+      include_saturdays: toBoolOrNull(incomingStartConfig.includeSaturdays ?? incomingStartConfig.include_saturdays),
+      start_day_of_week: toIntOrNull(
+        incomingStartConfig.startDayOfWeek ?? incomingStartConfig.start_day_of_week
+      ),
+      start_date: resolvedStartDate ? formatLocalDate(resolvedStartDate) : null
+    } : null;
 
     // Verificar que el plan pertenece al usuario y está en estado draft
     const planCheck = await client.query(
@@ -1586,12 +1669,14 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
 
     // Si ya está activo, considerar la operación idempotente
     if (String(plan.status).toLowerCase() === 'active') {
+      await activateMethodologyPlan(userId, methodology_plan_id, client);
       client.release();
       return res.json({ success: true, status: 'active', message: 'Plan ya confirmado (idempotente)' });
     }
 
     // Confirmación del plan con fallback seguro si no existe la función/tabla legacy
     let confirmed = false;
+    let activated = false;
     try {
       const confirmResult = await client.query(
         'SELECT app.confirm_routine_plan($1, $2, $3) as confirmed',
@@ -1605,6 +1690,7 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
         console.warn('⚠️ confirm_routine_plan no disponible. Usando activateMethodologyPlan()');
         await activateMethodologyPlan(userId, methodology_plan_id, client);
         confirmed = true;
+        activated = true;
       } else {
         throw e;
       }
@@ -1616,6 +1702,20 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
         success: false,
         error: 'No se pudo confirmar el plan. Puede que ya esté confirmado o no esté en estado draft.'
       });
+    }
+
+    if (!activated) {
+      await activateMethodologyPlan(userId, methodology_plan_id, client);
+    }
+
+    if (resolvedStartDate) {
+      const startDateLocal = formatLocalDate(resolvedStartDate);
+      await client.query(
+        `UPDATE app.methodology_plans
+         SET plan_start_date = $1, updated_at = NOW()
+         WHERE id = $2 AND user_id = $3`,
+        [startDateLocal, methodology_plan_id, userId]
+      );
     }
 
     // 🎯 FASE 2: STORED PROCEDURE DESHABILITADO
@@ -1638,13 +1738,17 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
     // 🎯 FASE 1 & 2: Generar programación completa (methodology_plan_days + workout_schedule)
     console.log(`📅 [confirm-plan] Generando programación completa (methodology_plan_days + workout_schedule)...`);
     try {
-      // 🆕 Leer configuración de inicio si existe
-      const startConfigQuery = await client.query(
-        `SELECT * FROM app.plan_start_config WHERE methodology_plan_id = $1`,
-        [methodology_plan_id]
-      );
-
-      const startConfig = startConfigQuery.rowCount > 0 ? startConfigQuery.rows[0] : null;
+      // 🆕 Leer configuración de inicio si existe (o usar la enviada por el frontend)
+      let startConfig = null;
+      if (startConfigOverride) {
+        startConfig = startConfigOverride;
+      } else {
+        const startConfigQuery = await client.query(
+          `SELECT * FROM app.plan_start_config WHERE methodology_plan_id = $1`,
+          [methodology_plan_id]
+        );
+        startConfig = startConfigQuery.rowCount > 0 ? startConfigQuery.rows[0] : null;
+      }
 
       if (startConfig) {
         console.log('🗓️ [confirm-plan] Configuración de inicio encontrada:', {
@@ -1662,7 +1766,7 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
          WHERE id = $1`,
         [methodology_plan_id]
       );
-      const startDate = startConfig?.start_date || startDateQuery.rows[0]?.start_date || new Date();
+      const startDate = resolvedStartDate || startConfig?.start_date || startDateQuery.rows[0]?.start_date || new Date();
 
       console.log(`📅 [confirm-plan] Fecha de inicio del plan: ${startDate}`);
 
@@ -2830,7 +2934,7 @@ router.post('/cancel-routine', authenticateToken, async (req, res) => {
     // ✅ CRÍTICO: Actualizar cancelled_at para que el filtro en /active-plan funcione
     await client.query(
       `UPDATE app.methodology_plans
-       SET status = 'cancelled', cancelled_at = NOW(), updated_at = NOW()
+       SET status = 'cancelled', cancelled_at = NOW(), updated_at = NOW(), is_current = FALSE
        WHERE id = $1 AND user_id = $2
        RETURNING methodology_type`,
       [methodology_plan_id, userId]

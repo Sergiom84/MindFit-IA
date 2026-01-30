@@ -327,9 +327,9 @@ export default function FoodDatabase() {
   return (
     <div className="space-y-6">
       {/* Header y Controles */}
-      <Card className="bg-gray-800/70 border-gray-600">
+      <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5 border-l-2 border-l-yellow-400/30">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-white flex items-center gap-2 font-urbanist">
             <Apple className="text-yellow-400" size={24} />
             Base de Datos Nutricional
           </CardTitle>
@@ -344,7 +344,7 @@ export default function FoodDatabase() {
                   placeholder="Buscar alimentos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-gray-700 border-gray-600 text-white"
+                  className="pl-10 bg-white/5 border-white/10 text-white"
                 />
               </div>
             </div>
@@ -360,7 +360,7 @@ export default function FoodDatabase() {
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                       selectedCategory === category.id
                         ? `${category.color} text-white`
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        : 'bg-white/5 text-gray-300/80 hover:bg-white/10'
                     }`}
                   >
                     <Icon size={16} />
@@ -374,7 +374,7 @@ export default function FoodDatabase() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="bg-gray-700 border-gray-600 text-white rounded-lg px-3 py-2 text-sm"
+              className="bg-white/5 border-white/10 text-white rounded-lg px-3 py-2 text-sm"
             >
               <option value="name">Nombre</option>
               <option value="calories">Calorías</option>
@@ -391,7 +391,7 @@ export default function FoodDatabase() {
         {filteredFoods.map(food => (
           <Card 
             key={food.id}
-            className="bg-gray-800/70 border-gray-600 cursor-pointer transition-all duration-200 hover:bg-gray-700/70"
+            className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5 cursor-pointer transition-all duration-200 hover:bg-white/10"
             onClick={() => setSelectedFood(selectedFood?.id === food.id ? null : food)}
           >
             <CardHeader className="pb-3">
@@ -406,20 +406,20 @@ export default function FoodDatabase() {
 
             <CardContent>
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="text-center p-2 bg-blue-500/20 rounded border border-blue-500/30">
-                  <p className="font-bold text-blue-400">{food.calories}</p>
+                <div className="text-center p-2 bg-white/5 rounded border border-white/10 border-l-2 border-l-sky-400/40">
+                  <p className="font-bold text-sky-300">{food.calories}</p>
                   <p className="text-gray-300">kcal</p>
                 </div>
-                <div className="text-center p-2 bg-red-500/20 rounded border border-red-500/30">
-                  <p className="font-bold text-red-400">{food.protein}g</p>
+                <div className="text-center p-2 bg-white/5 rounded border border-white/10 border-l-2 border-l-red-400/40">
+                  <p className="font-bold text-red-300">{food.protein}g</p>
                   <p className="text-gray-300">Prot.</p>
                 </div>
-                <div className="text-center p-2 bg-green-500/20 rounded border border-green-500/30">
-                  <p className="font-bold text-green-400">{food.carbs}g</p>
+                <div className="text-center p-2 bg-white/5 rounded border border-white/10 border-l-2 border-l-emerald-400/40">
+                  <p className="font-bold text-emerald-300">{food.carbs}g</p>
                   <p className="text-gray-300">Carb.</p>
                 </div>
-                <div className="text-center p-2 bg-yellow-500/20 rounded border border-yellow-500/30">
-                  <p className="font-bold text-yellow-400">{food.fat}g</p>
+                <div className="text-center p-2 bg-white/5 rounded border border-white/10 border-l-2 border-l-yellow-400/40">
+                  <p className="font-bold text-yellow-300">{food.fat}g</p>
                   <p className="text-gray-300">Gras.</p>
                 </div>
               </div>
@@ -430,7 +430,7 @@ export default function FoodDatabase() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-gray-600 text-white hover:bg-gray-700 text-xs px-2 py-1"
+                    className="border-white/10 bg-white/5 text-white hover:bg-white/10 text-xs px-2 py-1"
                     onClick={(e) => {
                       e.stopPropagation();
                       // TODO: Añadir a comida
@@ -441,7 +441,7 @@ export default function FoodDatabase() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-gray-600 text-white hover:bg-gray-700 text-xs px-2 py-1"
+                    className="border-white/10 bg-white/5 text-white hover:bg-white/10 text-xs px-2 py-1"
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedFood(food);
@@ -458,14 +458,14 @@ export default function FoodDatabase() {
 
       {/* Modal de detalles del alimento */}
       {selectedFood && (
-        <Card className="bg-gray-800/70 border-gray-600">
+        <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5 border-l-2 border-l-yellow-400/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center justify-between">
+            <CardTitle className="text-white flex items-center justify-between font-urbanist">
               <span>{selectedFood.name}</span>
               <Button
                 variant="outline"
                 size="sm"
-                className="border-gray-600 text-white hover:bg-gray-700"
+                className="border-white/10 bg-white/5 text-white hover:bg-white/10"
                 onClick={() => setSelectedFood(null)}
               >
                 Cerrar
@@ -476,28 +476,28 @@ export default function FoodDatabase() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Macronutrientes */}
               <div className="space-y-4">
-                <h4 className="text-lg font-semibold text-white">Información Nutricional</h4>
+                <h4 className="text-lg font-semibold text-white font-urbanist">Información Nutricional</h4>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-3 bg-blue-500/20 rounded border border-blue-500/30">
-                    <p className="text-2xl font-bold text-blue-400">{selectedFood.calories}</p>
+                  <div className="text-center p-3 bg-white/5 rounded border border-white/10 border-l-2 border-l-sky-400/40">
+                    <p className="text-2xl font-bold text-sky-300">{selectedFood.calories}</p>
                     <p className="text-gray-300 text-sm">Calorías</p>
                   </div>
-                  <div className="text-center p-3 bg-red-500/20 rounded border border-red-500/30">
-                    <p className="text-2xl font-bold text-red-400">{selectedFood.protein}g</p>
+                  <div className="text-center p-3 bg-white/5 rounded border border-white/10 border-l-2 border-l-red-400/40">
+                    <p className="text-2xl font-bold text-red-300">{selectedFood.protein}g</p>
                     <p className="text-gray-300 text-sm">Proteína</p>
                   </div>
-                  <div className="text-center p-3 bg-green-500/20 rounded border border-green-500/30">
-                    <p className="text-2xl font-bold text-green-400">{selectedFood.carbs}g</p>
+                  <div className="text-center p-3 bg-white/5 rounded border border-white/10 border-l-2 border-l-emerald-400/40">
+                    <p className="text-2xl font-bold text-emerald-300">{selectedFood.carbs}g</p>
                     <p className="text-gray-300 text-sm">Carbohidratos</p>
                   </div>
-                  <div className="text-center p-3 bg-yellow-500/20 rounded border border-yellow-500/30">
-                    <p className="text-2xl font-bold text-yellow-400">{selectedFood.fat}g</p>
+                  <div className="text-center p-3 bg-white/5 rounded border border-white/10 border-l-2 border-l-yellow-400/40">
+                    <p className="text-2xl font-bold text-yellow-300">{selectedFood.fat}g</p>
                     <p className="text-gray-300 text-sm">Grasas</p>
                   </div>
                 </div>
                 {selectedFood.fiber > 0 && (
-                  <div className="text-center p-2 bg-purple-500/20 rounded border border-purple-500/30">
-                    <p className="font-bold text-purple-400">{selectedFood.fiber}g Fibra</p>
+                  <div className="text-center p-2 bg-white/5 rounded border border-white/10 border-l-2 border-l-purple-400/40">
+                    <p className="font-bold text-purple-300">{selectedFood.fiber}g Fibra</p>
                   </div>
                 )}
               </div>
@@ -530,7 +530,7 @@ export default function FoodDatabase() {
                   <h5 className="font-semibold text-white mb-2">Formas de Preparación</h5>
                   <div className="flex flex-wrap gap-2">
                     {selectedFood.preparation.map(prep => (
-                      <Badge key={prep} variant="outline" className="border-gray-600 text-gray-300">
+                      <Badge key={prep} variant="outline" className="border-white/10 text-gray-300/80">
                         {prep}
                       </Badge>
                     ))}
@@ -555,7 +555,7 @@ export default function FoodDatabase() {
       )}
 
       {filteredFoods.length === 0 && (
-        <Card className="bg-gray-800/70 border-gray-600">
+        <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
           <CardContent className="text-center py-12">
             <Apple className="mx-auto text-gray-400 mb-4" size={48} />
             <h3 className="text-xl font-semibold text-white mb-2">No se encontraron alimentos</h3>

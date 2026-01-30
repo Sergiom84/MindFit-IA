@@ -22,7 +22,12 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentPlatform, setCurrentPlatform] = useState(null);
-  const [position, setPosition] = useState({ x: window.innerWidth - 100, y: window.innerHeight - 100 });
+  const BUBBLE_SIZE = 72;
+  const BUBBLE_MARGIN = 24;
+  const [position, setPosition] = useState({
+    x: window.innerWidth - (BUBBLE_SIZE + BUBBLE_MARGIN),
+    y: window.innerHeight - (BUBBLE_SIZE + BUBBLE_MARGIN)
+  });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [currentTrack, setCurrentTrack] = useState(null);
@@ -47,10 +52,10 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
   const dragMovedRef = useRef(false);
   const DRAG_THRESHOLD_PX = 6;
 
-  // Dragging functionality
+  // Dragging functionality (mouse + touch)
   const handleMouseDown = (e) => {
     if (e.target.closest('.platform-button') || e.target.closest('.control-button')) return;
-    
+
     dragMovedRef.current = false;
     dragStartRef.current = { x: e.clientX, y: e.clientY };
     setIsDragging(true);
@@ -63,20 +68,60 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
 
   const handleMouseMove = (e) => {
     if (!isDragging) return;
-    
+
     const deltaX = Math.abs(e.clientX - dragStartRef.current.x);
     const deltaY = Math.abs(e.clientY - dragStartRef.current.y);
     if (!dragMovedRef.current && (deltaX > DRAG_THRESHOLD_PX || deltaY > DRAG_THRESHOLD_PX)) {
       dragMovedRef.current = true;
     }
 
-    const newX = Math.max(0, Math.min(window.innerWidth - 80, e.clientX - dragOffset.x));
-    const newY = Math.max(0, Math.min(window.innerHeight - 80, e.clientY - dragOffset.y));
-    
+    const newX = Math.max(0, Math.min(window.innerWidth - BUBBLE_SIZE, e.clientX - dragOffset.x));
+    const newY = Math.max(0, Math.min(window.innerHeight - BUBBLE_SIZE, e.clientY - dragOffset.y));
+
     setPosition({ x: newX, y: newY });
   };
 
+  const handleTouchStart = (e) => {
+    if (e.target.closest('.platform-button') || e.target.closest('.control-button')) return;
+    const touch = e.touches?.[0];
+    if (!touch) return;
+
+    dragMovedRef.current = false;
+    dragStartRef.current = { x: touch.clientX, y: touch.clientY };
+    setIsDragging(true);
+    const rect = bubbleRef.current.getBoundingClientRect();
+    setDragOffset({
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top
+    });
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging) return;
+    const touch = e.touches?.[0];
+    if (!touch) return;
+
+    const deltaX = Math.abs(touch.clientX - dragStartRef.current.x);
+    const deltaY = Math.abs(touch.clientY - dragStartRef.current.y);
+    if (!dragMovedRef.current && (deltaX > DRAG_THRESHOLD_PX || deltaY > DRAG_THRESHOLD_PX)) {
+      dragMovedRef.current = true;
+    }
+
+    const newX = Math.max(0, Math.min(window.innerWidth - BUBBLE_SIZE, touch.clientX - dragOffset.x));
+    const newY = Math.max(0, Math.min(window.innerHeight - BUBBLE_SIZE, touch.clientY - dragOffset.y));
+
+    setPosition({ x: newX, y: newY });
+
+    if (dragMovedRef.current) {
+      e.preventDefault();
+    }
+  };
+
   const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleTouchEnd = () => {
     setIsDragging(false);
   };
 
@@ -84,10 +129,14 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
-      
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleTouchEnd);
+
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
       };
     }
   }, [isDragging, dragOffset]);
@@ -577,11 +626,12 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
     return (
       <div
         ref={bubbleRef}
-        className={`fixed z-50 w-16 h-16 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full shadow-lg cursor-move flex items-center justify-center hover:scale-105 transition-transform duration-200 ${
+        className={`fixed z-50 h-[72px] w-[72px] rounded-full cursor-move flex items-center justify-center hover:scale-105 transition-transform duration-200 touch-none ${
           isPlaying ? 'bubble-pulse' : ''
         }`}
         style={{ left: `${position.x}px`, top: `${position.y}px` }}
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
         onClick={() => {
           if (isDragging || dragMovedRef.current) {
             dragMovedRef.current = false;
@@ -593,7 +643,12 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
         {isPlaying ? (
           <Pause className="w-6 h-6 text-gray-900" />
         ) : (
-          <Play className="w-6 h-6 text-gray-900 ml-1" />
+          <img
+            src="/assets/tech-lux/play.webp"
+            alt="Reproducir"
+            className="h-full w-full object-contain pointer-events-none select-none"
+            draggable="false"
+          />
         )}
       </div>
     );
@@ -605,12 +660,13 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
       {isMinimized && currentTrack ? (
         <div
           ref={bubbleRef}
-          className="fixed z-50 bg-gray-900/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-700/50 cursor-move audio-control-backdrop"
+          className="fixed z-50 bg-gray-900/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-700/50 cursor-move audio-control-backdrop touch-none"
           style={{ 
             left: `${position.x}px`, 
             top: `${position.y}px`,
           }}
           onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
         >
           <div className="flex items-center space-x-3 p-3">
             {/* Play/Pause Button */}
@@ -621,7 +677,12 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
               {isPlaying ? (
                 <Pause className="w-5 h-5 text-gray-900" />
               ) : (
-                <Play className="w-5 h-5 text-gray-900 ml-0.5" />
+                <img
+                  src="/assets/tech-lux/play.webp"
+                  alt="Reproducir"
+                  className="h-5 w-5 object-contain pointer-events-none select-none"
+                  draggable="false"
+                />
               )}
             </button>
             
@@ -649,7 +710,7 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
         /* Expanded modal */
         <div
           ref={bubbleRef}
-          className="fixed z-50 bg-gray-900/98 backdrop-blur-md border border-gray-600/50 rounded-2xl shadow-2xl cursor-move"
+          className="fixed z-50 bg-gray-900/98 backdrop-blur-md border border-gray-600/50 rounded-2xl shadow-2xl cursor-move touch-none"
           style={{ 
             left: `${position.x}px`, 
             top: `${position.y}px`,
@@ -658,6 +719,7 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)'
           }}
           onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
         >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-700/50">

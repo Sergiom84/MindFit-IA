@@ -7,6 +7,7 @@
 - Si hay dudas sobre alcance o impacto, pregunta antes de ejecutar cambios.
 - Responde siempre en español.
 - Tras cada implementacion, registra una descripcion breve en `docs/REGISTRO_DIARIO_IMPLEMENTACIONES.md`: si ya hay un dia abierto agrega un bullet; si es el primer cambio del dia agrega la fecha y el primer bullet.
+- Si la tarea es la implementación de MindFeed Compliance v1, revisa siempre `docs/CHECKPOINTS_MINDFEED_COMPLIANCE_V1.md` antes de continuar y actualízalo al cerrar cada subfase.
 
 ## Project Structure & Module Organization
 

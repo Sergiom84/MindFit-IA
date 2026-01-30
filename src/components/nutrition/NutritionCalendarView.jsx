@@ -5,6 +5,7 @@ import MealDetailView from './MealDetailView';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
 
 const DIAS_SEMANA_COMPLETO = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const cardBase = "bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg";
 
 /**
  * Vista de calendario nutricional
@@ -82,7 +83,7 @@ export default function NutritionCalendarView() {
   if (!plan || !plan.days) {
     return (
       <div className="max-w-2xl mx-auto p-6">
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 text-center">
+        <div className={`${cardBase} rounded-lg p-6 text-center border-l-2 border-l-yellow-400/30`}>
           <Calendar className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <p className="text-gray-400 mb-4">No hay plan nutricional activo</p>
           <p className="text-gray-500 text-sm">Ve a "Generar Plan" para crear uno nuevo</p>
@@ -108,15 +109,15 @@ export default function NutritionCalendarView() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto p-6">
       {/* Header del Plan */}
-      <div className="bg-gray-800 rounded-2xl p-6 shadow-xl mb-6">
+      <div className={`${cardBase} rounded-2xl p-6 mb-6 border-l-2 border-l-yellow-400/30`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <Calendar className="w-8 h-8 text-yellow-400" />
             <div>
-              <h2 className="text-2xl font-bold text-white">Plan Nutricional Activo</h2>
-              <p className="text-gray-400 text-sm">
+              <h2 className="text-2xl font-semibold font-urbanist text-white">Plan Nutricional Activo</h2>
+              <p className="text-gray-300/70 text-sm">
                 {plan.duracion_dias} días • {plan.comidas_por_dia} comidas/día • {plan.training_type}
               </p>
             </div>
@@ -124,7 +125,7 @@ export default function NutritionCalendarView() {
 
           <button
             onClick={loadActivePlan}
-            className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            className="p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
             title="Recargar plan"
           >
             <RefreshCw className="w-5 h-5 text-white" />
@@ -133,31 +134,31 @@ export default function NutritionCalendarView() {
 
         {/* Resumen de Macros */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-gray-700/50 rounded-lg p-3">
-            <div className="text-gray-400 text-xs mb-1">Calorías Objetivo</div>
-            <div className="text-xl font-bold text-green-400">{plan.kcal_objetivo} kcal</div>
+          <div className="bg-white/5 border border-white/10 rounded-lg p-3 border-l-2 border-l-emerald-400/40">
+            <div className="text-gray-300/70 text-xs mb-1">Calorías Objetivo</div>
+            <div className="text-xl font-bold text-emerald-300">{plan.kcal_objetivo} kcal</div>
           </div>
-          <div className="bg-gray-700/50 rounded-lg p-3">
-            <div className="text-gray-400 text-xs mb-1">Proteína</div>
-            <div className="text-xl font-bold text-red-400">{plan.macros_objetivo.protein_g}g</div>
+          <div className="bg-white/5 border border-white/10 rounded-lg p-3 border-l-2 border-l-red-400/40">
+            <div className="text-gray-300/70 text-xs mb-1">Proteína</div>
+            <div className="text-xl font-bold text-red-300">{plan.macros_objetivo.protein_g}g</div>
           </div>
-          <div className="bg-gray-700/50 rounded-lg p-3">
-            <div className="text-gray-400 text-xs mb-1">Carbohidratos</div>
-            <div className="text-xl font-bold text-yellow-400">{plan.macros_objetivo.carbs_g}g</div>
+          <div className="bg-white/5 border border-white/10 rounded-lg p-3 border-l-2 border-l-yellow-400/40">
+            <div className="text-gray-300/70 text-xs mb-1">Carbohidratos</div>
+            <div className="text-xl font-bold text-yellow-300">{plan.macros_objetivo.carbs_g}g</div>
           </div>
-          <div className="bg-gray-700/50 rounded-lg p-3">
-            <div className="text-gray-400 text-xs mb-1">Grasas</div>
-            <div className="text-xl font-bold text-blue-400">{plan.macros_objetivo.fat_g}g</div>
+          <div className="bg-white/5 border border-white/10 rounded-lg p-3 border-l-2 border-l-sky-400/40">
+            <div className="text-gray-300/70 text-xs mb-1">Grasas</div>
+            <div className="text-xl font-bold text-sky-300">{plan.macros_objetivo.fat_g}g</div>
           </div>
         </div>
       </div>
 
       {/* Navegación de Semanas */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
         <button
           onClick={handlePreviousWeek}
           disabled={currentWeek === 0}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ChevronLeft className="w-5 h-5" />
           Semana Anterior
@@ -165,7 +166,7 @@ export default function NutritionCalendarView() {
 
         <div className="text-center">
           <div className="text-white font-semibold">Semana {currentWeek + 1} de {totalWeeks}</div>
-          <div className="text-gray-400 text-sm">
+          <div className="text-gray-300/70 text-sm">
             Días {currentWeek * 7 + 1} - {Math.min((currentWeek + 1) * 7, plan.days.length)}
           </div>
         </div>
@@ -173,7 +174,7 @@ export default function NutritionCalendarView() {
         <button
           onClick={handleNextWeek}
           disabled={currentWeek >= totalWeeks - 1}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Siguiente Semana
           <ChevronRight className="w-5 h-5" />
@@ -190,8 +191,8 @@ export default function NutritionCalendarView() {
           return (
             <div
               key={day.day_index}
-              className={`bg-gray-800 rounded-xl p-4 border-2 transition-all cursor-pointer hover:border-yellow-400 ${
-                isTraining ? 'border-green-500' : 'border-gray-700'
+              className={`bg-neutral-900/70 rounded-xl p-4 border border-white/10 ring-1 ring-white/5 transition-all cursor-pointer hover:border-white/20 ${
+                isTraining ? 'border-l-2 border-l-emerald-400/60' : 'border-l-2 border-l-sky-400/40'
               }`}
               onClick={() => setSelectedDay(day)}
             >
@@ -199,18 +200,18 @@ export default function NutritionCalendarView() {
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-white font-semibold text-sm">{diaSemana}</span>
-                  <span className="text-gray-400 text-xs">Día {day.day_index + 1}</span>
+                  <span className="text-gray-300/70 text-xs">Día {day.day_index + 1}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {isTraining ? (
                     <>
-                      <Dumbbell className="w-4 h-4 text-green-400" />
-                      <span className="text-green-400 text-xs font-medium">Entrenamiento</span>
+                      <Dumbbell className="w-4 h-4 text-emerald-400" />
+                      <span className="text-emerald-300 text-xs font-medium">Entrenamiento</span>
                     </>
                   ) : (
                     <>
-                      <Moon className="w-4 h-4 text-blue-400" />
-                      <span className="text-blue-400 text-xs font-medium">Descanso</span>
+                      <Moon className="w-4 h-4 text-sky-300" />
+                      <span className="text-sky-300 text-xs font-medium">Descanso</span>
                     </>
                   )}
                 </div>
@@ -219,42 +220,42 @@ export default function NutritionCalendarView() {
               {/* Macros del Día */}
               <div className="space-y-1 mb-3">
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-400">Calorías:</span>
+                  <span className="text-gray-300/70">Calorías:</span>
                   <span className="text-white font-semibold">{day.kcal} kcal</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-400">P:</span>
-                  <span className="text-red-400">{day.macros.protein_g}g</span>
+                  <span className="text-gray-300/70">P:</span>
+                  <span className="text-red-300">{day.macros.protein_g}g</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-400">C:</span>
-                  <span className="text-yellow-400">{day.macros.carbs_g}g</span>
+                  <span className="text-gray-300/70">C:</span>
+                  <span className="text-yellow-300">{day.macros.carbs_g}g</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-400">G:</span>
-                  <span className="text-blue-400">{day.macros.fat_g}g</span>
+                  <span className="text-gray-300/70">G:</span>
+                  <span className="text-sky-300">{day.macros.fat_g}g</span>
                 </div>
               </div>
 
               {/* Comidas del Día */}
-              <div className="border-t border-gray-700 pt-2">
-                <div className="text-gray-400 text-xs mb-1">
+              <div className="border-t border-white/10 pt-2">
+                <div className="text-gray-300/70 text-xs mb-1">
                   {day.meals?.length || 0} comidas
                 </div>
                 {day.meals?.slice(0, 2).map((meal) => (
-                  <div key={meal.orden} className="text-xs text-gray-500 truncate">
+                  <div key={meal.orden} className="text-xs text-gray-400 truncate">
                     • {meal.nombre}
                   </div>
                 ))}
                 {day.meals?.length > 2 && (
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-400">
                     ... +{day.meals.length - 2} más
                   </div>
                 )}
               </div>
 
               {/* Indicador de click */}
-              <div className="mt-2 text-center text-xs text-gray-500">
+              <div className="mt-2 text-center text-xs text-gray-400">
                 Click para detalles
               </div>
             </div>

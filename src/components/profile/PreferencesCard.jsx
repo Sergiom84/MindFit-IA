@@ -29,9 +29,9 @@ export const PreferencesCard = ({
   const isEditing = editingSection === 'preferences'
 
   return (
-    <Card className="bg-gray-900 border-yellow-400/20">
+    <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
       <CardHeader>
-        <CardTitle className="text-white flex items-center justify-between">
+        <CardTitle className="text-white font-urbanist flex items-center justify-between">
           <span>Preferencias de Entrenamiento</span>
           <div className="flex items-center gap-2">
             {isEditing ? (
@@ -48,7 +48,7 @@ export const PreferencesCard = ({
                   onClick={handleCancel}
                   size="sm"
                   variant="outline"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  className="border-white/10 text-gray-200/80 hover:bg-white/10"
                 >
                   Cancelar
                 </Button>
@@ -66,7 +66,7 @@ export const PreferencesCard = ({
                   })
                 }
                 disabled={editingSection && editingSection !== 'preferences'}
-                className="p-2 text-gray-400 hover:text-yellow-400 transition-colors"
+                className="p-2 text-gray-300/70 hover:text-yellow-300 transition-colors"
                 title="Editar preferencias de entrenamiento"
               >
                 <Pencil className="w-4 h-4" />

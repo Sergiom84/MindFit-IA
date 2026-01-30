@@ -49,6 +49,7 @@ const HomeTrainingProgress = ({
     };
     return types[type] || type;
   };
+  const cardBase = 'bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg';
 
   if (!currentPlan) {
     return null;
@@ -62,23 +63,23 @@ const HomeTrainingProgress = ({
       )}
 
       {/* Plan actual */}
-      <div className="bg-gray-800/70 backdrop-blur-sm border border-gray-600 rounded-2xl p-6">
-        <div className="flex items-center mb-4">
-          <Target className="text-yellow-400 mr-2" size={24} />
-          <h3 className="text-xl font-semibold text-yellow-400">
+      <div className={`${cardBase} rounded-2xl p-6`}>
+        <div className="flex items-center mb-4 gap-2">
+          <Target className="text-yellow-300" size={22} />
+          <h3 className="text-xl font-semibold text-yellow-200 font-urbanist">
             {(getTrainingTypeLabel(currentPlan.training_type) || 'ENTRENAMIENTO').toUpperCase()} en Casa
           </h3>
         </div>
         
-        <p className="text-gray-300 mb-4">Entrenamiento personalizado adaptado a tu equipamiento</p>
+        <p className="text-gray-200/80 mb-4">Entrenamiento personalizado adaptado a tu equipamiento</p>
 
         <div className="space-y-2 text-sm mb-6">
-          <p className="text-gray-300">
+          <p className="text-gray-200/80">
             <span className="font-semibold">Fuente del plan:</span> {currentPlan.plan_source?.label || 'OpenAI'}{currentPlan.plan_source?.detail ? ` (${currentPlan.plan_source.detail})` : ''}
           </p>
 
           {/* Perfil del usuario con detalles completos */}
-          <div className="mt-4 bg-gray-700/30 rounded-lg p-4">
+          <div className="mt-4 bg-white/5 border border-white/10 rounded-xl p-4">
             <UserProfileDisplay />
           </div>
         </div>
@@ -89,16 +90,16 @@ const HomeTrainingProgress = ({
             <span className="text-white font-semibold">Progreso</span>
             <span className="text-white font-semibold">{Math.round(progress.percentage)}%</span>
           </div>
-          <div className="w-full bg-gray-700 rounded-full h-3">
+          <div className="w-full bg-white/10 rounded-full h-3">
             <div 
-              className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-500"
+              className="bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 h-3 rounded-full transition-all duration-500"
               style={{ width: `${progress.percentage}%` }}
             ></div>
           </div>
         </div>
 
         {/* Información del entrenamiento */}
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-300 mb-6">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-200/70 mb-6">
           <div className="flex items-center">
             <Calendar size={16} className="mr-2" />
             <span>Fecha: {new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</span>
@@ -120,7 +121,7 @@ const HomeTrainingProgress = ({
         {/* Lista de ejercicios con progreso */}
         {currentPlan.exercises && (
           <div className="mb-6">
-            <h4 className="text-lg font-semibold text-white mb-4">Ejercicios del Plan</h4>
+            <h4 className="text-lg font-semibold text-white mb-4 font-urbanist">Ejercicios del Plan</h4>
             <div className="space-y-3">
               {currentPlan.exercises.map((ejercicio, idx) => {
                 // Enlazar datos del backend (status/feedback y total_series) si existen
@@ -137,19 +138,21 @@ const HomeTrainingProgress = ({
                 return (
                   <div
                     key={idx}
-                    className={`rounded-lg p-4 border-l-4 ${
+                    className={`rounded-xl p-4 border ${
                       isCompleted
-                        ? 'bg-green-900/20 border-green-500'
+                        ? 'bg-emerald-500/10 border-emerald-400/40'
                         : isCurrent
-                        ? 'bg-blue-900/20 border-blue-500'
+                        ? 'bg-blue-500/10 border-blue-400/40'
                         : status === 'cancelled'
-                        ? 'bg-red-900/10 border-red-500'
-                        : 'bg-gray-700/30 border-gray-600'
+                        ? 'bg-red-500/10 border-red-400/40'
+                        : status === 'skipped'
+                        ? 'bg-yellow-400/10 border-yellow-400/30'
+                        : 'bg-white/5 border-white/10'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <h5 className={`font-semibold ${
-                        isCompleted ? 'text-green-400' : isCurrent ? 'text-blue-400' : status === 'cancelled' ? 'text-red-300' : 'text-white'
+                        isCompleted ? 'text-emerald-300' : isCurrent ? 'text-blue-300' : status === 'cancelled' ? 'text-red-300' : 'text-white'
                       }`}>
                         {ejercicio.nombre}
                         {isCompleted && (
@@ -174,7 +177,7 @@ const HomeTrainingProgress = ({
                       </h5>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-300 mt-2">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-200/80 mt-2">
                       <span>Series: {ejercicio.series}</span>
                       {ejercicio.repeticiones && <span>Reps: {ejercicio.repeticiones}</span>}
                       {ejercicio.duracion_seg && <span>Duración: {ejercicio.duracion_seg}s</span>}
@@ -182,12 +185,12 @@ const HomeTrainingProgress = ({
                     </div>
 
                     {ejercicio.notas && (
-                      <p className="text-xs text-gray-400 italic mt-2">{ejercicio.notas}</p>
+                      <p className="text-xs text-gray-300/70 italic mt-2">{ejercicio.notas}</p>
                     )}
 
                     {/* Mostrar comentario del usuario si existe */}
                     {comment && comment.trim() && (
-                      <div className="mt-2 p-2 bg-yellow-400/10 border border-yellow-400/20 rounded text-xs">
+                      <div className="mt-2 p-2 bg-yellow-400/10 border border-yellow-400/30 rounded text-xs">
                         <span className="text-yellow-400 font-medium">Mi comentario: </span>
                         <span className="text-yellow-200">{comment}</span>
                       </div>
@@ -206,13 +209,13 @@ const HomeTrainingProgress = ({
               <div className="flex gap-3 sm:gap-4 flex-1">
                 <button
                   onClick={onGenerateNewPlan}
-                  className="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+                  className="flex-1 bg-white/10 hover:bg-white/15 text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200 border border-white/10 hover:border-yellow-400/30"
                 >
                   Generar Otro Plan
                 </button>
                 <button
                   onClick={onContinueTraining}
-                  className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+                  className="flex-1 bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 text-black font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]"
                 >
                   {progress.percentage === 0 ? 'Comenzar Entrenamiento' : 'Continuar Entrenamiento'}
                 </button>
@@ -220,7 +223,7 @@ const HomeTrainingProgress = ({
               {/* Botón para cancelar todo y reiniciar - SOLO si no está completado */}
               <button
                 onClick={onCancelAll}
-                className="bg-red-600 hover:bg-red-500 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+                className="bg-red-500/10 hover:bg-red-500/20 text-red-200 font-semibold py-3 px-6 rounded-xl transition-colors duration-200 border border-red-400/30"
               >
                 Cancelar todo
               </button>
@@ -229,12 +232,12 @@ const HomeTrainingProgress = ({
             /* 🎉 ENTRENAMIENTO COMPLETADO */
             <div className="w-full space-y-4">
               {/* Mensaje de completado con tiempo y fecha */}
-              <div className="bg-green-900/30 border-2 border-green-500 rounded-lg p-4">
+              <div className="bg-emerald-500/10 border border-emerald-400/40 rounded-2xl p-4">
                 <div className="text-center">
-                  <p className="text-green-400 font-bold text-lg mb-2">
+                  <p className="text-emerald-300 font-bold text-lg mb-2">
                     🎉 ¡Has completado el entrenamiento!
                   </p>
-                  <p className="text-green-300 text-sm">
+                  <p className="text-emerald-200 text-sm">
                     Tiempo total: <span className="font-semibold">
                       {(() => {
                         // Calcular tiempo total sumando duration_seconds de todos los ejercicios
@@ -258,7 +261,7 @@ const HomeTrainingProgress = ({
                       })()}
                     </span>
                   </p>
-                  <p className="text-green-300 text-sm">
+                  <p className="text-emerald-200 text-sm">
                     Fecha: <span className="font-semibold">
                       {new Date().toLocaleDateString('es-ES', {
                         day: '2-digit',
@@ -275,7 +278,7 @@ const HomeTrainingProgress = ({
               {/* Botón para generar nuevo entrenamiento */}
               <button
                 onClick={onGenerateNewAfterCompleted}
-                className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 text-black font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]"
               >
                 <Target size={20} />
                 Generar otro entrenamiento

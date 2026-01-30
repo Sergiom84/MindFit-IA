@@ -141,41 +141,45 @@ export default function HomeTrainingWarmupModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
       <div
-        className="w-full max-w-2xl rounded-2xl border border-gray-600 bg-gray-900 text-white shadow-xl"
+        className="w-full max-w-2xl rounded-3xl border border-white/10 bg-neutral-900/90 text-white shadow-[0_40px_90px_-60px_rgba(0,0,0,0.9)] ring-1 ring-white/10"
         role="dialog"
         aria-modal="true"
         aria-label="Calentamiento previo"
       >
-        <header className="flex items-center justify-between border-b border-gray-700 p-4">
-          <div>
-            <h2 className="flex items-center text-xl font-semibold">
-              <Thermometer className="mr-2 h-5 w-5 text-orange-400" />
+        <header className="flex items-center justify-between border-b border-white/10 p-5">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full border border-orange-400/30 bg-orange-500/10 flex items-center justify-center">
+              <Thermometer className="h-5 w-5 text-orange-300" />
+            </div>
+            <div>
+              <h2 className="flex items-center text-xl font-semibold font-urbanist">
               Calentamiento recomendado
             </h2>
-            <p className="text-sm text-gray-400">
-              Tipo {trainingType.toUpperCase()}  Nivel {normalizedLevel.toUpperCase()}
+              <p className="text-sm text-gray-300/70">
+                Tipo {trainingType.toUpperCase()} · Nivel {normalizedLevel.toUpperCase()}
             </p>
+          </div>
           </div>
           <button
             onClick={() => {
               setIsRunning(false);
               onClose?.();
             }}
-            className="rounded-full p-2 text-gray-400 transition hover:text-white"
+            className="rounded-full p-2 text-gray-300 transition hover:text-white bg-white/5 border border-white/10"
             aria-label="Cerrar modal de calentamiento"
           >
             <X className="h-5 w-5" />
           </button>
         </header>
 
-        <div className="border-b border-gray-800 px-4 py-3">
-          <div className="h-2 rounded-full bg-gray-700">
+        <div className="border-b border-white/10 px-5 py-3">
+          <div className="h-2 rounded-full bg-white/10">
             <div
-              className="h-2 rounded-full bg-orange-400 transition-all"
+              className="h-2 rounded-full bg-gradient-to-r from-yellow-300 via-orange-400 to-red-400 transition-all"
               style={{ width: `${Math.min(progressPercent + (isRunning ? (1 / Math.max(totalExercises, 1)) * 100 : 0), 100)}%` }}
             />
           </div>
-          <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
+          <div className="mt-2 flex items-center justify-between text-xs text-gray-300/70">
             <span>
               Ejercicio {currentExerciseIndex + 1} de {totalExercises}
             </span>
@@ -185,16 +189,16 @@ export default function HomeTrainingWarmupModal({
 
         <section className="space-y-6 px-6 py-6">
           <div className="text-center">
-            <p className="text-sm uppercase tracking-wide text-gray-400">Preparacion actual</p>
-            <h3 className="mt-1 text-2xl font-bold">{currentExercise?.name ?? "Calentamiento"}</h3>
-            <p className="mt-2 text-base text-gray-300">
+            <p className="text-sm uppercase tracking-[0.3em] text-gray-300/70">Preparacion actual</p>
+            <h3 className="mt-2 text-2xl font-semibold font-urbanist text-white">{currentExercise?.name ?? "Calentamiento"}</h3>
+            <p className="mt-2 text-base text-gray-200/80">
               {currentExercise?.description ?? "Activa el cuerpo antes del entrenamiento principal."}
             </p>
           </div>
 
           <div className="flex flex-col items-center">
             <div className="text-6xl font-bold text-orange-300">{formatTime(timeLeft)}</div>
-            <div className="mt-2 flex items-center text-sm text-gray-400">
+            <div className="mt-2 flex items-center text-sm text-gray-300/70">
               <Clock className="mr-2 h-4 w-4" />
               Manten la tecnica controlada durante todo el tiempo
             </div>
@@ -204,7 +208,7 @@ export default function HomeTrainingWarmupModal({
             {!isRunning ? (
               <button
                 onClick={handleStart}
-                className="flex items-center rounded-xl bg-green-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-400"
+                className="flex items-center rounded-xl bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-500 px-5 py-3 text-sm font-semibold text-black transition hover:from-emerald-300 hover:to-teal-400 shadow-[0_12px_30px_-18px_rgba(16,185,129,0.6)]"
               >
                 <Play className="mr-2 h-5 w-5" />
                 {timeLeft === (currentExercise?.duration || 30) ? "Iniciar calentamiento" : "Reanudar"}
@@ -212,7 +216,7 @@ export default function HomeTrainingWarmupModal({
             ) : (
               <button
                 onClick={handlePause}
-                className="flex items-center rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-400"
+                className="flex items-center rounded-xl bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/20 border border-white/10"
               >
                 <Pause className="mr-2 h-5 w-5" />
                 Pausar
@@ -221,19 +225,19 @@ export default function HomeTrainingWarmupModal({
 
             <button
               onClick={handleManualNext}
-              className="flex items-center rounded-xl bg-blue-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-400"
+              className="flex items-center rounded-xl bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/20 border border-white/10"
             >
               <SkipForward className="mr-2 h-5 w-5" />
               {currentExerciseIndex < totalExercises - 1 ? "Siguiente ejercicio" : "Finalizar"}
             </button>
           </div>
 
-          <div className="rounded-xl border border-gray-700 bg-gray-800/60 p-4">
-            <h4 className="flex items-center text-sm font-semibold text-gray-300">
-              <CheckCircle className="mr-2 h-4 w-4 text-emerald-400" />
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <h4 className="flex items-center text-sm font-semibold text-gray-200/80">
+              <CheckCircle className="mr-2 h-4 w-4 text-emerald-300" />
               Secuencia completa
             </h4>
-            <ul className="mt-3 space-y-2 text-sm text-gray-400">
+            <ul className="mt-3 space-y-2 text-sm text-gray-300/70">
               {exercises.map((exercise, index) => (
                 <li key={exercise.name} className="flex items-center justify-between">
                   <span className={index === currentExerciseIndex ? "text-white" : ""}>{exercise.name}</span>
@@ -244,8 +248,8 @@ export default function HomeTrainingWarmupModal({
           </div>
         </section>
 
-        <footer className="flex items-center justify-between border-t border-gray-800 bg-gray-900/70 px-4 py-3 text-xs text-gray-400">
-          <button onClick={handleSkipWarmup} className="text-gray-400 transition hover:text-white">
+        <footer className="flex items-center justify-between border-t border-white/10 bg-black/30 px-5 py-3 text-xs text-gray-300/70">
+          <button onClick={handleSkipWarmup} className="text-gray-200/80 transition hover:text-white">
             Saltar calentamiento
           </button>
           <span>Completar el calentamiento mejora el rendimiento y reduce lesiones</span>

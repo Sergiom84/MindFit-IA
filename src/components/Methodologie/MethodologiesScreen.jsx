@@ -69,6 +69,7 @@ export default function MethodologiesScreen() {
   const { user } = useAuth();
   const { userData } = useUserContext();
   const navigate = useNavigate();
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   // ===============================================
   // 🛡️ FUNCIONES DE VALIDACIÓN - Hook modular
@@ -96,6 +97,7 @@ export default function MethodologiesScreen() {
     generatePlan,
     activatePlan,
     cancelPlan,
+    updatePlan,
 
     // Acciones de sesión
     startSession,
@@ -117,7 +119,82 @@ export default function MethodologiesScreen() {
   // Estado local mínimo para datos específicos de esta pantalla
   const [localState, setLocalState] = useState(LOCAL_STATE_INITIAL);
   const [sessionData, setSessionData] = useState(null); // 🔥 Datos de la sesión con ejercicios
+
+  useEffect(() => {
+    const handleMouseMove = (event) => {
+      setMousePosition({ x: event.clientX, y: event.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
   const [isConfirmingPlan, setIsConfirmingPlan] = useState(false);
+  const pendingPlanActionRef = useRef(null);
+
+  const getNextMondayDate = useCallback(() => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const daysUntilMonday = (8 - dayOfWeek) % 7;
+    const offsetDays = daysUntilMonday === 0 ? 7 : daysUntilMonday;
+    const nextMonday = new Date(today);
+    nextMonday.setDate(today.getDate() + offsetDays);
+    nextMonday.setHours(0, 0, 0, 0);
+    return nextMonday;
+  }, []);
+
+  const formatLocalDate = (date) => {
+    if (!date) return null;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const buildStartConfigPayload = useCallback(() => {
+    if (!localState.startConfig) return null;
+
+    const base = localState.startConfig;
+    let resolvedDate = null;
+    const rawStart = base.startDate;
+
+    if (rawStart === 'next_monday') {
+      resolvedDate = getNextMondayDate();
+    } else if (rawStart === 'today') {
+      resolvedDate = new Date();
+    } else if (rawStart) {
+      const parsed = new Date(rawStart);
+      if (!Number.isNaN(parsed.getTime())) {
+        resolvedDate = parsed;
+      }
+    }
+
+    if (resolvedDate) {
+      resolvedDate.setHours(0, 0, 0, 0);
+    }
+
+    return {
+      startDate: rawStart,
+      startDateLocal: resolvedDate ? formatLocalDate(resolvedDate) : null,
+      sessionsFirstWeek: base.sessionsFirstWeek ?? null,
+      distributionOption: base.distributionOption ?? null,
+      includeSaturdays: base.includeSaturdays ?? null,
+      startDayOfWeek: base.startDayOfWeek ?? null
+    };
+  }, [localState.startConfig, getNextMondayDate]);
+
+  useEffect(() => {
+    if (!ui.showPlanConfirmation) return;
+    if (!plan?.methodologyPlanId || !localState.startConfig) return;
+    if (localState.startConfig.startDate !== 'next_monday') return;
+
+    const nextMonday = getNextMondayDate();
+    const currentStart = plan.planStartDate ? new Date(plan.planStartDate) : null;
+    const currentKey = currentStart ? currentStart.toDateString() : null;
+    const nextKey = nextMonday.toDateString();
+
+    if (currentKey !== nextKey) {
+      updatePlan({ planStartDate: nextMonday.toISOString() });
+    }
+  }, [plan?.methodologyPlanId, plan?.planStartDate, localState.startConfig, ui.showPlanConfirmation, getNextMondayDate, updatePlan]);
 
   const updateLocalState = useCallback((updates) => {
     setLocalState(prev => ({ ...prev, ...updates }));
@@ -130,6 +207,7 @@ export default function MethodologiesScreen() {
         methodologyDetails: ui.showMethodologyDetails,
         versionSelection: ui.showVersionSelection,
         activeTrainingWarning: ui.showActiveTrainingWarning,
+        activePlanWarning: ui.showActivePlanWarning,
         planConfirmation: ui.showPlanConfirmation,
         warmup: ui.showWarmup,
         routineSession: ui.showRoutineSession,
@@ -142,7 +220,50 @@ export default function MethodologiesScreen() {
       });
       modalPrevRef.current = current;
     } catch (e) { console.warn('Track error:', e); }
-  }, [ui.showMethodologyDetails, ui.showVersionSelection, ui.showActiveTrainingWarning, ui.showPlanConfirmation, ui.showWarmup, ui.showRoutineSession]);
+  }, [ui.showMethodologyDetails, ui.showVersionSelection, ui.showActiveTrainingWarning, ui.showActivePlanWarning, ui.showPlanConfirmation, ui.showWarmup, ui.showRoutineSession]);
+
+  const runWithActivePlanGuard = useCallback(async (action) => {
+    let hasPlan = false;
+    try {
+      hasPlan = await hasActivePlanFromDB();
+    } catch (error) {
+      console.warn('⚠️ No se pudo validar plan activo en BD:', error);
+    }
+
+    if (hasPlan) {
+      pendingPlanActionRef.current = action;
+      ui.showModal('activePlanWarning');
+      return false;
+    }
+
+    await action();
+    return true;
+  }, [hasActivePlanFromDB, ui]);
+
+  const handleActivePlanGoToPlan = () => {
+    pendingPlanActionRef.current = null;
+    ui.hideModal('activePlanWarning');
+    navigate('/routines');
+  };
+
+  const handleActivePlanCancelAndContinue = async () => {
+    ui.hideModal('activePlanWarning');
+    const pendingAction = pendingPlanActionRef.current;
+    pendingPlanActionRef.current = null;
+
+    try {
+      await cancelPlan();
+      await syncWithDatabase();
+    } catch (error) {
+      console.error('❌ Error cancelando plan activo:', error);
+      ui.setError(error.message || 'Error cancelando el plan activo');
+      return;
+    }
+
+    if (pendingAction) {
+      await pendingAction();
+    }
+  };
 
 
   // ===============================================
@@ -151,22 +272,24 @@ export default function MethodologiesScreen() {
 
   const MethodologyCard = ({ methodology, manualActive, onDetails, onSelect }) => (
     <Card
-      className={`bg-black/80 border-gray-700 transition-all duration-300 ${
-        manualActive ? 'hover:border-yellow-400/60 hover:scale-[1.01]' : 'hover:border-gray-600'
+      className={`bg-neutral-900/70 border border-white/10 border-l-2 border-l-yellow-400/30 ring-1 ring-white/5 backdrop-blur-lg transition-all duration-300 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] ${
+        manualActive
+          ? 'hover:border-yellow-400/40 hover:border-l-yellow-400/60 hover:shadow-[0_25px_60px_-45px_rgba(250,204,21,0.35)]'
+          : 'hover:border-white/20 hover:border-l-yellow-400/50'
       }`}
       aria-label={`Tarjeta de metodología ${methodology.name}`}
     >
       <div className="p-4 pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {methodology.icon && <methodology.icon className="w-7 h-7 text-yellow-400" />}
-            <h3 className="text-white text-xl font-semibold">{methodology.name}</h3>
+            {methodology.icon && <methodology.icon className="w-7 h-7 text-yellow-300" />}
+            <h3 className="text-white text-xl font-semibold font-urbanist">{methodology.name}</h3>
           </div>
-          <span className="text-xs px-2 py-1 border border-gray-600 text-gray-300 rounded">
+          <span className="text-xs px-2 py-1 border border-white/10 bg-white/5 text-gray-200 rounded">
             {methodology.level}
           </span>
         </div>
-        <p className="text-gray-400 mt-2 text-sm">{methodology.description}</p>
+        <p className="text-gray-300 mt-2 text-sm">{methodology.description}</p>
       </div>
       <div className="px-4 pb-4 space-y-3">
         <div className="space-y-2">
@@ -176,7 +299,7 @@ export default function MethodologiesScreen() {
             { label: 'Intensidad', value: methodology.intensity }
           ].map(({ label, value }) => (
             <div key={label} className="flex justify-between text-sm">
-              <span className="text-gray-500">{label}:</span>
+              <span className="text-gray-400">{label}:</span>
               <span className="text-white">{value}</span>
             </div>
           ))}
@@ -184,7 +307,7 @@ export default function MethodologiesScreen() {
         <div className="flex gap-2 pt-2">
           <Button
             variant="outline"
-            className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white"
+            className="flex-1 border border-white/10 text-gray-200 hover:bg-white/10 hover:text-white"
             onClick={(e) => {
               e.stopPropagation();
               onDetails(methodology);
@@ -195,8 +318,8 @@ export default function MethodologiesScreen() {
           </Button>
           <Button
             className={`flex-1 ${manualActive
-              ? 'bg-yellow-400 text-black hover:bg-yellow-300'
-              : 'bg-yellow-400/60 text-black hover:bg-yellow-400'
+              ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]'
+              : 'bg-gradient-to-r from-yellow-300/70 via-yellow-400/70 to-amber-500/70 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400'
             }`}
             onClick={(e) => {
               e.stopPropagation();
@@ -205,7 +328,7 @@ export default function MethodologiesScreen() {
                 updateLocalState({ selectionMode: 'manual' });
               }
               // Seleccionar metodología inmediatamente
-              onSelect(methodology);
+              onSelect(methodology, !manualActive);
             }}
             aria-label={`Seleccionar metodología ${methodology.name}`}
           >
@@ -224,23 +347,16 @@ export default function MethodologiesScreen() {
     try { track('BUTTON_CLICK', { id: 'activar_ia' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
     if (!user) return;
 
-    // 🎯 FLUJO SIMPLIFICADO - SUPABASE FIRST: Usuario quiere activar IA
-    // Si hay plan → limpiar y generar nuevo con IA
-    const hasActivePlanInDB = await hasActivePlanFromDB();
-    if (hasActivePlanInDB) {
-      console.log('🔄 Plan activo detectado en BD, limpiando para generar nuevo con IA...');
-      await cancelPlan(); // Limpiar plan anterior
-      await syncWithDatabase(); // Sincronizar estado
-    }
-
-    // Configurar datos de selección de versión
-    updateLocalState({
-      versionSelectionData: {
-        isAutomatic: true,
-        forcedMethodology
-      }
+    await runWithActivePlanGuard(async () => {
+      // Configurar datos de selección de versión
+      updateLocalState({
+        versionSelectionData: {
+          isAutomatic: true,
+          forcedMethodology
+        }
+      });
+      ui.showModal('versionSelection');
     });
-    ui.showModal('versionSelection');
   };
 
   const handleVersionSelectionConfirm = async (versionConfig) => {
@@ -281,70 +397,74 @@ export default function MethodologiesScreen() {
       return; // Detener aquí y esperar decisión del usuario
     }
 
-    try {
-      console.log('🤖 Generando plan automático con WorkoutContext...');
+    await runWithActivePlanGuard(async () => {
+      try {
+        console.log('🤖 Generando plan automático con WorkoutContext...');
 
-      // Usar generatePlan del WorkoutContext
-      const result = await generatePlan({
-        mode: 'automatic',
-        versionConfig: versionConfig || { version: 'adapted', customWeeks: 4 },
-        userProfile: fullProfile
-      });
+        // Usar generatePlan del WorkoutContext
+        const result = await generatePlan({
+          mode: 'automatic',
+          versionConfig: versionConfig || { version: 'adapted', customWeeks: 4 },
+          userProfile: fullProfile
+        });
 
-      if (result.success) {
-        console.log('✅ Plan automático generado exitosamente');
+        if (result.success) {
+          console.log('✅ Plan automático generado exitosamente');
 
-        // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL (usar result.plan en lugar de plan.currentPlan)
-        const validation = validatePlanData(result.plan);
-        if (validation.isValid) {
-          ui.showModal('planConfirmation');
+          // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL (usar result.plan en lugar de plan.currentPlan)
+          const validation = validatePlanData(result.plan);
+          if (validation.isValid) {
+            ui.showModal('planConfirmation');
+          } else {
+            console.error('❌ Plan inválido:', validation.error);
+            ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          }
         } else {
-          console.error('❌ Plan inválido:', validation.error);
-          ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          throw new Error(result.error || 'Error generando plan automático');
         }
-      } else {
-        throw new Error(result.error || 'Error generando plan automático');
-      }
 
-    } catch (err) {
-      console.error('❌ Error generando plan:', err);
-      ui.setError(err.message);
-    }
+      } catch (err) {
+        console.error('❌ Error generando plan:', err);
+        ui.setError(err.message);
+      }
+    });
   };
 
-  const handleManualCardClick = (methodology, forceManual = false) => {
+  const handleManualCardClick = async (methodology, forceManual = false) => {
     try { track('CARD_CLICK', { id: methodology?.name, group: 'methodology', mode: 'manual' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
 
     // Permitir ejecución si está en modo manual O si se fuerza (clic en botón Seleccionar)
     if (localState.selectionMode === 'manual' || forceManual) {
-      // 🚨 HipertrofiaV2 en fin de semana: mostrar flujo especial
-      if (methodology.name === 'HipertrofiaV2' && isWeekend()) {
-        updateLocalState({
-          pendingMethodology: methodology,
-          showHpv2WeekendModal: true,
-          pendingLevel: getUserLevel()
-        });
-        return;
-      }
+      await runWithActivePlanGuard(async () => {
+        // 🚨 HipertrofiaV2 en fin de semana: mostrar flujo especial
+        if (methodology.name === 'HipertrofiaV2' && isWeekend()) {
+          updateLocalState({
+            pendingMethodology: methodology,
+            showHpv2WeekendModal: true,
+            pendingLevel: getUserLevel()
+          });
+          return;
+        }
 
-      // 🆕 PASO 1: Detectar si debe mostrar modal de día de inicio
-      if (shouldShowStartDayModal()) {
-        console.log('🗓️ Día especial detectado, mostrando modal de inicio...');
-        updateLocalState({
-          pendingMethodology: methodology,
-          showStartDayModal: true
-        });
-        return;
-      }
+        // 🆕 PASO 1: Detectar si debe mostrar modal de día de inicio
+        if (shouldShowStartDayModal()) {
+          console.log('🗓️ Día especial detectado, mostrando modal de inicio...');
+          updateLocalState({
+            pendingMethodology: methodology,
+            showStartDayModal: true
+          });
+          return;
+        }
 
-      // PASO 2: Si no es día especial, continuar con flujo normal
-      proceedWithMethodologySelection(methodology);
+        // PASO 2: Si no es día especial, continuar con flujo normal
+        proceedWithMethodologySelection(methodology);
+      });
     }
   };
 
   /**
-   * 🆕 Procede con la selección de metodología (después de modal de inicio o directamente)
-   */
+    * 🆕 Procede con la selección de metodología (después de modal de inicio o directamente)
+    */
   const proceedWithMethodologySelection = (methodology, startConfig = null) => {
     // Si es Calistenia, mostrar el modal específico
     if (methodology.name === 'Calistenia') {
@@ -445,62 +565,55 @@ export default function MethodologiesScreen() {
     try { track('ACTION', { id: 'manual_version_confirm', methodology: localState.pendingMethodology?.name, version: versionConfig?.version }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
     if (!localState.pendingMethodology) return;
 
-    // 🎯 FLUJO SIMPLIFICADO - SUPABASE FIRST: Usuario eligió metodología manual
-    // Si hay plan → limpiar y generar nuevo con metodología elegida
-    const hasActivePlanInDB = await hasActivePlanFromDB();
-    if (hasActivePlanInDB) {
-      console.log(`🔄 Plan activo detectado en BD, limpiando para generar nuevo (${localState.pendingMethodology?.name})...`);
-      await cancelPlan(); // Limpiar plan anterior
-      await syncWithDatabase(); // Sincronizar estado
-    }
-
     ui.hideModal('versionSelection');
 
-    try {
-      console.log(`🎯 Generando plan manual para metodología: ${localState.pendingMethodology.name}`);
+    await runWithActivePlanGuard(async () => {
+      try {
+        console.log(`🎯 Generando plan manual para metodología: ${localState.pendingMethodology.name}`);
 
-      // 🆕 Preparar configuración completa con datos de inicio
-      const planConfig = {
-        mode: 'manual',
-        methodology: (localState.pendingMethodology.name || '').toLowerCase(),
-        versionConfig: versionConfig || { version: 'adapted', customWeeks: 4 }
-      };
+        // 🆕 Preparar configuración completa con datos de inicio
+        const planConfig = {
+          mode: 'manual',
+          methodology: (localState.pendingMethodology.name || '').toLowerCase(),
+          versionConfig: versionConfig || { version: 'adapted', customWeeks: 4 }
+        };
 
-      // 🆕 Añadir configuración de inicio si existe
-      if (localState.startConfig) {
-        planConfig.startConfig = localState.startConfig;
-        console.log('🗓️ Configuración de inicio incluida:', localState.startConfig);
-      }
-
-      // Usar generatePlan del WorkoutContext
-      const result = await generatePlan(planConfig);
-
-      if (result.success) {
-        console.log('✅ Plan manual generado exitosamente');
-
-        // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL (usar result.plan en lugar de plan.currentPlan)
-        const validation = validatePlanData(result.plan);
-        if (validation.isValid) {
-          ui.showModal('planConfirmation');
-        } else {
-          console.error('❌ Plan inválido:', validation.error);
-          ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+        // 🆕 Añadir configuración de inicio si existe
+        if (localState.startConfig) {
+          planConfig.startConfig = localState.startConfig;
+          console.log('🗓️ Configuración de inicio incluida:', localState.startConfig);
         }
-      } else {
-        throw new Error(result.error || 'Error al generar el plan');
-      }
 
-    } catch (error) {
-      console.error('❌ Error generando plan manual:', error);
-      ui.setError(error.message || 'Error al generar el plan de entrenamiento');
-    } finally {
-      updateLocalState({ pendingMethodology: null });
-    }
+        // Usar generatePlan del WorkoutContext
+        const result = await generatePlan(planConfig);
+
+        if (result.success) {
+          console.log('✅ Plan manual generado exitosamente');
+
+          // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL (usar result.plan en lugar de plan.currentPlan)
+          const validation = validatePlanData(result.plan);
+          if (validation.isValid) {
+            ui.showModal('planConfirmation');
+          } else {
+            console.error('❌ Plan inválido:', validation.error);
+            ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          }
+        } else {
+          throw new Error(result.error || 'Error al generar el plan');
+        }
+
+      } catch (error) {
+        console.error('❌ Error generando plan manual:', error);
+        ui.setError(error.message || 'Error al generar el plan de entrenamiento');
+      } finally {
+        updateLocalState({ pendingMethodology: null });
+      }
+    });
   };
 
   /**
-   * 🆕 Handler para confirmación del modal de día de inicio
-   */
+    * 🆕 Handler para confirmación del modal de día de inicio
+    */
   const handleStartDayConfirm = async (config) => {
     try { track('ACTION', { id: 'start_day_confirm', config }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
 
@@ -539,8 +652,8 @@ export default function MethodologiesScreen() {
   };
 
   /**
-   * 🆕 Handler para confirmación del modal de distribución
-   */
+    * 🆕 Handler para confirmación del modal de distribución
+    */
   const handleDistributionConfirm = async (option) => {
     try { track('ACTION', { id: 'distribution_confirm', option }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
 
@@ -568,8 +681,8 @@ export default function MethodologiesScreen() {
   };
 
   /**
-   * 🆕 Helper para obtener nombre del día
-   */
+    * 🆕 Helper para obtener nombre del día
+    */
   const getDayName = (dayOfWeek) => {
     const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     return days[dayOfWeek];
@@ -590,60 +703,49 @@ export default function MethodologiesScreen() {
       return;
     }
 
-    ui.setLoading(true);
+    await runWithActivePlanGuard(async () => {
+      ui.setLoading(true);
 
-    try {
-      console.log('🎯 [METHODOLOGIES] Iniciando generación de Calistenia Manual:', {
-        timestamp: new Date().toISOString(),
-        level: calisteniaData.level || calisteniaData.selectedLevel,
-        hasGoals: !!calisteniaData.goals,
-        dayOfWeek: new Date().toLocaleDateString('es-ES', { weekday: 'long' })
-      });
+      try {
+        console.log('🎯 [METHODOLOGIES] Iniciando generación de Calistenia Manual:', {
+          timestamp: new Date().toISOString(),
+          level: calisteniaData.level || calisteniaData.selectedLevel,
+          hasGoals: !!calisteniaData.goals,
+          dayOfWeek: new Date().toLocaleDateString('es-ES', { weekday: 'long' })
+        });
 
-      // 🎯 FLUJO SIMPLIFICADO - SUPABASE FIRST:
-      // - Sin plan → generar
-      // - Con plan → usuario quiere NUEVO plan, limpiar anterior y generar
-      // - Para continuar plan existente → usar botón "Ir a Entrenamientos"
+        console.log('🤸‍♀️ [METHODOLOGIES] Llamando a generatePlan...');
 
-      // 🚀 Verificar desde BD (no localStorage)
-      const hasActivePlanInDB = await hasActivePlanFromDB();
-      if (hasActivePlanInDB) {
-        console.log('🔄 [METHODOLOGIES] Plan activo detectado en BD, limpiando para generar nuevo...');
-        await cancelPlan(); // Limpiar plan anterior
-        await syncWithDatabase(); // Sincronizar estado
-      }
+        // Usar generatePlan del WorkoutContext
+        const result = await generatePlan({
+          mode: 'manual',
+          methodology: 'calistenia',
+          calisteniaData
+        });
 
-      console.log('🤸‍♀️ [METHODOLOGIES] Llamando a generatePlan...');
+        if (result.success) {
+          console.log('✅ Plan de calistenia generado exitosamente');
+          ui.hideModal('calisteniaManual');
 
-      // Usar generatePlan del WorkoutContext
-      const result = await generatePlan({
-        mode: 'manual',
-        methodology: 'calistenia',
-        calisteniaData
-      });
-
-      if (result.success) {
-        console.log('✅ Plan de calistenia generado exitosamente');
-        ui.hideModal('calisteniaManual');
-
-        // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL (usar result.plan en lugar de plan.currentPlan)
-        const validation = validatePlanData(result.plan);
-        if (validation.isValid) {
-          ui.showModal('planConfirmation');
+          // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL (usar result.plan en lugar de plan.currentPlan)
+          const validation = validatePlanData(result.plan);
+          if (validation.isValid) {
+            ui.showModal('planConfirmation');
+          } else {
+            console.error('❌ Plan inválido:', validation.error);
+            ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          }
         } else {
-          console.error('❌ Plan inválido:', validation.error);
-          ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          throw new Error(result.error || 'Error al generar el plan de calistenia');
         }
-      } else {
-        throw new Error(result.error || 'Error al generar el plan de calistenia');
-      }
 
-    } catch (error) {
-      console.error('❌ Error generando plan de calistenia:', error);
-      ui.setError(error.message || 'Error al generar el plan de calistenia');
-    } finally {
-      ui.setLoading(false);
-    }
+      } catch (error) {
+        console.error('❌ Error generando plan de calistenia:', error);
+        ui.setError(error.message || 'Error al generar el plan de calistenia');
+      } finally {
+        ui.setLoading(false);
+      }
+    });
   };
 
   const handleHeavyDutyManualGenerate = async (heavyDutyData) => {
@@ -655,48 +757,42 @@ export default function MethodologiesScreen() {
       return;
     }
 
-    ui.setLoading(true);
+    await runWithActivePlanGuard(async () => {
+      ui.setLoading(true);
 
-    try {
-      // 🎯 FLUJO SIMPLIFICADO - SUPABASE FIRST
-      const hasActivePlanInDB = await hasActivePlanFromDB();
-      if (hasActivePlanInDB) {
-        console.log('🔄 Plan activo detectado en BD, limpiando para generar nuevo...');
-        await cancelPlan();
-        await syncWithDatabase();
-      }
+      try {
+        console.log('💪 Generando plan de Heavy Duty...');
 
-      console.log('💪 Generando plan de Heavy Duty...');
+        // Usar generatePlan del WorkoutContext
+        const result = await generatePlan({
+          mode: 'manual',
+          methodology: 'heavy-duty',
+          heavyDutyData
+        });
 
-      // Usar generatePlan del WorkoutContext
-      const result = await generatePlan({
-        mode: 'manual',
-        methodology: 'heavy-duty',
-        heavyDutyData
-      });
+        if (result.success) {
+          console.log('✅ Plan de Heavy Duty generado exitosamente');
+          ui.hideModal('heavyDutyManual');
 
-      if (result.success) {
-        console.log('✅ Plan de Heavy Duty generado exitosamente');
-        ui.hideModal('heavyDutyManual');
-
-        // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
-        const validation = validatePlanData(result.plan);
-        if (validation.isValid) {
-          ui.showModal('planConfirmation');
+          // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
+          const validation = validatePlanData(result.plan);
+          if (validation.isValid) {
+            ui.showModal('planConfirmation');
+          } else {
+            console.error('❌ Plan inválido:', validation.error);
+            ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          }
         } else {
-          console.error('❌ Plan inválido:', validation.error);
-          ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          throw new Error(result.error || 'Error al generar el plan de Heavy Duty');
         }
-      } else {
-        throw new Error(result.error || 'Error al generar el plan de Heavy Duty');
-      }
 
-    } catch (error) {
-      console.error('❌ Error generando plan de Heavy Duty:', error);
-      ui.setError(error.message || 'Error al generar el plan de Heavy Duty');
-    } finally {
-      ui.setLoading(false);
-    }
+      } catch (error) {
+        console.error('❌ Error generando plan de Heavy Duty:', error);
+        ui.setError(error.message || 'Error al generar el plan de Heavy Duty');
+      } finally {
+        ui.setLoading(false);
+      }
+    });
   };
 
   const handleHipertrofiaManualGenerate = async (hipertrofiaData) => {
@@ -708,48 +804,42 @@ export default function MethodologiesScreen() {
       return;
     }
 
-    ui.setLoading(true);
+    await runWithActivePlanGuard(async () => {
+      ui.setLoading(true);
 
-    try {
-      // 🎯 FLUJO SIMPLIFICADO - SUPABASE FIRST
-      const hasActivePlanInDB = await hasActivePlanFromDB();
-      if (hasActivePlanInDB) {
-        console.log('🔄 Plan activo detectado en BD, limpiando para generar nuevo...');
-        await cancelPlan();
-        await syncWithDatabase();
-      }
+      try {
+        console.log('🏋️ Generando plan de Hipertrofia...');
 
-      console.log('🏋️ Generando plan de Hipertrofia...');
+        // Usar generatePlan del WorkoutContext
+        const result = await generatePlan({
+          mode: 'manual',
+          methodology: 'hipertrofia',
+          hipertrofiaData
+        });
 
-      // Usar generatePlan del WorkoutContext
-      const result = await generatePlan({
-        mode: 'manual',
-        methodology: 'hipertrofia',
-        hipertrofiaData
-      });
+        if (result.success) {
+          console.log('✅ Plan de Hipertrofia generado exitosamente');
+          ui.hideModal('hipertrofiaManual');
 
-      if (result.success) {
-        console.log('✅ Plan de Hipertrofia generado exitosamente');
-        ui.hideModal('hipertrofiaManual');
-
-        // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
-        const validation = validatePlanData(result.plan);
-        if (validation.isValid) {
-          ui.showModal('planConfirmation');
+          // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
+          const validation = validatePlanData(result.plan);
+          if (validation.isValid) {
+            ui.showModal('planConfirmation');
+          } else {
+            console.error('❌ Plan inválido:', validation.error);
+            ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          }
         } else {
-          console.error('❌ Plan inválido:', validation.error);
-          ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          throw new Error(result.error || 'Error al generar el plan de Hipertrofia');
         }
-      } else {
-        throw new Error(result.error || 'Error al generar el plan de Hipertrofia');
-      }
 
-    } catch (error) {
-      console.error('❌ Error generando plan de Hipertrofia:', error);
-      ui.setError(error.message || 'Error al generar el plan de Hipertrofia');
-    } finally {
-      ui.setLoading(false);
-    }
+      } catch (error) {
+        console.error('❌ Error generando plan de Hipertrofia:', error);
+        ui.setError(error.message || 'Error al generar el plan de Hipertrofia');
+      } finally {
+        ui.setLoading(false);
+      }
+    });
   };
 
   const handleHipertrofiaV2ManualGenerate = async (hipertrofiaV2Data) => {
@@ -781,46 +871,41 @@ export default function MethodologiesScreen() {
       return; // Detener aquí y esperar decisión del usuario
     }
 
-    ui.setLoading(true);
+    await runWithActivePlanGuard(async () => {
+      ui.setLoading(true);
 
-    try {
-      const hasActivePlanInDB = await hasActivePlanFromDB();
-      if (hasActivePlanInDB) {
-        console.log('🔄 Plan activo detectado en BD, limpiando para generar nuevo...');
-        await cancelPlan();
-        await syncWithDatabase();
+      try {
+        // 🎯 FLUJO MOD MindFeed: usamos plan ya generado y lo registramos en el contexto
+        const planData = hipertrofiaV2Data?.planData;
+        const validation = validatePlanData(planData);
+
+        if (!validation.isValid) {
+          throw new Error(`Plan generado incorrectamente: ${validation.error}`);
+        }
+
+        const result = await generatePlan({
+          mode: 'manual',
+          methodology: 'hipertrofiaV2',
+          planData,
+          methodologyPlanId: hipertrofiaV2Data?.methodologyPlanId,
+          systemInfo: hipertrofiaV2Data?.system_info
+        });
+
+        if (!result.success) {
+          throw new Error(result.error || 'Error registrando el plan MindFeed');
+        }
+
+        console.log('✅ Plan de Hipertrofia V2 integrado en WorkoutContext');
+        ui.hideModal('hipertrofiaV2Manual');
+        ui.showModal('planConfirmation');
+
+      } catch (error) {
+        console.error('❌ Error generando plan de Hipertrofia V2:', error);
+        ui.setError(error.message || 'Error al generar el plan de Hipertrofia V2');
+      } finally {
+        ui.setLoading(false);
       }
-
-      // 🎯 FLUJO MOD MindFeed: usamos plan ya generado y lo registramos en el contexto
-      const planData = hipertrofiaV2Data?.planData;
-      const validation = validatePlanData(planData);
-
-      if (!validation.isValid) {
-        throw new Error(`Plan generado incorrectamente: ${validation.error}`);
-      }
-
-      const result = await generatePlan({
-        mode: 'manual',
-        methodology: 'hipertrofiaV2',
-        planData,
-        methodologyPlanId: hipertrofiaV2Data?.methodologyPlanId,
-        systemInfo: hipertrofiaV2Data?.system_info
-      });
-
-      if (!result.success) {
-        throw new Error(result.error || 'Error registrando el plan MindFeed');
-      }
-
-      console.log('✅ Plan de Hipertrofia V2 integrado en WorkoutContext');
-      ui.hideModal('hipertrofiaV2Manual');
-      ui.showModal('planConfirmation');
-
-    } catch (error) {
-      console.error('❌ Error generando plan de Hipertrofia V2:', error);
-      ui.setError(error.message || 'Error al generar el plan de Hipertrofia V2');
-    } finally {
-      ui.setLoading(false);
-    }
+    });
   };
 
   const handlePowerliftingManualGenerate = async (powerliftingData) => {
@@ -832,48 +917,42 @@ export default function MethodologiesScreen() {
       return;
     }
 
-    ui.setLoading(true);
+    await runWithActivePlanGuard(async () => {
+      ui.setLoading(true);
 
-    try {
-      // 🎯 FLUJO SIMPLIFICADO - SUPABASE FIRST
-      const hasActivePlanInDB = await hasActivePlanFromDB();
-      if (hasActivePlanInDB) {
-        console.log('🔄 Plan activo detectado en BD, limpiando para generar nuevo...');
-        await cancelPlan();
-        await syncWithDatabase();
-      }
+      try {
+        console.log('🏋️ Generando plan de Powerlifting...');
 
-      console.log('🏋️ Generando plan de Powerlifting...');
+        // Usar generatePlan del WorkoutContext
+        const result = await generatePlan({
+          mode: 'manual',
+          methodology: 'powerlifting',
+          powerliftingData
+        });
 
-      // Usar generatePlan del WorkoutContext
-      const result = await generatePlan({
-        mode: 'manual',
-        methodology: 'powerlifting',
-        powerliftingData
-      });
+        if (result.success) {
+          console.log('✅ Plan de Powerlifting generado exitosamente');
+          ui.hideModal('powerliftingManual');
 
-      if (result.success) {
-        console.log('✅ Plan de Powerlifting generado exitosamente');
-        ui.hideModal('powerliftingManual');
-
-        // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
-        const validation = validatePlanData(result.plan);
-        if (validation.isValid) {
-          ui.showModal('planConfirmation');
+          // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
+          const validation = validatePlanData(result.plan);
+          if (validation.isValid) {
+            ui.showModal('planConfirmation');
+          } else {
+            console.error('❌ Plan inválido:', validation.error);
+            ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          }
         } else {
-          console.error('❌ Plan inválido:', validation.error);
-          ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          throw new Error(result.error || 'Error al generar el plan de Powerlifting');
         }
-      } else {
-        throw new Error(result.error || 'Error al generar el plan de Powerlifting');
-      }
 
-    } catch (error) {
-      console.error('❌ Error generando plan de Powerlifting:', error);
-      ui.setError(error.message || 'Error al generar el plan de Powerlifting');
-    } finally {
-      ui.setLoading(false);
-    }
+      } catch (error) {
+        console.error('❌ Error generando plan de Powerlifting:', error);
+        ui.setError(error.message || 'Error al generar el plan de Powerlifting');
+      } finally {
+        ui.setLoading(false);
+      }
+    });
   };
 
   const handleCrossFitManualGenerate = async (crossfitData) => {
@@ -885,48 +964,42 @@ export default function MethodologiesScreen() {
       return;
     }
 
-    ui.setLoading(true);
+    await runWithActivePlanGuard(async () => {
+      ui.setLoading(true);
 
-    try {
-      // 🎯 FLUJO SIMPLIFICADO - SUPABASE FIRST
-      const hasActivePlanInDB = await hasActivePlanFromDB();
-      if (hasActivePlanInDB) {
-        console.log('🔄 Plan activo detectado en BD, limpiando para generar nuevo...');
-        await cancelPlan();
-        await syncWithDatabase();
-      }
+      try {
+        console.log('🏋️‍♀️ Generando plan de CrossFit...');
 
-      console.log('🏋️‍♀️ Generando plan de CrossFit...');
+        // Usar generatePlan del WorkoutContext
+        const result = await generatePlan({
+          mode: 'manual',
+          methodology: 'crossfit',
+          crossfitData
+        });
 
-      // Usar generatePlan del WorkoutContext
-      const result = await generatePlan({
-        mode: 'manual',
-        methodology: 'crossfit',
-        crossfitData
-      });
+        if (result.success) {
+          console.log('✅ Plan de CrossFit generado exitosamente');
+          ui.hideModal('crossfitManual');
 
-      if (result.success) {
-        console.log('✅ Plan de CrossFit generado exitosamente');
-        ui.hideModal('crossfitManual');
-
-        // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
-        const validation = validatePlanData(result.plan);
-        if (validation.isValid) {
-          ui.showModal('planConfirmation');
+          // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
+          const validation = validatePlanData(result.plan);
+          if (validation.isValid) {
+            ui.showModal('planConfirmation');
+          } else {
+            console.error('❌ Plan inválido:', validation.error);
+            ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          }
         } else {
-          console.error('❌ Plan inválido:', validation.error);
-          ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          throw new Error(result.error || 'Error al generar el plan de CrossFit');
         }
-      } else {
-        throw new Error(result.error || 'Error al generar el plan de CrossFit');
-      }
 
-    } catch (error) {
-      console.error('❌ Error generando plan de CrossFit:', error);
-      ui.setError(error.message || 'Error al generar el plan de CrossFit');
-    } finally {
-      ui.setLoading(false);
-    }
+      } catch (error) {
+        console.error('❌ Error generando plan de CrossFit:', error);
+        ui.setError(error.message || 'Error al generar el plan de CrossFit');
+      } finally {
+        ui.setLoading(false);
+      }
+    });
   };
 
   const handleFuncionalManualGenerate = async (funcionalData) => {
@@ -938,48 +1011,42 @@ export default function MethodologiesScreen() {
       return;
     }
 
-    ui.setLoading(true);
+    await runWithActivePlanGuard(async () => {
+      ui.setLoading(true);
 
-    try {
-      // 🎯 FLUJO SIMPLIFICADO - SUPABASE FIRST
-      const hasActivePlanInDB = await hasActivePlanFromDB();
-      if (hasActivePlanInDB) {
-        console.log('🔄 Plan activo detectado en BD, limpiando para generar nuevo...');
-        await cancelPlan();
-        await syncWithDatabase();
-      }
+      try {
+        console.log('⚙️ Generando plan de Entrenamiento Funcional...');
 
-      console.log('⚙️ Generando plan de Entrenamiento Funcional...');
+        // Usar generatePlan del WorkoutContext
+        const result = await generatePlan({
+          mode: 'manual',
+          methodology: 'funcional',
+          funcionalData
+        });
 
-      // Usar generatePlan del WorkoutContext
-      const result = await generatePlan({
-        mode: 'manual',
-        methodology: 'funcional',
-        funcionalData
-      });
+        if (result.success) {
+          console.log('✅ Plan de Funcional generado exitosamente');
+          ui.hideModal('funcionalManual');
 
-      if (result.success) {
-        console.log('✅ Plan de Funcional generado exitosamente');
-        ui.hideModal('funcionalManual');
-
-        // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
-        const validation = validatePlanData(result.plan);
-        if (validation.isValid) {
-          ui.showModal('planConfirmation');
+          // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
+          const validation = validatePlanData(result.plan);
+          if (validation.isValid) {
+            ui.showModal('planConfirmation');
+          } else {
+            console.error('❌ Plan inválido:', validation.error);
+            ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          }
         } else {
-          console.error('❌ Plan inválido:', validation.error);
-          ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          throw new Error(result.error || 'Error al generar el plan de Funcional');
         }
-      } else {
-        throw new Error(result.error || 'Error al generar el plan de Funcional');
-      }
 
-    } catch (error) {
-      console.error('❌ Error generando plan de Funcional:', error);
-      ui.setError(error.message || 'Error al generar el plan de Funcional');
-    } finally {
-      ui.setLoading(false);
-    }
+      } catch (error) {
+        console.error('❌ Error generando plan de Funcional:', error);
+        ui.setError(error.message || 'Error al generar el plan de Funcional');
+      } finally {
+        ui.setLoading(false);
+      }
+    });
   };
 
   const handleHalterofíliaManualGenerate = async (halterofíliaData) => {
@@ -991,55 +1058,49 @@ export default function MethodologiesScreen() {
       return;
     }
 
-    ui.setLoading(true);
+    await runWithActivePlanGuard(async () => {
+      ui.setLoading(true);
 
-    try {
-      // 🎯 FLUJO SIMPLIFICADO - SUPABASE FIRST
-      const hasActivePlanInDB = await hasActivePlanFromDB();
-      if (hasActivePlanInDB) {
-        console.log('🔄 Plan activo detectado en BD, limpiando para generar nuevo...');
-        await cancelPlan();
-        await syncWithDatabase();
-      }
+      try {
+        console.log('🏋️ Generando plan de Halterofilia...');
 
-      console.log('🏋️ Generando plan de Halterofilia...');
-
-      // Usar generatePlan del WorkoutContext
-      const result = await generatePlan({
-        mode: 'manual',
-        methodology: 'halterofilia',
-        halterofíliaData
-      });
-
-      if (result.success) {
-        console.log('✅ Plan de Halterofilia generado exitosamente');
-        console.log('🔍 Datos del plan generado:', {
-          hasPlan: !!result.plan,
-          methodologyPlanId: result.methodologyPlanId || result.planId,
-          planId: result.planId,
-          hasMetadata: !!result.metadata
+        // Usar generatePlan del WorkoutContext
+        const result = await generatePlan({
+          mode: 'manual',
+          methodology: 'halterofilia',
+          halterofíliaData
         });
 
-        ui.hideModal('halterofíliaManual');
+        if (result.success) {
+          console.log('✅ Plan de Halterofilia generado exitosamente');
+          console.log('🔍 Datos del plan generado:', {
+            hasPlan: !!result.plan,
+            methodologyPlanId: result.methodologyPlanId || result.planId,
+            planId: result.planId,
+            hasMetadata: !!result.metadata
+          });
 
-        // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
-        const validation = validatePlanData(result.plan);
-        if (validation.isValid) {
-          ui.showModal('planConfirmation');
+          ui.hideModal('halterofíliaManual');
+
+          // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
+          const validation = validatePlanData(result.plan);
+          if (validation.isValid) {
+            ui.showModal('planConfirmation');
+          } else {
+            console.error('❌ Plan inválido:', validation.error);
+            ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          }
         } else {
-          console.error('❌ Plan inválido:', validation.error);
-          ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          throw new Error(result.error || 'Error al generar el plan de Halterofilia');
         }
-      } else {
-        throw new Error(result.error || 'Error al generar el plan de Halterofilia');
-      }
 
-    } catch (error) {
-      console.error('❌ Error generando plan de Halterofilia:', error);
-      ui.setError(error.message || 'Error al generar el plan de Halterofilia');
-    } finally {
-      ui.setLoading(false);
-    }
+      } catch (error) {
+        console.error('❌ Error generando plan de Halterofilia:', error);
+        ui.setError(error.message || 'Error al generar el plan de Halterofilia');
+      } finally {
+        ui.setLoading(false);
+      }
+    });
   };
 
   const handleCasaManualGenerate = async (casaData) => {
@@ -1051,47 +1112,83 @@ export default function MethodologiesScreen() {
       return;
     }
 
-    ui.setLoading(true);
+    await runWithActivePlanGuard(async () => {
+      ui.setLoading(true);
 
+      try {
+        console.log('🏠 Generando plan de Entrenamiento en Casa...');
+
+        // Usar generatePlan del WorkoutContext
+        const result = await generatePlan({
+          mode: 'manual',
+          methodology: 'entrenamiento-casa',
+          casaData
+        });
+
+        if (result.success) {
+          console.log('✅ Plan de Entrenamiento en Casa generado exitosamente');
+          ui.hideModal('casaManual');
+
+          // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
+          const validation = validatePlanData(result.plan);
+          if (validation.isValid) {
+            ui.showModal('planConfirmation');
+          } else {
+            console.error('❌ Plan inválido:', validation.error);
+            ui.setError(`Plan generado incorrectamente: ${validation.error}`);
+          }
+        } else {
+          throw new Error(result.error || 'Error al generar el plan de Entrenamiento en Casa');
+        }
+
+      } catch (error) {
+        console.error('❌ Error generando plan de Casa:', error);
+        ui.setError(error.message || 'Error al generar el plan de Entrenamiento en Casa');
+      } finally {
+        ui.setLoading(false);
+      }
+    });
+  };
+
+  const handleSavePlan = async () => {
     try {
-      // 🎯 FLUJO SIMPLIFICADO - SUPABASE FIRST
-      const hasActivePlanInDB = await hasActivePlanFromDB();
-      if (hasActivePlanInDB) {
-        console.log('🔄 Plan activo detectado en BD, limpiando para generar nuevo...');
-        await cancelPlan();
-        await syncWithDatabase();
+      setIsConfirmingPlan(true);
+      ui.setLoading(true);
+      try { track('BUTTON_CLICK', { id: 'save_plan' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
+      console.log('💾 Guardando plan sin iniciar sesión...');
+
+      if (!plan.currentPlan || !plan.methodologyPlanId) {
+        throw new Error('No hay plan generado para guardar');
       }
 
-      console.log('🏠 Generando plan de Entrenamiento en Casa...');
-
-      // Usar generatePlan del WorkoutContext
-      const result = await generatePlan({
-        mode: 'manual',
-        methodology: 'entrenamiento-casa',
-        casaData
+      const startConfigPayload = buildStartConfigPayload();
+      const confirmResponse = await fetch('/api/routines/confirm-plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify({
+          methodology_plan_id: plan.methodologyPlanId,
+          startConfig: startConfigPayload
+        })
       });
 
-      if (result.success) {
-        console.log('✅ Plan de Entrenamiento en Casa generado exitosamente');
-        ui.hideModal('casaManual');
-
-        // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
-        const validation = validatePlanData(result.plan);
-        if (validation.isValid) {
-          ui.showModal('planConfirmation');
-        } else {
-          console.error('❌ Plan inválido:', validation.error);
-          ui.setError(`Plan generado incorrectamente: ${validation.error}`);
-        }
-      } else {
-        throw new Error(result.error || 'Error al generar el plan de Entrenamiento en Casa');
+      if (!confirmResponse.ok) {
+        const errorData = await confirmResponse.json();
+        throw new Error(errorData.error || 'Error al confirmar el plan');
       }
 
+      const confirmData = await confirmResponse.json();
+      console.log('✅ Plan confirmado exitosamente (sin iniciar):', confirmData);
+
+      ui.hideModal('planConfirmation');
     } catch (error) {
-      console.error('❌ Error generando plan de Casa:', error);
-      ui.setError(error.message || 'Error al generar el plan de Entrenamiento en Casa');
+      console.error('❌ Error guardando plan:', error);
+      ui.setError(error.message || 'Error al guardar el plan');
     } finally {
       ui.setLoading(false);
+      setIsConfirmingPlan(false);
     }
   };
 
@@ -1117,6 +1214,7 @@ export default function MethodologiesScreen() {
 
       console.log('🎯 PASO 1: Confirmando plan con ID:', plan.methodologyPlanId);
 
+      const startConfigPayload = buildStartConfigPayload();
       // 🎯 NUEVO: Confirmar el plan ANTES de iniciar sesión (draft → active)
       const confirmResponse = await fetch('/api/routines/confirm-plan', {
         method: 'POST',
@@ -1125,7 +1223,8 @@ export default function MethodologiesScreen() {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         },
         body: JSON.stringify({
-          methodology_plan_id: plan.methodologyPlanId
+          methodology_plan_id: plan.methodologyPlanId,
+          startConfig: startConfigPayload
         })
       });
 
@@ -1425,121 +1524,144 @@ export default function MethodologiesScreen() {
   // ===============================================
 
   return (
-    <div className="p-6 bg-black text-white min-h-screen pt-20">
-      <h1 className="text-3xl font-bold text-yellow-400 mb-2">Metodologías de Entrenamiento</h1>
-      <p className="text-gray-400 mb-6">
-        Automático (IA) o Manual (IA pero eligiendo que metodología realizar)
-      </p>
-
-      {ui.error && (
-        <Alert className="mb-6 bg-red-900/30 border-red-400/40">
-          <AlertCircle className="w-4 h-4 text-red-400" />
-          <AlertDescription className="text-red-200">{ui.error}</AlertDescription>
-        </Alert>
-      )}
-
-      <Card className="bg-black/90 border-yellow-400/20 mb-8">
-        <div className="p-4">
-          <div className="flex items-center">
-            <Settings className="mr-2 text-yellow-400" />
-            <span className="text-white font-semibold">Modo de selección</span>
-          </div>
-          <div className="text-gray-400 mb-2">
-            Automático (IA) o Manual (IA pero eligiendo que metodología realizar)
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4 mt-4">
-            <div
-              onClick={() => { updateLocalState({ selectionMode: 'auto' }); try { track('CARD_CLICK', { id: 'selection-mode', value: 'auto' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); } }}
-              className={`p-4 rounded-lg transition-all bg-black/80 cursor-pointer
-                ${localState.selectionMode === 'auto'
-                  ? 'border border-yellow-400 ring-2 ring-yellow-400/30'
-                  : 'border border-yellow-400/20 hover:border-yellow-400/40'}`}
-            >
-              <div className="flex items-start gap-3">
-                <RadioGroup
-                  value={localState.selectionMode}
-                  onValueChange={(mode) => updateLocalState({ selectionMode: mode })}
-                >
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="auto" id="auto" />
-                    <Label htmlFor="auto" className="text-white font-semibold flex items-center gap-2">
-                      <Brain className="w-4 h-4 text-yellow-400" />
-                      Automático (Recomendado)
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-              <p className="text-gray-400 text-sm mt-2">La IA elige la mejor metodología para tu perfil.</p>
-              {localState.selectionMode === 'auto' && (
-                <div className="mt-4">
-                  <Button
-                    onClick={() => handleActivateIA(null)}
-                    disabled={ui.isLoading}
-                    className="bg-yellow-400 text-black hover:bg-yellow-300"
-                  >
-                    <Zap className={`w-4 h-4 mr-2 ${ui.isLoading ? 'animate-pulse' : ''}`} />
-                    {ui.isLoading ? 'Procesando…' : 'Activar IA'}
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            <div
-              onClick={() => { updateLocalState({ selectionMode: 'manual' }); try { track('CARD_CLICK', { id: 'selection-mode', value: 'manual' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); } }}
-              className={`p-4 rounded-lg transition-all cursor-pointer bg-black/80
-                ${localState.selectionMode === 'manual'
-                  ? 'border border-yellow-400 ring-2 ring-yellow-400/30'
-                  : 'border border-yellow-400/20 hover:border-yellow-400/40'}`}
-              title="Pulsa para activar el modo manual y luego elige una metodología"
-            >
-              <div className="flex items-start gap-3">
-                <RadioGroup
-                  value={localState.selectionMode}
-                  onValueChange={(mode) => updateLocalState({ selectionMode: mode })}
-                >
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="manual" id="manual" />
-                    <Label htmlFor="manual" className="text-white font-semibold flex items-center gap-2">
-                      <UserIcon className="w-4 h-4 text-yellow-400" />
-                      Manual (tú eliges)
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-              <p className="text-gray-400 text-sm mt-2">
-                Selecciona una metodología y la IA creará tu plan con esa base.
-              </p>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {METHODOLOGIES.map((methodology) => (
-          <MethodologyCard
-            key={methodology.name}
-            methodology={methodology}
-            manualActive={localState.selectionMode === 'manual'}
-            onDetails={handleOpenDetails}
-            onSelect={handleManualCardClick}
-          />
-        ))}
+    <div className="min-h-screen bg-[#050506] text-white relative overflow-hidden font-body">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[url('/assets/tech-lux/bg-tech-lux-mobile.jpg')] sm:bg-[url('/assets/tech-lux/bg-tech-lux-desktop.jpg')] bg-cover bg-center opacity-80 sm:opacity-70" />
+        <div className="absolute inset-0 bg-[url('/assets/tech-lux/texture-tech-lux-tile.jpg')] bg-repeat opacity-20 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/80 sm:from-black/40 sm:via-black/60 sm:to-black" />
+        <div className="absolute -top-24 right-0 h-60 w-60 bg-yellow-400/10 blur-[140px]" />
+        <div className="absolute top-1/3 -left-16 h-72 w-72 bg-yellow-400/10 blur-[160px]" />
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(250, 204, 21, 0.18), transparent 60%)`
+          }}
+        />
       </div>
 
-      {/* Loading Overlay */}
-      {ui.isLoading && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="bg-black/90 border border-yellow-400/30 rounded-lg p-8 text-center shadow-xl">
-            <svg className="w-12 h-12 text-yellow-400 animate-spin mx-auto mb-4" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-            </svg>
-            <p className="text-white font-semibold text-lg">La IA está generando tu entrenamiento</p>
-            <p className="text-gray-400 text-sm mt-2">Analizando tu perfil para crear la rutina idónea…</p>
+      <div className="relative z-10 container mx-auto px-4 py-8">
+        <div className="space-y-10">
+          <header className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.4em] text-yellow-200/80">Metodologías</p>
+            <h1 className="text-4xl md:text-5xl font-semibold font-urbanist">
+              Metodologías de Entrenamiento
+            </h1>
+            <p className="text-gray-200/80 max-w-2xl">
+              Elige IA automática o modo manual para crear un plan alineado con tu perfil.
+            </p>
+          </header>
+
+          {ui.error && (
+            <Alert className="bg-red-900/30 border-red-400/40">
+              <AlertCircle className="w-4 h-4 text-red-400" />
+              <AlertDescription className="text-red-200">{ui.error}</AlertDescription>
+            </Alert>
+          )}
+
+          <Card className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg">
+            <div className="p-5">
+              <div className="flex items-center gap-2">
+                <Settings className="text-yellow-300" />
+                <span className="text-white font-urbanist text-lg">Modo de selección</span>
+              </div>
+              <div className="text-gray-200/70 mt-1">
+                Decide si prefieres la recomendación automática o seleccionar la metodología tú mismo.
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4 mt-5">
+                <div
+                  onClick={() => { updateLocalState({ selectionMode: 'auto' }); try { track('CARD_CLICK', { id: 'selection-mode', value: 'auto' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); } }}
+                  className={`p-4 rounded-xl transition-all bg-white/5 cursor-pointer border backdrop-blur
+                ${localState.selectionMode === 'auto'
+                    ? 'border-yellow-400/50 ring-2 ring-yellow-400/20 shadow-[0_20px_40px_-30px_rgba(250,204,21,0.6)]'
+                    : 'border-white/10 hover:border-yellow-400/30'}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <RadioGroup
+                      value={localState.selectionMode}
+                      onValueChange={(mode) => updateLocalState({ selectionMode: mode })}
+                    >
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="auto" id="auto" />
+                        <Label htmlFor="auto" className="text-white font-semibold flex items-center gap-2">
+                          <Brain className="w-4 h-4 text-yellow-300" />
+                          Automático (Recomendado)
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  <p className="text-gray-300 text-sm mt-2">La IA elige la mejor metodología para tu perfil.</p>
+                  {localState.selectionMode === 'auto' && (
+                    <div className="mt-4">
+                      <Button
+                        onClick={() => handleActivateIA(null)}
+                        disabled={ui.isLoading}
+                        className="bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]"
+                      >
+                        <Zap className={`w-4 h-4 mr-2 ${ui.isLoading ? 'animate-pulse' : ''}`} />
+                        {ui.isLoading ? 'Procesando…' : 'Activar IA'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div
+                  onClick={() => { updateLocalState({ selectionMode: 'manual' }); try { track('CARD_CLICK', { id: 'selection-mode', value: 'manual' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); } }}
+                  className={`p-4 rounded-xl transition-all cursor-pointer bg-white/5 border backdrop-blur
+                ${localState.selectionMode === 'manual'
+                    ? 'border-yellow-400/50 ring-2 ring-yellow-400/20 shadow-[0_20px_40px_-30px_rgba(250,204,21,0.6)]'
+                    : 'border-white/10 hover:border-yellow-400/30'}`}
+                  title="Pulsa para activar el modo manual y luego elige una metodología"
+                >
+                  <div className="flex items-start gap-3">
+                    <RadioGroup
+                      value={localState.selectionMode}
+                      onValueChange={(mode) => updateLocalState({ selectionMode: mode })}
+                    >
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="manual" id="manual" />
+                        <Label htmlFor="manual" className="text-white font-semibold flex items-center gap-2">
+                          <UserIcon className="w-4 h-4 text-yellow-300" />
+                          Manual (tú eliges)
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  <p className="text-gray-300 text-sm mt-2">
+                    Selecciona una metodología y la IA creará tu plan con esa base.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {METHODOLOGIES.map((methodology) => (
+              <MethodologyCard
+                key={methodology.name}
+                methodology={methodology}
+                manualActive={localState.selectionMode === 'manual'}
+                onDetails={handleOpenDetails}
+                onSelect={handleManualCardClick}
+              />
+            ))}
           </div>
-        </div>
-      )}
+
+      {/* Loading Overlay */}
+          {ui.isLoading && (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="bg-neutral-900/95 border border-white/10 border-l-2 border-l-yellow-400/30 ring-1 ring-white/5 rounded-2xl p-8 text-center shadow-2xl backdrop-blur-xl">
+                <div className="mx-auto mb-4 h-14 w-14 rounded-full border border-yellow-400/30 bg-yellow-500/10 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-yellow-300 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                </svg>
+                </div>
+                <p className="text-white font-urbanist text-lg">La IA está generando tu entrenamiento</p>
+                <p className="text-gray-300/70 text-sm mt-2">Analizando tu perfil para crear la rutina idónea…</p>
+              </div>
+            </div>
+          )}
 
       {/* =============================================== */}
       {/* 🎭 MODALES */}
@@ -1756,10 +1878,12 @@ export default function MethodologiesScreen() {
         isOpen={ui.showPlanConfirmation}
         onClose={() => ui.hideModal('planConfirmation')}
         onStartTraining={handleStartTraining}
+        onSavePlan={handleSavePlan}
         onGenerateAnother={handleGenerateAnother}
         plan={plan.currentPlan}
         planId={plan.methodologyPlanId}
         methodology={plan.methodology}
+        startConfig={localState.startConfig}
         isLoading={ui.isLoading}
         error={ui.error}
         isConfirming={isConfirmingPlan}
@@ -2042,6 +2166,53 @@ export default function MethodologiesScreen() {
         onConfirm={handleDistributionConfirm}
         config={localState.distributionConfig}
       />
+
+      {/* Modal de advertencia de plan activo */}
+      {ui.showActivePlanWarning && (
+        <Dialog
+          open={ui.showActivePlanWarning}
+          onOpenChange={(open) => {
+            if (!open) {
+              pendingPlanActionRef.current = null;
+              ui.hideModal('activePlanWarning');
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-md bg-neutral-900/95 border border-white/10 ring-1 ring-white/5 text-white shadow-2xl backdrop-blur-xl">
+            <DialogHeader>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 shrink-0 aspect-square rounded-full border border-orange-400/30 bg-orange-500/10 flex items-center justify-center">
+                  <AlertCircle className="w-5 h-5 text-orange-300" />
+                </div>
+                <div>
+                  <DialogTitle className="font-urbanist text-lg">Plan activo detectado</DialogTitle>
+                  <DialogDescription className="text-gray-300/80">
+                    Ya tienes un plan activo. Si generas uno nuevo, el plan actual se cancelará y quedará en tu histórico.
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                variant="outline"
+                className="border-white/10 text-gray-200/80 hover:bg-white/10"
+                onClick={handleActivePlanGoToPlan}
+              >
+                Ir a mi plan
+              </Button>
+              <Button
+                className="bg-gradient-to-r from-red-500 via-red-500 to-orange-500 text-white hover:from-red-400 hover:to-orange-400 shadow-[0_12px_30px_-18px_rgba(248,113,113,0.65)]"
+                onClick={handleActivePlanCancelAndContinue}
+              >
+                Generar nuevo y cancelar anterior
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+        </div>
+      </div>
     </div>
   );
 }

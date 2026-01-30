@@ -80,11 +80,20 @@ export function parseMuscleGroups(muscleGroupsRaw) {
  * @param {string} nivel - Nivel del usuario
  * @param {boolean} isFemale - Si el usuario es mujer
  * @param {string} [priorityMuscle] - Músculo prioritario (opcional)
+ * @param {object} [ruleset] - Ruleset normativo MindFeed (opcional)
  * @returns {Promise<object>} Sesión con ejercicios
  */
-export async function generateSessionExercises(dbClient, sessionConfig, nivel, isFemale, priorityMuscle = null) {
+export async function generateSessionExercises(
+  dbClient,
+  sessionConfig,
+  nivel,
+  isFemale,
+  priorityMuscle = null,
+  ruleset = null
+) {
   const muscleGroups = parseMuscleGroups(sessionConfig.muscle_groups);
   const cycleDay = sessionConfig.cycle_day;
+  const volumeProfiles = ruleset?.volumeProfiles || {};
 
   logger.info(`🎯 [SESSION] Generando D${cycleDay}: ${sessionConfig.session_name}`);
 
@@ -93,39 +102,41 @@ export async function generateSessionExercises(dbClient, sessionConfig, nivel, i
   // Por cada grupo muscular, seleccionar ejercicios por tipo
   for (const muscleGroup of muscleGroups) {
     const categoria = MUSCLE_TO_CATEGORY_MAP[muscleGroup] || muscleGroup;
+    const profile = volumeProfiles[muscleGroup] || {};
+    const setsForMuscle = Number(profile.sets ?? sessionConfig.default_sets);
+    const selectedNames = new Set();
+
+    const selectType = async (tipo, count) => {
+      const safeCount = Math.max(0, Number(count || 0));
+      if (safeCount === 0) return;
+
+      const selected = await selectExercisesByTypeForSession(dbClient, {
+        nivel,
+        categoria,
+        tipo_ejercicio: tipo,
+        count: safeCount,
+        cycleDay,
+        muscleGroup,
+        excludeNames: Array.from(selectedNames)
+      });
+
+      for (const ex of selected) {
+        selectedNames.add(ex.nombre);
+        sessionExercises.push({
+          ...ex,
+          sets_override: setsForMuscle
+        });
+      }
+    };
 
     // Multiarticulares
-    const multiExercises = await selectExercisesByTypeForSession(dbClient, {
-      nivel,
-      categoria,
-      tipo_ejercicio: 'multiarticular',
-      count: sessionConfig.multiarticular_count,
-      cycleDay,
-      muscleGroup
-    });
-    sessionExercises.push(...multiExercises);
+    await selectType('multiarticular', profile.multiarticular ?? sessionConfig.multiarticular_count);
 
     // Unilaterales
-    const uniExercises = await selectExercisesByTypeForSession(dbClient, {
-      nivel,
-      categoria,
-      tipo_ejercicio: 'unilateral',
-      count: sessionConfig.unilateral_count,
-      cycleDay,
-      muscleGroup
-    });
-    sessionExercises.push(...uniExercises);
+    await selectType('unilateral', profile.unilateral ?? sessionConfig.unilateral_count);
 
     // Analíticos
-    const analyticExercises = await selectExercisesByTypeForSession(dbClient, {
-      nivel,
-      categoria,
-      tipo_ejercicio: 'analitico',
-      count: sessionConfig.analitico_count,
-      cycleDay,
-      muscleGroup
-    });
-    sessionExercises.push(...analyticExercises);
+    await selectType('analitico', profile.analitico ?? sessionConfig.analitico_count);
   }
 
   // Ordenar ejercicios: Multi → Uni → Ana
@@ -139,11 +150,13 @@ export async function generateSessionExercises(dbClient, sessionConfig, nivel, i
   logger.debug(`  📋 D${cycleDay} - Orden: ${sessionExercises.map(e => e.tipo_ejercicio[0].toUpperCase()).join(' → ')}`);
 
   // Mapear con parámetros de entrenamiento
-  let exercisesWithParams = mapExercisesWithTrainingParams(sessionExercises, sessionConfig, isFemale);
+  let exercisesWithParams = mapExercisesWithTrainingParams(sessionExercises, sessionConfig, isFemale, {
+    restSecondsByType: ruleset?.restSecondsByType || null
+  });
 
   // Aplicar ajustes de priorización si corresponde
   if (priorityMuscle && sessionConfig.is_heavy_day) {
-    exercisesWithParams = applyPriorityIntensityAdjustments(exercisesWithParams, priorityMuscle);
+    exercisesWithParams = applyPriorityIntensityAdjustments(exercisesWithParams, priorityMuscle, ruleset);
     logger.info(`  🎯 [PRIORITY] Ajustes aplicados para ${priorityMuscle} en D${cycleDay}`);
   }
 
@@ -163,26 +176,29 @@ export async function generateSessionExercises(dbClient, sessionConfig, nivel, i
  * Aplica ajustes de intensidad según priorización muscular
  * @param {Array} exercises - Ejercicios
  * @param {string} priorityMuscle - Músculo prioritario
+ * @param {object} ruleset - Ruleset normativo
  * @returns {Array} Ejercicios con ajustes aplicados
  */
-function applyPriorityIntensityAdjustments(exercises, priorityMuscle) {
+function applyPriorityIntensityAdjustments(exercises, priorityMuscle, ruleset) {
+  const npHeavyPercent = Number(
+    ruleset?.priorityRules?.nonPriority?.heavyDayPercent ?? 76
+  );
+
   return exercises.map(exercise => {
     const isPriority = exercise.categoria?.toLowerCase().includes(priorityMuscle.toLowerCase());
 
     if (isPriority) {
       return {
         ...exercise,
-        intensidad_porcentaje: 82.5,
-        notas: exercise.notas + ' [PRIORIDAD: Top set a 82.5%]'
-      };
-    } else if (exercise.tipo_ejercicio === 'multiarticular') {
-      return {
-        ...exercise,
-        intensidad_porcentaje: 76,
-        notas: exercise.notas + ' [Intensidad reducida por priorización]'
+        notas: `${exercise.notas || ''} [PRIORIDAD ACTIVA: aplicar top set semanal solo si procede]`.trim()
       };
     }
 
-    return exercise;
+    // No prioritarios: reducir intensidad en días pesados
+    return {
+      ...exercise,
+      intensidad_porcentaje: npHeavyPercent,
+      notas: `${exercise.notas || ''} [NP: intensidad reducida por priorización]`.trim()
+    };
   });
 }

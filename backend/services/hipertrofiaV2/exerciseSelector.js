@@ -76,13 +76,14 @@ export async function selectExercises(dbClient, filters) {
  * @returns {Promise<Array>} Ejercicios seleccionados con metadata
  */
 export async function selectExercisesByTypeForSession(dbClient, config) {
-  const { nivel, categoria, tipo_ejercicio, count, cycleDay, muscleGroup } = config;
+  const { nivel, categoria, tipo_ejercicio, count, cycleDay, muscleGroup, excludeNames = [] } = config;
 
   const exercises = await selectExercises(dbClient, {
     nivel,
     categoria,
     tipo_ejercicio,
-    cantidad: count
+    cantidad: count,
+    excludeNames
   });
 
   // Agregar metadata específica de la sesión
@@ -99,9 +100,12 @@ export async function selectExercisesByTypeForSession(dbClient, config) {
  * @param {Array} exercises - Ejercicios a mapear
  * @param {object} sessionConfig - Configuración de la sesión
  * @param {boolean} isFemale - Si el usuario es mujer (ajusta descansos)
+ * @param {object} overrides - Overrides normativos (restos/series)
  * @returns {Array} Ejercicios con parámetros completos
  */
-export function mapExercisesWithTrainingParams(exercises, sessionConfig, isFemale = false) {
+export function mapExercisesWithTrainingParams(exercises, sessionConfig, isFemale = false, overrides = {}) {
+  const restSecondsByType = overrides?.restSecondsByType || null;
+
   return exercises.map((ex, idx) => ({
     orden: idx + 1,
     id: ex.exercise_id,
@@ -110,10 +114,10 @@ export function mapExercisesWithTrainingParams(exercises, sessionConfig, isFemal
     categoria: ex.categoria,
     tipo_ejercicio: ex.tipo_ejercicio,
     patron_movimiento: ex.patron_movimiento,
-    series: sessionConfig.default_sets,
+    series: Number(ex.sets_override ?? sessionConfig.default_sets),
     reps_objetivo: sessionConfig.default_reps_range,
     rir_target: sessionConfig.default_rir_target,
-    descanso_seg: calculateRestTime(ex, isFemale),
+    descanso_seg: calculateRestTime(ex, isFemale, restSecondsByType),
     notas: ex.notas,
     intensidad_porcentaje: sessionConfig.intensity_percentage,
     ajuste_sexo: isFemale && (ex.tipo_ejercicio === 'unilateral' || ex.tipo_ejercicio === 'analitico')
@@ -126,10 +130,12 @@ export function mapExercisesWithTrainingParams(exercises, sessionConfig, isFemal
  * Calcula tiempo de descanso con ajuste por sexo
  * @param {object} exercise - Ejercicio
  * @param {boolean} isFemale - Si es mujer
+ * @param {object|null} restSecondsByType - Reglas de descanso por tipo
  * @returns {number} Tiempo de descanso en segundos
  */
-function calculateRestTime(exercise, isFemale) {
-  const baseRest = exercise.descanso_seg || 90;
+function calculateRestTime(exercise, isFemale, restSecondsByType = null) {
+  const normativeRest = restSecondsByType?.[exercise.tipo_ejercicio];
+  const baseRest = Number(normativeRest ?? exercise.descanso_seg ?? 90);
 
   if (isFemale && (exercise.tipo_ejercicio === 'unilateral' || exercise.tipo_ejercicio === 'analitico')) {
     return Math.round(baseRest * 0.85); // -15% para mujeres

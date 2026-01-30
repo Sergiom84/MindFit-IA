@@ -50,12 +50,12 @@ export function StartSessionCard({
   };
 
   return (
-    <div className="text-center py-6">
-      <Dumbbell className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-      <h3 className="text-lg font-medium text-white mb-2">
+    <div className="text-center py-6 px-6 rounded-2xl bg-neutral-900/70 border border-white/10 border-l-2 border-l-yellow-400/35 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.75)] backdrop-blur-lg transition-all duration-300 hover:border-white/20">
+      <Dumbbell className="w-12 h-12 text-yellow-300 mx-auto mb-4" />
+      <h3 className="text-lg font-semibold text-white mb-2 font-urbanist">
         Entrenamiento de {dayName}
       </h3>
-      <p className="text-gray-400 mb-4">
+      <p className="text-gray-300/80 mb-4">
         {exerciseCount} ejercicios programados
       </p>
 
@@ -67,7 +67,7 @@ export function StartSessionCard({
       ) : (
         <Button
           onClick={handleClick}
-          className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
+          className="bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black font-medium hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]"
           disabled={isLoading || isStarting}
         >
           {isStarting ? (
@@ -88,4 +88,3 @@ export function StartSessionCard({
 }
 
 export default StartSessionCard;
-

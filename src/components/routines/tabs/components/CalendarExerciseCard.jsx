@@ -25,13 +25,13 @@ export const CalendarExerciseCard = ({
 
   // Colores por estado
   const rowClass =
-    status === 'completed' ? 'bg-green-900/20 border-green-500/30' :
-    status === 'skipped'   ? 'bg-gray-800/50 border-gray-600/40 opacity-90' :
-    status === 'cancelled' ? 'bg-red-900/20 border-red-500/30' :
-                             'border-gray-600/30';
+    status === 'completed' ? 'bg-emerald-900/20 border-emerald-400/20' :
+    status === 'skipped'   ? 'bg-white/5 border-white/10 opacity-90' :
+    status === 'cancelled' ? 'bg-red-900/20 border-red-400/20' :
+                             'bg-black/40 border-white/10';
 
   const nameClass =
-    status === 'completed' ? 'text-green-300' :
+    status === 'completed' ? 'text-emerald-200' :
     status === 'skipped'   ? 'text-gray-300' :
     status === 'cancelled' ? 'text-red-300'  :
                              'text-white';
@@ -46,12 +46,12 @@ export const CalendarExerciseCard = ({
           {ejercicio.nombre}
         </div>
         {ejercicio.descanso_seg && (
-          <span className="text-gray-400">{Math.round(ejercicio.descanso_seg / 60)}'</span>
+          <span className="text-gray-300/70">{Math.round(ejercicio.descanso_seg / 60)}'</span>
         )}
       </div>
 
       {/* Fila media: series x repeticiones + progreso de series */}
-      <div className="flex items-center justify-between text-xs text-gray-400 mt-0.5">
+      <div className="flex items-center justify-between text-xs text-gray-300/70 mt-0.5">
         <span>{ejercicio.series} × {ejercicio.repeticiones}</span>
         {status && <span className="text-[11px]">{seriesCompleted}/{ejercicio.series} series</span>}
       </div>
@@ -66,7 +66,7 @@ export const CalendarExerciseCard = ({
             </span>
           )}
           {hasComment && (
-            <span className="text-[11px] text-gray-400 italic truncate">"{progress.comment}"</span>
+            <span className="text-[11px] text-gray-300/70 italic truncate">"{progress.comment}"</span>
           )}
         </div>
       )}

@@ -23,7 +23,6 @@ import AdaptationBlockSelection from './components/AdaptationBlockSelection.jsx'
 import AdaptationTrackingBadge from './components/AdaptationTrackingBadge.jsx';
 import AdaptationTransitionModal from './components/AdaptationTransitionModal.jsx';
 import AdaptationDashboard from '../../../HipertrofiaV2/AdaptationDashboard.jsx';
-import StartDayModal from './components/StartDayModal.jsx';
 import { useTrace } from '../../../../contexts/TraceContext';
 
 export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, startConfig }) {
@@ -44,8 +43,6 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
   const [showAdaptationSelect, setShowAdaptationSelect] = useState(false);
   const [showTransitionModal, setShowTransitionModal] = useState(false);
   const [showAdaptationDashboard, setShowAdaptationDashboard] = useState(false);
-  const [showStartDayModal, setShowStartDayModal] = useState(false);
-  const [pendingStartConfig, setPendingStartConfig] = useState(null);
 
   // Helpers: carga de progreso de adaptación
   const fetchAdaptationProgress = async () => {
@@ -183,41 +180,6 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
   };
 
   /**
-   * Verifica si necesita mostrar modal de selección de día
-   * Jueves-Domingo: Mostrar modal
-   * Lunes-Miércoles: Continuar directamente
-   */
-  const needsStartDayModal = () => {
-    const today = new Date();
-    const dayOfWeek = today.getDay(); // 0=Dom, 1=Lun, ... 4=Jue, 5=Vie, 6=Sáb
-    // Jueves (4), Viernes (5), Sábado (6), Domingo (0) → mostrar modal
-    return dayOfWeek === 4 || dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0;
-  };
-
-  /**
-   * Handler para cuando el usuario selecciona una opción en el StartDayModal
-   */
-  const handleStartDaySelection = (selectedConfig) => {
-    console.log('📅 [STARTDAY] Opción seleccionada:', selectedConfig);
-    setPendingStartConfig(selectedConfig);
-    setShowStartDayModal(false);
-
-    // Si eligió "vinagre", primero generamos sesión suelta y luego el plan formal
-    if (selectedConfig.option === 'vinagre') {
-      track('start_day_vinagre_selected', {
-        userId: user.id,
-        startDate: selectedConfig.startDate,
-        component: 'HipertrofiaV2ManualCard'
-      });
-      // TODO: Generar sesión suelta para hoy
-      // Por ahora, continuamos con la generación del plan que empieza el lunes
-    }
-
-    // Continuar con la generación usando la configuración seleccionada
-    executeGenerate(selectedConfig);
-  };
-
-  /**
    * Ejecuta la generación del plan con la configuración dada
    */
   const executeGenerate = async (configOverride = null) => {
@@ -229,7 +191,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
       console.log('🏋️ [MINDFEED] Generando plan D1-D5 para nivel:', userLevel);
 
       // 🎯 Preparar configuración de inicio
-      const finalStartConfig = configOverride || pendingStartConfig || startConfig || {
+      const finalStartConfig = configOverride || startConfig || {
         startDate: new Date().toISOString().split('T')[0],
         distributionOption: 'standard',
         includeSaturdays: false
@@ -322,24 +284,12 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
    * Handler principal: Decide si mostrar modal de día o generar directamente
    */
   const handleGenerate = () => {
-    if (needsStartDayModal()) {
-      track('start_day_modal_shown', {
-        userId: user.id,
-        dayOfWeek: new Date().getDay(),
-        component: 'HipertrofiaV2ManualCard'
-      });
-      setShowStartDayModal(true);
-    } else {
-      // Lunes-Miércoles: Generar directamente empezando hoy
-      const defaultConfig = {
-        option: 'start_today',
-        startDate: new Date().toISOString().split('T')[0],
-        includeSaturday: false,
-        distributionOption: 'standard',
-        description: 'Empezar HOY (L-V estándar)'
-      };
-      executeGenerate(defaultConfig);
-    }
+    const defaultConfig = {
+      startDate: new Date().toISOString().split('T')[0],
+      distributionOption: 'standard',
+      includeSaturdays: false
+    };
+    executeGenerate(startConfig || defaultConfig);
   };
 
   // Iniciar bloque de adaptación
@@ -436,16 +386,16 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
 
 
   return (
-    <div className="bg-gray-900">
+    <div className="bg-neutral-900/70">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 -mx-6 -mt-6 mb-6 rounded-t-lg">
+      <div className="bg-neutral-900/85 border-b border-white/10 p-6 -mx-6 -mt-6 mb-6 rounded-t-lg">
         <div className="flex items-center gap-3">
-          <Dumbbell className="w-8 h-8 text-white" />
+          <Dumbbell className="w-8 h-8 text-yellow-300" />
           <div>
             <h2 className="text-2xl font-bold text-white">
               Hipertrofia V2 - MindFeed
             </h2>
-            <p className="text-blue-100 text-sm">
+            <p className="text-gray-300/70 text-sm">
               Sistema de Periodización Inteligente D1-D5
             </p>
           </div>
@@ -483,42 +433,42 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
             {step === 'evaluation' && (
             <div className="space-y-6">
               <div className="text-center">
-                <Target className="w-16 h-16 text-blue-400 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-white mb-2">
+                <Target className="w-16 h-16 text-yellow-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold font-urbanist text-white mb-2">
                   Evaluación de Perfil
                 </h3>
-                <p className="text-gray-400">
+                <p className="text-gray-300/70">
                   Analizaremos tu perfil para determinar el nivel adecuado
                 </p>
               </div>
 
-              <div className="bg-gray-800/50 border border-blue-500/20 rounded-lg p-6">
+              <div className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-lg p-6">
                 <h4 className="font-semibold text-white mb-3">
                   🎯 Características del Sistema MindFeed:
                 </h4>
-                <ul className="space-y-2 text-gray-300 text-sm">
+                <ul className="space-y-2 text-gray-200/80 text-sm">
                   <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="w-4 h-4 text-emerald-300 mt-0.5 flex-shrink-0" />
                     <span><strong>Ciclo D1-D5:</strong> 5 sesiones rotativas (entrena cuando quieras)</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="w-4 h-4 text-emerald-300 mt-0.5 flex-shrink-0" />
                     <span><strong>Progresión por Microciclo:</strong> +2.5% al completar D1-D5 completo</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="w-4 h-4 text-emerald-300 mt-0.5 flex-shrink-0" />
                     <span><strong>Tracking RIR:</strong> Registra peso, reps y RIR por serie</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="w-4 h-4 text-emerald-300 mt-0.5 flex-shrink-0" />
                     <span><strong>Deload Automático:</strong> Cada 6 microciclos completados</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="w-4 h-4 text-emerald-300 mt-0.5 flex-shrink-0" />
                     <span><strong>Motor de Ciclo:</strong> Avanza solo cuando completas sesiones reales</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="w-4 h-4 text-emerald-300 mt-0.5 flex-shrink-0" />
                     <span><strong>Ejercicios Clasificados:</strong> Multiarticulares, unilaterales y analíticos</span>
                   </li>
                 </ul>
@@ -527,7 +477,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
               <button
                 onClick={handleEvaluate}
                 disabled={evaluating}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full py-3 bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black rounded-lg font-semibold hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {evaluating ? (
                   <>
@@ -547,14 +497,14 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
           {/* PASO 2: Confirmación y Generación */}
           {step === 'confirmed' && evaluation && (
             <div className="space-y-6">
-              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-6">
+              <div className="bg-neutral-900/70 border border-white/10 border-l-2 border-l-emerald-400/40 rounded-lg p-6">
                 <div className="flex items-start gap-3">
-                  <CheckCircle className="w-6 h-6 text-green-400 flex-shrink-0 mt-1" />
+                  <CheckCircle className="w-6 h-6 text-emerald-300 flex-shrink-0 mt-1" />
                   <div>
                     <h4 className="font-semibold text-white mb-2">
                       ✅ Evaluación Completada
                     </h4>
-                    <div className="space-y-2 text-sm text-gray-300">
+                    <div className="space-y-2 text-sm text-gray-200/80">
                       <p><strong>Nivel:</strong> {evaluation.level}</p>
                       <p><strong>Experiencia:</strong> {evaluation.experience}</p>
                       <p><strong>Recomendación:</strong> {evaluation.recommendation}</p>
@@ -563,14 +513,14 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
                 </div>
               </div>
 
-              <div className="bg-gray-800/50 border border-blue-500/20 rounded-lg p-6">
+              <div className="bg-neutral-900/70 border border-white/10 rounded-lg p-6">
                 <div className="flex items-start gap-3 mb-4">
-                  <Calendar className="w-6 h-6 text-blue-400" />
+                  <Calendar className="w-6 h-6 text-yellow-300" />
                   <h4 className="font-semibold text-white">
                     🔄 Motor de Ciclo Inteligente
                   </h4>
                 </div>
-                <p className="text-gray-400 text-sm">
+                <p className="text-gray-200/70 text-sm">
                   El ciclo D1-D5 avanza SOLO cuando completas sesiones reales.
                   Entrena en los días que prefieras - el sistema se adapta a tu calendario y progresa cuando TÚ entrenas.
                 </p>
@@ -580,7 +530,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
                 <button
                   onClick={() => setStep('evaluation')}
                   disabled={isLoading || generating}
-                  className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold disabled:opacity-50"
+                  className="flex-1 py-3 bg-white/5 border border-white/10 text-gray-200/80 rounded-lg font-semibold hover:bg-white/10 disabled:opacity-50"
                 >
                   Volver
                 </button>
@@ -588,7 +538,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
                 <button
                   onClick={handleGenerate}
                   disabled={isLoading || generating}
-                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 py-3 bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black rounded-lg font-semibold hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {(isLoading || generating) ? (
                     <>
@@ -603,14 +553,14 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
 
               {/* Mensaje de carga visible */}
               {generating && (
-                <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <div className="mt-4 p-4 bg-neutral-900/70 border border-white/10 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <Loader className="w-5 h-5 text-blue-400 animate-spin flex-shrink-0" />
+                    <Loader className="w-5 h-5 text-yellow-300 animate-spin flex-shrink-0" />
                     <div>
-                      <h4 className="font-semibold text-blue-400 mb-1">
+                      <h4 className="font-semibold text-yellow-300 mb-1">
                         La IA está generando tu entrenamiento
                       </h4>
-                      <p className="text-sm text-blue-300">
+                      <p className="text-sm text-gray-300/70">
                         Analizando tu perfil para crear la rutina idónea…
                       </p>
                     </div>
@@ -650,13 +600,6 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
         block={adaptation.block}
       />
 
-      {/* Modal de selección de día de inicio (Jue-Dom) */}
-      <StartDayModal
-        isOpen={showStartDayModal}
-        onClose={() => setShowStartDayModal(false)}
-        onSelect={handleStartDaySelection}
-        methodology="HipertrofiaV2"
-      />
     </div>
   );
 }

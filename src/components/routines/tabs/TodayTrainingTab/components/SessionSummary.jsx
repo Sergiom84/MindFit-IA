@@ -34,20 +34,20 @@ export function SessionSummary({
     : 0;
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <Card className="p-6 bg-neutral-900/70 border border-white/10 border-l-2 border-l-emerald-400/30 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.75)] backdrop-blur-lg transition-all duration-300 hover:border-white/20">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div className="flex items-center gap-3">
-          <CheckCircle className="h-6 w-6 text-green-500" />
+          <CheckCircle className="h-6 w-6 text-yellow-300" />
           <div>
-            <h3 className="text-xl font-semibold text-white">
+            <h3 className="text-xl font-semibold text-white font-urbanist">
               Resumen de hoy ({dayName})
             </h3>
-            <p className="text-gray-400 mt-1">
+            <p className="text-gray-300/80 mt-1">
               {summary?.completed || 0} completados - {summary?.skipped || 0} saltados - {summary?.total || exercises.length} ejercicios
             </p>
           </div>
         </div>
-        <div className="text-sm text-gray-400">
+        <div className="text-sm text-gray-300/80">
           Duración total: {totalDuration} min
         </div>
       </div>
@@ -76,4 +76,3 @@ export function SessionSummary({
 }
 
 export default SessionSummary;
-

@@ -43,7 +43,8 @@ router.get('/state', authenticateToken, async (req, res) => {
         mp.is_current
       FROM app.methodology_plans mp
       WHERE mp.user_id = $1
-        AND (mp.is_current = TRUE OR mp.status IN ('active','draft'))
+        AND mp.cancelled_at IS NULL
+        AND mp.status IN ('active','confirmed')
       ORDER BY mp.is_current DESC, mp.created_at DESC
       LIMIT 1
     `, [userId]);
@@ -309,7 +310,7 @@ router.post('/cancel-plan', authenticateToken, async (req, res) => {
 
     // Cancelar plan activo
     let result = await client.query(`
-      UPDATE methodology_plans
+      UPDATE app.methodology_plans
       SET status = 'cancelled', cancelled_at = NOW(), is_current = FALSE
       WHERE user_id = $1 AND is_current = TRUE
       RETURNING id, methodology_type
@@ -319,12 +320,12 @@ router.post('/cancel-plan', authenticateToken, async (req, res) => {
       result = await client.query(`
         WITH latest AS (
           SELECT id
-          FROM methodology_plans
+          FROM app.methodology_plans
           WHERE user_id = $1 AND status = 'active'
           ORDER BY created_at DESC
           LIMIT 1
         )
-        UPDATE methodology_plans
+        UPDATE app.methodology_plans
         SET status = 'cancelled', cancelled_at = NOW(), is_current = FALSE
         WHERE id IN (SELECT id FROM latest)
         RETURNING id, methodology_type
@@ -340,14 +341,14 @@ router.post('/cancel-plan', authenticateToken, async (req, res) => {
 
     // Cancelar sesiones en progreso
     await client.query(`
-      UPDATE methodology_exercise_sessions
+      UPDATE app.methodology_exercise_sessions
       SET session_status = 'cancelled', cancelled_at = NOW(), is_current_session = false
       WHERE user_id = $1 AND session_status IN ('pending', 'in_progress')
     `, [userId]);
 
     // Limpiar estado del usuario
     await client.query(`
-      UPDATE user_training_state
+      UPDATE app.user_training_state
       SET
         active_methodology_plan_id = NULL,
         active_session_id = NULL,

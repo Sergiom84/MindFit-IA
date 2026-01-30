@@ -2,348 +2,185 @@
 
 ## Configuracion de ejecucion
 
-- Usuario: entrenaconia@test.com (ID 33)
+- Usuario: sim_novato_1769619995444_492@test.com (ID 38)
 - API_BASE: http://localhost:3010
 - Inicio plan: 2026-01-26
 - Semanas simuladas: 10
-- Semana 0: omitida
+- Semana 0: incluida
 - Sabados: no
-- Plan: 177 (Intermedio)
+- Plan: 226 (Principiante)
 - Motor: MindFeed v1.0 | Progresion: Por microciclo (+2.5%)
+- Perfil dias: 0% skip, 0% off-plan, 0% fatiga, 0% top
+- Fatiga objetiva simulada: 0% (leve)
+
+## Bloque de adaptacion (novato total)
+
+- Bloque ID: 6 | Plan ID: 225
+- Tag IA: novato_total | Tipo: full_body
+- Duracion: 1 semanas | Sesiones/semana: 4
+- Sesiones ejecutadas: 4 | Saltadas: 0 | Off-plan: 0
+- Evaluacion: OK
+- Transicion: OK
 
 ## Flujo ejecutado
 
-1. Login usuario
+1. Registro/login usuario
 2. Cancelacion de plan activo
-3. Generacion de plan D1-D5 HipertrofiaV2
-4. Confirmacion del plan
-5. Simulacion de 10 semanas x 5 sesiones
-6. Registro de sets, progreso y cierre de sesion
-7. Avance de ciclo y progresion por microciclo
-8. Verificacion de deload
-9. Resumen de progreso y estado final
+3. Generacion y ejecucion de bloque de adaptacion
+4. Evaluacion y transicion a D1-D5
+5. Generacion de plan D1-D5 HipertrofiaV2
+6. Confirmacion del plan
+7. Simulacion de 10 + semana 0 semanas x 5 sesiones
+8. Registro de sets, progreso y cierre de sesion
+9. Avance de ciclo y progresion por microciclo
+10. Verificacion de deload
+11. Resumen de progreso y estado final
 
 ## Resumen global
 
-- Sesiones completadas: 50
-- Ejercicios completados: 410
-- Sets registrados: 638
-- Volumen total estimado: 244344.3
+- Sesiones simuladas: 55
+- Sesiones saltadas: 0
+- Dias con fatiga subjetiva: 0
+- Dias top: 0
+- Dias con fatiga objetiva (intencion): 0
+- Ejercicios completados: 230
+- Sets registrados: 437
+- Volumen total estimado: 97895
+
+## Validaciones adicionales (script)
+
+| Check                           | OK/Total | Fuera rango | Faltantes |
+| ------------------------------- | -------- | ----------- | --------- |
+| Intensidad por día              | 207/230  | 23          | 0         |
+| Reps objetivo 8-12              | 437/437  | 0           | 0         |
+| RIR objetivo 2-3 / semana 0 3-4 | 382/437  | 55          | 0         |
+| Orden Multi→Uni→Analítico       | 50/55    | 0           | 5         |
+| Volumen fijo (series)           | 50/55    | 5           | 0         |
+
+### Variaciones de volumen detectadas (baseline semana 1)
+
+| Semana | Ciclo | Motivo                                  |
+| ------ | ----- | --------------------------------------- |
+| 6      | D1    | Cambio de series/ejercicios vs baseline |
+| 6      | D2    | Cambio de series/ejercicios vs baseline |
+| 6      | D3    | Cambio de series/ejercicios vs baseline |
+| 6      | D4    | Cambio de series/ejercicios vs baseline |
+| 6      | D5    | Cambio de series/ejercicios vs baseline |
 
 ## Progresion por microciclo
 
-| Microciclo | Semana | Progresion  | Incremento % | RIR medio |
-| ---------- | ------ | ----------- | ------------ | --------- |
-| 1          | 1      | Aplicada    | 2.5          | 3         |
-| 2          | 2      | Aplicada    | 2.5          | 3         |
-| 3          | 3      | Aplicada    | 2.5          | 3         |
-| 4          | 4      | Aplicada    | 2.5          | 3         |
-| 5          | 5      | Aplicada    | 2.5          | 3         |
-| 6          | 6      | Aplicada    | 2.5          | 3         |
-| 7          | 7      | No aplicada | —            | 3         |
-| 8          | 8      | Aplicada    | 2.5          | 3         |
-| 9          | 9      | Aplicada    | 2.5          | 3         |
-| 10         | 10     | Aplicada    | 2.5          | 3         |
+| Microciclo | Semana | Progresion  | Incremento % | RIR medio          |
+| ---------- | ------ | ----------- | ------------ | ------------------ |
+| 1          | 1      | Aplicada    | 2.5          | 3                  |
+| 2          | 2      | No aplicada | —            | 2.8260869565217392 |
+| 3          | 3      | No aplicada | —            | 2.9565217391304346 |
+| 4          | 4      | No aplicada | —            | 2.9782608695652173 |
+| 5          | 5      | Aplicada    | 2.5          | 3.1956521739130435 |
+| 6          | 6      | No aplicada | —            | 3.4782608695652173 |
+| 7          | 7      | No aplicada | —            | 2.9782608695652173 |
+| 8          | 8      | No aplicada | —            | 2.9565217391304346 |
+| 9          | 9      | Aplicada    | 2.5          | 3.0217391304347827 |
+| 10         | 10     | No aplicada | —            | 2.9347826086956523 |
 
 ## Eventos de deload
 
-| Microciclo | Semana | Accion     | Motivo                                                       |
-| ---------- | ------ | ---------- | ------------------------------------------------------------ |
-| 6          | 6      | activar    | planificado                                                  |
-| 7          | 7      | desactivar | Deload completado. Reiniciando progresión con +2% de recarga |
+| Microciclo | Semana | Accion      | Motivo      |
+| ---------- | ------ | ----------- | ----------- |
+| 6          | 6      | planificado | planificado |
 
 ## Resumen por semana
 
 | Semana | Sesiones | RIR medio | Volumen total |
 | ------ | -------- | --------- | ------------- |
-| 1      | 5        | 3         | 22722.3       |
-| 2      | 5        | 3         | 23406.3       |
-| 3      | 5        | 3         | 24097.2       |
-| 4      | 5        | 3         | 24792.6       |
-| 5      | 5        | 3         | 25494         |
-| 6      | 5        | 3         | 26200.2       |
-| 7      | 5        | 3         | 12559.2       |
-| 8      | 5        | 3         | 27631.5       |
-| 9      | 5        | 3         | 28355.7       |
-| 10     | 5        | 3         | 29085.3       |
+| 0      | 5        | —         | 0             |
+| 1      | 5        | 2.98      | 10470         |
+| 2      | 5        | 2.84      | 10470         |
+| 3      | 5        | 2.98      | 10470         |
+| 4      | 5        | 2.95      | 10470         |
+| 5      | 5        | 3.2       | 10470         |
+| 6      | 5        | 3.47      | 3665          |
+| 7      | 5        | 2.97      | 10470         |
+| 8      | 5        | 2.98      | 10470         |
+| 9      | 5        | 3.02      | 10470         |
+| 10     | 5        | 2.88      | 10470         |
 
 ## Sesiones (detalle)
 
-| Semana | Dia       | Ciclo | Sesion                               | RIR medio | Volumen |
-| ------ | --------- | ----- | ------------------------------------ | --------- | ------- |
-| 1      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | 3         | 5142    |
-| 1      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | 3         | 4239.9  |
-| 1      | Miércoles | D3    | Piernas Completas                    | 3         | 1803.6  |
-| 1      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | 3         | 5157.3  |
-| 1      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | 3         | 6379.5  |
-| 2      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | 3         | 5296.8  |
-| 2      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | 3         | 4367.7  |
-| 2      | Miércoles | D3    | Piernas Completas                    | 3         | 1857.9  |
-| 2      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | 3         | 5312.4  |
-| 2      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | 3         | 6571.5  |
-| 3      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | 3         | 5453.1  |
-| 3      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | 3         | 4496.7  |
-| 3      | Miércoles | D3    | Piernas Completas                    | 3         | 1912.5  |
-| 3      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | 3         | 5469.6  |
-| 3      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | 3         | 6765.3  |
-| 4      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | 3         | 5610.3  |
-| 4      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | 3         | 4626.6  |
-| 4      | Miércoles | D3    | Piernas Completas                    | 3         | 1968    |
-| 4      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | 3         | 5627.1  |
-| 4      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | 3         | 6960.6  |
-| 5      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | 3         | 5769    |
-| 5      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | 3         | 4757.4  |
-| 5      | Miércoles | D3    | Piernas Completas                    | 3         | 2023.8  |
-| 5      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | 3         | 5786.7  |
-| 5      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | 3         | 7157.1  |
-| 6      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | 3         | 5929.2  |
-| 6      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | 3         | 4889.1  |
-| 6      | Miércoles | D3    | Piernas Completas                    | 3         | 2079.6  |
-| 6      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | 3         | 5946.9  |
-| 6      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | 3         | 7355.4  |
-| 7      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | 3         | 2842.2  |
-| 7      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | 3         | 2343.8  |
-| 7      | Miércoles | D3    | Piernas Completas                    | 3         | 996.8   |
-| 7      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | 3         | 2850.4  |
-| 7      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | 3         | 3526    |
-| 8      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | 3         | 6253.2  |
-| 8      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | 3         | 5156.4  |
-| 8      | Miércoles | D3    | Piernas Completas                    | 3         | 2193.3  |
-| 8      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | 3         | 6271.5  |
-| 8      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | 3         | 7757.1  |
-| 9      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | 3         | 6417.3  |
-| 9      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | 3         | 5291.7  |
-| 9      | Miércoles | D3    | Piernas Completas                    | 3         | 2250.9  |
-| 9      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | 3         | 6435.6  |
-| 9      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | 3         | 7960.2  |
-| 10     | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | 3         | 6582.3  |
-| 10     | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | 3         | 5427.6  |
-| 10     | Miércoles | D3    | Piernas Completas                    | 3         | 2308.5  |
-| 10     | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | 3         | 6601.8  |
-| 10     | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | 3         | 8165.1  |
+| Semana | Dia       | Ciclo | Sesion                               | Perfil | Saltada | Fatiga subj | Fatiga obj | RIR medio | Volumen | Intensidad avg | Intensidad exp | Orden M/U/A | Reps ok | RIR ok |
+| ------ | --------- | ----- | ------------------------------------ | ------ | ------- | ----------- | ---------- | --------- | ------- | -------------- | -------------- | ----------- | ------- | ------ |
+| 0      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | normal | No      | —           | —          | —         | 0       | —              | 70%            | unknown     | 0/0     | 0/0    |
+| 0      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | normal | No      | —           | —          | —         | 0       | —              | 70%            | unknown     | 0/0     | 0/0    |
+| 0      | Miércoles | D3    | Piernas Completas                    | normal | No      | —           | —          | —         | 0       | —              | 70%            | unknown     | 0/0     | 0/0    |
+| 0      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | normal | No      | —           | —          | —         | 0       | —              | 70%            | unknown     | 0/0     | 0/0    |
+| 0      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | normal | No      | —           | —          | —         | 0       | —              | 70%            | unknown     | 0/0     | 0/0    |
+| 1      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | normal | No      | —           | —          | 3.25      | 1880    | 80             | 80%            | ok          | 8/8     | 6/8    |
+| 1      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | normal | No      | —           | —          | 2.67      | 1480    | 80             | 80%            | ok          | 6/6     | 6/6    |
+| 1      | Miércoles | D3    | Piernas Completas                    | normal | No      | —           | —          | 2.75      | 1830    | 80             | 80%            | ok          | 8/8     | 8/8    |
+| 1      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | normal | No      | —           | —          | 3.25      | 1670    | 73             | 70-75%         | ok          | 8/8     | 6/8    |
+| 1      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | normal | No      | —           | —          | 3         | 3610    | 73             | 70-75%         | ok          | 16/16   | 14/16  |
+| 2      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | normal | No      | —           | —          | 3         | 1880    | 80             | 80%            | ok          | 8/8     | 7/8    |
+| 2      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | normal | No      | —           | —          | 2.5       | 1480    | 80             | 80%            | ok          | 6/6     | 6/6    |
+| 2      | Miércoles | D3    | Piernas Completas                    | normal | No      | —           | —          | 2.88      | 1830    | 80             | 80%            | ok          | 8/8     | 8/8    |
+| 2      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | normal | No      | —           | —          | 3.13      | 1670    | 73             | 70-75%         | ok          | 8/8     | 7/8    |
+| 2      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | normal | No      | —           | —          | 2.69      | 3610    | 73             | 70-75%         | ok          | 16/16   | 16/16  |
+| 3      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | normal | No      | —           | —          | 2.75      | 1880    | 80             | 80%            | ok          | 8/8     | 8/8    |
+| 3      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | normal | No      | —           | —          | 3         | 1480    | 80             | 80%            | ok          | 6/6     | 6/6    |
+| 3      | Miércoles | D3    | Piernas Completas                    | normal | No      | —           | —          | 3         | 1830    | 80             | 80%            | ok          | 8/8     | 7/8    |
+| 3      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | normal | No      | —           | —          | 3.25      | 1670    | 73             | 70-75%         | ok          | 8/8     | 6/8    |
+| 3      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | normal | No      | —           | —          | 2.88      | 3610    | 73             | 70-75%         | ok          | 16/16   | 15/16  |
+| 4      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | normal | No      | —           | —          | 2.75      | 1880    | 80             | 80%            | ok          | 8/8     | 8/8    |
+| 4      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | normal | No      | —           | —          | 2.67      | 1480    | 80             | 80%            | ok          | 6/6     | 6/6    |
+| 4      | Miércoles | D3    | Piernas Completas                    | normal | No      | —           | —          | 2.88      | 1830    | 80             | 80%            | ok          | 8/8     | 8/8    |
+| 4      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | normal | No      | —           | —          | 3.38      | 1670    | 73             | 70-75%         | ok          | 8/8     | 5/8    |
+| 4      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | normal | No      | —           | —          | 3.06      | 3610    | 73             | 70-75%         | ok          | 16/16   | 14/16  |
+| 5      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | normal | No      | —           | —          | 3         | 1880    | 80             | 80%            | ok          | 8/8     | 8/8    |
+| 5      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | normal | No      | —           | —          | 3.17      | 1480    | 80             | 80%            | ok          | 6/6     | 5/6    |
+| 5      | Miércoles | D3    | Piernas Completas                    | normal | No      | —           | —          | 3.13      | 1830    | 80             | 80%            | ok          | 8/8     | 7/8    |
+| 5      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | normal | No      | —           | —          | 3.5       | 1670    | 73             | 70-75%         | ok          | 8/8     | 4/8    |
+| 5      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | normal | No      | —           | —          | 3.19      | 3610    | 73             | 70-75%         | ok          | 16/16   | 13/16  |
+| 6      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | normal | No      | —           | —          | 3.5       | 660     | 56             | 80%            | ok          | 4/4     | 2/4    |
+| 6      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | normal | No      | —           | —          | 3.33      | 520     | 56             | 80%            | ok          | 3/3     | 2/3    |
+| 6      | Miércoles | D3    | Piernas Completas                    | normal | No      | —           | —          | 3.5       | 640     | 56             | 80%            | ok          | 4/4     | 2/4    |
+| 6      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | normal | No      | —           | —          | 3.5       | 585     | 51.1           | 70-75%         | ok          | 4/4     | 2/4    |
+| 6      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | normal | No      | —           | —          | 3.5       | 1260    | 51.1           | 70-75%         | ok          | 8/8     | 4/8    |
+| 7      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | normal | No      | —           | —          | 2.75      | 1880    | 80             | 80%            | ok          | 8/8     | 8/8    |
+| 7      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | normal | No      | —           | —          | 2.83      | 1480    | 80             | 80%            | ok          | 6/6     | 6/6    |
+| 7      | Miércoles | D3    | Piernas Completas                    | normal | No      | —           | —          | 3         | 1830    | 80             | 80%            | ok          | 8/8     | 7/8    |
+| 7      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | normal | No      | —           | —          | 3.25      | 1670    | 73             | 70-75%         | ok          | 8/8     | 6/8    |
+| 7      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | normal | No      | —           | —          | 3         | 3610    | 73             | 70-75%         | ok          | 16/16   | 15/16  |
+| 8      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | normal | No      | —           | —          | 2.88      | 1880    | 80             | 80%            | ok          | 8/8     | 8/8    |
+| 8      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | normal | No      | —           | —          | 3         | 1480    | 80             | 80%            | ok          | 6/6     | 6/6    |
+| 8      | Miércoles | D3    | Piernas Completas                    | normal | No      | —           | —          | 2.63      | 1830    | 80             | 80%            | ok          | 8/8     | 8/8    |
+| 8      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | normal | No      | —           | —          | 3.5       | 1670    | 73             | 70-75%         | ok          | 8/8     | 4/8    |
+| 8      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | normal | No      | —           | —          | 2.88      | 3610    | 73             | 70-75%         | ok          | 16/16   | 16/16  |
+| 9      | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | normal | No      | —           | —          | 2.75      | 1880    | 80             | 80%            | ok          | 8/8     | 8/8    |
+| 9      | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | normal | No      | —           | —          | 2.83      | 1480    | 80             | 80%            | ok          | 6/6     | 6/6    |
+| 9      | Miércoles | D3    | Piernas Completas                    | normal | No      | —           | —          | 3         | 1830    | 80             | 80%            | ok          | 8/8     | 8/8    |
+| 9      | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | normal | No      | —           | —          | 3.5       | 1670    | 73             | 70-75%         | ok          | 8/8     | 4/8    |
+| 9      | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | normal | No      | —           | —          | 3         | 3610    | 73             | 70-75%         | ok          | 16/16   | 15/16  |
+| 10     | Lunes     | D1    | Empuje Principal (Pecho + Tríceps)   | normal | No      | —           | —          | 3         | 1880    | 80             | 80%            | ok          | 8/8     | 7/8    |
+| 10     | Martes    | D2    | Tirón Principal (Espalda + Bíceps)   | normal | No      | —           | light      | 2.33      | 1480    | 80             | 80%            | ok          | 6/6     | 6/6    |
+| 10     | Miércoles | D3    | Piernas Completas                    | normal | No      | —           | —          | 2.75      | 1830    | 80             | 80%            | ok          | 8/8     | 8/8    |
+| 10     | Jueves    | D4    | Empuje Frecuencia 2 (Ligero)         | normal | No      | —           | —          | 3.25      | 1670    | 73             | 70-75%         | ok          | 8/8     | 6/8    |
+| 10     | Viernes   | D5    | Tirón Frecuencia 2 + Complementarios | normal | No      | —           | —          | 3.06      | 3610    | 73             | 70-75%         | ok          | 16/16   | 14/16  |
 
 ## Estado final
 
 - Cycle day: 1
-- Microciclos completados: 3
+- Microciclos completados: 10
 - Deload activo: no
 
 ## Progreso agregado
 
 - Sesiones completadas: 50
-- Ejercicios completados: 410
-- Series completadas: 1189
+- Ejercicios completados: 230
+- Series completadas: 437
 
 ## Errores
 
-| Paso                | Mensaje                                                                                                                         | Endpoint                                                                                      | Estado | Detalle                                                |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------ |
-| resolve_exercise_id | GET /api/exercise-catalog/search/by-name/Fondos%20en%20barras%20paralelas%20asistidos -> Error interno del servidor             | /api/exercise-catalog/search/by-name/Fondos%20en%20barras%20paralelas%20asistidos             | 500    | {"success":false,"error":"Error interno del servidor"} |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":195,"weekNumber":1,"cycleDay":"D1"}       |
-| resolve_exercise_id | GET /api/exercise-catalog/search/by-name/Fondos%20en%20paralelas%20lastrados -> Error interno del servidor                      | /api/exercise-catalog/search/by-name/Fondos%20en%20paralelas%20lastrados                      | 500    | {"success":false,"error":"Error interno del servidor"} |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":195,"weekNumber":1,"cycleDay":"D1"}       |
-| resolve_exercise_id | GET /api/exercise-catalog/search/by-name/Extensi%C3%B3n%20francesa%20con%20barra%20EZ%20(sentado) -> Error interno del servidor | /api/exercise-catalog/search/by-name/Extensi%C3%B3n%20francesa%20con%20barra%20EZ%20(sentado) | 500    | {"success":false,"error":"Error interno del servidor"} |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":195,"weekNumber":1,"cycleDay":"D1"}       |
-| resolve_exercise_id | GET /api/exercise-catalog/search/by-name/Curl%20con%20barra%20ol%C3%ADmpica%20completo -> Error interno del servidor            | /api/exercise-catalog/search/by-name/Curl%20con%20barra%20ol%C3%ADmpica%20completo            | 500    | {"success":false,"error":"Error interno del servidor"} |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":196,"weekNumber":1,"cycleDay":"D2"}       |
-| resolve_exercise_id | GET /api/exercise-catalog/search/by-name/Curl%20en%20predicador%20con%20mancuernas -> Error interno del servidor                | /api/exercise-catalog/search/by-name/Curl%20en%20predicador%20con%20mancuernas                | 500    | {"success":false,"error":"Error interno del servidor"} |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":196,"weekNumber":1,"cycleDay":"D2"}       |
-| resolve_exercise_id | GET /api/exercise-catalog/search/by-name/Hack%20Squat%20en%20m%C3%A1quina -> Error interno del servidor                         | /api/exercise-catalog/search/by-name/Hack%20Squat%20en%20m%C3%A1quina                         | 500    | {"success":false,"error":"Error interno del servidor"} |
-| save_set_skipped    | Sin exercise_id para "Hack Squat en máquina", se omiten sets                                                                    | —                                                                                             | —      | {"sessionId":197,"weekNumber":1,"cycleDay":"D3"}       |
-| resolve_exercise_id | GET /api/exercise-catalog/search/by-name/Prensa%20inclinada%2045%C2%B0 -> Error interno del servidor                            | /api/exercise-catalog/search/by-name/Prensa%20inclinada%2045%C2%B0                            | 500    | {"success":false,"error":"Error interno del servidor"} |
-| save_set_skipped    | Sin exercise_id para "Prensa inclinada 45°", se omiten sets                                                                     | —                                                                                             | —      | {"sessionId":197,"weekNumber":1,"cycleDay":"D3"}       |
-| resolve_exercise_id | GET /api/exercise-catalog/search/by-name/Sentadilla%20Sissy%20con%20mancuernas -> Error interno del servidor                    | /api/exercise-catalog/search/by-name/Sentadilla%20Sissy%20con%20mancuernas                    | 500    | {"success":false,"error":"Error interno del servidor"} |
-| save_set_skipped    | Sin exercise_id para "Sentadilla Sissy con mancuernas", se omiten sets                                                          | —                                                                                             | —      | {"sessionId":197,"weekNumber":1,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":198,"weekNumber":1,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":198,"weekNumber":1,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":198,"weekNumber":1,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":199,"weekNumber":1,"cycleDay":"D5"}       |
-| resolve_exercise_id | GET /api/exercise-catalog/search/by-name/Press%20Arnold%20con%20mancuernas -> Error interno del servidor                        | /api/exercise-catalog/search/by-name/Press%20Arnold%20con%20mancuernas                        | 500    | {"success":false,"error":"Error interno del servidor"} |
-| save_set_skipped    | Sin exercise_id para "Press Arnold con mancuernas", se omiten sets                                                              | —                                                                                             | —      | {"sessionId":199,"weekNumber":1,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":199,"weekNumber":1,"cycleDay":"D5"}       |
-| resolve_exercise_id | GET /api/exercise-catalog/search/by-name/Curl%20concentrado%20en%20banco -> Error interno del servidor                          | /api/exercise-catalog/search/by-name/Curl%20concentrado%20en%20banco                          | 500    | {"success":false,"error":"Error interno del servidor"} |
-| save_set_skipped    | Sin exercise_id para "Curl concentrado en banco", se omiten sets                                                                | —                                                                                             | —      | {"sessionId":199,"weekNumber":1,"cycleDay":"D5"}       |
-| resolve_exercise_id | GET /api/exercise-catalog/search/by-name/Elevaci%C3%B3n%20lateral%20en%20polea%20(unilateral) -> Error interno del servidor     | /api/exercise-catalog/search/by-name/Elevaci%C3%B3n%20lateral%20en%20polea%20(unilateral)     | 500    | {"success":false,"error":"Error interno del servidor"} |
-| save_set_skipped    | Sin exercise_id para "Elevación lateral en polea (unilateral)", se omiten sets                                                  | —                                                                                             | —      | {"sessionId":199,"weekNumber":1,"cycleDay":"D5"}       |
-| resolve_exercise_id | GET /api/exercise-catalog/search/by-name/Shrugs%20(encorvamientos)%20con%20barra%20ol%C3%ADmpica -> Error interno del servidor  | /api/exercise-catalog/search/by-name/Shrugs%20(encorvamientos)%20con%20barra%20ol%C3%ADmpica  | 500    | {"success":false,"error":"Error interno del servidor"} |
-| save_set_skipped    | Sin exercise_id para "Shrugs (encorvamientos) con barra olímpica", se omiten sets                                               | —                                                                                             | —      | {"sessionId":199,"weekNumber":1,"cycleDay":"D5"}       |
-| resolve_exercise_id | GET /api/exercise-catalog/search/by-name/Plank%20pesado%20(con%20disco%20en%20espalda) -> Error interno del servidor            | /api/exercise-catalog/search/by-name/Plank%20pesado%20(con%20disco%20en%20espalda)            | 500    | {"success":false,"error":"Error interno del servidor"} |
-| save_set_skipped    | Sin exercise_id para "Plank pesado (con disco en espalda)", se omiten sets                                                      | —                                                                                             | —      | {"sessionId":199,"weekNumber":1,"cycleDay":"D5"}       |
-| resolve_exercise_id | GET /api/exercise-catalog/search/by-name/Crunches%20en%20banco%20declinado%20con%20disco -> Error interno del servidor          | /api/exercise-catalog/search/by-name/Crunches%20en%20banco%20declinado%20con%20disco          | 500    | {"success":false,"error":"Error interno del servidor"} |
-| save_set_skipped    | Sin exercise_id para "Crunches en banco declinado con disco", se omiten sets                                                    | —                                                                                             | —      | {"sessionId":199,"weekNumber":1,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":200,"weekNumber":2,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":200,"weekNumber":2,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":200,"weekNumber":2,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":201,"weekNumber":2,"cycleDay":"D2"}       |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":201,"weekNumber":2,"cycleDay":"D2"}       |
-| save_set_skipped    | Sin exercise_id para "Hack Squat en máquina", se omiten sets                                                                    | —                                                                                             | —      | {"sessionId":202,"weekNumber":2,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Prensa inclinada 45°", se omiten sets                                                                     | —                                                                                             | —      | {"sessionId":202,"weekNumber":2,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Sentadilla Sissy con mancuernas", se omiten sets                                                          | —                                                                                             | —      | {"sessionId":202,"weekNumber":2,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":203,"weekNumber":2,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":203,"weekNumber":2,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":203,"weekNumber":2,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":204,"weekNumber":2,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Press Arnold con mancuernas", se omiten sets                                                              | —                                                                                             | —      | {"sessionId":204,"weekNumber":2,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":204,"weekNumber":2,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Curl concentrado en banco", se omiten sets                                                                | —                                                                                             | —      | {"sessionId":204,"weekNumber":2,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Elevación lateral en polea (unilateral)", se omiten sets                                                  | —                                                                                             | —      | {"sessionId":204,"weekNumber":2,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Shrugs (encorvamientos) con barra olímpica", se omiten sets                                               | —                                                                                             | —      | {"sessionId":204,"weekNumber":2,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Plank pesado (con disco en espalda)", se omiten sets                                                      | —                                                                                             | —      | {"sessionId":204,"weekNumber":2,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Crunches en banco declinado con disco", se omiten sets                                                    | —                                                                                             | —      | {"sessionId":204,"weekNumber":2,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":205,"weekNumber":3,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":205,"weekNumber":3,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":205,"weekNumber":3,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":206,"weekNumber":3,"cycleDay":"D2"}       |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":206,"weekNumber":3,"cycleDay":"D2"}       |
-| save_set_skipped    | Sin exercise_id para "Hack Squat en máquina", se omiten sets                                                                    | —                                                                                             | —      | {"sessionId":207,"weekNumber":3,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Prensa inclinada 45°", se omiten sets                                                                     | —                                                                                             | —      | {"sessionId":207,"weekNumber":3,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Sentadilla Sissy con mancuernas", se omiten sets                                                          | —                                                                                             | —      | {"sessionId":207,"weekNumber":3,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":208,"weekNumber":3,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":208,"weekNumber":3,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":208,"weekNumber":3,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":209,"weekNumber":3,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Press Arnold con mancuernas", se omiten sets                                                              | —                                                                                             | —      | {"sessionId":209,"weekNumber":3,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":209,"weekNumber":3,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Curl concentrado en banco", se omiten sets                                                                | —                                                                                             | —      | {"sessionId":209,"weekNumber":3,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Elevación lateral en polea (unilateral)", se omiten sets                                                  | —                                                                                             | —      | {"sessionId":209,"weekNumber":3,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Shrugs (encorvamientos) con barra olímpica", se omiten sets                                               | —                                                                                             | —      | {"sessionId":209,"weekNumber":3,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Plank pesado (con disco en espalda)", se omiten sets                                                      | —                                                                                             | —      | {"sessionId":209,"weekNumber":3,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Crunches en banco declinado con disco", se omiten sets                                                    | —                                                                                             | —      | {"sessionId":209,"weekNumber":3,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":210,"weekNumber":4,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":210,"weekNumber":4,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":210,"weekNumber":4,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":211,"weekNumber":4,"cycleDay":"D2"}       |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":211,"weekNumber":4,"cycleDay":"D2"}       |
-| save_set_skipped    | Sin exercise_id para "Hack Squat en máquina", se omiten sets                                                                    | —                                                                                             | —      | {"sessionId":212,"weekNumber":4,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Prensa inclinada 45°", se omiten sets                                                                     | —                                                                                             | —      | {"sessionId":212,"weekNumber":4,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Sentadilla Sissy con mancuernas", se omiten sets                                                          | —                                                                                             | —      | {"sessionId":212,"weekNumber":4,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":213,"weekNumber":4,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":213,"weekNumber":4,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":213,"weekNumber":4,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":214,"weekNumber":4,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Press Arnold con mancuernas", se omiten sets                                                              | —                                                                                             | —      | {"sessionId":214,"weekNumber":4,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":214,"weekNumber":4,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Curl concentrado en banco", se omiten sets                                                                | —                                                                                             | —      | {"sessionId":214,"weekNumber":4,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Elevación lateral en polea (unilateral)", se omiten sets                                                  | —                                                                                             | —      | {"sessionId":214,"weekNumber":4,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Shrugs (encorvamientos) con barra olímpica", se omiten sets                                               | —                                                                                             | —      | {"sessionId":214,"weekNumber":4,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Plank pesado (con disco en espalda)", se omiten sets                                                      | —                                                                                             | —      | {"sessionId":214,"weekNumber":4,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Crunches en banco declinado con disco", se omiten sets                                                    | —                                                                                             | —      | {"sessionId":214,"weekNumber":4,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":215,"weekNumber":5,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":215,"weekNumber":5,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":215,"weekNumber":5,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":216,"weekNumber":5,"cycleDay":"D2"}       |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":216,"weekNumber":5,"cycleDay":"D2"}       |
-| save_set_skipped    | Sin exercise_id para "Hack Squat en máquina", se omiten sets                                                                    | —                                                                                             | —      | {"sessionId":217,"weekNumber":5,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Prensa inclinada 45°", se omiten sets                                                                     | —                                                                                             | —      | {"sessionId":217,"weekNumber":5,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Sentadilla Sissy con mancuernas", se omiten sets                                                          | —                                                                                             | —      | {"sessionId":217,"weekNumber":5,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":218,"weekNumber":5,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":218,"weekNumber":5,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":218,"weekNumber":5,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":219,"weekNumber":5,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Press Arnold con mancuernas", se omiten sets                                                              | —                                                                                             | —      | {"sessionId":219,"weekNumber":5,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":219,"weekNumber":5,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Curl concentrado en banco", se omiten sets                                                                | —                                                                                             | —      | {"sessionId":219,"weekNumber":5,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Elevación lateral en polea (unilateral)", se omiten sets                                                  | —                                                                                             | —      | {"sessionId":219,"weekNumber":5,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Shrugs (encorvamientos) con barra olímpica", se omiten sets                                               | —                                                                                             | —      | {"sessionId":219,"weekNumber":5,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Plank pesado (con disco en espalda)", se omiten sets                                                      | —                                                                                             | —      | {"sessionId":219,"weekNumber":5,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Crunches en banco declinado con disco", se omiten sets                                                    | —                                                                                             | —      | {"sessionId":219,"weekNumber":5,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":220,"weekNumber":6,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":220,"weekNumber":6,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":220,"weekNumber":6,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":221,"weekNumber":6,"cycleDay":"D2"}       |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":221,"weekNumber":6,"cycleDay":"D2"}       |
-| save_set_skipped    | Sin exercise_id para "Hack Squat en máquina", se omiten sets                                                                    | —                                                                                             | —      | {"sessionId":222,"weekNumber":6,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Prensa inclinada 45°", se omiten sets                                                                     | —                                                                                             | —      | {"sessionId":222,"weekNumber":6,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Sentadilla Sissy con mancuernas", se omiten sets                                                          | —                                                                                             | —      | {"sessionId":222,"weekNumber":6,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":223,"weekNumber":6,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":223,"weekNumber":6,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":223,"weekNumber":6,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":224,"weekNumber":6,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Press Arnold con mancuernas", se omiten sets                                                              | —                                                                                             | —      | {"sessionId":224,"weekNumber":6,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":224,"weekNumber":6,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Curl concentrado en banco", se omiten sets                                                                | —                                                                                             | —      | {"sessionId":224,"weekNumber":6,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Elevación lateral en polea (unilateral)", se omiten sets                                                  | —                                                                                             | —      | {"sessionId":224,"weekNumber":6,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Shrugs (encorvamientos) con barra olímpica", se omiten sets                                               | —                                                                                             | —      | {"sessionId":224,"weekNumber":6,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Plank pesado (con disco en espalda)", se omiten sets                                                      | —                                                                                             | —      | {"sessionId":224,"weekNumber":6,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Crunches en banco declinado con disco", se omiten sets                                                    | —                                                                                             | —      | {"sessionId":224,"weekNumber":6,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":225,"weekNumber":7,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":225,"weekNumber":7,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":225,"weekNumber":7,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":226,"weekNumber":7,"cycleDay":"D2"}       |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":226,"weekNumber":7,"cycleDay":"D2"}       |
-| save_set_skipped    | Sin exercise_id para "Hack Squat en máquina", se omiten sets                                                                    | —                                                                                             | —      | {"sessionId":227,"weekNumber":7,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Prensa inclinada 45°", se omiten sets                                                                     | —                                                                                             | —      | {"sessionId":227,"weekNumber":7,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Sentadilla Sissy con mancuernas", se omiten sets                                                          | —                                                                                             | —      | {"sessionId":227,"weekNumber":7,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":228,"weekNumber":7,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":228,"weekNumber":7,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":228,"weekNumber":7,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":229,"weekNumber":7,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Press Arnold con mancuernas", se omiten sets                                                              | —                                                                                             | —      | {"sessionId":229,"weekNumber":7,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":229,"weekNumber":7,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Curl concentrado en banco", se omiten sets                                                                | —                                                                                             | —      | {"sessionId":229,"weekNumber":7,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Elevación lateral en polea (unilateral)", se omiten sets                                                  | —                                                                                             | —      | {"sessionId":229,"weekNumber":7,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Shrugs (encorvamientos) con barra olímpica", se omiten sets                                               | —                                                                                             | —      | {"sessionId":229,"weekNumber":7,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Plank pesado (con disco en espalda)", se omiten sets                                                      | —                                                                                             | —      | {"sessionId":229,"weekNumber":7,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Crunches en banco declinado con disco", se omiten sets                                                    | —                                                                                             | —      | {"sessionId":229,"weekNumber":7,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":230,"weekNumber":8,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":230,"weekNumber":8,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":230,"weekNumber":8,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":231,"weekNumber":8,"cycleDay":"D2"}       |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":231,"weekNumber":8,"cycleDay":"D2"}       |
-| save_set_skipped    | Sin exercise_id para "Hack Squat en máquina", se omiten sets                                                                    | —                                                                                             | —      | {"sessionId":232,"weekNumber":8,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Prensa inclinada 45°", se omiten sets                                                                     | —                                                                                             | —      | {"sessionId":232,"weekNumber":8,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Sentadilla Sissy con mancuernas", se omiten sets                                                          | —                                                                                             | —      | {"sessionId":232,"weekNumber":8,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":233,"weekNumber":8,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":233,"weekNumber":8,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":233,"weekNumber":8,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":234,"weekNumber":8,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Press Arnold con mancuernas", se omiten sets                                                              | —                                                                                             | —      | {"sessionId":234,"weekNumber":8,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":234,"weekNumber":8,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Curl concentrado en banco", se omiten sets                                                                | —                                                                                             | —      | {"sessionId":234,"weekNumber":8,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Elevación lateral en polea (unilateral)", se omiten sets                                                  | —                                                                                             | —      | {"sessionId":234,"weekNumber":8,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Shrugs (encorvamientos) con barra olímpica", se omiten sets                                               | —                                                                                             | —      | {"sessionId":234,"weekNumber":8,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Plank pesado (con disco en espalda)", se omiten sets                                                      | —                                                                                             | —      | {"sessionId":234,"weekNumber":8,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Crunches en banco declinado con disco", se omiten sets                                                    | —                                                                                             | —      | {"sessionId":234,"weekNumber":8,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":235,"weekNumber":9,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":235,"weekNumber":9,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":235,"weekNumber":9,"cycleDay":"D1"}       |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":236,"weekNumber":9,"cycleDay":"D2"}       |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":236,"weekNumber":9,"cycleDay":"D2"}       |
-| save_set_skipped    | Sin exercise_id para "Hack Squat en máquina", se omiten sets                                                                    | —                                                                                             | —      | {"sessionId":237,"weekNumber":9,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Prensa inclinada 45°", se omiten sets                                                                     | —                                                                                             | —      | {"sessionId":237,"weekNumber":9,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Sentadilla Sissy con mancuernas", se omiten sets                                                          | —                                                                                             | —      | {"sessionId":237,"weekNumber":9,"cycleDay":"D3"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":238,"weekNumber":9,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":238,"weekNumber":9,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":238,"weekNumber":9,"cycleDay":"D4"}       |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":239,"weekNumber":9,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Press Arnold con mancuernas", se omiten sets                                                              | —                                                                                             | —      | {"sessionId":239,"weekNumber":9,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":239,"weekNumber":9,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Curl concentrado en banco", se omiten sets                                                                | —                                                                                             | —      | {"sessionId":239,"weekNumber":9,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Elevación lateral en polea (unilateral)", se omiten sets                                                  | —                                                                                             | —      | {"sessionId":239,"weekNumber":9,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Shrugs (encorvamientos) con barra olímpica", se omiten sets                                               | —                                                                                             | —      | {"sessionId":239,"weekNumber":9,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Plank pesado (con disco en espalda)", se omiten sets                                                      | —                                                                                             | —      | {"sessionId":239,"weekNumber":9,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Crunches en banco declinado con disco", se omiten sets                                                    | —                                                                                             | —      | {"sessionId":239,"weekNumber":9,"cycleDay":"D5"}       |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":240,"weekNumber":10,"cycleDay":"D1"}      |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":240,"weekNumber":10,"cycleDay":"D1"}      |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":240,"weekNumber":10,"cycleDay":"D1"}      |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":241,"weekNumber":10,"cycleDay":"D2"}      |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":241,"weekNumber":10,"cycleDay":"D2"}      |
-| save_set_skipped    | Sin exercise_id para "Hack Squat en máquina", se omiten sets                                                                    | —                                                                                             | —      | {"sessionId":242,"weekNumber":10,"cycleDay":"D3"}      |
-| save_set_skipped    | Sin exercise_id para "Prensa inclinada 45°", se omiten sets                                                                     | —                                                                                             | —      | {"sessionId":242,"weekNumber":10,"cycleDay":"D3"}      |
-| save_set_skipped    | Sin exercise_id para "Sentadilla Sissy con mancuernas", se omiten sets                                                          | —                                                                                             | —      | {"sessionId":242,"weekNumber":10,"cycleDay":"D3"}      |
-| save_set_skipped    | Sin exercise_id para "Fondos en paralelas lastrados", se omiten sets                                                            | —                                                                                             | —      | {"sessionId":243,"weekNumber":10,"cycleDay":"D4"}      |
-| save_set_skipped    | Sin exercise_id para "Fondos en barras paralelas asistidos", se omiten sets                                                     | —                                                                                             | —      | {"sessionId":243,"weekNumber":10,"cycleDay":"D4"}      |
-| save_set_skipped    | Sin exercise_id para "Extensión francesa con barra EZ (sentado)", se omiten sets                                                | —                                                                                             | —      | {"sessionId":243,"weekNumber":10,"cycleDay":"D4"}      |
-| save_set_skipped    | Sin exercise_id para "Curl con barra olímpica completo", se omiten sets                                                         | —                                                                                             | —      | {"sessionId":244,"weekNumber":10,"cycleDay":"D5"}      |
-| save_set_skipped    | Sin exercise_id para "Press Arnold con mancuernas", se omiten sets                                                              | —                                                                                             | —      | {"sessionId":244,"weekNumber":10,"cycleDay":"D5"}      |
-| save_set_skipped    | Sin exercise_id para "Curl en predicador con mancuernas", se omiten sets                                                        | —                                                                                             | —      | {"sessionId":244,"weekNumber":10,"cycleDay":"D5"}      |
-| save_set_skipped    | Sin exercise_id para "Curl concentrado en banco", se omiten sets                                                                | —                                                                                             | —      | {"sessionId":244,"weekNumber":10,"cycleDay":"D5"}      |
-| save_set_skipped    | Sin exercise_id para "Elevación lateral en polea (unilateral)", se omiten sets                                                  | —                                                                                             | —      | {"sessionId":244,"weekNumber":10,"cycleDay":"D5"}      |
-| save_set_skipped    | Sin exercise_id para "Shrugs (encorvamientos) con barra olímpica", se omiten sets                                               | —                                                                                             | —      | {"sessionId":244,"weekNumber":10,"cycleDay":"D5"}      |
-| save_set_skipped    | Sin exercise_id para "Plank pesado (con disco en espalda)", se omiten sets                                                      | —                                                                                             | —      | {"sessionId":244,"weekNumber":10,"cycleDay":"D5"}      |
-| save_set_skipped    | Sin exercise_id para "Crunches en banco declinado con disco", se omiten sets                                                    | —                                                                                             | —      | {"sessionId":244,"weekNumber":10,"cycleDay":"D5"}      |
+Sin errores.
 
 ## Observaciones
 
-- La semana 0 se omitio porque el endpoint de sesiones no acepta week_number=0.
+- La semana 0 se simulo como calibracion (RIR 3-4, sin progresion).
 - Las fechas reales de sesion quedan con la fecha actual del servidor; el calendario del plan se respeta via week_number/day_name.

@@ -194,7 +194,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
   return (
     <div className="space-y-6">
       {/* Header con selección de día */}
-      <Card className="bg-gray-800/70 border-gray-600">
+      <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Utensils className="text-yellow-400" size={24} />
@@ -210,7 +210,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${
                   selectedDay === day
                     ? 'bg-yellow-400 text-black'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
                 }`}
               >
                 {day.charAt(0).toUpperCase() + day.slice(1)}
@@ -219,7 +219,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
           </div>
 
           {/* Resumen del día */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-700/50 rounded-lg">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-white/5 rounded-lg">
             <div className="text-center">
               <div className="text-lg font-bold text-blue-400">
                 {dayTotals.calories} / {targetCalories}
@@ -251,7 +251,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Plan del día */}
         <div className="space-y-4">
-          <Card className="bg-gray-800/70 border-gray-600">
+          <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
             <CardHeader>
               <CardTitle className="text-white flex items-center justify-between">
                 <span>Plan del {selectedDay.charAt(0).toUpperCase() + selectedDay.slice(1)}</span>
@@ -259,7 +259,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-gray-600 text-white hover:bg-gray-700"
+                    className="border-white/10 text-white hover:bg-white/10"
                   >
                     <Save size={14} className="mr-1" />
                     Guardar
@@ -267,7 +267,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-gray-600 text-white hover:bg-gray-700"
+                    className="border-white/10 text-white hover:bg-white/10"
                   >
                     <Copy size={14} className="mr-1" />
                     Copiar
@@ -278,7 +278,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
             <CardContent>
               <div className="space-y-4">
                 {Object.entries(dayMeals).map(([mealType, meal]) => (
-                  <div key={mealType} className="border border-gray-600 rounded-lg p-4">
+                  <div key={mealType} className="border border-white/10 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-semibold text-white capitalize">
                         {mealType}
@@ -316,7 +316,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center py-4 text-gray-400 border-2 border-dashed border-gray-600 rounded-lg">
+                      <div className="text-center py-4 text-gray-400 border-2 border-dashed border-white/10 rounded-lg">
                         <Plus className="mx-auto mb-2" size={20} />
                         <p className="text-sm">Selecciona una comida</p>
                       </div>
@@ -330,7 +330,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
 
         {/* Templates de comidas */}
         <div className="space-y-4">
-          <Card className="bg-gray-800/70 border-gray-600">
+          <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
             <CardHeader>
               <CardTitle className="text-white flex items-center justify-between">
                 <span>Templates de Comidas</span>
@@ -353,7 +353,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
                     placeholder="Buscar comidas..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-gray-700 border-gray-600 text-white"
+                    className="pl-10 bg-white/5 border-white/10 text-white"
                   />
                 </div>
 
@@ -365,7 +365,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
                       className={`px-3 py-1 rounded-lg text-sm transition-all ${
                         selectedCategory === category.id
                           ? 'bg-yellow-400 text-black'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                          : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
                       }`}
                     >
                       {category.name}
@@ -379,7 +379,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
                 {filteredTemplates.map(template => (
                   <div
                     key={template.id}
-                    className="p-3 border border-gray-600 rounded-lg hover:bg-gray-700/50 transition-colors"
+                    className="p-3 border border-white/10 rounded-lg hover:bg-white/5 transition-colors"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
@@ -442,7 +442,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
 
       {/* Modal de comida personalizada */}
       {showCustomMeal && (
-        <Card className="bg-gray-800/70 border-gray-600">
+        <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
           <CardHeader>
             <CardTitle className="text-white flex items-center justify-between">
               <span>Crear Comida Personalizada</span>
@@ -450,7 +450,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
                 size="sm"
                 variant="outline"
                 onClick={() => setShowCustomMeal(false)}
-                className="border-gray-600 text-white hover:bg-gray-700"
+                className="border-white/10 text-white hover:bg-white/10"
               >
                 Cerrar
               </Button>
@@ -465,7 +465,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
                     value={customMeal.name}
                     onChange={(e) => setCustomMeal(prev => ({...prev, name: e.target.value}))}
                     placeholder="Ej: Mi desayuno especial"
-                    className="bg-gray-700 border-gray-600 text-white"
+                    className="bg-white/5 border-white/10 text-white"
                   />
                 </div>
 
@@ -476,7 +476,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
                       type="number"
                       value={customMeal.calories}
                       onChange={(e) => setCustomMeal(prev => ({...prev, calories: e.target.value}))}
-                      className="bg-gray-700 border-gray-600 text-white"
+                      className="bg-white/5 border-white/10 text-white"
                     />
                   </div>
                   <div>
@@ -485,7 +485,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
                       type="number"
                       value={customMeal.protein}
                       onChange={(e) => setCustomMeal(prev => ({...prev, protein: e.target.value}))}
-                      className="bg-gray-700 border-gray-600 text-white"
+                      className="bg-white/5 border-white/10 text-white"
                     />
                   </div>
                   <div>
@@ -494,7 +494,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
                       type="number"
                       value={customMeal.carbs}
                       onChange={(e) => setCustomMeal(prev => ({...prev, carbs: e.target.value}))}
-                      className="bg-gray-700 border-gray-600 text-white"
+                      className="bg-white/5 border-white/10 text-white"
                     />
                   </div>
                   <div>
@@ -503,7 +503,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
                       type="number"
                       value={customMeal.fat}
                       onChange={(e) => setCustomMeal(prev => ({...prev, fat: e.target.value}))}
-                      className="bg-gray-700 border-gray-600 text-white"
+                      className="bg-white/5 border-white/10 text-white"
                     />
                   </div>
                 </div>
@@ -517,7 +517,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
                       value={customMeal.newIngredient}
                       onChange={(e) => setCustomMeal(prev => ({...prev, newIngredient: e.target.value}))}
                       placeholder="Agregar ingrediente"
-                      className="bg-gray-700 border-gray-600 text-white"
+                      className="bg-white/5 border-white/10 text-white"
                       onKeyPress={(e) => e.key === 'Enter' && addIngredient()}
                     />
                     <Button
@@ -531,7 +531,7 @@ export default function MealPlanner({ userMacros, userData, onPlanCreated, initi
                   
                   <div className="space-y-1 max-h-32 overflow-y-auto">
                     {customMeal.ingredients.map((ingredient, index) => (
-                      <div key={index} className="flex items-center justify-between bg-gray-700/50 p-2 rounded">
+                      <div key={index} className="flex items-center justify-between bg-white/5 p-2 rounded">
                         <span className="text-white text-sm">{ingredient}</span>
                         <Button
                           size="sm"

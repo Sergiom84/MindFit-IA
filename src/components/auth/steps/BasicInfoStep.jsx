@@ -3,12 +3,12 @@ import { Eye, EyeOff } from 'lucide-react';
 
 // Constantes para estilos reutilizables
 const INPUT_STYLES = {
-  base: "w-full bg-gray-700/50 border rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 transition-colors",
-  normal: "border-gray-600",
+  base: "w-full bg-white/5 border rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400/60 transition-colors",
+  normal: "border-white/10",
   error: "border-red-500"
 };
 
-const LABEL_STYLES = "block text-white font-medium mb-2";
+const LABEL_STYLES = "block text-gray-200/90 font-medium mb-2";
 const REQUIRED_INDICATOR = <span className="text-red-400">*</span>;
 const ERROR_MESSAGE_STYLES = "text-red-400 text-sm mt-1";
 
@@ -37,8 +37,8 @@ const BasicInfoStep = ({ formData, onInputChange, errors = {} }) => {
       {/* Sección: Información de cuenta */}
       <>
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-semibold text-white mb-2">Información de Cuenta</h2>
-          <p className="text-gray-300">Crea tu cuenta para comenzar tu entrenamiento personalizado</p>
+          <h2 className="text-2xl font-semibold text-white mb-2 font-urbanist">Información de Cuenta</h2>
+          <p className="text-gray-300/80">Crea tu cuenta para comenzar tu entrenamiento personalizado</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -124,8 +124,8 @@ const BasicInfoStep = ({ formData, onInputChange, errors = {} }) => {
       </>
 
       {/* Sección: Datos personales básicos */}
-      <div className="border-t border-gray-600 pt-8">
-        <h3 className="text-xl font-semibold text-yellow-400 mb-6">Datos Personales</h3>
+      <div className="border-t border-white/10 pt-8">
+        <h3 className="text-xl font-semibold text-yellow-300 mb-6 font-urbanist">Datos Personales</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Edad */}

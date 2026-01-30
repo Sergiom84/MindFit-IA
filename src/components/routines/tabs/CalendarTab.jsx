@@ -30,7 +30,8 @@ import {
   Target,
   Dumbbell,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import { getTodaySessionStatus, getSessionProgress } from '../api';
 import { mapSessionsToWeekDays } from '../../../utils/calendarMapping';
@@ -397,19 +398,21 @@ export default function CalendarTab({ plan, planStartDate, methodologyPlanId, en
   };
 
   const getDayClassName = (day) => {
-    let baseClasses = "min-h-48 p-3 border-r border-gray-700 last:border-r-0 transition-all cursor-pointer relative flex flex-col";
+    let baseClasses = "min-h-48 p-3 border-r border-white/10 last:border-r-0 transition-all relative flex flex-col";
 
     if (day.session) {
-      // sin tratamiento amarillo para hoy
+      baseClasses += " cursor-pointer bg-black/60 hover:bg-black/70";
       if (day.isPast) {
-        baseClasses += " bg-green-900/20 hover:bg-green-900/30";
+        baseClasses += " bg-emerald-900/15 hover:bg-emerald-900/20";
       } else if (day.isFuture) {
-        baseClasses += " bg-blue-900/20 hover:bg-blue-900/30";
-      } else {
-        baseClasses += " bg-gray-800 hover:bg-gray-700";
+        baseClasses += " bg-sky-900/10 hover:bg-sky-900/15";
       }
     } else {
-      baseClasses += " bg-gray-900/50 cursor-default";
+      baseClasses += " bg-black/40 cursor-default";
+    }
+
+    if (day.isToday) {
+      baseClasses += " ring-1 ring-yellow-400/20";
     }
 
     return baseClasses;
@@ -419,7 +422,7 @@ export default function CalendarTab({ plan, planStartDate, methodologyPlanId, en
     return (
       <div className="text-center py-12">
         <Calendar className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-        <p className="text-gray-400 text-lg">No hay plan de entrenamiento disponible</p>
+        <p className="text-gray-300/80 text-lg">No hay plan de entrenamiento disponible</p>
       </div>
     );
   }
@@ -428,7 +431,7 @@ export default function CalendarTab({ plan, planStartDate, methodologyPlanId, en
     return (
       <div className="text-center py-12">
         <Calendar className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-        <p className="text-gray-400 text-lg">No se pudo cargar el calendario</p>
+        <p className="text-gray-300/80 text-lg">No se pudo cargar el calendario</p>
       </div>
     );
   }
@@ -439,7 +442,7 @@ export default function CalendarTab({ plan, planStartDate, methodologyPlanId, en
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-          <p className="text-gray-400">Cargando calendario actualizado...</p>
+          <p className="text-gray-300/80">Cargando calendario actualizado...</p>
         </div>
       </div>
     );
@@ -448,17 +451,17 @@ export default function CalendarTab({ plan, planStartDate, methodologyPlanId, en
   return (
     <div className="space-y-6">
       {/* Header del calendario */}
-      <Card className="bg-gray-900/50 border-gray-700 p-6">
-        <div className="flex justify-between items-center">
+      <Card className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 border-l-2 border-l-sky-400/35 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20 p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-white mb-2">Calendario de Entrenamiento</h2>
-            <Badge variant="secondary" className="bg-yellow-400/20 text-yellow-300">
+            <h2 className="text-2xl font-semibold font-urbanist text-white mb-2">Calendario de Entrenamiento</h2>
+            <Badge variant="secondary" className="bg-yellow-400/20 text-yellow-200 border border-yellow-400/30">
               {updatedPlan?.selected_style || plan?.selected_style}
             </Badge>
           </div>
 
-          <div className="flex items-center space-x-4">
-            <span className="text-gray-300 font-medium">
+          <div className="flex w-full items-center justify-between sm:w-auto sm:justify-start sm:space-x-4">
+            <span className="text-sm text-gray-300/80 font-medium">
               Semana {currentWeekData?.weekNumber || 1} de {calendarData.length}
             </span>
             <div className="flex items-center space-x-2">
@@ -467,7 +470,7 @@ export default function CalendarTab({ plan, planStartDate, methodologyPlanId, en
                 size="sm"
                 onClick={handlePrevWeek}
                 disabled={currentWeek === 0}
-                className="border-gray-600 hover:bg-gray-800"
+                className="border-white/10 text-gray-200 hover:bg-white/10"
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
@@ -476,7 +479,7 @@ export default function CalendarTab({ plan, planStartDate, methodologyPlanId, en
                 size="sm"
                 onClick={handleNextWeek}
                 disabled={currentWeek === calendarData.length - 1}
-                className="border-gray-600 hover:bg-gray-800"
+                className="border-white/10 text-gray-200 hover:bg-white/10"
               >
                 <ChevronRight className="w-4 h-4" />
               </Button>
@@ -486,12 +489,88 @@ export default function CalendarTab({ plan, planStartDate, methodologyPlanId, en
       </Card>
 
       {/* Grid del calendario estilo Google Calendar */}
-      <Card className="bg-gray-900/50 border-gray-700 overflow-hidden">
+      <div className="space-y-4 sm:hidden">
+        {currentWeekData?.days.map((day, index) => {
+          const key = getDayKey(day.weekNumber || currentWeekData.weekNumber, day);
+          const progressList = weekStatuses[key]?.exercises || [];
+          const totalExercises = day.session?.ejercicios?.length || 0;
+          const completedExercises = progressList.filter(ex => ex.status === 'completed').length;
+          const allCompleted = totalExercises > 0 && completedExercises === totalExercises;
+          const hasIncompleteExercises = completedExercises > 0 && completedExercises < totalExercises;
+          const previewExercises = day.session?.ejercicios?.slice(0, 3) || [];
+          const remainingExercises = totalExercises - previewExercises.length;
+
+          return (
+            <Card
+              key={index}
+              onClick={() => handleDayClick(day)}
+              className="cursor-pointer bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 border-l-2 border-l-sky-400/30 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20"
+            >
+              <div className="p-5 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.35em] text-gray-300/70">
+                      {day.dayNameShort}
+                    </p>
+                    <h3 className="text-lg font-semibold font-urbanist text-white">
+                      {day.dayName} {day.date.getDate()}
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {day.isToday && (
+                      <Badge variant="secondary" className="bg-yellow-400/20 text-yellow-200 border border-yellow-400/30">
+                        Hoy
+                      </Badge>
+                    )}
+                    {allCompleted && <CheckCircle className="w-4 h-4 text-emerald-400" />}
+                    {hasIncompleteExercises && <AlertTriangle className="w-4 h-4 text-yellow-400" />}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-sm text-gray-300/80">
+                  <span>{day.session ? `${totalExercises} ejercicios` : 'Día de descanso'}</span>
+                  <span className="text-yellow-300/80">Semana {day.weekNumber}</span>
+                </div>
+
+                {day.session ? (
+                  <div className="space-y-2">
+                    {previewExercises.map((ejercicio, exIndex) => {
+                      const statusEntry = progressList.find(ex => ex.exercise_order === exIndex);
+                      const status = statusEntry?.status;
+                      const progress = statusEntry;
+                      return (
+                        <CalendarExerciseCard
+                          key={exIndex}
+                          ejercicio={ejercicio}
+                          exIndex={exIndex}
+                          status={status}
+                          progress={progress}
+                        />
+                      );
+                    })}
+                    {remainingExercises > 0 && (
+                      <div className="text-xs text-gray-300/70">
+                        + {remainingExercises} ejercicios más
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-center text-xs text-gray-300/70">
+                    Recupera energía para tu próxima sesión.
+                  </div>
+                )}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card className="hidden sm:block bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 border-l-2 border-l-sky-400/30 overflow-hidden shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20">
         {/* Header de días de la semana */}
-        <div className="grid grid-cols-7 bg-gray-800 border-b border-gray-700">
+        <div className="grid grid-cols-7 bg-black/60 border-b border-white/10">
           {currentWeekData?.days.map((day, index) => (
-            <div key={index} className={`p-4 text-center font-semibold border-r border-gray-700 last:border-r-0 ${
-              day.isToday ? 'bg-yellow-500 text-black' : 'text-gray-300'
+            <div key={index} className={`p-4 text-center font-semibold border-r border-white/10 last:border-r-0 ${
+              day.isToday ? 'bg-yellow-400/15 text-yellow-200' : 'text-gray-300/80'
             }`}>
               {day.dayNameShort} {day.date.getDate()}
             </div>
@@ -554,7 +633,7 @@ export default function CalendarTab({ plan, planStartDate, methodologyPlanId, en
               ) : (
                 <div className="flex-1 flex items-center justify-center">
                   <div className={`text-xs text-center ${
-                    day.isToday ? 'text-black font-semibold' : 'text-gray-500'
+                    day.isToday ? 'text-yellow-200/80 font-semibold' : 'text-gray-400/70'
                   }`}>
                     Día de descanso
                   </div>
@@ -566,49 +645,57 @@ export default function CalendarTab({ plan, planStartDate, methodologyPlanId, en
       </Card>
 
       {/* Leyenda */}
-      <Card className="bg-gray-900/50 border-gray-700 p-4">
+      <Card className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 border-l-2 border-l-sky-400/25 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20 p-4">
         <div className="flex flex-wrap gap-4 text-sm">
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-green-600 rounded-full" />
-            <span className="text-gray-300">Completado</span>
+            <div className="w-3 h-3 bg-emerald-400/80 rounded-full" />
+            <span className="text-gray-300/80">Completado</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-gray-400 rounded-full" />
-            <span className="text-gray-300">Saltado</span>
+            <div className="w-3 h-3 bg-gray-400/70 rounded-full" />
+            <span className="text-gray-300/80">Saltado</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-red-500 rounded-full" />
-            <span className="text-gray-300">Cancelado</span>
+            <div className="w-3 h-3 bg-red-400/80 rounded-full" />
+            <span className="text-gray-300/80">Cancelado</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-yellow-400 rounded-full" />
-            <span className="text-gray-300">Hoy</span>
+            <div className="w-3 h-3 bg-yellow-400/80 rounded-full" />
+            <span className="text-gray-300/80">Hoy</span>
           </div>
         </div>
       </Card>
 
       {/* Modal de detalles del día */}
       <Dialog open={showDayModal} onOpenChange={setShowDayModal}>
-        <DialogContent className="bg-gray-900 border-gray-700 max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-white flex items-center">
-              <Calendar className="w-5 h-5 mr-2 text-yellow-400" />
+        <DialogContent className="mx-2 sm:mx-4 w-[calc(100vw-16px)] sm:max-w-2xl max-h-[calc(100dvh-16px)] sm:max-h-[80vh] overflow-hidden flex flex-col bg-black/80 border border-white/10 border-l-2 border-l-sky-400/30 backdrop-blur-lg transition-all duration-300 hover:border-white/20 p-5 sm:p-6">
+          <DialogHeader className="relative">
+            <button
+              type="button"
+              onClick={() => setShowDayModal(false)}
+              className="absolute -right-1 -top-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 hover:text-white transition-colors"
+              aria-label="Cerrar"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <DialogTitle className="text-white flex items-center font-urbanist text-lg sm:text-xl">
+              <Calendar className="w-5 h-5 mr-2 text-yellow-300" />
               {selectedDay && formatFullDate(selectedDay.date)}
             </DialogTitle>
           </DialogHeader>
 
           {selectedDay?.session && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Badge variant="secondary" className="bg-yellow-400/20 text-yellow-300">
+            <div className="space-y-4 flex-1 min-h-0">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <Badge variant="secondary" className="bg-yellow-400/20 text-yellow-200 border border-yellow-400/30">
                   Semana {selectedDay.weekNumber}
                 </Badge>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-gray-300/80">
                   {selectedDay.session.ejercicios?.length || 0} ejercicios
                 </div>
               </div>
 
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div className="space-y-3 max-h-[calc(100dvh-260px)] sm:max-h-96 overflow-y-auto pr-1">
                 {(() => {
                   const key = getDayKey(selectedDay.weekNumber, selectedDay);
                   const statusMap = new Map((weekStatuses[key]?.exercises || []).map(ex => [ex.exercise_order, ex.status]));
@@ -624,11 +711,11 @@ export default function CalendarTab({ plan, planStartDate, methodologyPlanId, en
                     return (
                       <div
                         key={index}
-                        className="flex justify-between items-center p-3 bg-black/40 rounded-lg"
+                        className="flex justify-between items-center p-3 bg-black/50 border border-white/10 rounded-lg"
                       >
                         <div className="flex-1">
                           <p className="font-medium text-white">{ejercicio.nombre}</p>
-                          <div className="flex items-center space-x-4 text-sm text-gray-400 mt-1">
+                          <div className="flex items-center space-x-4 text-sm text-gray-300/70 mt-1">
                             <span className="flex items-center">
                               <Target className="w-3 h-3 mr-1" />
                               {ejercicio.series} × {ejercicio.repeticiones}
@@ -653,7 +740,7 @@ export default function CalendarTab({ plan, planStartDate, methodologyPlanId, en
                                     <span className={`text-xs ${sd.color}`}>{sd.label}</span>
                                   </span>
                                 )}
-                                {hasC && <span className="text-xs text-gray-400 italic">"{p.comment}"</span>}
+                                {hasC && <span className="text-xs text-gray-300/70 italic">"{p.comment}"</span>}
                               </div>
                             ) : null;
                           })()}

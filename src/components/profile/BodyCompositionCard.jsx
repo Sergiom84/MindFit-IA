@@ -76,9 +76,9 @@ export const BodyCompositionCard = (props) => {
   }
 
   return (
-    <Card className="bg-gray-900 border-yellow-400/20">
+    <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
       <CardHeader>
-        <CardTitle className="text-white flex items-center justify-between">
+        <CardTitle className="text-white font-urbanist flex items-center justify-between">
           <div className="flex items-center">
             <Activity className="mr-2 text-yellow-400" /> Composición
             Corporal Detallada
@@ -99,7 +99,7 @@ export const BodyCompositionCard = (props) => {
                   onClick={handleCancel}
                   size="sm"
                   variant="outline"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  className="border-white/10 text-gray-200/80 hover:bg-white/10"
                 >
                   Cancelar
                 </Button>
@@ -116,7 +116,7 @@ export const BodyCompositionCard = (props) => {
                   })
                 }
                 disabled={editingSection && editingSection !== 'bodyComp'}
-                className="p-2 text-gray-400 hover:text-yellow-400 transition-colors"
+                className="p-2 text-gray-300/70 hover:text-yellow-300 transition-colors"
                 title="Editar composición corporal"
               >
                 <Pencil className="w-4 h-4" />
@@ -127,7 +127,7 @@ export const BodyCompositionCard = (props) => {
               <Button
                 size="sm"
                 variant="outline"
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                className="border-white/10 text-gray-200/80 hover:bg-white/10"
                 onClick={() => setShowCalculator(true)}
                 disabled={isSaving}
                 title="Calcular automáticamente y guardar"
@@ -152,15 +152,15 @@ export const BodyCompositionCard = (props) => {
       <CardContent className="space-y-4">
         {/* Mostrar si hay datos calculados */}
         {userProfile.grasa_corporal || userProfile.masa_muscular || userProfile.agua_corporal || userProfile.metabolismo_basal ? (
-          <div className="mb-4 p-3 bg-green-900/20 border border-green-500/30 rounded-lg">
-            <p className="text-green-400 text-sm flex items-center">
+          <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-400/30 rounded-lg">
+            <p className="text-emerald-300 text-sm flex items-center">
               <Activity className="w-4 h-4 mr-2" />
               ✅ Composición corporal calculada automáticamente
             </p>
           </div>
         ) : (
-          <div className="mb-4 p-3 bg-gray-800/50 border border-gray-600/30 rounded-lg">
-            <p className="text-gray-400 text-sm flex items-center">
+          <div className="mb-4 p-3 bg-white/5 border border-white/10 rounded-lg">
+            <p className="text-gray-300/70 text-sm flex items-center">
               <Calculator className="w-4 h-4 mr-2" />
               Usa la calculadora para obtener tu composición corporal automáticamente
             </p>

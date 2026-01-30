@@ -2,12 +2,12 @@ import TagsInput from '../../ui/TagsInput'
 
 // Constantes para estilos reutilizables
 const INPUT_STYLES = {
-  base: "w-full bg-gray-700/50 border rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 transition-colors",
-  normal: "border-gray-600",
+  base: "w-full bg-white/5 border rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400/60 transition-colors",
+  normal: "border-white/10",
   error: "border-red-500"
 };
 
-const LABEL_STYLES = "block text-white font-medium mb-2";
+const LABEL_STYLES = "block text-gray-200/90 font-medium mb-2";
 const ERROR_MESSAGE_STYLES = "text-red-400 text-sm mt-1";
 
 const GoalsStep = ({ formData, onInputChange, errors = {} }) => {
@@ -39,8 +39,8 @@ const GoalsStep = ({ formData, onInputChange, errors = {} }) => {
     <div className="space-y-8">
       {/* Sección: Header y descripción */}
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-yellow-400 mb-2">Metas y Objetivos</h2>
-        <p className="text-gray-400">Define tus objetivos para crear un plan personalizado</p>
+        <h2 className="text-2xl font-bold text-yellow-300 mb-2 font-urbanist">Metas y Objetivos</h2>
+        <p className="text-gray-300/80">Define tus objetivos para crear un plan personalizado</p>
       </div>
 
       {/* Sección: Metas principales */}
@@ -124,8 +124,8 @@ const GoalsStep = ({ formData, onInputChange, errors = {} }) => {
       </div>
 
       {/* Sección: Preferencias de nutrición y horarios */}
-      <div className="border-t border-gray-600 pt-8">
-        <h3 className="text-xl font-semibold text-yellow-400 mb-6">Preferencias de Nutrición y Horarios</h3>
+      <div className="border-t border-white/10 pt-8">
+        <h3 className="text-xl font-semibold text-yellow-300 mb-6 font-urbanist">Preferencias de Nutrición y Horarios</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Horario Preferido */}
@@ -189,9 +189,9 @@ const GoalsStep = ({ formData, onInputChange, errors = {} }) => {
       </div>
 
       {/* Sección: Resumen motivacional */}
-      <div className="bg-gradient-to-r from-yellow-900/20 to-yellow-800/20 rounded-lg p-6 border border-yellow-700/50">
-        <h3 className="text-lg font-semibold text-yellow-400 mb-4">🎯 ¡Estás a punto de comenzar!</h3>
-        <div className="space-y-3 text-gray-300">
+      <div className="bg-white/5 rounded-lg p-6 border border-white/10 border-l-2 border-l-yellow-400/40">
+        <h3 className="text-lg font-semibold text-yellow-300 mb-4 font-urbanist">🎯 ¡Estás a punto de comenzar!</h3>
+        <div className="space-y-3 text-gray-300/80">
           <p>
             Con la información que has proporcionado, nuestra IA creará un plan de entrenamiento
             completamente personalizado para ti.
@@ -218,16 +218,16 @@ const GoalsStep = ({ formData, onInputChange, errors = {} }) => {
       </div>
 
       {/* Sección: Términos y condiciones */}
-      <div className="bg-gray-700/30 rounded-lg p-6 border border-gray-600">
+      <div className="bg-white/5 rounded-lg p-6 border border-white/10">
         <div className="flex items-start gap-3">
           <input
             type="checkbox"
             name="acceptTerms"
             checked={formData.acceptTerms || false}
             onChange={(e) => onInputChange('acceptTerms', e.target.checked)}
-            className="mt-1 w-4 h-4 text-yellow-400 bg-gray-700 border-gray-600 rounded focus:ring-yellow-400 focus:ring-2"
+            className="mt-1 w-4 h-4 text-yellow-400 bg-white/10 border-white/10 rounded focus:ring-yellow-400 focus:ring-2"
           />
-          <label htmlFor="acceptTerms" className="text-sm text-gray-300">
+          <label htmlFor="acceptTerms" className="text-sm text-gray-300/80">
             Acepto los{' '}
             <a href="#" className="text-yellow-400 hover:text-yellow-300 underline">
               términos y condiciones

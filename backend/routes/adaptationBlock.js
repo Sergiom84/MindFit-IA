@@ -14,6 +14,7 @@
 import express from 'express';
 import pool from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { normalizeDayAbbrev } from '../utils/shared/dayNormalizer.js';
 
 const router = express.Router();
 
@@ -37,17 +38,132 @@ function getWeekBounds(startDate) {
 import { generateFullBodySessions } from '../services/hipertrofiaV2/adaptation/fullBodyGenerator.js';
 import { generateHalfBodySessions } from '../services/hipertrofiaV2/adaptation/halfBodyGenerator.js';
 
+const resolveDayPatternForTag = (tag) => {
+  if (tag === 'readaptacion_mayor') return [1, 3, 5];
+  if (tag === 'novato_total') return [1, 2, 4, 5];
+  return [1, 2, 3, 4, 5];
+};
+
+const normalizeTrainingYears = (user) => {
+  const raw =
+    user?.anos_entrenando ??
+    user?.años_entrenando ??
+    user?.anosEntrenando ??
+    user?.añosEntrenando ??
+    null;
+  const numeric = Number(raw);
+  return Number.isFinite(numeric) ? numeric : 0;
+};
+
+const resolveAdaptationProfile = (user, requestedBlockType = null) => {
+  const age = Number(user?.edad ?? user?.age ?? NaN);
+  const nivel = String(user?.nivel_entrenamiento || user?.nivelEntrenamiento || '').toLowerCase();
+  const yearsTraining = normalizeTrainingYears(user);
+
+  const isSenior = Number.isFinite(age) && age >= 55;
+  const isNovato = yearsTraining === 0 || nivel === 'principiante';
+
+  if (requestedBlockType === 'half_body') {
+    const tag = 'reacondicionamiento_prev';
+    return {
+      blockType: 'half_body',
+      aiTag: tag,
+      durationWeeks: 2,
+      dayPattern: resolveDayPatternForTag(tag),
+      sessionsPerWeek: 5,
+      age
+    };
+  }
+
+  if (requestedBlockType === 'full_body') {
+    if (isSenior) {
+      const tag = 'readaptacion_mayor';
+      return {
+        blockType: 'full_body',
+        aiTag: tag,
+        durationWeeks: 3,
+        dayPattern: resolveDayPatternForTag(tag),
+        sessionsPerWeek: 3,
+        age
+      };
+    }
+
+    const tag = 'novato_total';
+    return {
+      blockType: 'full_body',
+      aiTag: tag,
+      durationWeeks: 1,
+      dayPattern: resolveDayPatternForTag(tag),
+      sessionsPerWeek: 4,
+      age
+    };
+  }
+
+  if (isSenior) {
+    const tag = 'readaptacion_mayor';
+    return {
+      blockType: 'full_body',
+      aiTag: tag,
+      durationWeeks: 3,
+      dayPattern: resolveDayPatternForTag(tag),
+      sessionsPerWeek: 3,
+      age
+    };
+  }
+
+  if (isNovato) {
+    const tag = 'novato_total';
+    return {
+      blockType: 'full_body',
+      aiTag: tag,
+      durationWeeks: 1,
+      dayPattern: resolveDayPatternForTag(tag),
+      sessionsPerWeek: 4,
+      age
+    };
+  }
+
+  const tag = 'reacondicionamiento_prev';
+  return {
+    blockType: 'half_body',
+    aiTag: tag,
+    durationWeeks: 2,
+    dayPattern: resolveDayPatternForTag(tag),
+    sessionsPerWeek: 5,
+    age
+  };
+};
+
 /**
  * Helper: Generar sesiones de adaptación
  * Delega a los módulos específicos según el tipo de bloque
  */
-async function generateAdaptationSessions(dbClient, userId, blockType, durationWeeks) {
-  console.log(`🏗️ Generando sesiones para bloque ${blockType} (${durationWeeks} semanas)`);
+async function generateAdaptationSessions(dbClient, options) {
+  const {
+    blockType,
+    durationWeeks,
+    penaltyPct = 0,
+    dayPattern = null,
+    age = null,
+    aiTag = null
+  } = options || {};
+
+  console.log(`🏗️ Generando sesiones para bloque ${blockType} (${durationWeeks} semanas) con penalización ${penaltyPct}%`);
 
   if (blockType === 'full_body') {
-    return await generateFullBodySessions(dbClient, durationWeeks);
-  } else if (blockType === 'half_body') {
-    return await generateHalfBodySessions(dbClient, durationWeeks);
+    return await generateFullBodySessions(dbClient, {
+      durationWeeks,
+      dayPattern,
+      penaltyPct,
+      age,
+      tag: aiTag
+    });
+  }
+  if (blockType === 'half_body') {
+    return await generateHalfBodySessions(dbClient, {
+      durationWeeks,
+      penaltyPct
+    });
   }
 
   return [];
@@ -65,49 +181,121 @@ router.post('/generate', authenticateToken, async (req, res) => {
 
   try {
     const userId = req.user?.userId || req.user?.id;
-    const { blockType, durationWeeks } = req.body;
+    const { blockType } = req.body || {};
 
-    if (!blockType || !['full_body', 'half_body'].includes(blockType)) {
+    if (blockType && !['full_body', 'half_body'].includes(blockType)) {
       return res.status(400).json({
         success: false,
         error: 'blockType debe ser "full_body" o "half_body"'
       });
     }
 
-    console.log(`🎯 [ADAPTACIÓN] Generando bloque ${blockType} para usuario:`, userId);
+    console.log(`🎯 [ADAPTACIÓN] Generando bloque ${blockType || 'auto'} para usuario:`, userId);
 
     await dbClient.query('BEGIN');
 
-    // Verificar si ya tiene un bloque activo
-    const existingBlock = await dbClient.query(
-      `SELECT id FROM app.adaptation_blocks
-       WHERE user_id = $1 AND status = 'active'`,
+    const userResult = await dbClient.query(
+      `SELECT id, edad, nivel_entrenamiento, anos_entrenando, "años_entrenando", frecuencia_semanal
+       FROM app.users
+       WHERE id = $1`,
       [userId]
     );
 
-    if (existingBlock.rows.length > 0) {
-      await dbClient.query('ROLLBACK');
-      return res.status(400).json({
-        success: false,
-        error: 'Ya tienes un bloque de adaptación activo',
-        blockId: existingBlock.rows[0].id
-      });
+    const userProfile = userResult.rows[0] || {};
+    const resolvedProfile = resolveAdaptationProfile(userProfile, blockType);
+
+    // Verificar si ya tiene un bloque activo (y si está en modo repeat)
+    const existingBlockResult = await dbClient.query(
+      `SELECT id, block_type, duration_weeks, methodology_plan_id,
+              repeat_required, repeat_penalty_pct, progression_cap_pct, repeat_count,
+              ai_tag, sessions_per_week
+       FROM app.adaptation_blocks
+       WHERE user_id = $1 AND status = 'active'
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [userId]
+    );
+
+    const existingBlock = existingBlockResult.rows[0] || null;
+    let repeatMode = false;
+    let penaltyPct = 0;
+    let progressionCapPct = 2.5;
+    let effectiveBlockType = resolvedProfile.blockType;
+    let effectiveDurationWeeks = resolvedProfile.durationWeeks;
+    let effectiveAiTag = resolvedProfile.aiTag;
+    let effectiveDayPattern = resolvedProfile.dayPattern;
+    let effectiveSessionsPerWeek = resolvedProfile.sessionsPerWeek;
+    let existingBlockId = null;
+
+    if (existingBlock) {
+      if (existingBlock.repeat_required) {
+        repeatMode = true;
+        penaltyPct = Number(existingBlock.repeat_penalty_pct || 10);
+        progressionCapPct = Number(existingBlock.progression_cap_pct || 2);
+        effectiveBlockType = existingBlock.block_type || effectiveBlockType;
+        effectiveDurationWeeks = existingBlock.duration_weeks || effectiveDurationWeeks;
+        effectiveAiTag = existingBlock.ai_tag || effectiveAiTag;
+        effectiveSessionsPerWeek = existingBlock.sessions_per_week || effectiveSessionsPerWeek;
+        effectiveDayPattern = resolveDayPatternForTag(effectiveAiTag);
+        existingBlockId = existingBlock.id;
+
+        if (existingBlock.methodology_plan_id) {
+          await dbClient.query(
+            `UPDATE app.methodology_plans
+             SET status = 'cancelled',
+                 cancelled_at = NOW(),
+                 updated_at = NOW()
+             WHERE id = $1 AND user_id = $2`,
+            [existingBlock.methodology_plan_id, userId]
+          );
+        }
+
+        console.log(`🔁 [ADAPTACIÓN] Repeat requerido detectado. Penalización: -${penaltyPct}%`);
+      } else {
+        await dbClient.query('ROLLBACK');
+        return res.status(400).json({
+          success: false,
+          error: 'Ya tienes un bloque de adaptación activo',
+          blockId: existingBlock.id
+        });
+      }
     }
 
     // 1. Generar sesiones de entrenamiento
-    const sessions = await generateAdaptationSessions(dbClient, userId, blockType, durationWeeks || 2);
+    const sessions = await generateAdaptationSessions(dbClient, {
+      blockType: effectiveBlockType,
+      durationWeeks: effectiveDurationWeeks,
+      dayPattern: effectiveDayPattern,
+      penaltyPct,
+      age: resolvedProfile.age,
+      aiTag: effectiveAiTag
+    });
 
     if (sessions.length === 0) {
       throw new Error('No se pudieron generar sesiones de adaptación');
     }
 
     // 2. Crear Plan en methodology_plans (para que aparezca en el sistema)
+    const restBetweenExercisesSec = sessions?.[0]?.config?.rest_seconds ?? null;
+    const restBetweenRoundsSec = sessions?.[0]?.config?.rest_between_rounds_seconds ?? null;
+    const roundsExample = sessions?.[0]?.config?.rounds ?? null;
+
     const planData = {
       type: 'adaptation',
-      blockType,
-      durationWeeks,
+      blockType: effectiveBlockType,
+      aiTag: effectiveAiTag,
+      durationWeeks: effectiveDurationWeeks,
+      sessionsPerWeek: effectiveSessionsPerWeek,
+      dayPattern: effectiveDayPattern,
       sessionsCount: sessions.length,
-      generatedAt: new Date().toISOString()
+      restBetweenExercisesSec,
+      restBetweenRoundsSec,
+      roundsExample,
+      generatedAt: new Date().toISOString(),
+      repeatMode,
+      repeatPenaltyPct: penaltyPct,
+      progressionCapPct,
+      repeatCount: existingBlock?.repeat_count || 0
     };
 
     const planResult = await dbClient.query(
@@ -118,28 +306,46 @@ router.post('/generate', authenticateToken, async (req, res) => {
       [
         userId,
         'Adaptation',
-        `Adaptación ${blockType === 'full_body' ? 'Full Body' : 'Half Body'}`,
+        `Adaptación ${effectiveBlockType === 'full_body' ? 'Full Body' : 'Half Body'}${repeatMode ? ' (Repeat)' : ''}`,
         JSON.stringify(planData)
       ]
     );
     const methodologyPlanId = planResult.rows[0].id;
 
-    // 3. Crear bloque de adaptación vinculado al plan
-    const blockResult = await dbClient.query(
-      `INSERT INTO app.adaptation_blocks (
-        user_id,
-        methodology_plan_id,
-        block_type,
-        duration_weeks,
-        start_date,
-        status
-      )
-      VALUES ($1, $2, $3, $4, CURRENT_DATE, 'active')
-      RETURNING *`,
-      [userId, methodologyPlanId, blockType, durationWeeks || 2]
-    );
-
-    const block = blockResult.rows[0];
+    // 3. Crear o actualizar bloque de adaptación vinculado al plan
+    let block;
+    if (repeatMode && existingBlockId) {
+      const blockResult = await dbClient.query(
+        `UPDATE app.adaptation_blocks
+         SET methodology_plan_id = $2,
+             repeat_required = FALSE,
+             repeat_reason = 'repeat_executed',
+             ai_tag = COALESCE($3, ai_tag),
+             sessions_per_week = COALESCE($4, sessions_per_week),
+             updated_at = NOW()
+         WHERE id = $1
+         RETURNING *`,
+        [existingBlockId, methodologyPlanId, effectiveAiTag, effectiveSessionsPerWeek]
+      );
+      block = blockResult.rows[0];
+    } else {
+      const blockResult = await dbClient.query(
+        `INSERT INTO app.adaptation_blocks (
+          user_id,
+          methodology_plan_id,
+          block_type,
+          duration_weeks,
+          ai_tag,
+          sessions_per_week,
+          start_date,
+          status
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, CURRENT_DATE, 'active')
+        RETURNING *`,
+        [userId, methodologyPlanId, effectiveBlockType, effectiveDurationWeeks, effectiveAiTag, effectiveSessionsPerWeek]
+      );
+      block = blockResult.rows[0];
+    }
 
     // 4. Guardar sesiones en methodology_exercise_sessions y agendar en workout_schedule
     const today = new Date();
@@ -149,25 +355,63 @@ router.post('/generate', authenticateToken, async (req, res) => {
     const mondayOfCurrentWeek = new Date(today);
     mondayOfCurrentWeek.setDate(today.getDate() + daysToMonday);
 
+    const weekSessionOrderMap = new Map();
+    let fallbackSessionOrder = 0;
+
     for (const session of sessions) {
-      // Guardar sesión
+      const normalizedDayName = normalizeDayAbbrev(session.dayName);
+      const dayNameFull = session.dayName;
+      const dayAbbrev = normalizeDayAbbrev(session.dayName);
+      const weekSessionOrder = (weekSessionOrderMap.get(session.week) || 0) + 1;
+      weekSessionOrderMap.set(session.week, weekSessionOrder);
+      fallbackSessionOrder += 1;
+      const sessionOrder = Number.isFinite(Number(session.sessionNumber))
+        ? Number(session.sessionNumber)
+        : fallbackSessionOrder;
+      const sessionMetadata = {
+        block_type: effectiveBlockType,
+        ai_tag: effectiveAiTag,
+        day_pattern: effectiveDayPattern,
+        rest_between_exercises_seconds: session?.config?.rest_seconds ?? null,
+        rest_between_rounds_seconds: session?.config?.rest_between_rounds_seconds ?? null,
+        rounds: session?.config?.rounds ?? null,
+        intensity: session?.config?.intensity ?? null,
+        rir_target: session?.config?.rir_target ?? null,
+        session_type: session?.config?.sessionType ?? null
+      };
+
       const sessionResult = await dbClient.query(
         `INSERT INTO app.methodology_exercise_sessions (
+          user_id,
           methodology_plan_id,
-          session_number,
+          methodology_type,
+          session_type,
           session_name,
-          exercises,
-          created_at
-        ) VALUES ($1, $2, $3, $4, NOW())
+          week_number,
+          day_name,
+          session_date,
+          total_exercises,
+          exercises_data,
+          session_metadata,
+          session_status,
+          created_at,
+          updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', NOW(), NOW())
         RETURNING id`,
         [
+          userId,
           methodologyPlanId,
-          session.sessionNumber,
+          'Adaptation',
+          'adaptation',
           session.name,
-          JSON.stringify(session.exercises)
+          session.week,
+          normalizedDayName,
+          null,
+          session.exercises?.length || 0,
+          JSON.stringify(session.exercises || []),
+          JSON.stringify(sessionMetadata)
         ]
       );
-      const sessionId = sessionResult.rows[0].id;
 
       // Calcular fecha programada alineada a la semana
       // session.week: 1, 2...
@@ -179,25 +423,41 @@ router.post('/generate', authenticateToken, async (req, res) => {
 
       scheduledDate.setDate(mondayOfCurrentWeek.getDate() + weekOffsetDays + dayOffsetDays);
 
+      // Actualizar fecha de sesión
+      await dbClient.query(
+        `UPDATE app.methodology_exercise_sessions
+         SET session_date = $1
+         WHERE id = $2`,
+        [scheduledDate, sessionResult.rows[0].id]
+      );
+
       // Insertar en schedule
       await dbClient.query(
         `INSERT INTO app.workout_schedule (
-          user_id,
           methodology_plan_id,
-          scheduled_date,
+          user_id,
           week_number,
-          day_in_week,
-          session_number,
-          completed,
-          created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, false, NOW())`,
+          session_order,
+          week_session_order,
+          scheduled_date,
+          day_name,
+          day_abbrev,
+          session_title,
+          exercises,
+          status
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
         [
-          userId,
           methodologyPlanId,
-          scheduledDate,
+          userId,
           session.week,
-          session.dayOfWeek, // Usar el día de la semana real (1-5)
-          session.sessionNumber
+          sessionOrder,
+          weekSessionOrder,
+          scheduledDate.toISOString().split("T")[0],
+          dayNameFull,
+          dayAbbrev,
+          session.name,
+          JSON.stringify(session.exercises || []),
+          "scheduled"
         ]
       );
     }
@@ -216,8 +476,8 @@ router.post('/generate', authenticateToken, async (req, res) => {
         week_start_date,
         week_end_date
       )
-      VALUES ($1, 1, 5, 0, NULL, 0, NULL, NULL, CURRENT_DATE, CURRENT_DATE + INTERVAL '6 days')`,
-      [block.id]
+      VALUES ($1, 1, $2, 0, NULL, 0, NULL, NULL, CURRENT_DATE, CURRENT_DATE + INTERVAL '6 days')`,
+      [block.id, effectiveSessionsPerWeek]
     );
 
     await dbClient.query('COMMIT');
@@ -229,14 +489,21 @@ router.post('/generate', authenticateToken, async (req, res) => {
       message: 'Bloque de adaptación creado exitosamente',
       block: {
         id: block.id,
+        methodologyPlanId: methodologyPlanId,
         blockType: block.block_type,
+        aiTag: block.ai_tag,
         durationWeeks: block.duration_weeks,
+        sessionsPerWeek: block.sessions_per_week,
         startDate: block.start_date,
         status: block.status,
-        sessionsGenerated: sessions.length
+        sessionsGenerated: sessions.length,
+        repeatMode,
+        repeatPenaltyPct: penaltyPct,
+        progressionCapPct,
+        repeatCount: block.repeat_count
       },
       nextSteps: [
-        'Completar 4-5 sesiones de entrenamiento por semana',
+        `Completar ${effectiveSessionsPerWeek} sesiones de entrenamiento por semana`,
         'Mantener RIR medio en rango 2-4',
         'Evitar flags de técnica',
         'Incrementar cargas progresivamente'
@@ -287,6 +554,14 @@ router.get('/progress', authenticateToken, async (req, res) => {
 
     const progress = result.rows[0];
 
+    const blockDetailsResult = await pool.query(
+      `SELECT methodology_plan_id, ai_tag, sessions_per_week
+       FROM app.adaptation_blocks
+       WHERE id = $1`,
+      [progress.adaptation_block_id]
+    );
+    const blockDetails = blockDetailsResult.rows[0] || {};
+
     // Obtener detalles de todas las semanas
     const weeksResult = await pool.query(
       `SELECT
@@ -326,8 +601,11 @@ router.get('/progress', authenticateToken, async (req, res) => {
       hasActiveBlock: true,
       block: {
         id: progress.adaptation_block_id,
+        methodologyPlanId: blockDetails.methodology_plan_id ?? null,
         blockType: progress.block_type,
+        aiTag: blockDetails.ai_tag ?? null,
         durationWeeks: progress.duration_weeks,
+        sessionsPerWeek: blockDetails.sessions_per_week ?? null,
         startDate: progress.start_date,
         status: progress.status,
         weeksTracked: progress.weeks_tracked,
@@ -368,6 +646,58 @@ router.get('/progress', authenticateToken, async (req, res) => {
 });
 
 // ============================================
+// GET /api/adaptation/sessions
+// ============================================
+/**
+ * Lista sesiones del bloque de adaptación activo
+ */
+router.get('/sessions', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+
+    const blockResult = await pool.query(
+      `SELECT id, methodology_plan_id
+       FROM app.adaptation_blocks
+       WHERE user_id = $1 AND status = 'active'
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [userId]
+    );
+
+    if (blockResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'No tienes un bloque de adaptación activo'
+      });
+    }
+
+    const block = blockResult.rows[0];
+
+    const sessionsResult = await pool.query(
+      `SELECT id, week_number, day_name, session_name, session_status, session_date, total_exercises
+       FROM app.methodology_exercise_sessions
+       WHERE user_id = $1 AND methodology_plan_id = $2
+       ORDER BY week_number, day_name`,
+      [userId, block.methodology_plan_id]
+    );
+
+    res.json({
+      success: true,
+      adaptation_block_id: block.id,
+      methodology_plan_id: block.methodology_plan_id,
+      sessions: sessionsResult.rows
+    });
+  } catch (error) {
+    console.error('❌ [ADAPTACIÓN] Error obteniendo sesiones:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error obteniendo sesiones',
+      details: error.message
+    });
+  }
+});
+
+// ============================================
 // POST /api/adaptation/evaluate-week
 // ============================================
 /**
@@ -393,7 +723,7 @@ router.post('/evaluate-week', authenticateToken, async (req, res) => {
 
     // Obtener bloque activo
     const blockResult = await dbClient.query(
-      `SELECT id FROM app.adaptation_blocks
+      `SELECT id, sessions_per_week FROM app.adaptation_blocks
        WHERE user_id = $1 AND status = 'active'
        ORDER BY created_at DESC
        LIMIT 1`,
@@ -408,7 +738,9 @@ router.post('/evaluate-week', authenticateToken, async (req, res) => {
       });
     }
 
-    const blockId = blockResult.rows[0].id;
+    const blockRow = blockResult.rows[0];
+    const blockId = blockRow.id;
+    const sessionsPlanned = blockRow.sessions_per_week || 5;
 
     // Actualizar o insertar tracking de la semana
     const updateResult = await dbClient.query(
@@ -426,7 +758,7 @@ router.post('/evaluate-week', authenticateToken, async (req, res) => {
         evaluated_at
       )
       VALUES (
-        $1, $2, 5, $3, $4, $5, $6, $7,
+        $1, $2, $3, $4, $5, $6, $7, $8,
         CURRENT_DATE - INTERVAL '6 days',
         CURRENT_DATE,
         NOW()
@@ -443,6 +775,7 @@ router.post('/evaluate-week', authenticateToken, async (req, res) => {
       [
         blockId,
         weekNumber,
+        sessionsPlanned,
         sessionsCompleted,
         meanRir,
         techniqueFlagsCount || 0,
@@ -540,7 +873,7 @@ router.post('/transition', authenticateToken, async (req, res) => {
 
     // Llamar a la función de transición
     const result = await pool.query(
-      `SELECT * FROM app.transition_to_hypertrophy($1, $2)`,
+      `SELECT app.transition_to_hypertrophy($1::integer, $2::integer) AS transition_to_hypertrophy`,
       [userId, blockId]
     );
 
@@ -624,7 +957,7 @@ router.post('/auto-evaluate-week', authenticateToken, async (req, res) => {
 
     // Obtener bloque activo
     const blockResult = await dbClient.query(
-      `SELECT id, start_date
+      `SELECT id, start_date, methodology_plan_id, sessions_per_week
        FROM app.adaptation_blocks
        WHERE user_id = $1 AND status = 'active'
        ORDER BY created_at DESC
@@ -641,17 +974,18 @@ router.post('/auto-evaluate-week', authenticateToken, async (req, res) => {
     }
 
     const block = blockResult.rows[0];
+    const sessionsPlanned = block.sessions_per_week || 5;
     const { weekNumber, weekStart, weekEnd } = getWeekBounds(block.start_date);
 
-    // Sesiones completadas en la ventana (solo metodologías de hipertrofia)
+    // Sesiones completadas en la ventana del bloque de adaptación
     const sessionsResult = await dbClient.query(
       `SELECT COUNT(*) AS count
        FROM app.methodology_exercise_sessions
        WHERE user_id = $1
-         AND session_status = 'completed'
-         AND session_date::date BETWEEN $2::date AND $3::date
-         AND (methodology_type ILIKE 'HipertrofiaV2%' OR methodology_type ILIKE 'hipertrofia%')`,
-      [userId, weekStart, weekEnd]
+         AND methodology_plan_id = $4
+         AND session_status IN ('completed','partial')
+         AND session_date::date BETWEEN $2::date AND $3::date`,
+      [userId, weekStart, weekEnd, block.methodology_plan_id]
     );
 
     const sessionsCompleted = parseInt(sessionsResult.rows[0].count, 10) || 0;
@@ -663,8 +997,9 @@ router.post('/auto-evaluate-week', authenticateToken, async (req, res) => {
          AVG(weight_used)                        AS avg_weight
        FROM app.hypertrophy_set_logs
        WHERE user_id = $1
+         AND methodology_plan_id = $4
          AND created_at BETWEEN $2 AND ($3 + INTERVAL '1 day')`,
-      [userId, weekStart, weekEnd]
+      [userId, weekStart, weekEnd, block.methodology_plan_id]
     );
 
     const meanRir = parseFloat(rirResult.rows[0].mean_rir) || null;
@@ -713,8 +1048,8 @@ router.post('/auto-evaluate-week', authenticateToken, async (req, res) => {
         evaluated_at
       )
       VALUES (
-        $1, $2, 5, $3, $4, $5, $6, $7,
-        $8::date, $9::date, NOW()
+        $1, $2, $3, $4, $5, $6, $7, $8,
+        $9::date, $10::date, NOW()
       )
       ON CONFLICT (adaptation_block_id, week_number)
       DO UPDATE SET
@@ -730,6 +1065,7 @@ router.post('/auto-evaluate-week', authenticateToken, async (req, res) => {
       [
         block.id,
         weekNumber,
+        sessionsPlanned,
         sessionsCompleted,
         meanRir,
         techniqueFlagsCount,

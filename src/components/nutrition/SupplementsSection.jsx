@@ -234,12 +234,12 @@ export default function SupplementsSection({ userData, userMacros }) {
     <div className="space-y-6">
       {/* Header y recomendaciones personalizadas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="bg-gray-800/70 border-gray-600 lg:col-span-2">
+        <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5 lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Zap className="text-yellow-400" size={24} />
-              Suplementación Deportiva
-            </CardTitle>
+          <CardTitle className="text-white flex items-center gap-2 font-urbanist">
+            <Zap className="text-yellow-400" size={24} />
+            Suplementación Deportiva
+          </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2 mb-4">
@@ -252,7 +252,7 @@ export default function SupplementsSection({ userData, userMacros }) {
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                       selectedCategory === category.id
                         ? `${category.color} text-white`
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        : 'bg-white/5 text-gray-300/80 hover:bg-white/10'
                     }`}
                   >
                     <Icon size={16} />
@@ -270,12 +270,12 @@ export default function SupplementsSection({ userData, userMacros }) {
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-800/70 border-gray-600">
+        <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Target className="text-yellow-400" size={20} />
-              Recomendaciones
-            </CardTitle>
+          <CardTitle className="text-white flex items-center gap-2 font-urbanist">
+            <Target className="text-yellow-400" size={20} />
+            Recomendaciones
+          </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -297,7 +297,7 @@ export default function SupplementsSection({ userData, userMacros }) {
           return (
             <Card 
               key={supplement.id}
-              className={`bg-gray-800/70 border-gray-600 cursor-pointer transition-all duration-200 hover:bg-gray-700/70 ${
+              className={`bg-neutral-900/70 border-white/10 ring-1 ring-white/5 cursor-pointer transition-all duration-200 hover:bg-white/10 ${
                 isRelevant ? 'ring-1 ring-yellow-400/30' : ''
               }`}
               onClick={() => setSelectedSupplement(selectedSupplement?.id === supplement.id ? null : supplement)}
@@ -351,7 +351,7 @@ export default function SupplementsSection({ userData, userMacros }) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="border-gray-600 text-white hover:bg-gray-700 flex-1"
+                      className="border-white/10 bg-white/5 text-white hover:bg-white/10 flex-1"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedSupplement(supplement);
@@ -381,14 +381,14 @@ export default function SupplementsSection({ userData, userMacros }) {
 
       {/* Modal de detalles del suplemento */}
       {selectedSupplement && (
-        <Card className="bg-gray-800/70 border-gray-600">
+        <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5 border-l-2 border-l-yellow-400/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center justify-between">
+            <CardTitle className="text-white flex items-center justify-between font-urbanist">
               <span>{selectedSupplement.name}</span>
               <Button
                 variant="outline"
                 size="sm"
-                className="border-gray-600 text-white hover:bg-gray-700"
+                className="border-white/10 bg-white/5 text-white hover:bg-white/10"
                 onClick={() => setSelectedSupplement(null)}
               >
                 Cerrar
@@ -400,24 +400,24 @@ export default function SupplementsSection({ userData, userMacros }) {
               {/* Información principal */}
               <div className="space-y-4">
                 <div>
-                  <h4 className="text-lg font-semibold text-white mb-2">Información General</h4>
+                  <h4 className="text-lg font-semibold text-white mb-2 font-urbanist">Información General</h4>
                   <p className="text-gray-300 mb-4">{selectedSupplement.description}</p>
                   
                   <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="p-3 bg-blue-500/20 rounded border border-blue-500/30">
-                      <p className="font-bold text-blue-400">Dosis</p>
+                    <div className="p-3 bg-white/5 rounded border border-white/10 border-l-2 border-l-sky-400/40">
+                      <p className="font-bold text-sky-300">Dosis</p>
                       <p className="text-white">{selectedSupplement.dosage}</p>
                     </div>
-                    <div className="p-3 bg-green-500/20 rounded border border-green-500/30">
-                      <p className="font-bold text-green-400">Timing</p>
+                    <div className="p-3 bg-white/5 rounded border border-white/10 border-l-2 border-l-emerald-400/40">
+                      <p className="font-bold text-emerald-300">Timing</p>
                       <p className="text-white">{selectedSupplement.timing}</p>
                     </div>
-                    <div className="p-3 bg-yellow-500/20 rounded border border-yellow-500/30">
-                      <p className="font-bold text-yellow-400">Precio</p>
+                    <div className="p-3 bg-white/5 rounded border border-white/10 border-l-2 border-l-yellow-400/40">
+                      <p className="font-bold text-yellow-300">Precio</p>
                       <p className="text-white">${selectedSupplement.price}</p>
                     </div>
-                    <div className="p-3 bg-purple-500/20 rounded border border-purple-500/30">
-                      <p className="font-bold text-purple-400">Prioridad</p>
+                    <div className="p-3 bg-white/5 rounded border border-white/10 border-l-2 border-l-purple-400/40">
+                      <p className="font-bold text-purple-300">Prioridad</p>
                       <p className="text-white capitalize">{selectedSupplement.priority}</p>
                     </div>
                   </div>
@@ -442,7 +442,7 @@ export default function SupplementsSection({ userData, userMacros }) {
                       <Badge 
                         key={method} 
                         variant={method === userMethodology ? "default" : "outline"}
-                        className={method === userMethodology ? "bg-yellow-600 text-white" : "border-gray-600 text-gray-300"}
+                        className={method === userMethodology ? "bg-yellow-600 text-white" : "border-white/10 bg-white/5 text-gray-300/80"}
                       >
                         {method === 'todos' ? 'Todas' : method.charAt(0).toUpperCase() + method.slice(1)}
                       </Badge>
@@ -482,7 +482,7 @@ export default function SupplementsSection({ userData, userMacros }) {
                   <h5 className="font-semibold text-white mb-2">Alternativas</h5>
                   <div className="flex flex-wrap gap-2">
                     {selectedSupplement.alternatives.map(alt => (
-                      <Badge key={alt} variant="outline" className="border-gray-600 text-gray-300 text-xs">
+                      <Badge key={alt} variant="outline" className="border-white/10 text-gray-300/80 text-xs">
                         {alt}
                       </Badge>
                     ))}

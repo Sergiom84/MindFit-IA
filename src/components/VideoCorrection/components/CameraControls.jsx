@@ -26,6 +26,7 @@ export default function CameraControls() {
     setIsLiveAnalyzing,
     selectedExerciseId,
   } = useVideoAnalysis();
+  const cardBase = 'bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg';
 
   const startCamera = async () => {
     try {
@@ -130,10 +131,10 @@ export default function CameraControls() {
   };
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className={`${cardBase} border-l-2 border-l-emerald-400/40`}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-white flex items-center gap-2">
-          <Camera className="w-5 h-5" />
+        <CardTitle className="text-white flex items-center gap-2 font-urbanist">
+          <Camera className="w-5 h-5 text-emerald-300" />
           Controles de Cámara en Vivo
         </CardTitle>
       </CardHeader>
@@ -143,15 +144,15 @@ export default function CameraControls() {
         <div className="mb-4">
           <video 
             ref={liveVideoRef}
-            className="w-full max-w-md mx-auto rounded-lg bg-gray-900"
+            className="w-full max-w-md mx-auto rounded-2xl bg-black/40 border border-white/10"
             muted
             playsInline
             style={{ display: isCameraOn ? 'block' : 'none' }}
           />
           {!isCameraOn && (
-            <div className="w-full max-w-md mx-auto h-48 bg-gray-900 rounded-lg flex items-center justify-center">
-              <div className="text-center text-gray-400">
-                <Video className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <div className="w-full max-w-md mx-auto h-48 bg-black/40 border border-white/10 rounded-2xl flex items-center justify-center">
+              <div className="text-center text-gray-300/70">
+                <Video className="w-12 h-12 mx-auto mb-2 opacity-50 text-emerald-200/70" />
                 <p>Cámara desactivada</p>
               </div>
             </div>
@@ -164,7 +165,7 @@ export default function CameraControls() {
           {!isCameraOn ? (
             <Button 
               onClick={startCamera} 
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-emerald-500/20 text-emerald-100 border border-emerald-400/40 hover:bg-emerald-500/30"
             >
               <Play className="w-4 h-4 mr-2" /> 
               Activar Cámara en Vivo
@@ -173,7 +174,8 @@ export default function CameraControls() {
             <>
               <Button 
                 onClick={stopCamera} 
-                variant="destructive"
+                variant="outline"
+                className="border-red-400/50 text-red-300 hover:bg-red-500/10"
               >
                 <Pause className="w-4 h-4 mr-2" /> 
                 Detener Cámara
@@ -182,7 +184,7 @@ export default function CameraControls() {
               {!isRecording ? (
                 <Button 
                   onClick={startRecording} 
-                  className="bg-red-600 hover:bg-red-700"
+                  className="bg-red-500/20 text-red-200 border border-red-400/40 hover:bg-red-500/30"
                 >
                   <Play className="w-4 h-4 mr-2" /> 
                   Iniciar Grabación
@@ -190,7 +192,7 @@ export default function CameraControls() {
               ) : (
                 <Button 
                   onClick={stopRecording} 
-                  className="bg-red-800 hover:bg-red-900"
+                  className="bg-red-600/30 text-red-100 border border-red-400/50 hover:bg-red-600/40"
                 >
                   <StopCircle className="w-4 h-4 mr-2" /> 
                   Detener Grabación
@@ -203,17 +205,17 @@ export default function CameraControls() {
         {/* Estados visuales */}
         <div className="text-center text-sm">
           {isRecording && (
-            <div className="text-red-400 font-semibold animate-pulse">
+            <div className="text-red-300 font-semibold animate-pulse">
               🔴 GRABANDO...
             </div>
           )}
           {isCameraOn && !isRecording && (
-            <div className="text-green-400">
+            <div className="text-emerald-300">
               📹 Cámara activa
             </div>
           )}
           {isLiveAnalyzing && (
-            <div className="text-blue-400 font-semibold">
+            <div className="text-sky-300 font-semibold">
               🧠 Analizando en vivo...
             </div>
           )}
