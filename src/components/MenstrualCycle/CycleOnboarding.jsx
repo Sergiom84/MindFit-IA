@@ -71,26 +71,26 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
   const CurrentIcon = steps[step].icon;
 
   const containerClasses = isModal 
-    ? "bg-gray-900 rounded-xl p-6 max-w-md mx-auto"
-    : "bg-gray-900/80 rounded-xl p-6 border border-pink-500/20";
+    ? "bg-neutral-900/80 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg rounded-2xl p-6 max-w-md mx-auto"
+    : "bg-neutral-900/80 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg rounded-2xl p-6";
 
   return (
     <div className={containerClasses}>
       {/* Header con progreso */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center">
-            <CurrentIcon className="w-5 h-5 text-pink-400" />
+          <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+            <CurrentIcon className="w-5 h-5 text-pink-300" />
           </div>
           <div>
-            <p className="text-xs text-gray-400">Paso {step + 1} de 4</p>
-            <p className="text-sm font-medium text-white">Configuración del ciclo</p>
+            <p className="text-xs text-gray-400/70">Paso {step + 1} de 4</p>
+            <p className="text-sm font-medium text-white font-urbanist">Configuración del ciclo</p>
           </div>
         </div>
         {onSkip && (
           <button
             onClick={onSkip}
-            className="text-gray-400 hover:text-white text-sm"
+            className="text-gray-400/70 hover:text-white text-sm"
           >
             Configurar después
           </button>
@@ -103,7 +103,7 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
           <div
             key={i}
             className={`h-1 flex-1 rounded-full transition-colors ${
-              i <= step ? 'bg-pink-500' : 'bg-gray-700'
+              i <= step ? 'bg-pink-400' : 'bg-white/10'
             }`}
           />
         ))}
@@ -119,10 +119,10 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
           transition={{ duration: 0.2 }}
           className="min-h-[200px]"
         >
-          <h3 className="text-lg font-semibold text-white mb-2">
+          <h3 className="text-lg font-semibold text-white mb-2 font-urbanist">
             {steps[step].title}
           </h3>
-          <p className="text-sm text-gray-400 mb-6">
+          <p className="text-sm text-gray-300/70 mb-6">
             {steps[step].subtitle}
           </p>
 
@@ -134,11 +134,11 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
                 value={formData.last_period_start}
                 onChange={(e) => handleInputChange('last_period_start', e.target.value)}
                 max={new Date().toISOString().split('T')[0]}
-                className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-pink-500"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-pink-400/60"
               />
               <button
                 onClick={() => handleInputChange('last_period_start', new Date().toISOString().split('T')[0])}
-                className="w-full py-3 px-4 bg-pink-500/20 border border-pink-500/40 rounded-lg text-pink-300 hover:bg-pink-500/30 transition-colors"
+                className="w-full py-3 px-4 bg-gradient-to-r from-pink-300 via-pink-400 to-rose-500 text-black rounded-lg hover:from-pink-200 hover:via-pink-300 hover:to-rose-400 transition-colors font-semibold shadow-[0_10px_24px_-16px_rgba(244,114,182,0.7)]"
               >
                 Me ha bajado hoy
               </button>
@@ -151,17 +151,17 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => handleInputChange('cycle_length', Math.max(21, formData.cycle_length - 1))}
-                  className="w-12 h-12 rounded-lg bg-gray-800 text-white hover:bg-gray-700 text-xl font-bold"
+                  className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 text-xl font-bold"
                 >
                   -
                 </button>
                 <div className="flex-1 text-center">
                   <span className="text-4xl font-bold text-white">{formData.cycle_length}</span>
-                  <span className="text-gray-400 ml-2">días</span>
+                  <span className="text-gray-300/70 ml-2">días</span>
                 </div>
                 <button
                   onClick={() => handleInputChange('cycle_length', Math.min(35, formData.cycle_length + 1))}
-                  className="w-12 h-12 rounded-lg bg-gray-800 text-white hover:bg-gray-700 text-xl font-bold"
+                  className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 text-xl font-bold"
                 >
                   +
                 </button>
@@ -169,14 +169,14 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
               
               <button
                 onClick={() => setShowCycleLengthHelp(!showCycleLengthHelp)}
-                className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300"
+                className="flex items-center gap-2 text-sm text-gray-300/70 hover:text-gray-200"
               >
                 <HelpCircle className="w-4 h-4" />
                 No sé cuánto dura mi ciclo
               </button>
               
               {showCycleLengthHelp && (
-                <div className="p-3 bg-gray-800 rounded-lg text-sm text-gray-300">
+                <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300/80">
                   <p className="mb-2">El ciclo promedio es de 28 días, pero es normal que varíe entre 21 y 35 días.</p>
                   <p>Si no estás segura, déjalo en 28 días. Lo ajustaremos con el tiempo según tus registros.</p>
                 </div>
@@ -190,8 +190,8 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
                     onClick={() => handleInputChange('cycle_length', days)}
                     className={`flex-1 py-2 rounded-lg text-sm transition-colors ${
                       formData.cycle_length === days
-                        ? 'bg-pink-500 text-white'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                        ? 'bg-gradient-to-r from-pink-300 via-pink-400 to-rose-500 text-black'
+                        : 'bg-white/5 text-gray-300/80 hover:bg-white/10 border border-white/10'
                     }`}
                   >
                     {days}d
@@ -208,18 +208,18 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
                 onClick={() => handleInputChange('is_regular', true)}
                 className={`w-full p-4 rounded-lg border transition-colors flex items-center gap-3 ${
                   formData.is_regular === true
-                    ? 'bg-pink-500/20 border-pink-500 text-white'
-                    : 'bg-gray-800 border-gray-600 text-gray-300 hover:border-gray-500'
+                    ? 'bg-white/5 border-pink-400/60 text-white'
+                    : 'bg-white/5 border-white/10 text-gray-300/80 hover:border-white/20'
                 }`}
               >
                 <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                  formData.is_regular === true ? 'border-pink-500 bg-pink-500' : 'border-gray-500'
+                  formData.is_regular === true ? 'border-pink-400 bg-pink-400' : 'border-gray-500/60'
                 }`}>
                   {formData.is_regular === true && <Check className="w-4 h-4 text-white" />}
                 </div>
                 <div className="text-left">
                   <p className="font-medium">Sí, es bastante regular</p>
-                  <p className="text-sm text-gray-400">Suele venir más o menos en la misma fecha</p>
+                  <p className="text-sm text-gray-300/70">Suele venir más o menos en la misma fecha</p>
                 </div>
               </button>
 
@@ -227,18 +227,18 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
                 onClick={() => handleInputChange('is_regular', false)}
                 className={`w-full p-4 rounded-lg border transition-colors flex items-center gap-3 ${
                   formData.is_regular === false
-                    ? 'bg-pink-500/20 border-pink-500 text-white'
-                    : 'bg-gray-800 border-gray-600 text-gray-300 hover:border-gray-500'
+                    ? 'bg-white/5 border-pink-400/60 text-white'
+                    : 'bg-white/5 border-white/10 text-gray-300/80 hover:border-white/20'
                 }`}
               >
                 <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                  formData.is_regular === false ? 'border-pink-500 bg-pink-500' : 'border-gray-500'
+                  formData.is_regular === false ? 'border-pink-400 bg-pink-400' : 'border-gray-500/60'
                 }`}>
                   {formData.is_regular === false && <Check className="w-4 h-4 text-white" />}
                 </div>
                 <div className="text-left">
                   <p className="font-medium">No, es irregular</p>
-                  <p className="text-sm text-gray-400">La fecha varía bastante cada mes</p>
+                  <p className="text-sm text-gray-300/70">La fecha varía bastante cada mes</p>
                 </div>
               </button>
             </div>
@@ -251,18 +251,18 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
                 onClick={() => handleInputChange('uses_hormonal_contraceptives', false)}
                 className={`w-full p-4 rounded-lg border transition-colors flex items-center gap-3 ${
                   formData.uses_hormonal_contraceptives === false
-                    ? 'bg-pink-500/20 border-pink-500 text-white'
-                    : 'bg-gray-800 border-gray-600 text-gray-300 hover:border-gray-500'
+                    ? 'bg-white/5 border-pink-400/60 text-white'
+                    : 'bg-white/5 border-white/10 text-gray-300/80 hover:border-white/20'
                 }`}
               >
                 <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                  formData.uses_hormonal_contraceptives === false ? 'border-pink-500 bg-pink-500' : 'border-gray-500'
+                  formData.uses_hormonal_contraceptives === false ? 'border-pink-400 bg-pink-400' : 'border-gray-500/60'
                 }`}>
                   {formData.uses_hormonal_contraceptives === false && <Check className="w-4 h-4 text-white" />}
                 </div>
                 <div className="text-left">
                   <p className="font-medium">No uso anticonceptivos hormonales</p>
-                  <p className="text-sm text-gray-400">O uso métodos no hormonales (DIU de cobre, preservativo...)</p>
+                  <p className="text-sm text-gray-300/70">O uso métodos no hormonales (DIU de cobre, preservativo...)</p>
                 </div>
               </button>
 
@@ -270,23 +270,23 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
                 onClick={() => handleInputChange('uses_hormonal_contraceptives', true)}
                 className={`w-full p-4 rounded-lg border transition-colors flex items-center gap-3 ${
                   formData.uses_hormonal_contraceptives === true
-                    ? 'bg-pink-500/20 border-pink-500 text-white'
-                    : 'bg-gray-800 border-gray-600 text-gray-300 hover:border-gray-500'
+                    ? 'bg-white/5 border-pink-400/60 text-white'
+                    : 'bg-white/5 border-white/10 text-gray-300/80 hover:border-white/20'
                 }`}
               >
                 <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                  formData.uses_hormonal_contraceptives === true ? 'border-pink-500 bg-pink-500' : 'border-gray-500'
+                  formData.uses_hormonal_contraceptives === true ? 'border-pink-400 bg-pink-400' : 'border-gray-500/60'
                 }`}>
                   {formData.uses_hormonal_contraceptives === true && <Check className="w-4 h-4 text-white" />}
                 </div>
                 <div className="text-left">
                   <p className="font-medium">Sí, uso anticonceptivos hormonales</p>
-                  <p className="text-sm text-gray-400">Píldora, parche, anillo, DIU hormonal, implante</p>
+                  <p className="text-sm text-gray-300/70">Píldora, parche, anillo, DIU hormonal, implante</p>
                 </div>
               </button>
 
               {formData.uses_hormonal_contraceptives && (
-                <div className="p-3 bg-blue-900/30 border border-blue-500/30 rounded-lg text-sm text-blue-200">
+                <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-sm text-sky-200">
                   <p>💡 Con anticonceptivos hormonales, las fases naturales no aplican igual. Nos basaremos principalmente en cómo te sientes cada día.</p>
                 </div>
               )}
@@ -300,7 +300,7 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
         {step > 0 && (
           <button
             onClick={handleBack}
-            className="px-6 py-3 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors"
+            className="px-6 py-3 bg-white/5 border border-white/10 text-gray-200 rounded-lg hover:bg-white/10 transition-colors"
           >
             Atrás
           </button>
@@ -310,8 +310,8 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
           disabled={!canProceed()}
           className={`flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors ${
             canProceed()
-              ? 'bg-pink-500 text-white hover:bg-pink-600'
-              : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+              ? 'bg-gradient-to-r from-pink-300 via-pink-400 to-rose-500 text-black hover:from-pink-200 hover:via-pink-300 hover:to-rose-400 shadow-[0_12px_30px_-18px_rgba(244,114,182,0.7)]'
+              : 'bg-white/10 text-gray-500 cursor-not-allowed'
           }`}
         >
           {step === 3 ? (

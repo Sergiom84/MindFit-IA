@@ -29,6 +29,7 @@
 - UI: padding superior en móvil alineado con Nutrición para Dashboard, Metodologías, Oposiciones, Rutinas, Perfil, Entrenamiento en casa y Corrección IA.
 - Fix: cola offline respeta timeout desde `item.metadata`/`item.options` en reintentos para evitar error de variables no definidas.
 - UI: login y registro alineados al estilo Tech-Lux (fondos, cards glass, CTAs premium y formularios con inputs coherentes).
+- UI: módulo de Ciclo Menstrual alineado al estilo Tech-Lux manteniendo acentos rosados (sección principal, tarjetas y onboarding).
 
 ## 28.01.2026
 
