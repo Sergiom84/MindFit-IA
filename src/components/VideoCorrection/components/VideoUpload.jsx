@@ -21,6 +21,7 @@ export default function VideoUpload() {
     setSelectedVideo,
     isAnalyzing,
   } = useVideoAnalysis();
+  const cardBase = 'bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg';
 
   const handlePickVideo = () => {
     fileInputRef.current?.click();
@@ -103,10 +104,10 @@ export default function VideoUpload() {
   };
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className={`${cardBase} border-l-2 border-l-emerald-400/40`}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-white flex items-center gap-2">
-          <Upload className="w-5 h-5" />
+        <CardTitle className="text-white flex items-center gap-2 font-urbanist">
+          <Upload className="w-5 h-5 text-emerald-300" />
           Subir Video para Análisis
         </CardTitle>
       </CardHeader>
@@ -123,27 +124,27 @@ export default function VideoUpload() {
 
         {/* Zona de upload o preview */}
         {!selectedVideo ? (
-          <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center mb-4">
-            <Video className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-300 mb-4">
+          <div className="border-2 border-dashed border-white/15 rounded-2xl p-8 text-center mb-4 bg-white/5">
+            <Video className="w-16 h-16 mx-auto mb-4 text-emerald-200/80" />
+            <p className="text-gray-200/80 mb-4">
               Sube un video de tu ejercicio para análisis completo
             </p>
             <Button 
               onClick={handlePickVideo}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-white/10 text-white border border-white/10 hover:bg-white/20"
               disabled={isAnalyzing}
             >
               <Upload className="w-4 h-4 mr-2" />
               Seleccionar Video
             </Button>
-            <p className="text-xs text-gray-500 mt-3">
+            <p className="text-xs text-gray-400 mt-3">
               Formatos: MP4, WebM, AVI • Máximo: 100MB
             </p>
           </div>
         ) : (
           <div className="space-y-4">
             {/* Preview del video */}
-            <div className="relative rounded-lg overflow-hidden bg-gray-900">
+            <div className="relative rounded-2xl overflow-hidden bg-black/40 border border-white/10">
               <video 
                 ref={videoPreviewRef}
                 className="w-full max-h-64 object-contain"
@@ -153,30 +154,30 @@ export default function VideoUpload() {
             </div>
 
             {/* Información del archivo */}
-            <div className="bg-gray-900/50 rounded-lg p-4">
+            <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <FileVideo className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                    <FileVideo className="w-4 h-4 text-emerald-300 flex-shrink-0" />
                     <p className="text-white font-medium truncate">
                       {selectedVideo.name}
                     </p>
                   </div>
                   
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary" className="bg-gray-700">
+                    <Badge variant="secondary" className="bg-white/5 border border-white/10 text-gray-200">
                       <HardDrive className="w-3 h-3 mr-1" />
                       {formatFileSize(selectedVideo.size)}
                     </Badge>
                     
                     {selectedVideo.duration && (
-                      <Badge variant="secondary" className="bg-gray-700">
+                      <Badge variant="secondary" className="bg-white/5 border border-white/10 text-gray-200">
                         <Clock className="w-3 h-3 mr-1" />
                         {formatDuration(selectedVideo.duration)}
                       </Badge>
                     )}
                     
-                    <Badge variant="secondary" className="bg-gray-700">
+                    <Badge variant="secondary" className="bg-white/5 border border-white/10 text-gray-200">
                       {selectedVideo.type}
                     </Badge>
                   </div>
@@ -199,6 +200,7 @@ export default function VideoUpload() {
                 onClick={handlePickVideo}
                 variant="outline"
                 disabled={isAnalyzing}
+                className="border-white/10 text-gray-200 hover:bg-white/10"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 Cambiar Video

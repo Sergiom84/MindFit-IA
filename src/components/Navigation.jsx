@@ -1,37 +1,13 @@
 import { motion } from 'framer-motion';
-import { LogOut, User, Home, Dumbbell, UserCircle, BookOpen, Calendar, Apple, Shield, Droplet } from 'lucide-react';
+import { LogOut, Home, UserCircle, BookOpen, Calendar, Apple, Shield } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { memo, useCallback, useMemo, useState, useEffect } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
-  const [showCycleTab, setShowCycleTab] = useState(false);
-
-  // Verificar si el usuario es femenino y debe ver la pestaña de ciclo
-  useEffect(() => {
-    const checkCycleFeature = async () => {
-      if (!isAuthenticated) return;
-      
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('/api/menstrual-cycle/check-user', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setShowCycleTab(data.showCycleFeature === true);
-        }
-      } catch (err) {
-        console.error('Error verificando feature de ciclo:', err);
-      }
-    };
-
-    checkCycleFeature();
-  }, [isAuthenticated, user?.id]);
 
   // Verificar si hay rutinas disponibles (memoizado)
   const hasRoutines = useMemo(() => 
@@ -62,45 +38,53 @@ const Navigation = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="bg-black border-b border-yellow-400/20 sticky top-0 z-50"
+        className="sticky top-0 z-50 bg-neutral-900/70 backdrop-blur-xl border-b border-white/10 ring-1 ring-white/5"
       >
-        <div className="container mx-auto px-6 py-4">
+        <div className="container mx-auto px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div 
               onClick={() => navigate('/')}
-              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+              className="flex items-center gap-3 cursor-pointer hover:opacity-90 transition-opacity"
             >
-              <div className="bg-yellow-400 p-2 rounded-lg">
-                <Dumbbell size={24} className="text-black" />
+              <div className="flex items-center justify-center rounded-xl border border-white/10 bg-white/5 p-1.5 shadow-[0_12px_30px_-20px_rgba(0,0,0,0.8)]">
+                <img
+                  src="/assets/tech-lux/icon.png"
+                  alt="MindFit"
+                  className="h-9 w-9 object-contain sm:h-10 sm:w-10 md:h-12 md:w-12"
+                />
               </div>
-              <h1 className="text-xl font-bold text-white">MindFit</h1>
+              <h1 className="text-xl font-semibold font-urbanist text-white tracking-wide">MindFit</h1>
             </div>
 
             {/* Profile Sphere */}
             <div className="flex items-center gap-3">
-              <div 
+              <div
                 onClick={() => navigate('/profile')}
-                className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                className="flex items-center gap-3 cursor-pointer rounded-full bg-white/5 border border-white/10 px-2 py-1.5 hover:bg-white/10 transition-colors"
               >
                 {/* Profile Picture Sphere */}
                 <div className="relative">
-                  <div className="w-10 h-10 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center border-2 border-yellow-400/30 hover:border-yellow-400/60 transition-colors">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full border border-yellow-400/30 bg-gradient-to-r from-yellow-300 to-amber-500 p-0.5 sm:h-10 sm:w-10 md:h-12 md:w-12">
                     {user?.profile_picture ? (
-                      <img 
-                        src={user.profile_picture} 
-                        alt="Profile" 
-                        className="w-full h-full rounded-full object-cover"
+                      <img
+                        src={user.profile_picture}
+                        alt="Profile"
+                        className="h-full w-full rounded-full object-cover bg-black"
                       />
                     ) : (
-                      <User size={20} className="text-black" />
+                      <img
+                        src="/assets/tech-lux/perfil.webp"
+                        alt="Perfil"
+                        className="h-full w-full rounded-full object-contain bg-black"
+                      />
                     )}
                   </div>
                 </div>
                 
                 {/* User Name */}
                 <div className="hidden sm:block">
-                  <span className="text-white font-medium text-sm">
+                  <span className="text-gray-100 font-medium text-sm">
                     {user?.nombre}
                   </span>
                 </div>
@@ -109,7 +93,7 @@ const Navigation = () => {
               {/* Logout Button - Smaller and more discrete */}
               <button
                 onClick={handleLogout}
-                className="ml-2 p-2 text-gray-400 hover:text-red-400 transition-colors"
+                className="ml-2 rounded-full border border-white/10 bg-white/5 p-2 text-gray-300 hover:bg-white/10 hover:text-red-300 transition-colors"
                 title="Cerrar sesión"
               >
                 <LogOut size={18} />
@@ -124,91 +108,83 @@ const Navigation = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.2 }}
-        className="fixed bottom-0 left-0 right-0 bg-black border-t border-yellow-400/20 z-50"
+        className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)]"
       >
-        <div className="flex justify-around items-center py-2">
-          <button
-            onClick={() => navigate('/')}
-            className={`flex flex-col items-center gap-1 py-2 px-2 transition-colors ${
-              isActive('/') 
-                ? 'text-yellow-400' 
-                : 'text-gray-300 hover:text-yellow-400'
-            }`}
-          >
-            <Home size={22} />
-            <span className="text-xs font-medium">Inicio</span>
-          </button>
-          <button
-            onClick={() => navigate('/methodologies')}
-            className={`flex flex-col items-center gap-1 py-2 px-2 transition-colors ${
-              isActive('/methodologies')
-                ? 'text-yellow-400'
-                : 'text-gray-300 hover:text-yellow-400'
-            }`}
-          >
-            <BookOpen size={22} />
-            <span className="text-xs font-medium">Métodos</span>
-          </button>
-          <button
-            onClick={() => navigate('/oposiciones')}
-            className={`flex flex-col items-center gap-1 py-2 px-2 transition-colors ${
-              isActive('/oposiciones')
-                ? 'text-yellow-400'
-                : 'text-gray-300 hover:text-yellow-400'
-            }`}
-          >
-            <Shield size={22} />
-            <span className="text-xs font-medium">Oposiciones</span>
-          </button>
-          <button
-            onClick={() => navigate('/routines')}
-            className={`flex flex-col items-center gap-1 py-2 px-2 transition-colors relative ${
-              isActive('/routines')
-                ? 'text-yellow-400'
-                : 'text-gray-300 hover:text-yellow-400'
-            }`}
-          >
-            <Calendar size={22} />
-            <span className="text-xs font-medium">Rutinas</span>
-            {hasRoutines && (
-              <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full"></div>
-            )}
-          </button>
-          <button
-            onClick={() => navigate('/nutrition')}
-            className={`flex flex-col items-center gap-1 py-2 px-2 transition-colors ${
-              isActive('/nutrition') 
-                ? 'text-yellow-400' 
-                : 'text-gray-300 hover:text-yellow-400'
-            }`}
-          >
-            <Apple size={22} />
-            <span className="text-xs font-medium">Nutrición</span>
-          </button>
-          {showCycleTab && (
-            <button
-              onClick={() => navigate('/cycle')}
-              className={`flex flex-col items-center gap-1 py-2 px-2 transition-colors ${
-                isActive('/cycle') 
-                  ? 'text-pink-400' 
-                  : 'text-gray-300 hover:text-pink-400'
-              }`}
-            >
-              <Droplet size={22} />
-              <span className="text-xs font-medium">Ciclo</span>
-            </button>
-          )}
-          <button
-            onClick={() => navigate('/profile')}
-            className={`flex flex-col items-center gap-1 py-2 px-2 transition-colors ${
-              isActive('/profile') 
-                ? 'text-yellow-400' 
-                : 'text-gray-300 hover:text-yellow-400'
-            }`}
-          >
-            <UserCircle size={22} />
-            <span className="text-xs font-medium">Perfil</span>
-          </button>
+        <div className="mx-auto max-w-3xl">
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-neutral-900/80 ring-1 ring-white/5 shadow-[0_25px_70px_-50px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-yellow-400/10 via-transparent to-yellow-400/10" />
+            <div className="flex items-center justify-between gap-1 px-2 py-2 font-body">
+              <button
+                onClick={() => navigate('/')}
+                className={`group flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition-all ${
+                  isActive('/') 
+                    ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
+                    : 'text-gray-300/80 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Home size={20} />
+                <span>Inicio</span>
+              </button>
+              <button
+                onClick={() => navigate('/methodologies')}
+                className={`group flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition-all ${
+                  isActive('/methodologies')
+                    ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
+                    : 'text-gray-300/80 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <BookOpen size={20} />
+                <span>Métodos</span>
+              </button>
+              <button
+                onClick={() => navigate('/oposiciones')}
+                className={`group flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition-all ${
+                  isActive('/oposiciones')
+                    ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
+                    : 'text-gray-300/80 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Shield size={20} />
+                <span>Oposiciones</span>
+              </button>
+              <button
+                onClick={() => navigate('/routines')}
+                className={`group relative flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition-all ${
+                  isActive('/routines')
+                    ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
+                    : 'text-gray-300/80 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Calendar size={20} />
+                <span>Rutinas</span>
+                {hasRoutines && (
+                  <div className="absolute top-1 right-2 h-2 w-2 rounded-full bg-yellow-300" />
+                )}
+              </button>
+              <button
+                onClick={() => navigate('/nutrition')}
+                className={`group flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition-all ${
+                  isActive('/nutrition') 
+                    ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
+                    : 'text-gray-300/80 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Apple size={20} />
+                <span>Nutrición</span>
+              </button>
+              <button
+                onClick={() => navigate('/profile')}
+                className={`group flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition-all ${
+                  isActive('/profile') 
+                    ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
+                    : 'text-gray-300/80 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <UserCircle size={20} />
+                <span>Perfil</span>
+              </button>
+            </div>
+          </div>
         </div>
       </motion.nav>
     </>

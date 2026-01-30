@@ -17,6 +17,7 @@ export default function AnalysisEngine() {
   const { user } = useAuth();
   const { userData } = useUserContext();
   const { speakCorrections, stopSpeaking } = VoiceFeedback();
+  const cardBase = 'bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg';
   
   const {
     selectedExerciseId,
@@ -230,10 +231,10 @@ export default function AnalysisEngine() {
   };
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card className={`${cardBase} border-l-2 border-l-yellow-400/40`}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-white flex items-center gap-2">
-          <Brain className="w-5 h-5" />
+        <CardTitle className="text-white flex items-center gap-2 font-urbanist">
+          <Brain className="w-5 h-5 text-yellow-300" />
           Motor de Análisis IA
         </CardTitle>
       </CardHeader>
@@ -245,7 +246,7 @@ export default function AnalysisEngine() {
             <Button 
               onClick={handleAnalyzeVideo}
               disabled={!selectedVideo || isAnalyzing || isLiveAnalyzing}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 text-lg font-semibold"
+              className="bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 px-8 py-3 text-lg font-semibold shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]"
               size="lg"
             >
               {isAnalyzing ? (
@@ -265,10 +266,10 @@ export default function AnalysisEngine() {
           {/* Divider */}
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-600" />
+              <span className="w-full border-t border-white/10" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-gray-800 px-2 text-gray-400">O</span>
+              <span className="bg-neutral-900 px-2 text-gray-400">O</span>
             </div>
           </div>
 
@@ -277,7 +278,7 @@ export default function AnalysisEngine() {
             <Button 
               onClick={handleLiveAnalysis}
               disabled={!isCameraOn || isAnalyzing || isLiveAnalyzing}
-              className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white px-6 py-2"
+              className="bg-white/10 text-white border border-white/10 hover:bg-white/20 px-6 py-2"
               size="lg"
             >
               {isLiveAnalyzing ? (
@@ -295,12 +296,12 @@ export default function AnalysisEngine() {
           </div>
 
           {/* Información sobre el análisis */}
-          <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-4">
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 border-l-2 border-l-sky-400/40">
             <div className="flex items-start gap-3">
-              <Target className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-blue-200">
-                <p className="font-medium mb-1">Análisis con IA Avanzada</p>
-                <ul className="space-y-1 text-xs text-blue-300">
+              <Target className="w-5 h-5 text-sky-300 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-gray-200/80">
+                <p className="font-medium mb-1 text-white">Análisis con IA Avanzada</p>
+                <ul className="space-y-1 text-xs text-gray-300/80">
                   <li>• Detección automática de posturas incorrectas</li>
                   <li>• Análisis personalizado según tu perfil</li>
                   <li>• Feedback por voz en tiempo real</li>

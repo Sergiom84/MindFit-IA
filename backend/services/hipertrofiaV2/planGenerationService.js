@@ -6,7 +6,78 @@
 import { CYCLE_LENGTH, DEFAULT_WEEKS_BY_LEVEL, WEEK_0_CONFIG } from './constants.js';
 import { buildTrainingCalendar, getDefaultDayMapping } from './calendarService.js';
 import { loadSessionsConfig, generateSessionExercises } from './sessionService.js';
+import { loadMindfeedRuleset } from './rulesetService.js';
 import { logger } from './logger.js';
+
+function isDeloadWeek(weekNumber, ruleset) {
+  const deloadWeeks = ruleset?.deloadRules?.deloadWeeks || [6];
+  return deloadWeeks.includes(weekNumber);
+}
+
+function applyDeloadToExercise(exercise, loadFactor, volumeFactor, reasonLabel) {
+  const baseSeries = Number(exercise.series || 1);
+  const baseIntensity = Number(exercise.intensidad_porcentaje || 0);
+  const deloadSeries = Math.max(1, Math.floor(baseSeries * volumeFactor));
+  const deloadIntensity = baseIntensity > 0
+    ? Math.round(baseIntensity * loadFactor * 10) / 10
+    : baseIntensity;
+
+  const extraNote = `[DELOAD ${reasonLabel}] -30% carga, -50% volumen`;
+
+  return {
+    ...exercise,
+    series: deloadSeries,
+    intensidad_porcentaje: deloadIntensity,
+    notas: `${exercise.notas || ''} ${extraNote}`.trim()
+  };
+}
+
+function applyDeloadToSession(session, ruleset, reason = 'planificado') {
+  const loadFactor = ruleset?.deloadRules?.loadFactor ?? 0.7;
+  const volumeFactor = ruleset?.deloadRules?.volumeFactor ?? 0.5;
+  const reasonLabel = reason.toUpperCase();
+  const sessionIntensity = Number(session.intensidad_porcentaje || 0);
+  const deloadSessionIntensity = sessionIntensity > 0
+    ? Math.round(sessionIntensity * loadFactor * 10) / 10
+    : sessionIntensity;
+
+  return {
+    ...session,
+    es_deload: true,
+    tipo: 'deload',
+    deload_reason: reason,
+    intensidad_porcentaje: deloadSessionIntensity,
+    coach_tip: `Semana de descarga: reduce la carga y prioriza técnica (${reason}).`,
+    ejercicios: (session.ejercicios || []).map(ex =>
+      applyDeloadToExercise(ex, loadFactor, volumeFactor, reasonLabel)
+    )
+  };
+}
+
+function applyDeloadToWeekSessions(weekSessions, ruleset, reason = 'planificado') {
+  return (weekSessions || []).map(session => applyDeloadToSession(session, ruleset, reason));
+}
+
+function resolveStartDateValue(rawStartDate) {
+  if (!rawStartDate) return null;
+  if (rawStartDate instanceof Date) return rawStartDate;
+
+  if (rawStartDate === 'today') {
+    return new Date();
+  }
+
+  if (rawStartDate === 'next_monday') {
+    const d = new Date();
+    const dayOfWeek = d.getDay();
+    const daysUntilMonday = (1 + 7 - dayOfWeek) % 7 || 7;
+    d.setDate(d.getDate() + daysUntilMonday);
+    return d;
+  }
+
+  const parsed = new Date(rawStartDate);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
 
 /**
  * Genera plan completo D1-D5 con motor MindFeed
@@ -39,6 +110,9 @@ export async function generateD1D5Plan(dbClient, config) {
 
   logger.debug('👤 Sexo:', userSex, 'Ajuste femenino:', isFemale);
 
+  // Cargar ruleset normativo MindFeed v1
+  const ruleset = await loadMindfeedRuleset(dbClient, nivel);
+
   // Obtener prioridad muscular activa
   const priorityResult = await dbClient.query(
     `SELECT priority_muscle FROM app.hipertrofia_v2_state WHERE user_id = $1`,
@@ -54,9 +128,13 @@ export async function generateD1D5Plan(dbClient, config) {
   let trainingDays = null;
   let dynamicDayMapping = {};
 
-  if (startConfig?.startDate) {
+  const resolvedStartDate = startConfig?.startDate
+    ? resolveStartDateValue(startConfig.startDate)
+    : null;
+
+  if (resolvedStartDate) {
     const calendar = buildTrainingCalendar({
-      startDate: startConfig.startDate,
+      startDate: resolvedStartDate,
       includeSaturday: startConfig.distributionOption === 'saturdays' || startConfig.includeSaturdays,
       totalWeeks: actualTotalWeeks,
       cycleLength: CYCLE_LENGTH
@@ -68,7 +146,11 @@ export async function generateD1D5Plan(dbClient, config) {
     logger.info(`📅 Calendario generado: ${trainingDays.length} sesiones`);
   } else {
     dynamicDayMapping = getDefaultDayMapping(CYCLE_LENGTH);
-    logger.warn('⚠️ Sin fecha de inicio, usando mapeo por defecto');
+    if (startConfig?.startDate) {
+      logger.warn('⚠️ startDate inválida, usando mapeo por defecto');
+    } else {
+      logger.warn('⚠️ Sin fecha de inicio, usando mapeo por defecto');
+    }
   }
 
   // Cargar configuración de sesiones D1-D5
@@ -83,7 +165,8 @@ export async function generateD1D5Plan(dbClient, config) {
       sessionConfig,
       nivel,
       isFemale,
-      priorityMuscle
+      priorityMuscle,
+      ruleset
     );
 
     sessionsWithExercises.push(session);
@@ -152,7 +235,8 @@ export async function generateD1D5Plan(dbClient, config) {
 
   // Semanas regulares
   for (let weekIndex = 0; weekIndex < actualTotalWeeks; weekIndex++) {
-    const weekSessions = Array.from({ length: CYCLE_LENGTH }, (_, idx) => {
+    const weekNumber = weekIndex + 1;
+    let weekSessions = Array.from({ length: CYCLE_LENGTH }, (_, idx) => {
       const sessionNumber = weekIndex * CYCLE_LENGTH + idx;
       const cycleDay = (sessionNumber % CYCLE_LENGTH) + 1;
       const template = templateByCycleDay.get(cycleDay);
@@ -171,9 +255,16 @@ export async function generateD1D5Plan(dbClient, config) {
       };
     });
 
+    const deloadThisWeek = isDeloadWeek(weekNumber, ruleset);
+    if (deloadThisWeek) {
+      weekSessions = applyDeloadToWeekSessions(weekSessions, ruleset, 'planificado');
+      logger.info(`🧘 [DELOAD] Semana ${weekNumber} marcada como descarga planificada`);
+    }
+
     semanas.push({
-      numero: weekIndex + 1,
-      tipo: 'entrenamiento',
+      numero: weekNumber,
+      tipo: deloadThisWeek ? 'deload' : 'entrenamiento',
+      es_deload: deloadThisWeek,
       sesiones: weekSessions
     });
   }
@@ -200,7 +291,11 @@ export async function generateD1D5Plan(dbClient, config) {
       week_0_intensity: WEEK_0_CONFIG.intensity,
       duration_weeks: actualTotalWeeks,
       sex_adjusted: isFemale,
-      rest_adjustment_factor: isFemale ? 0.85 : 1.0
+      rest_adjustment_factor: isFemale ? 0.85 : 1.0,
+      ruleset_scope: ruleset?.meta?.level ? 'hipertrofia_v2_principiante' : 'hipertrofia_v2_principiante',
+      ruleset_version: ruleset?.meta?.spec || 'MindFeed_Compliance_Spec_v1',
+      deload_weeks: ruleset?.deloadRules?.deloadWeeks || [6],
+      rest_seconds_by_type: ruleset?.restSecondsByType || null
     }
   };
 

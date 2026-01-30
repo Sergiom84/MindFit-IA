@@ -32,11 +32,20 @@ import NutritionCalendarView from './NutritionCalendarView';
 export default function NutritionScreen() {
   const { currentUser, user } = useAuth();
   const { userData } = useUserContext();
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [activeTab, setActiveTab] = useState('overview');
   const [nutritionPlan, setNutritionPlan] = useState(null);
   const [userStats, setUserStats] = useState(null);
   const [weekStats, setWeekStats] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const handleMouseMove = (event) => {
+      setMousePosition({ x: event.clientX, y: event.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   // Obtener información del usuario y rutina actual
   useEffect(() => {
@@ -303,29 +312,45 @@ export default function NutritionScreen() {
     }
   ];
 
+  const cardBase = "bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 to-gray-900">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-[#050506] text-white relative overflow-hidden font-body">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[url('/assets/tech-lux/bg-tech-lux-mobile.jpg')] sm:bg-[url('/assets/tech-lux/bg-tech-lux-desktop.jpg')] bg-cover bg-center opacity-80 sm:opacity-70" />
+        <div className="absolute inset-0 bg-[url('/assets/tech-lux/texture-tech-lux-tile.jpg')] bg-repeat opacity-20 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/80 sm:from-black/40 sm:via-black/60 sm:to-black" />
+        <div className="absolute -top-20 right-0 h-56 w-56 bg-yellow-400/10 blur-[140px]" />
+        <div className="absolute top-1/3 -left-16 h-64 w-64 bg-yellow-400/10 blur-[160px]" />
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(250, 204, 21, 0.18), transparent 60%)`
+          }}
+        />
+      </div>
+      <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-4xl font-bold text-white mb-2">
+              <p className="text-xs uppercase tracking-[0.4em] text-yellow-200/80 mb-2">Nutrición</p>
+              <h1 className="text-4xl font-semibold font-urbanist text-white mb-2">
                 Nutrición Deportiva
               </h1>
-              <p className="text-gray-300 text-lg">
+              <p className="text-gray-200/80 text-lg">
                 Plan nutricional personalizado para tu entrenamiento
               </p>
             </div>
             <div className="flex items-center gap-4">
               {basicMacros && (
-                <Card className="bg-gray-800/70 border-gray-600">
+                <Card className={`${cardBase} border-l-2 border-l-yellow-400/30`}>
                   <CardContent className="p-4">
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-yellow-400">
+                      <p className="text-2xl font-bold text-yellow-300">
                         {basicMacros.calories}
                       </p>
-                      <p className="text-sm text-gray-300">kcal/día</p>
+                      <p className="text-sm text-gray-300/80">kcal/día</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -341,10 +366,10 @@ export default function NutritionScreen() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-all duration-200 ${
+                  className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-medium transition-all duration-200 ${
                     activeTab === tab.id
-                      ? 'bg-yellow-400 text-black font-semibold'
-                      : 'bg-gray-800/70 text-gray-300 hover:bg-gray-700/70 hover:text-white'
+                      ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black border-transparent shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
+                      : 'bg-white/5 border-white/10 text-gray-200/80 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   <Icon size={18} />
@@ -362,35 +387,35 @@ export default function NutritionScreen() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Macros Overview */}
               {basicMacros ? (
-                <Card className="bg-gray-800/70 border-gray-600 lg:col-span-2">
+                <Card className={`${cardBase} border-l-2 border-l-yellow-400/30 lg:col-span-2`}>
                   <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
+                    <CardTitle className="text-white flex items-center gap-2 font-urbanist">
                       <Target className="text-yellow-400" size={24} />
                       Objetivos Nutricionales
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="text-center p-4 bg-blue-500/20 rounded-lg border border-blue-500/30">
-                        <p className="text-2xl font-bold text-blue-400">
+                      <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10 border-l-2 border-l-sky-400/40">
+                        <p className="text-2xl font-bold text-sky-300">
                           {basicMacros.calories}
                         </p>
                         <p className="text-sm text-gray-300">Calorías</p>
                       </div>
-                      <div className="text-center p-4 bg-red-500/20 rounded-lg border border-red-500/30">
-                        <p className="text-2xl font-bold text-red-400">
+                      <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10 border-l-2 border-l-red-400/40">
+                        <p className="text-2xl font-bold text-red-300">
                           {basicMacros.protein}g
                         </p>
                         <p className="text-sm text-gray-300">Proteína</p>
                       </div>
-                      <div className="text-center p-4 bg-green-500/20 rounded-lg border border-green-500/30">
-                        <p className="text-2xl font-bold text-green-400">
+                      <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10 border-l-2 border-l-emerald-400/40">
+                        <p className="text-2xl font-bold text-emerald-300">
                           {basicMacros.carbs}g
                         </p>
                         <p className="text-sm text-gray-300">Carbohidratos</p>
                       </div>
-                      <div className="text-center p-4 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
-                        <p className="text-2xl font-bold text-yellow-400">
+                      <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10 border-l-2 border-l-yellow-400/40">
+                        <p className="text-2xl font-bold text-yellow-300">
                           {basicMacros.fat}g
                         </p>
                         <p className="text-sm text-gray-300">Grasas</p>
@@ -406,9 +431,9 @@ export default function NutritionScreen() {
                   </CardContent>
                 </Card>
               ) : (
-                <Card className="bg-gray-800/70 border-gray-600 lg:col-span-2">
+                <Card className={`${cardBase} border-l-2 border-l-yellow-400/30 lg:col-span-2`}>
                   <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
+                    <CardTitle className="text-white flex items-center gap-2 font-urbanist">
                       <Target className="text-yellow-400" size={24} />
                       Objetivos Nutricionales
                     </CardTitle>
@@ -433,14 +458,14 @@ export default function NutritionScreen() {
               )}
 
               {/* Quick Actions */}
-              <Card className="bg-gray-800/70 border-gray-600">
+              <Card className={`${cardBase} border-l-2 border-l-sky-400/30`}>
                 <CardHeader>
-                  <CardTitle className="text-white">Acciones Rápidas</CardTitle>
+                  <CardTitle className="text-white font-urbanist">Acciones Rápidas</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Button
                     onClick={() => setActiveTab('ai')}
-                    className="w-full bg-yellow-400 hover:bg-yellow-500 text-black"
+                    className="w-full bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]"
                   >
                     <TrendingUp size={16} className="mr-2" />
                     Generar Plan con IA
@@ -448,7 +473,7 @@ export default function NutritionScreen() {
                   <Button
                     onClick={() => setActiveTab('planner')}
                     variant="outline"
-                    className="w-full border-gray-600 text-white hover:bg-gray-700"
+                    className="w-full border-white/10 bg-white/5 text-white hover:bg-white/10"
                   >
                     <Utensils size={16} className="mr-2" />
                     Planificar Comidas
@@ -456,7 +481,7 @@ export default function NutritionScreen() {
                   <Button
                     onClick={() => setActiveTab('supplements')}
                     variant="outline"
-                    className="w-full border-gray-600 text-white hover:bg-gray-700"
+                    className="w-full border-white/10 bg-white/5 text-white hover:bg-white/10"
                   >
                     <ShoppingCart size={16} className="mr-2" />
                     Ver Suplementos
@@ -465,7 +490,7 @@ export default function NutritionScreen() {
                     <Button
                       onClick={handleCancelPlan}
                       variant="outline"
-                      className="w-full border-red-600 text-red-400 hover:bg-red-900/30 hover:text-red-300"
+                      className="w-full border-red-500/40 text-red-300 hover:bg-red-500/10 hover:text-red-200"
                     >
                       <Activity size={16} className="mr-2" />
                       Cancelar Plan Actual
@@ -479,22 +504,22 @@ export default function NutritionScreen() {
               {basicMacros && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* BMR/TDEE/Ajuste */}
-                  <Card className="bg-gray-800/70 border-gray-600">
+                  <Card className={`${cardBase} border-l-2 border-l-sky-400/30`}>
                     <CardHeader>
-                      <CardTitle className="text-white">Gasto Energético</CardTitle>
+                      <CardTitle className="text-white font-urbanist">Gasto Energético</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-3 gap-4 text-center">
                         <div>
-                          <p className="text-xl font-bold text-blue-400">{basicMacros.bmr}</p>
+                          <p className="text-xl font-bold text-sky-300">{basicMacros.bmr}</p>
                           <p className="text-xs text-gray-300">TMB</p>
                         </div>
                         <div>
-                          <p className="text-xl font-bold text-green-400">{basicMacros.tdee}</p>
+                          <p className="text-xl font-bold text-emerald-300">{basicMacros.tdee}</p>
                           <p className="text-xs text-gray-300">TDEE</p>
                         </div>
                         <div>
-                          <p className={`text-xl font-bold ${deficitPct && deficitPct < 0 ? 'text-red-400' : 'text-yellow-400'}`}>{deficitPct} %</p>
+                          <p className={`text-xl font-bold ${deficitPct && deficitPct < 0 ? 'text-red-300' : 'text-yellow-300'}`}>{deficitPct} %</p>
                           <p className="text-xs text-gray-300">Ajuste</p>
                         </div>
                       </div>
@@ -502,23 +527,23 @@ export default function NutritionScreen() {
                   </Card>
 
                   {/* g/kg */}
-                  <Card className="bg-gray-800/70 border-gray-600">
+                  <Card className={`${cardBase} border-l-2 border-l-emerald-400/30`}>
                     <CardHeader>
-                      <CardTitle className="text-white">Objetivos (g/kg)</CardTitle>
+                      <CardTitle className="text-white font-urbanist">Objetivos (g/kg)</CardTitle>
                     </CardHeader>
                     <CardContent>
                       {pesoKg ? (
                         <div className="grid grid-cols-3 gap-4 text-center">
                           <div>
-                            <p className="text-xl font-bold text-red-400">{proteinPerKg}</p>
+                            <p className="text-xl font-bold text-red-300">{proteinPerKg}</p>
                             <p className="text-xs text-gray-300">Proteína</p>
                           </div>
                           <div>
-                            <p className="text-xl font-bold text-green-400">{carbsPerKg}</p>
+                            <p className="text-xl font-bold text-emerald-300">{carbsPerKg}</p>
                             <p className="text-xs text-gray-300">Carbohidratos</p>
                           </div>
                           <div>
-                            <p className="text-xl font-bold text-yellow-400">{fatPerKg}</p>
+                            <p className="text-xl font-bold text-yellow-300">{fatPerKg}</p>
                             <p className="text-xs text-gray-300">Grasas</p>
                           </div>
                         </div>
@@ -529,23 +554,23 @@ export default function NutritionScreen() {
                   </Card>
 
                   {/* Semana */}
-                  <Card className="bg-gray-800/70 border-gray-600">
+                  <Card className={`${cardBase} border-l-2 border-l-yellow-400/30`}>
                     <CardHeader>
-                      <CardTitle className="text-white">Semana (últimos 7 días)</CardTitle>
+                      <CardTitle className="text-white font-urbanist">Semana (últimos 7 días)</CardTitle>
                     </CardHeader>
                     <CardContent>
                       {weekStats ? (
                         <div className="grid grid-cols-3 gap-4 text-center">
                           <div>
-                            <p className="text-xl font-bold text-blue-400">{weekStats.daysCompleted}</p>
+                            <p className="text-xl font-bold text-sky-300">{weekStats.daysCompleted}</p>
                             <p className="text-xs text-gray-300">Días completados</p>
                           </div>
                           <div>
-                            <p className="text-xl font-bold text-green-400">{weekStats.avgCalories}</p>
+                            <p className="text-xl font-bold text-emerald-300">{weekStats.avgCalories}</p>
                             <p className="text-xs text-gray-300">kcal medias</p>
                           </div>
                           <div>
-                            <p className="text-xl font-bold text-yellow-400">{weekStats.consistency}%</p>
+                            <p className="text-xl font-bold text-yellow-300">{weekStats.consistency}%</p>
                             <p className="text-xs text-gray-300">Consistencia</p>
                           </div>
                         </div>
@@ -560,13 +585,13 @@ export default function NutritionScreen() {
 
               {/* Sin plan activo */}
               {!planSummary && (
-                <Card className="bg-gray-800/70 border-gray-600">
+                <Card className={`${cardBase} border-l-2 border-l-yellow-400/30`}>
                   <CardHeader>
-                    <CardTitle className="text-white">Aún no tienes un plan nutricional activo</CardTitle>
+                    <CardTitle className="text-white font-urbanist">Aún no tienes un plan nutricional activo</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-gray-300 mb-3">Genera un plan personalizado con IA según tu perfil y objetivos.</p>
-                    <Button onClick={() => setActiveTab('ai')} className="bg-yellow-400 hover:bg-yellow-500 text-black">
+                    <Button onClick={() => setActiveTab('ai')} className="bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]">
                       Generar Plan con IA
                     </Button>
                   </CardContent>
@@ -575,38 +600,38 @@ export default function NutritionScreen() {
 
               {/* Plan activo */}
               {planSummary && (
-                <Card className="bg-gray-800/70 border-gray-600">
+                <Card className={`${cardBase} border-l-2 border-l-yellow-400/30`}>
                   <CardHeader>
-                    <CardTitle className="text-white">Plan Nutricional Activo</CardTitle>
+                    <CardTitle className="text-white font-urbanist">Plan Nutricional Activo</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
                       <div>
-                        <p className="text-lg font-bold text-yellow-400">{planSummary.duration_days}</p>
+                        <p className="text-lg font-bold text-yellow-300">{planSummary.duration_days}</p>
                         <p className="text-xs text-gray-300">Días</p>
                       </div>
                       <div>
-                        <p className="text-lg font-bold text-blue-400">{planSummary.target_calories}</p>
+                        <p className="text-lg font-bold text-sky-300">{planSummary.target_calories}</p>
                         <p className="text-xs text-gray-300">kcal/día</p>
                       </div>
                       <div>
-                        <p className="text-lg font-bold text-red-400">{planSummary.target_macros?.protein}g</p>
+                        <p className="text-lg font-bold text-red-300">{planSummary.target_macros?.protein}g</p>
                         <p className="text-xs text-gray-300">Proteína</p>
                       </div>
                       <div>
-                        <p className="text-lg font-bold text-green-400">{planSummary.target_macros?.carbs}g</p>
+                        <p className="text-lg font-bold text-emerald-300">{planSummary.target_macros?.carbs}g</p>
                         <p className="text-xs text-gray-300">Carbohidratos</p>
                       </div>
                       <div>
-                        <p className="text-lg font-bold text-yellow-400">{planSummary.meals_per_day}</p>
+                        <p className="text-lg font-bold text-yellow-300">{planSummary.meals_per_day}</p>
                         <p className="text-xs text-gray-300">Comidas/día</p>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-3 mt-4">
-                      <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setActiveTab('calendar')}>
+                      <Button className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white" onClick={() => setActiveTab('calendar')}>
                         Ver en Calendario
                       </Button>
-                      <Button variant="outline" className="border-gray-600 text-white hover:bg-gray-700" onClick={() => setActiveTab('ai')}>
+                      <Button variant="outline" className="border-white/10 bg-white/5 text-white hover:bg-white/10" onClick={() => setActiveTab('ai')}>
                         Ajustar con IA
                       </Button>
                     </div>

@@ -382,7 +382,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
 
   return (
     <div className="max-w-5xl mx-auto p-6">
-      <div className="bg-gray-800 rounded-2xl p-6 shadow-xl space-y-8">
+      <div className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-2xl p-6 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg space-y-8">
         <header className="flex items-center gap-3">
           <TrendingUp className="w-8 h-8 text-yellow-400" />
           <div>
@@ -404,7 +404,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
           </div>
         )}
 
-        <section className="bg-gray-900/60 border border-gray-700/60 rounded-xl p-6 space-y-6">
+        <section className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-xl p-6 space-y-6">
           <header className="flex items-center gap-3">
             <Settings className="w-6 h-6 text-yellow-400" />
             <div>
@@ -437,7 +437,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                     className={`p-4 rounded-lg border transition-all text-left ${
                       profileData.objetivo === option.value
                         ? 'border-yellow-400 bg-yellow-500/10 text-white'
-                        : 'border-gray-700 bg-gray-800/60 text-gray-300 hover:border-gray-600'
+                        : 'border-white/10 bg-white/5 text-gray-300/80 hover:border-white/20'
                     }`}
                     disabled={profileLoading || profileSaving}
                   >
@@ -458,7 +458,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                 onChange={(event) =>
                   setProfileData((prev) => ({ ...prev, actividad: event.target.value }))
                 }
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 disabled={profileLoading || profileSaving}
               >
                 {ACTIVITY_OPTIONS.map((option) => (
@@ -483,7 +483,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                     className={`px-4 py-3 rounded-lg font-semibold transition-all ${
                       profileData.comidas_dia === count
                         ? 'bg-yellow-400 text-gray-900'
-                        : 'bg-gray-800 text-gray-200 hover:bg-gray-700'
+                        : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
                     }`}
                     disabled={profileLoading || profileSaving}
                   >
@@ -504,7 +504,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                     className={`p-3 rounded-lg text-sm font-medium transition-all ${
                       profileData.preferencias[key]
                         ? 'bg-yellow-400 text-gray-900'
-                        : 'bg-gray-800 text-gray-200 hover:bg-gray-700'
+                        : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
                     }`}
                     disabled={profileLoading || profileSaving}
                   >
@@ -528,7 +528,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                     }
                   }}
                   placeholder="Ej: frutos secos, mariscos..."
-                  className="flex-1 min-w-[200px] bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  className="flex-1 min-w-[200px] bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400"
                   disabled={profileLoading || profileSaving}
                 />
                 <button
@@ -597,17 +597,17 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
 
           {estimaciones && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-gray-800/70 rounded-lg p-4 text-center">
+              <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
                 <div className="text-gray-400 text-xs mb-1">TMB</div>
                 <div className="text-2xl font-bold text-yellow-400">{estimaciones.bmr}</div>
                 <div className="text-gray-500 text-xs">Metabolismo basal</div>
               </div>
-              <div className="bg-gray-800/70 rounded-lg p-4 text-center">
+              <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
                 <div className="text-gray-400 text-xs mb-1">TDEE</div>
                 <div className="text-2xl font-bold text-yellow-400">{estimaciones.tdee}</div>
                 <div className="text-gray-500 text-xs">Gasto total diario</div>
               </div>
-              <div className="bg-gray-800/70 rounded-lg p-4 text-center">
+              <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
                 <div className="text-gray-400 text-xs mb-1">Calorias objetivo</div>
                 <div className="text-2xl font-bold text-green-400">{estimaciones.kcal_objetivo}</div>
                 <div className="text-gray-500 text-xs">Por dia</div>
@@ -616,7 +616,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
           )}
         </section>
 
-        <section className="bg-gray-900/60 border border-gray-700/60 rounded-xl p-6 space-y-6">
+        <section className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-xl p-6 space-y-6">
           <header className="flex items-center gap-3">
             <TrendingUp className="w-6 h-6 text-yellow-400" />
             <div>
@@ -656,7 +656,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                     className={`px-4 py-3 rounded-lg font-semibold transition-all ${
                       config.duracion_dias === days
                         ? 'bg-yellow-400 text-gray-900'
-                        : 'bg-gray-800 text-gray-200 hover:bg-gray-700'
+                        : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
                     }`}
                     disabled={planLoading}
                   >
@@ -683,7 +683,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                     className={`p-4 rounded-lg border transition-all text-left ${
                       config.training_type === value
                         ? 'border-yellow-400 bg-yellow-500/10 text-white'
-                        : 'border-gray-700 bg-gray-800/60 text-gray-300 hover:border-gray-600'
+                        : 'border-white/10 bg-white/5 text-gray-300/80 hover:border-white/20'
                     }`}
                     disabled={planLoading}
                   >
@@ -711,7 +711,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                     key={preset}
                     type="button"
                     onClick={() => setPreset(preset)}
-                    className="px-3 py-1 bg-gray-800 text-gray-200 rounded text-xs hover:bg-gray-700 transition-colors disabled:opacity-60"
+                    className="px-3 py-1 bg-white/5 text-gray-200/80 rounded text-xs hover:bg-white/10 transition-colors disabled:opacity-60"
                     disabled={planLoading}
                   >
                     {preset.replace('dias', ' dias')}
@@ -728,7 +728,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                     className={`aspect-square rounded-lg font-semibold text-sm transition-all ${
                       config.training_schedule[index]
                         ? 'bg-green-500 text-white'
-                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                        : 'bg-white/5 text-gray-400 hover:bg-white/10'
                     }`}
                     disabled={planLoading}
                   >
@@ -746,7 +746,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                   <span className="text-gray-300">{trainingDaysCount} dias de entreno</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-gray-600 rounded-full" />
+                  <div className="w-3 h-3 bg-white/20 rounded-full" />
                   <span className="text-gray-300">{restDaysCount} dias de descanso</span>
                 </div>
               </div>
@@ -757,7 +757,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
             </div>
           </div>
 
-          <div className="bg-gray-800/70 rounded-lg p-4">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10">
             <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
               Resumen de configuracion
             </h4>
@@ -805,29 +805,29 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
               Plan generado exitosamente
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-gray-900/70 rounded-lg p-4 text-center">
+              <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
                 <div className="text-gray-400 text-xs mb-1">TMB</div>
                 <div className="text-2xl font-bold text-yellow-400">{generatedPlan.bmr} kcal</div>
                 <div className="text-gray-500 text-xs">Metabolismo basal</div>
               </div>
-              <div className="bg-gray-900/70 rounded-lg p-4 text-center">
+              <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
                 <div className="text-gray-400 text-xs mb-1">TDEE</div>
                 <div className="text-2xl font-bold text-yellow-400">{generatedPlan.tdee} kcal</div>
                 <div className="text-gray-500 text-xs">Gasto total diario</div>
               </div>
-              <div className="bg-gray-900/70 rounded-lg p-4 text-center">
+              <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
                 <div className="text-gray-400 text-xs mb-1">Calorias objetivo</div>
                 <div className="text-2xl font-bold text-green-400">{generatedPlan.kcal_objetivo} kcal</div>
                 <div className="text-gray-500 text-xs">Por dia</div>
               </div>
-              <div className="bg-gray-900/70 rounded-lg p-4 text-center">
+              <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
                 <div className="text-gray-400 text-xs mb-1">Comidas</div>
                 <div className="text-2xl font-bold text-blue-400">{generatedPlan.comidas_por_dia}</div>
                 <div className="text-gray-500 text-xs">Por dia</div>
               </div>
             </div>
 
-            <div className="bg-gray-900/70 rounded-lg p-4">
+            <div className="bg-white/5 border border-white/10 rounded-lg p-4">
               <div className="text-gray-400 text-sm mb-2">Macronutrientes objetivo (promedio):</div>
               <div className="flex flex-wrap gap-4 text-white text-sm">
                 <div>
@@ -860,4 +860,3 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     </div>
   );
 }
-

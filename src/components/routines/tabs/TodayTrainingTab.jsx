@@ -48,7 +48,7 @@ import AdaptationTrackingBadge from '../../Methodologie/methodologies/Hipertrofi
 import { useNavigate } from 'react-router-dom';
 
 // 🎯 UTILS COMPARTIDOS - Helpers extraídos para reutilización
-import { getTodayName, isWeekend, computeDayId } from '@/utils/training/dateHelpers';
+import { getTodayName, isWeekend, computeDayId, formatDateForDisplay } from '@/utils/training/dateHelpers';
 import { findTodaySession } from '@/utils/training/sessionFinders';
 
 // 🎯 API HELPER - Usar el mismo helper robusto que CalendarTab
@@ -108,6 +108,30 @@ export default function TodayTrainingTab({
     goToMethodologies,
     cancelPlan
   } = useWorkout();
+
+  const effectivePlanStartISO = plan?.planStartDate || planStartDate;
+  const isPlanStartInFuture = useMemo(() => {
+    if (!effectivePlanStartISO) return false;
+    try {
+      const fmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Madrid',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const startStr = fmt.format(new Date(effectivePlanStartISO));
+      const todayStr = fmt.format(new Date());
+      return startStr > todayStr;
+    } catch (error) {
+      console.warn('Error comprobando fecha de inicio:', error?.message || error);
+      return false;
+    }
+  }, [effectivePlanStartISO]);
+
+  const planStartDisplay = useMemo(() => {
+    if (!effectivePlanStartISO) return null;
+    return formatDateForDisplay(effectivePlanStartISO);
+  }, [effectivePlanStartISO]);
 
   // ===============================================
   // 🎯 ESTADO LOCAL
@@ -250,6 +274,13 @@ export default function TodayTrainingTab({
 
     console.log('🔍 fetchTodayStatus - isWeekend:', isWeekend(), 'day:', new Date().getDay());
 
+    if (isPlanStartInFuture) {
+      console.log('⏳ Plan aún no inicia, saltando fetchTodayStatus');
+      setTodayStatus(null);
+      setTodaySessionData(null);
+      return null;
+    }
+
     // Si es fin de semana, buscar sesiones de fin de semana
     if (isWeekend()) {
       console.log('📅 Es fin de semana, buscando sesión weekend...');
@@ -300,7 +331,7 @@ export default function TodayTrainingTab({
       }
 
       // Calcular semana actual desde el inicio del plan
-      const startISO = (plan.planStartDate || planStartDate || new Date().toISOString());
+    const startISO = (plan.planStartDate || planStartDate || new Date().toISOString());
       const dayId = computeDayId(startISO, 'Europe/Madrid');
       const weekNumber = Math.max(1, Math.ceil(dayId / 7));
 
@@ -407,7 +438,7 @@ export default function TodayTrainingTab({
     } finally {
       setLoadingTodayStatus(false);
     }
-  }, [methodologyPlanId, plan.methodologyPlanId, plan.planStartDate, planStartDate, hasActivePlan, fetchWeekendStatus]);
+  }, [methodologyPlanId, plan.methodologyPlanId, plan.planStartDate, planStartDate, hasActivePlan, fetchWeekendStatus, isPlanStartInFuture]);
 
 
   const mountedRef = useRef(true);
@@ -472,6 +503,10 @@ export default function TodayTrainingTab({
     });
 
     if (hasActivePlan && effectivePlan) {
+      if (isPlanStartInFuture) {
+        setTodaySessionData(null);
+        return;
+      }
       // Calcular dayId y semana actual a partir de la fecha de inicio del plan
       const startISO = (plan.planStartDate || planStartDate || new Date().toISOString());
       const dayId = computeDayId(startISO, 'Europe/Madrid');
@@ -497,7 +532,7 @@ export default function TodayTrainingTab({
         loadExerciseProgress();
       }
     }
-  }, [hasActivePlan, routinePlan, plan.currentPlan, currentTodayName, hasActiveSession, session, plan.planStartDate, planStartDate, loadExerciseProgress]);
+  }, [hasActivePlan, routinePlan, plan.currentPlan, currentTodayName, hasActiveSession, session, plan.planStartDate, planStartDate, loadExerciseProgress, isPlanStartInFuture]);
 
 
   // ===============================================
@@ -1512,7 +1547,7 @@ export default function TodayTrainingTab({
     hasUnfinishedWorkToday
   } = gateLogic;
   // 🎯 FIX: isRestDay solo es true cuando el backend confirma que no hay entrenamiento programado
-  const isRestDay = hasActivePlan && !todaySessionData && !loadingTodayStatus;
+  const isRestDay = hasActivePlan && !todaySessionData && !loadingTodayStatus && !isPlanStartInFuture;
   const noActivePlan = !hasActivePlan;
   
   // 🎯 FIX: Detectar sesión programada pero no iniciada
@@ -1522,7 +1557,7 @@ export default function TodayTrainingTab({
   );
 
   // 🆕 CORRECCIÓN: Verificar tanto todaySessionData como todayStatus para detectar sesiones
-  const hasToday = Boolean(
+  const hasToday = !isPlanStartInFuture && Boolean(
     todaySessionData?.ejercicios?.length > 0 ||
     (todayStatus?.session && todayStatus?.summary?.total > 0)
   );
@@ -1684,7 +1719,7 @@ export default function TodayTrainingTab({
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-2xl font-bold text-white">
+                    <h2 className="text-2xl font-semibold text-white font-urbanist">
                       Entrenamiento de Hoy
                       {/* 🎯 NUEVO: Mostrar número de sesión si hay mapeo */}
                       {planConfig?.day_mappings && (
@@ -1705,7 +1740,7 @@ export default function TodayTrainingTab({
                         </span>
                       )}
                     </h2>
-                    <p className="text-gray-400">
+                    <p className="text-gray-300/80">
                       {new Date().toLocaleDateString('es-ES', {
                         weekday: 'long',
                         year: 'numeric',
@@ -1715,6 +1750,19 @@ export default function TodayTrainingTab({
                     </p>
                   </div>
                 </div>
+
+                {isPlanStartInFuture && (
+                  <Card className="mt-4 border border-yellow-400/30 border-l-2 border-l-yellow-400/40 bg-black/60 backdrop-blur-md">
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold text-yellow-300 font-urbanist">
+                        Tu plan comienza el {planStartDisplay || 'próximo lunes'}
+                      </h3>
+                      <p className="text-sm text-gray-300/80 mt-1">
+                        Hemos guardado tu plan. El entrenamiento empezará automáticamente en la fecha indicada.
+                      </p>
+                    </div>
+                  </Card>
+                )}
 
                 {/* 🟣 Badge de adaptación (solo para fase de adaptación inicial, NO para MindFeed/D1-D5) */}
                 {/* 🎯 FIX: Agregar validación de userId y mejor logging */}
@@ -1838,16 +1886,18 @@ export default function TodayTrainingTab({
 
                 {/* Lista de ejercicios - Componente modular */}
                 {todaySessionData?.ejercicios && todaySessionData.ejercicios.length > 0 && !hasCompletedSession && (
-                  <ExerciseList
-                    exercises={todaySessionData.ejercicios}
-                    todayStatus={todayStatus}
-                    exerciseProgress={exerciseProgress}
-                    session={session}
-                    hasActiveSession={hasActiveSession}
-                    dayName={currentTodayName}
-                    estimatedDuration={estimatedDuration}
-                    methodologyType={plan.methodologyType || 'Rutina'}
-                  />
+                  <div className="mt-6">
+                    <ExerciseList
+                      exercises={todaySessionData.ejercicios}
+                      todayStatus={todayStatus}
+                      exerciseProgress={exerciseProgress}
+                      session={session}
+                      hasActiveSession={hasActiveSession}
+                      dayName={currentTodayName}
+                      estimatedDuration={estimatedDuration}
+                      methodologyType={plan.methodologyType || 'Rutina'}
+                    />
+                  </div>
                 )}
               </section>
             ) : null}
@@ -2083,7 +2133,7 @@ export default function TodayTrainingTab({
             {/* 🛌 DÍA DE DESCANSO / FIN DE SEMANA */}
             {/* =============================================== */}
 
-            {hasActivePlan && !hasToday && !sessionMatchesToday && !hasCompletedSession && (
+            {hasActivePlan && !hasToday && !sessionMatchesToday && !hasCompletedSession && !isPlanStartInFuture && (
               <RestDayCard
                 isRestDay={isRestDay}
                 isLoadingWeekendWorkout={isLoadingWeekendWorkout}

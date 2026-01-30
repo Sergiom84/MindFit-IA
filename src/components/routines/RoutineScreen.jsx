@@ -18,6 +18,15 @@ const RoutineScreen = () => {
   console.log('🔧 RoutineScreen.jsx cargado - Versión con WorkoutContext integrado');
 
   const location = useLocation();
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (event) => {
+      setMousePosition({ x: event.clientX, y: event.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   // ===============================================
   // 🎯 INTEGRACIÓN CON WorkoutContext
@@ -62,6 +71,8 @@ const RoutineScreen = () => {
     progressUpdatedAt: Date.now(),
     showConfirmationModal: false
   });
+  const [calendarPlan, setCalendarPlan] = useState(null);
+  const [isLoadingCalendarSummary, setIsLoadingCalendarSummary] = useState(false);
 
   const updateLocalState = useCallback((updates) => {
     setLocalState(prev => ({ ...prev, ...updates }));
@@ -164,6 +175,101 @@ const RoutineScreen = () => {
 
     initializeRoutineScreen();
   }, [incomingState]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadCalendarSummary = async () => {
+      if (!effectiveMethodologyPlanId) {
+        if (isMounted) {
+          setCalendarPlan(null);
+        }
+        return;
+      }
+
+      setIsLoadingCalendarSummary(true);
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/routines/calendar-schedule/${effectiveMethodologyPlanId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (!response.ok) {
+          if (isMounted) {
+            setCalendarPlan(null);
+          }
+          return;
+        }
+
+        const data = await response.json();
+        if (isMounted) {
+          setCalendarPlan(data?.success ? data.plan : null);
+        }
+      } catch (error) {
+        console.warn('[RoutineScreen] No se pudo cargar resumen del calendario:', error);
+        if (isMounted) {
+          setCalendarPlan(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingCalendarSummary(false);
+        }
+      }
+    };
+
+    loadCalendarSummary();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [effectiveMethodologyPlanId]);
+
+  const planSummary = useMemo(() => {
+    const calendarWeeks = calendarPlan?.semanas || [];
+    const planWeeks = effectivePlan?.semanas || [];
+
+    let durationWeeks = null;
+    if (calendarWeeks.length > 0) {
+      durationWeeks = calendarWeeks.length;
+    } else if (effectivePlan) {
+      durationWeeks = effectivePlan.duracion_total_semanas || effectivePlan.duration || planWeeks.length || null;
+    }
+
+    let frequencyPerWeek = null;
+    if (calendarWeeks.length > 0) {
+      const totalSessions = calendarWeeks.reduce(
+        (acc, week) => acc + (week.sesiones?.length || 0),
+        0
+      );
+      if (calendarWeeks.length > 0) {
+        const rawFrequency = totalSessions / calendarWeeks.length;
+        if (Number.isFinite(rawFrequency)) {
+          frequencyPerWeek = Math.round(rawFrequency);
+        }
+      }
+    } else if (effectivePlan) {
+      frequencyPerWeek = effectivePlan.frecuencia_por_semana
+        || effectivePlan.frecuencia_semanal
+        || effectivePlan.frequency
+        || null;
+    }
+
+    return {
+      durationWeeks,
+      frequencyPerWeek
+    };
+  }, [calendarPlan, effectivePlan]);
+
+  const formatFrequencyLabel = (value) => {
+    if (value == null || Number.isNaN(value)) return null;
+    return Number.isInteger(value) ? `${value}` : value.toFixed(1);
+  };
 
   // ===============================================
   // 🎭 GESTIÓN DE MODALES
@@ -297,15 +403,22 @@ const RoutineScreen = () => {
 
   if (ui.isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <div className="text-center space-y-4">
+      <div className="min-h-screen bg-[#050506] text-white relative overflow-hidden flex items-center justify-center font-body">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 bg-[url('/assets/tech-lux/bg-tech-lux-mobile.jpg')] sm:bg-[url('/assets/tech-lux/bg-tech-lux-desktop.jpg')] bg-cover bg-center opacity-60 sm:opacity-45" />
+          <div className="absolute inset-0 bg-[url('/assets/tech-lux/texture-tech-lux-tile.jpg')] bg-repeat opacity-12 mix-blend-soft-light" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/80 sm:from-black/40 sm:via-black/60 sm:to-black" />
+          <div className="absolute -top-20 right-0 h-56 w-56 bg-yellow-400/10 blur-[140px]" />
+          <div className="absolute top-1/3 -left-16 h-64 w-64 bg-yellow-400/10 blur-[160px]" />
+        </div>
+        <div className="relative z-10 text-center space-y-4">
           <div className="relative">
-            <div className="w-12 h-12 border-4 border-yellow-400/30 border-t-yellow-400 rounded-full animate-spin mx-auto" />
+            <div className="w-12 h-12 border-4 border-yellow-400/30 border-t-yellow-300 rounded-full animate-spin mx-auto" />
             <div className="absolute inset-0 w-12 h-12 border-4 border-transparent border-r-yellow-400/50 rounded-full animate-pulse mx-auto" />
           </div>
           <div className="space-y-2">
-            <p className="text-white font-medium">Cargando plan de entrenamiento...</p>
-            <p className="text-gray-400 text-sm">Preparando tu rutina personalizada</p>
+            <p className="text-white font-urbanist text-lg">Cargando plan de entrenamiento...</p>
+            <p className="text-gray-300/80 text-sm">Preparando tu rutina personalizada</p>
           </div>
         </div>
       </div>
@@ -317,63 +430,90 @@ const RoutineScreen = () => {
   // ===============================================
 
   return (
-    <div className="container mx-auto p-6 bg-gray-900 min-h-screen">
-      {/* Header con información del plan */}
-      {effectivePlan && (
-        <div className="mb-6 p-4 bg-gray-800 rounded-lg border border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-yellow-400">
-                {effectivePlan.selected_style || effectivePlan.nombre || 'Plan de Entrenamiento'}
-              </h1>
-              <p className="text-gray-400">
-                Fuente: {effectivePlanSource?.label || 'IA'} {effectivePlanSource?.detail && `${effectivePlanSource.detail}`}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-400">
-                Duración: {effectivePlan.duracion_total_semanas || effectivePlan.duration || 4} semanas
-              </p>
-              <p className="text-sm text-gray-400">
-                Frecuencia: {effectivePlan.frecuencia_por_semana || effectivePlan.frequency || 3}x/semana
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+    <div className="min-h-screen bg-[#050506] text-white relative overflow-hidden font-body">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[url('/assets/tech-lux/bg-tech-lux-mobile.jpg')] sm:bg-[url('/assets/tech-lux/bg-tech-lux-desktop.jpg')] bg-cover bg-center opacity-80 sm:opacity-70" />
+        <div className="absolute inset-0 bg-[url('/assets/tech-lux/texture-tech-lux-tile.jpg')] bg-repeat opacity-20 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/80 sm:from-black/40 sm:via-black/60 sm:to-black" />
+        <div className="absolute -top-20 right-0 h-56 w-56 bg-yellow-400/10 blur-[140px]" />
+        <div className="absolute top-1/3 -left-16 h-64 w-64 bg-yellow-400/10 blur-[160px]" />
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(250, 204, 21, 0.18), transparent 60%)`
+          }}
+        />
+      </div>
+      <div className="relative z-10 container mx-auto px-4 py-8">
+        <div>
+          {/* Header con información del plan */}
+          {effectivePlan && (
+            <header className="mb-8">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="space-y-3">
+                  <p className="text-xs uppercase tracking-[0.4em] text-yellow-200/80">Rutinas</p>
+                  <h1 className="text-3xl md:text-4xl font-semibold font-urbanist text-white">
+                    {effectivePlan.selected_style || effectivePlan.nombre || 'Plan de Entrenamiento'}
+                  </h1>
+                  <p className="text-gray-200/80">
+                    Fuente: {effectivePlanSource?.label || 'IA'} {effectivePlanSource?.detail && `${effectivePlanSource.detail}`}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-3 text-sm text-gray-200/80">
+                  <div className="px-4 py-2 rounded-xl border border-white/10 bg-white/5">
+                    <span className="text-gray-300/70">Duración</span>{' '}
+                    <span className="text-white font-semibold">
+                      {(planSummary.durationWeeks || effectivePlan?.duracion_total_semanas || effectivePlan?.duration || 4)} semanas
+                    </span>
+                  </div>
+                  <div className="px-4 py-2 rounded-xl border border-white/10 bg-white/5">
+                    <span className="text-gray-300/70">Frecuencia</span>{' '}
+                    <span className="text-white font-semibold">
+                      {(formatFrequencyLabel(planSummary.frequencyPerWeek) || effectivePlan?.frecuencia_por_semana || effectivePlan?.frecuencia_semanal || effectivePlan?.frequency || 3)}x/semana
+                    </span>
+                  </div>
+                  {isLoadingCalendarSummary && (
+                    <div className="flex items-center text-xs text-gray-300/60">
+                      Actualizando calendario...
+                    </div>
+                  )}
+                </div>
+              </div>
+            </header>
+          )}
 
       {/* Pestañas principales */}
-      <Tabs value={localState.activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-gray-800 border border-gray-700">
+          <Tabs value={localState.activeTab} onValueChange={handleTabChange} className="w-full">
+            <TabsList className="grid w-full grid-cols-4 bg-black/60 border border-white/10 p-1 rounded-2xl backdrop-blur-md">
           <TabsTrigger
             value="today"
-            className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black"
+            className="text-gray-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-300 data-[state=active]:via-yellow-400 data-[state=active]:to-amber-500 data-[state=active]:text-black data-[state=active]:shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)] rounded-xl"
           >
             <Dumbbell className="w-4 h-4 mr-2" />
             Hoy
           </TabsTrigger>
           <TabsTrigger
             value="calendar"
-            className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black"
+            className="text-gray-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-300 data-[state=active]:via-yellow-400 data-[state=active]:to-amber-500 data-[state=active]:text-black data-[state=active]:shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)] rounded-xl"
           >
             <Calendar className="w-4 h-4 mr-2" />
             Calendario
           </TabsTrigger>
           <TabsTrigger
             value="progress"
-            className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black"
+            className="text-gray-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-300 data-[state=active]:via-yellow-400 data-[state=active]:to-amber-500 data-[state=active]:text-black data-[state=active]:shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)] rounded-xl"
           >
             <BarChart3 className="w-4 h-4 mr-2" />
             Progreso
           </TabsTrigger>
           <TabsTrigger
             value="history"
-            className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black"
+            className="text-gray-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-300 data-[state=active]:via-yellow-400 data-[state=active]:to-amber-500 data-[state=active]:text-black data-[state=active]:shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)] rounded-xl"
           >
             <History className="w-4 h-4 mr-2" />
             Historial
           </TabsTrigger>
-        </TabsList>
+            </TabsList>
 
         {/* Contenido de las pestañas */}
         <TabsContent value="today" className="mt-6">
@@ -412,22 +552,24 @@ const RoutineScreen = () => {
             methodologyPlanId={effectiveMethodologyPlanId}
           />
         </TabsContent>
-      </Tabs>
+          </Tabs>
 
       {/* Modal de confirmación del plan */}
-      <TrainingPlanConfirmationModal
-        isOpen={localState.showConfirmationModal}
-        onClose={() => updateLocalState({ showConfirmationModal: false })}
-        onConfirm={handleConfirmPlan}
-        onStartTraining={handleStartTraining}
-        onGenerateAnother={handleGenerateAnother}
-        plan={effectivePlan}
-        methodology={effectivePlan?.selected_style || effectivePlan?.nombre}
-        planSource={effectivePlanSource}
-        successMessage={incomingState?.successMessage}
-        isLoading={ui.isLoading}
-        error={ui.error}
-      />
+          <TrainingPlanConfirmationModal
+            isOpen={localState.showConfirmationModal}
+            onClose={() => updateLocalState({ showConfirmationModal: false })}
+            onConfirm={handleConfirmPlan}
+            onStartTraining={handleStartTraining}
+            onGenerateAnother={handleGenerateAnother}
+            plan={effectivePlan}
+            methodology={effectivePlan?.selected_style || effectivePlan?.nombre}
+            planSource={effectivePlanSource}
+            successMessage={incomingState?.successMessage}
+            isLoading={ui.isLoading}
+            error={ui.error}
+          />
+        </div>
+      </div>
     </div>
   );
 };

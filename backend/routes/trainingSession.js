@@ -123,7 +123,7 @@ router.post('/start/methodology', authenticateToken, async (req, res) => {
     const userId = req.user?.userId || req.user?.id;
     const { methodology_plan_id, week_number, day_name } = req.body;
 
-    if (!methodology_plan_id || !week_number || !day_name) {
+    if (!methodology_plan_id || week_number === undefined || week_number === null || !day_name) {
       await client.query('ROLLBACK');
       return res.status(400).json({
         success: false,
@@ -150,6 +150,17 @@ router.post('/start/methodology', authenticateToken, async (req, res) => {
     }
 
     const planData = planQ.rows[0].plan_data;
+    const methodologyType = String(planQ.rows[0].methodology_type || '');
+    const isAdaptation = planData?.type === 'adaptation' || methodologyType.toLowerCase() === 'adaptation';
+
+    // Mantener current_week sincronizado para lógica de calibración/deload
+    await client.query(
+      `UPDATE app.methodology_plans
+       SET current_week = $1,
+           updated_at = NOW()
+       WHERE id = $2 AND user_id = $3`,
+      [week_number, methodology_plan_id, userId]
+    );
 
     // Asegurar sesiones creadas
     await ensureMethodologySessions(client, userId, methodology_plan_id, planData);
@@ -165,7 +176,15 @@ router.post('/start/methodology', authenticateToken, async (req, res) => {
     );
 
     if (ses.rowCount === 0) {
-      // Intentar crear sesión para día faltante
+      if (isAdaptation) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({
+          success: false,
+          error: 'Sesión de adaptación no encontrada para esa semana/día'
+        });
+      }
+
+      // Intentar crear sesión para día faltante (solo metodologías estándar)
       console.log(`⚠️ Sesión no encontrada para ${normalizedDay}, creando sesión adaptada...`);
       try {
         const sessionId = await createMissingDaySession(client, userId, methodology_plan_id, planData, day_name, week_number);
@@ -186,34 +205,63 @@ router.post('/start/methodology', authenticateToken, async (req, res) => {
     const session = ses.rows[0];
 
     // Precrear progreso por ejercicio
-    const semana = findWeekInPlan(planData.semanas || [], week_number);
-    let sesionDef = semana ? (semana.sesiones || []).find(s => normalizeDayAbbrev(s.dia) === normalizedDay) : null;
+    let ejercicios = [];
+    if (isAdaptation) {
+      const rawExercises = session.exercises_data || session.exercises || [];
+      if (Array.isArray(rawExercises)) {
+        ejercicios = rawExercises;
+      } else if (typeof rawExercises === 'string') {
+        try {
+          ejercicios = JSON.parse(rawExercises);
+        } catch {
+          ejercicios = [];
+        }
+      }
+    } else {
+      const semana = findWeekInPlan(planData.semanas || [], week_number);
+      let sesionDef = semana ? (semana.sesiones || []).find(s => normalizeDayAbbrev(s.dia) === normalizedDay) : null;
 
-    if (!sesionDef && semana && semana.sesiones && semana.sesiones.length > 0) {
-      sesionDef = semana.sesiones[0];
-      console.log(`📋 Usando template de ${sesionDef.dia} para día faltante ${normalizedDay}`);
+      if (!sesionDef && semana && semana.sesiones && semana.sesiones.length > 0) {
+        sesionDef = semana.sesiones[0];
+        console.log(`📋 Usando template de ${sesionDef.dia} para día faltante ${normalizedDay}`);
+      }
+
+      ejercicios = Array.isArray(sesionDef?.ejercicios) ? sesionDef.ejercicios : [];
     }
-
-    const ejercicios = Array.isArray(sesionDef?.ejercicios) ? sesionDef.ejercicios : [];
 
     for (let i = 0; i < ejercicios.length; i++) {
       const ej = ejercicios[i] || {};
       const order = i;
 
+      const repeticiones = ej.repeticiones ?? ej.reps ?? ej.reps_objetivo ?? ej.repsRange ?? ej.reps_range ?? '0';
+      const series = ej.series ?? ej.series_total ?? ej.seriesTotal ?? '3';
+      const rawExerciseId = ej.exercise_id ?? ej.id ?? null;
+      const parsedExerciseId = Number(rawExerciseId);
+      const exerciseId = Number.isFinite(parsedExerciseId) ? parsedExerciseId : null;
       await client.query(
         `INSERT INTO app.methodology_exercise_progress (
            methodology_session_id, user_id, exercise_order, exercise_name,
            series_total, repeticiones, descanso_seg, intensidad, tempo, notas,
-           series_completed, status
+           series_completed, status, exercise_id
          )
-         SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, 'pending'
+         SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, 'pending', $11
          WHERE NOT EXISTS (
            SELECT 1 FROM app.methodology_exercise_progress
             WHERE methodology_session_id = $1 AND exercise_order = $3
          )`,
-        [session.id, userId, order, ej.nombre || `Ejercicio ${i + 1}`,
-         String(ej.series || '3'), String(ej.repeticiones || '0'), Number(ej.descanso_seg) || 60,
-         ej.intensidad || null, ej.tempo || null, ej.notas || null]
+        [
+          session.id,
+          userId,
+          order,
+          ej.nombre || ej.exercise_name || `Ejercicio ${i + 1}`,
+          String(series),
+          String(repeticiones),
+          Number(ej.descanso_seg) || 60,
+          ej.intensidad || ej.intensidad_porcentaje || ej.intensity || null,
+          ej.tempo || null,
+          ej.notas || null,
+          exerciseId
+        ]
       );
     }
 

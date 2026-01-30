@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, memo } from 'react';
-import { ArrowLeft, User, Activity, Target, Heart, Settings, Ruler, Dumbbell, Music } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { User, Activity, Target, Heart, Settings, Ruler, Dumbbell, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -32,12 +31,20 @@ const ProfileSection = () => {
     if (t) setActiveTab(t)
   }, [])
 
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('basic');
   const [pendingTab, setPendingTab] = useState(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   // Usar el hook personalizado para manejar el estado del perfil
   const profileState = useProfileState();
+
+  useEffect(() => {
+    const handleMouseMove = (event) => {
+      setMousePosition({ x: event.clientX, y: event.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   const tabs = [
     {
@@ -524,11 +531,13 @@ const ProfileSection = () => {
   const hasMissingFields = completionSummary.missing.length > 0;
 
   const renderCompletionField = (field) => {
+    const completionCardClass = "rounded-xl border border-white/10 border-l-2 border-l-yellow-400/30 bg-gradient-to-br from-white/10 via-white/5 to-transparent p-4 shadow-[0_20px_50px_-40px_rgba(0,0,0,0.9)]";
+
     if (field.type === 'equipment') {
       return (
-        <div key={field.key} className="rounded-lg border border-gray-700/60 bg-gray-900/60 p-4">
-          <p className="text-sm text-gray-300 mb-3">Equipamiento</p>
-          <label className="flex items-center gap-2 text-sm text-gray-200">
+        <div key={field.key} className={completionCardClass}>
+          <p className="text-sm text-gray-200/80 mb-3">Equipamiento</p>
+          <label className="flex items-center gap-2 text-sm text-gray-200/90">
             <input
               type="checkbox"
               checked={equipmentState.none}
@@ -554,8 +563,8 @@ const ProfileSection = () => {
     if (field.type === 'training_days') {
       const selectedDays = getCompletionValue('dias_preferidos_entrenamiento', []);
       return (
-        <div key={field.key} className="rounded-lg border border-gray-700/60 bg-gray-900/60 p-4">
-          <p className="text-sm text-gray-300 mb-3">Días preferidos</p>
+        <div key={field.key} className={completionCardClass}>
+          <p className="text-sm text-gray-200/80 mb-3">Días preferidos</p>
           <div className="grid grid-cols-7 gap-2">
             {trainingDays.map(day => (
               <button
@@ -565,7 +574,7 @@ const ProfileSection = () => {
                 className={`py-2 rounded text-xs font-medium transition ${
                   selectedDays.includes(day.id)
                     ? 'bg-yellow-400 text-black'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
                 }`}
               >
                 {day.label}
@@ -579,8 +588,8 @@ const ProfileSection = () => {
     if (field.type === 'boolean') {
       const currentValue = getCompletionValue('usar_preferencias_ia', profileState.userProfile?.usar_preferencias_ia ?? null);
       return (
-        <div key={field.key} className="rounded-lg border border-gray-700/60 bg-gray-900/60 p-4">
-          <p className="text-sm text-gray-300 mb-3">Preferencias personalizadas</p>
+        <div key={field.key} className={completionCardClass}>
+          <p className="text-sm text-gray-200/80 mb-3">Preferencias personalizadas</p>
           <div className="flex gap-2">
             <button
               type="button"
@@ -588,7 +597,7 @@ const ProfileSection = () => {
               className={`px-4 py-2 rounded text-sm font-medium transition ${
                 currentValue === true
                   ? 'bg-yellow-400 text-black'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
               }`}
             >
               Sí
@@ -599,7 +608,7 @@ const ProfileSection = () => {
               className={`px-4 py-2 rounded text-sm font-medium transition ${
                 currentValue === false
                   ? 'bg-yellow-400 text-black'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
               }`}
             >
               No
@@ -615,15 +624,15 @@ const ProfileSection = () => {
         ? { min: 4, max: 15 }
         : { min: 1, max: 8 };
       return (
-        <div key={field.key} className="rounded-lg border border-gray-700/60 bg-gray-900/60 p-4">
-          <label className="text-sm text-gray-300 mb-2 block">{field.label}</label>
+        <div key={field.key} className={completionCardClass}>
+          <label className="text-sm text-gray-200/80 mb-2 block">{field.label}</label>
           <input
             type="number"
             min={config.min}
             max={config.max}
             value={value}
             onChange={(e) => handleCompletionInputChange(field.key, e.target.value)}
-            className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-yellow-400"
+            className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white focus:outline-none focus:border-yellow-400"
           />
         </div>
       );
@@ -638,7 +647,7 @@ const ProfileSection = () => {
           : 'text';
 
     return (
-      <div key={field.key} className="rounded-lg border border-gray-700/60 bg-gray-900/60 p-4">
+      <div key={field.key} className={completionCardClass}>
         <EditableField
           label={field.label}
           field={field.key}
@@ -657,28 +666,44 @@ const ProfileSection = () => {
   };
 
   return (
-    <div className="min-h-screen text-white">
-      <div className="container mx-auto px-6 py-8">
-        {/* Header con navegación */}
-        <div className="flex items-center justify-between mb-8">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center text-gray-300 hover:text-white transition-colors duration-200"
-          >
-            <ArrowLeft size={24} className="mr-2" />
-            Volver al inicio
-          </button>
+    <div className="min-h-screen bg-[#050506] text-white relative overflow-hidden font-body">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[url('/assets/tech-lux/bg-tech-lux-mobile.jpg')] sm:bg-[url('/assets/tech-lux/bg-tech-lux-desktop.jpg')] bg-cover bg-center opacity-80 sm:opacity-70" />
+        <div className="absolute inset-0 bg-[url('/assets/tech-lux/texture-tech-lux-tile.jpg')] bg-repeat opacity-20 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/80 sm:from-black/40 sm:via-black/60 sm:to-black" />
+        <div className="absolute -top-24 right-0 h-60 w-60 bg-yellow-400/10 blur-[140px]" />
+        <div className="absolute top-1/3 -left-16 h-72 w-72 bg-yellow-400/10 blur-[160px]" />
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(250, 204, 21, 0.18), transparent 60%)`
+          }}
+        />
+      </div>
+
+      <div className="relative z-10 container mx-auto px-4 py-8">
+        {/* Encabezado principal */}
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between mb-8">
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.4em] text-yellow-200/80">Perfil</p>
+            <h1 className="text-4xl md:text-5xl font-semibold font-urbanist text-white">
+              Mi Perfil
+            </h1>
+            <p className="text-lg text-gray-200/80 max-w-3xl">
+              Completa tu información personal para obtener entrenamientos más precisos y personalizados
+            </p>
+          </div>
 
           {/* Indicador de progreso */}
           <button
             type="button"
             onClick={() => setIsCompletionOpen(true)}
-            className="flex items-center group"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
             title="Ver campos pendientes"
           >
-            <span className="text-sm text-gray-400 mr-3 group-hover:text-gray-200">Perfil completado:</span>
+            <span className="text-sm text-gray-300/70 group-hover:text-gray-200">Perfil completado:</span>
             <div className="flex items-center">
-              <div className="w-24 bg-gray-700 rounded-full h-2 mr-2 overflow-hidden">
+              <div className="w-24 bg-white/10 rounded-full h-2 mr-2 overflow-hidden">
                 <div
                   className="bg-yellow-400 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${profileProgress}%` }}
@@ -689,16 +714,6 @@ const ProfileSection = () => {
           </button>
         </div>
 
-        {/* Título principal */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-yellow-400">
-            Mi Perfil
-          </h1>
-          <p className="text-lg text-gray-300 max-w-3xl mx-auto">
-            Completa tu información personal para obtener entrenamientos más precisos y personalizados
-          </p>
-        </div>
-
         {/* Navegación por tabs */}
         <div className="flex flex-wrap justify-center gap-2 mb-8">
           {tabs.map((tab) => (
@@ -707,8 +722,8 @@ const ProfileSection = () => {
               onClick={() => handleTabChange(tab.id)}
               className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
                 activeTab === tab.id
-                  ? 'bg-yellow-400 text-black'
-                  : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
+                  ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]'
+                  : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
               }`}
             >
               <tab.icon size={18} className="mr-2" />
@@ -719,7 +734,7 @@ const ProfileSection = () => {
         </div>
 
         {/* Contenido del tab activo */}
-        <div className="max-w-6xl mx-auto">
+        <div>
           {ActiveComponent && (
             <ActiveComponent
               {...profileState}
@@ -731,7 +746,7 @@ const ProfileSection = () => {
         </div>
       </div>
       <Dialog open={!!pendingTab} onOpenChange={(open) => !open && handleCloseTabModal()}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg bg-neutral-900/85 border border-white/10 ring-1 ring-white/5 text-white">
           <DialogHeader>
             <DialogTitle>Cambios sin guardar</DialogTitle>
             <DialogDescription>
@@ -742,7 +757,7 @@ const ProfileSection = () => {
           <DialogFooter>
             <Button
               variant="outline"
-              className="border-gray-600 text-gray-300 hover:bg-gray-800"
+              className="border-white/10 text-gray-200/80 hover:bg-white/10"
               onClick={handleCloseTabModal}
             >
               Cancelar
@@ -764,7 +779,7 @@ const ProfileSection = () => {
         </DialogContent>
       </Dialog>
       <Dialog open={isCompletionOpen} onOpenChange={setIsCompletionOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl bg-neutral-900/95 border border-white/10 ring-1 ring-white/5 text-white shadow-2xl backdrop-blur-xl">
           <DialogHeader>
             <DialogTitle>Completa tu perfil</DialogTitle>
             <DialogDescription>
@@ -799,7 +814,7 @@ const ProfileSection = () => {
               ))}
             </div>
           ) : (
-            <div className="py-8 text-center text-gray-300">
+            <div className="py-8 text-center text-gray-200/80">
               ¡Perfil completo! 🎉
             </div>
           )}
@@ -809,14 +824,14 @@ const ProfileSection = () => {
           <DialogFooter>
             <Button
               variant="outline"
-              className="border-gray-600 text-gray-300 hover:bg-gray-800"
+              className="border-white/10 text-gray-200/80 hover:bg-white/10"
               onClick={() => setIsCompletionOpen(false)}
             >
               Cerrar
             </Button>
             {hasMissingFields && (
               <Button
-                className="bg-yellow-400 hover:bg-yellow-500 text-black"
+                className="bg-yellow-400 hover:bg-yellow-500 text-gray-900"
                 onClick={handleCompletionSave}
               >
                 Guardar faltantes

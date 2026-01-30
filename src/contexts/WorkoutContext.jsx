@@ -140,6 +140,7 @@ const initialState = {
     showVersionSelection: false,    // Mostrar modal de selección de versión
     showMethodologyDetails: false,  // Mostrar modal de detalles de metodología
     showActiveTrainingWarning: false, // Mostrar modal de advertencia de entrenamiento activo
+    showActivePlanWarning: false,     // Mostrar modal de advertencia de plan activo
 
     // Modales de metodologías manuales
     showCalisteniaManual: false,    // Mostrar modal de calistenia manual
@@ -339,7 +340,8 @@ function workoutReducer(state, action) {
                               .replace('routineSession', 'RoutineSession')
                               .replace('versionSelection', 'VersionSelection')
                               .replace('methodologyDetails', 'MethodologyDetails')
-                              .replace('activeTrainingWarning', 'ActiveTrainingWarning');
+                              .replace('activeTrainingWarning', 'ActiveTrainingWarning')
+                              .replace('activePlanWarning', 'ActivePlanWarning');
 
       return {
         ...state,
@@ -366,7 +368,8 @@ function workoutReducer(state, action) {
                               .replace('routineSession', 'RoutineSession')
                               .replace('versionSelection', 'VersionSelection')
                               .replace('methodologyDetails', 'MethodologyDetails')
-                              .replace('activeTrainingWarning', 'ActiveTrainingWarning');
+                              .replace('activeTrainingWarning', 'ActiveTrainingWarning')
+                              .replace('activePlanWarning', 'ActivePlanWarning');
 
       return {
         ...state,
@@ -391,6 +394,7 @@ function workoutReducer(state, action) {
           showVersionSelection: false,
           showMethodologyDetails: false,
           showActiveTrainingWarning: false,
+          showActivePlanWarning: false,
           showCalisteniaManual: false,
           showHeavyDutyManual: false,
           showHipertrofiaManual: false,
@@ -511,6 +515,10 @@ export function WorkoutProvider({ children }) {
   // =============================================================================
   // 📡 PLAN ACTIONS
   // =============================================================================
+
+  const updatePlan = useCallback((updates) => {
+    dispatch({ type: WORKOUT_ACTIONS.UPDATE_PLAN, payload: updates });
+  }, []);
 
   const loadActivePlan = useCallback(async () => {
     if (!user) throw new Error('Usuario no autenticado');
@@ -901,7 +909,7 @@ export function WorkoutProvider({ children }) {
 
     try {
       const data = await apiClient.get('/training/state');
-      return data;
+      return data?.data || data;
     } catch (error) {
       console.error('Error obteniendo estado desde BD:', error);
       return null;
@@ -1007,6 +1015,7 @@ export function WorkoutProvider({ children }) {
 
     // Plan actions
     loadActivePlan,
+    updatePlan,
 
     // Shared cache helpers
     getTodayStatusCached,

@@ -247,9 +247,9 @@ export default function WarmupModal({
 
   const getPhaseColor = () => {
     switch (phase) {
-      case 'ready': return 'text-blue-400';
-      case 'exercise': return 'text-green-400';
-      case 'completed': return 'text-purple-400';
+      case 'ready': return 'text-yellow-300';
+      case 'exercise': return 'text-emerald-300';
+      case 'completed': return 'text-violet-300';
       default: return 'text-white';
     }
   };
@@ -262,25 +262,25 @@ export default function WarmupModal({
     return (
       <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div
-          className="bg-gray-800 border border-gray-600 rounded-2xl w-full max-w-md p-6 text-center"
+          className="bg-neutral-900/90 border border-white/10 ring-1 ring-white/10 rounded-3xl w-full max-w-md p-6 text-center shadow-[0_40px_90px_-60px_rgba(0,0,0,0.9)]"
           role="dialog"
           aria-labelledby="completion-title"
           aria-describedby="completion-description"
         >
           <div className="mb-4">
             <CheckCircle
-              className="w-16 h-16 text-green-400 mx-auto mb-3"
+              className="w-16 h-16 text-emerald-300 mx-auto mb-3"
               aria-hidden="true"
             />
             <h2
               id="completion-title"
-              className="text-xl sm:text-2xl font-bold text-white mb-2"
+              className="text-xl sm:text-2xl font-semibold font-urbanist text-white mb-2"
             >
               ¡Calentamiento Completado!
             </h2>
             <p
               id="completion-description"
-              className="text-gray-300 text-sm sm:text-base"
+              className="text-gray-200/80 text-sm sm:text-base"
             >
               Tiempo total: {formatTime(totalTimeSpent)}
             </p>
@@ -288,8 +288,8 @@ export default function WarmupModal({
 
           {/* Mostrar error de API si existe */}
           {apiError && (
-            <div className="mb-4 p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
-              <div className="flex items-center gap-2 text-red-400 text-sm">
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-400/30 rounded-xl">
+              <div className="flex items-center gap-2 text-red-200 text-sm">
                 <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                 <span>{apiError}</span>
               </div>
@@ -299,7 +299,7 @@ export default function WarmupModal({
           <div className="space-y-3">
             <button
               onClick={handleComplete}
-              className="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-medium py-3 px-4 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 focus:ring-offset-gray-800"
+              className="w-full bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black font-semibold py-3 px-4 rounded-xl transition-all hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)] focus:outline-none focus:ring-2 focus:ring-yellow-400/60 focus:ring-offset-2 focus:ring-offset-black"
               aria-label="Completar calentamiento y comenzar entrenamiento principal"
             >
               Comenzar Entrenamiento Principal
@@ -307,7 +307,7 @@ export default function WarmupModal({
 
             <button
               onClick={onClose}
-              className="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+              className="w-full bg-white/10 hover:bg-white/15 text-white font-medium py-2 px-4 rounded-xl transition-colors border border-white/10 focus:outline-none focus:ring-2 focus:ring-white/20 focus:ring-offset-2 focus:ring-offset-black"
               aria-label="Salir del calentamiento sin continuar al entrenamiento"
             >
               Salir sin entrenar
@@ -321,32 +321,36 @@ export default function WarmupModal({
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div
-        className="bg-gray-800 border border-gray-600 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-neutral-900/90 border border-white/10 ring-1 ring-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-[0_40px_90px_-60px_rgba(0,0,0,0.9)]"
         role="dialog"
         aria-labelledby="warmup-title"
         aria-describedby="warmup-description"
         aria-modal="true"
       >
         {/* Header */}
-        <div className="p-3 sm:p-4 border-b border-gray-700 flex items-center justify-between">
-          <div>
+        <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full border border-orange-400/30 bg-orange-500/10 flex items-center justify-center">
+              <Thermometer className="w-5 h-5 text-orange-300" aria-hidden="true" />
+            </div>
+            <div>
             <h2
               id="warmup-title"
-              className="text-lg sm:text-xl text-white font-bold flex items-center"
+              className="text-lg sm:text-xl text-white font-semibold font-urbanist flex items-center"
             >
-              <Thermometer className="w-5 h-5 mr-2 text-orange-400" aria-hidden="true" />
               Calentamiento
             </h2>
             <p
               id="warmup-description"
-              className="text-xs sm:text-sm text-gray-400"
+              className="text-xs sm:text-sm text-gray-300/70"
             >
               Ejercicio {currentExerciseIndex + 1} de {exercises.length} • Nivel {level}
             </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors p-1 focus:outline-none focus:ring-2 focus:ring-gray-500 rounded"
+            className="text-gray-300 hover:text-white transition-colors p-1 focus:outline-none focus:ring-2 focus:ring-white/20 rounded-full bg-white/5 border border-white/10"
             aria-label="Cerrar modal de calentamiento"
           >
             <X className="w-6 h-6" />
@@ -354,14 +358,14 @@ export default function WarmupModal({
         </div>
 
         {/* Progress Bar */}
-        <div className="p-4">
-          <div className="bg-gray-700 rounded-full h-2 mb-2">
+        <div className="p-4 sm:p-5">
+          <div className="bg-white/10 rounded-full h-2 mb-2">
             <div
-              className="bg-orange-400 h-2 rounded-full transition-all duration-300"
+              className="bg-gradient-to-r from-yellow-300 via-orange-400 to-red-400 h-2 rounded-full transition-all duration-300"
               style={{ width: `${getProgressPercent()}%` }}
             />
           </div>
-          <div className="flex justify-between text-sm text-gray-400">
+          <div className="flex justify-between text-sm text-gray-300/70">
             <span>Progreso del calentamiento</span>
             <span>{Math.round(getProgressPercent())}%</span>
           </div>
@@ -370,10 +374,10 @@ export default function WarmupModal({
         {/* Exercise Content */}
         <div className="p-6 text-center">
           <div className="mb-6">
-            <h3 className="text-2xl font-bold text-white mb-2">
+            <h3 className="text-2xl font-semibold font-urbanist text-white mb-2">
               {currentExercise.name || 'Ejercicio de calentamiento'}
             </h3>
-            <p className="text-gray-300 text-lg mb-4">
+            <p className="text-gray-200/80 text-lg mb-4">
               {currentExercise.description || 'Descripción del ejercicio'}
             </p>
           </div>
@@ -383,7 +387,7 @@ export default function WarmupModal({
             <div className={`text-6xl font-mono font-bold mb-2 ${getPhaseColor()}`}>
               {formatTime(timeLeft)}
             </div>
-            <div className="flex items-center justify-center text-gray-400 text-sm">
+            <div className="flex items-center justify-center text-gray-300/70 text-sm">
               <Clock className="w-4 h-4 mr-1" />
               Tiempo total: {formatTime(totalTimeSpent)}
             </div>
@@ -394,7 +398,7 @@ export default function WarmupModal({
             {!isRunning ? (
               <button
                 onClick={handleStart}
-                className="bg-green-500 hover:bg-green-400 text-white px-6 py-3 rounded-xl font-medium transition-colors flex items-center"
+                className="bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-500 text-black px-6 py-3 rounded-xl font-semibold transition-colors flex items-center shadow-[0_12px_30px_-18px_rgba(16,185,129,0.6)] hover:from-emerald-300 hover:to-teal-400"
               >
                 <Play className="w-5 h-5 mr-2" />
                 {phase === 'ready' ? 'Comenzar' : 'Continuar'}
@@ -402,7 +406,7 @@ export default function WarmupModal({
             ) : (
               <button
                 onClick={handlePause}
-                className="bg-orange-500 hover:bg-orange-400 text-white px-6 py-3 rounded-xl font-medium transition-colors flex items-center"
+                className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-semibold transition-colors flex items-center border border-white/10"
               >
                 <Pause className="w-5 h-5 mr-2" />
                 Pausar
@@ -411,7 +415,7 @@ export default function WarmupModal({
 
             <button
               onClick={handleNextExercise}
-              className="bg-blue-500 hover:bg-blue-400 text-white px-6 py-3 rounded-xl font-medium transition-colors flex items-center"
+              className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-semibold transition-colors flex items-center border border-white/10"
             >
               <SkipForward className="w-5 h-5 mr-2" />
               Siguiente
@@ -419,10 +423,10 @@ export default function WarmupModal({
           </div>
 
           {/* Skip Option */}
-          <div className="border-t border-gray-700 pt-4">
+          <div className="border-t border-white/10 pt-4">
             <button
               onClick={handleSkip}
-              className="text-gray-400 hover:text-white text-sm transition-colors"
+              className="text-gray-300/70 hover:text-white text-sm transition-colors"
             >
               Saltar calentamiento e ir directo al entrenamiento
             </button>
@@ -430,9 +434,9 @@ export default function WarmupModal({
         </div>
 
         {/* Info Footer */}
-        <div className="p-4 bg-gray-900/50 border-t border-gray-700">
-          <div className="flex items-center justify-center text-sm text-gray-400">
-            <Thermometer className="w-4 h-4 mr-2" />
+        <div className="p-4 bg-black/30 border-t border-white/10">
+          <div className="flex items-center justify-center text-sm text-gray-300/70">
+            <Thermometer className="w-4 h-4 mr-2 text-orange-300" />
             <span>
               El calentamiento reduce el riesgo de lesiones y mejora el rendimiento
             </span>

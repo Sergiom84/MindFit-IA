@@ -1,6 +1,16 @@
 const DAY_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
 const DAY_ABBREVS = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
 
+function formatLocalDate(value) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function stripDiacritics(str = '') {
   try {
     return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -68,7 +78,7 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
     console.log('[ensureWorkoutScheduleV3] Iniciando con redistribución inteligente', {
       planId: methodologyPlanId,
       userId,
-      startDate: startDate.toISOString().split('T')[0],
+      startDate: formatLocalDate(startDate),
       hasStartConfig: !!startConfig
     });
 
@@ -298,7 +308,7 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
         methodologyPlanId,
         userId,
         startDayOfWeek,
-        planStartDate.toISOString().split('T')[0],
+        formatLocalDate(planStartDate),
         isConsecutiveDays,
         intensityAdjusted,
         isExtendedWeeks,
@@ -377,9 +387,13 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
       let sessionsToSchedule;
 
       // 🎯 NUEVO: Aplicar redistribución para la primera semana
-      // 🚨 EXCEPCIÓN: Planes D1-D5 (HipertrofiaV2) NO necesitan redistribución
-      const isD1D5NonRedist = planData.metodologia === 'HipertrofiaV2_MindFeed' ||
-                              (firstWeekPattern && firstWeekPattern.includes('Lun-Mar-Mie-Jue-Vie'));
+      // 🚨 EXCEPCIÓN: Planes D1-D5 (HipertrofiaV2) NO necesitan redistribución,
+      // salvo que el usuario haya elegido explícitamente un inicio distinto a lunes.
+      const startDowOverride = startConfig?.start_day_of_week;
+      const hasExplicitNonMondayStart = Number.isFinite(Number(startDowOverride)) && Number(startDowOverride) !== 1;
+      const isD1D5NonRedist = (planData.metodologia === 'HipertrofiaV2_MindFeed' ||
+                               (firstWeekPattern && firstWeekPattern.includes('Lun-Mar-Mie-Jue-Vie'))) &&
+                               !hasExplicitNonMondayStart;
 
       if (weekIndex === 0 && firstWeekPattern && !isD1D5NonRedist) {
         // Para la primera semana, usar el patrón redistribuido
@@ -666,10 +680,10 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
       if (weekIndex === 0) {
         console.log('[ensureWorkoutScheduleV3] Calendario semana 1:', {
           planId: methodologyPlanId,
-          planStartDate: planStartDate.toISOString().split('T')[0],
-          planStartDateNormalized: planStartDateNormalized.toISOString().split('T')[0],
+          planStartDate: formatLocalDate(planStartDate),
+          planStartDateNormalized: formatLocalDate(planStartDateNormalized),
           startDayOfWeek: DAY_NAMES[startDayOfWeek],
-          mondayOfWeek: mondayOfStartWeek.toISOString().split('T')[0],
+          mondayOfWeek: formatLocalDate(mondayOfStartWeek),
           sessionDays: Array.from(sessionsByDay.keys())
         });
       }
@@ -689,7 +703,7 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
         if (isFirstWeek && currentDate < planStartDateNormalized) {
           await client.query(
             'INSERT INTO app.methodology_plan_days (plan_id, day_id, week_number, day_name, date_local, is_rest) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (plan_id, day_id) DO NOTHING',
-            [methodologyPlanId, dayId, effectiveWeekNumber, dayAbbrev, currentDate.toISOString().split('T')[0], true]
+            [methodologyPlanId, dayId, effectiveWeekNumber, dayAbbrev, formatLocalDate(currentDate), true]
           );
           dayId++;
           continue;
@@ -701,7 +715,7 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
         if (weekIndex === 0 && dayInWeek >= 2) { // Solo loggear desde miércoles en adelante en semana 1
           console.log(`[ensureWorkoutScheduleV3] Día ${dayInWeek} (${dayAbbrev}):`, {
             planId: methodologyPlanId,
-            currentDate: currentDate.toISOString().split('T')[0],
+            currentDate: formatLocalDate(currentDate),
             dayAbbrev,
             queueExists: !!queue,
             queueLength: queue?.length || 0,
@@ -717,7 +731,7 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
         if (!sesion) {
           await client.query(
             'INSERT INTO app.methodology_plan_days (plan_id, day_id, week_number, day_name, date_local, is_rest) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (plan_id, day_id) DO NOTHING',
-            [methodologyPlanId, dayId, weekNumber, dayAbbrev, currentDate.toISOString().split('T')[0], true]
+            [methodologyPlanId, dayId, weekNumber, dayAbbrev, formatLocalDate(currentDate), true]
           );
           dayId++;
           continue;
@@ -754,13 +768,13 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
           [
             methodologyPlanId,
             userId,
-            effectiveWeekNumber,
-            globalSessionOrder,
-            weekSessionOrder,
-            currentDate.toISOString().split('T')[0],
-            dayName,
-            dayAbbrev,
-            sessionTitle,
+          effectiveWeekNumber,
+          globalSessionOrder,
+          weekSessionOrder,
+          formatLocalDate(currentDate),
+          dayName,
+          dayAbbrev,
+          sessionTitle,
             JSON.stringify(sessionExercises),
             'scheduled'
           ]
@@ -768,7 +782,7 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
 
         await client.query(
           'INSERT INTO app.methodology_plan_days (plan_id, day_id, week_number, day_name, date_local, is_rest, planned_exercises_count) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (plan_id, day_id) DO NOTHING',
-          [methodologyPlanId, dayId, effectiveWeekNumber, dayAbbrev, currentDate.toISOString().split('T')[0], false, Array.isArray(sessionExercises) ? sessionExercises.length : 0]
+          [methodologyPlanId, dayId, effectiveWeekNumber, dayAbbrev, formatLocalDate(currentDate), false, Array.isArray(sessionExercises) ? sessionExercises.length : 0]
         );
 
         dayId++;
@@ -794,7 +808,7 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
       totalDays,
       trainingDays: totalSessions,
       restDays,
-      startDate: startDate instanceof Date ? startDate.toISOString().split('T')[0] : String(startDate)
+      startDate: formatLocalDate(startDate) || String(startDate)
     });
   } catch (error) {
     console.error('Error en ensureWorkoutScheduleV3:', error?.message || error);

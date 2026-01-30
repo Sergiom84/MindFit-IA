@@ -255,7 +255,7 @@ export default function ShoppingList({ nutritionPlan }) {
 
   if (!nutritionPlan) {
     return (
-      <Card className="bg-gray-800/70 border-gray-600">
+      <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5 border-l-2 border-l-yellow-400/30">
         <CardContent className="p-6 text-center">
           <ShoppingCart className="mx-auto mb-4 text-gray-400" size={48} />
           <p className="text-gray-300">No hay plan nutricional activo</p>
@@ -269,7 +269,7 @@ export default function ShoppingList({ nutritionPlan }) {
 
   if (!shoppingList) {
     return (
-      <Card className="bg-gray-800/70 border-gray-600">
+      <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5 border-l-2 border-l-yellow-400/30">
         <CardContent className="p-6 text-center">
           <AlertCircle className="mx-auto mb-4 text-yellow-400" size={48} />
           <p className="text-gray-300">Generando lista de compras...</p>
@@ -280,10 +280,10 @@ export default function ShoppingList({ nutritionPlan }) {
 
   return (
     <>
-      <Card className="bg-gray-800/70 border-gray-600">
+      <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5 border-l-2 border-l-yellow-400/30">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white flex items-center gap-2 font-urbanist">
               <ShoppingCart className="text-yellow-400" size={24} />
               Lista de Compras
             </CardTitle>
@@ -292,7 +292,7 @@ export default function ShoppingList({ nutritionPlan }) {
                 onClick={exportToText}
                 size="sm"
                 variant="outline"
-                className={`border-gray-600 hover:bg-gray-700 ${
+                className={`border-white/10 bg-white/5 hover:bg-white/10 ${
                   copied ? 'text-green-400 border-green-400' : 'text-white'
                 }`}
               >
@@ -312,7 +312,7 @@ export default function ShoppingList({ nutritionPlan }) {
                 onClick={() => window.print()}
                 size="sm"
                 variant="outline"
-                className="border-gray-600 text-white hover:bg-gray-700"
+                className="border-white/10 bg-white/5 text-white hover:bg-white/10"
               >
                 <Printer size={16} className="mr-2" />
                 Imprimir
@@ -322,12 +322,12 @@ export default function ShoppingList({ nutritionPlan }) {
           {/* Barra de progreso */}
           <div className="mt-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Progreso de compra</span>
+              <span className="text-gray-300/70">Progreso de compra</span>
               <span className="text-white font-semibold">
                 {progress.checked} / {progress.total} items ({progress.percentage}%)
               </span>
             </div>
-            <div className="w-full bg-gray-700 rounded-full h-2">
+            <div className="w-full bg-white/10 rounded-full h-2">
               <div
                 className="bg-yellow-400 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${progress.percentage}%` }}
@@ -360,17 +360,17 @@ export default function ShoppingList({ nutritionPlan }) {
                         className={`
                           p-3 rounded-lg border cursor-pointer transition-all
                           ${isChecked
-                            ? 'bg-green-500/10 border-green-500/30'
-                            : 'bg-gray-700/30 border-gray-600 hover:bg-gray-700/50'
+                            ? 'bg-white/5 border-white/10 border-l-2 border-l-emerald-400/40'
+                            : 'bg-white/5 border-white/10 hover:bg-white/10'
                           }
                         `}
                       >
                         <div className="flex items-start gap-3">
                           <div className="mt-0.5">
                             {isChecked ? (
-                              <Check className="text-green-400" size={20} />
+                              <Check className="text-emerald-300" size={20} />
                             ) : (
-                              <div className="w-5 h-5 border-2 border-gray-500 rounded" />
+                              <div className="w-5 h-5 border-2 border-white/20 rounded" />
                             )}
                           </div>
                           <div className="flex-1">

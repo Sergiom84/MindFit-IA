@@ -150,12 +150,12 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <div className="bg-gray-800 rounded-2xl p-6 shadow-xl">
+      <div className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-2xl p-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <User className="w-8 h-8 text-yellow-400" />
           <div>
-            <h2 className="text-2xl font-bold text-white">Perfil Nutricional</h2>
+            <h2 className="text-2xl font-bold font-urbanist tracking-tight text-white">Perfil Nutricional</h2>
             <p className="text-gray-400 text-sm">Configura tus datos para cálculos personalizados</p>
           </div>
         </div>
@@ -178,7 +178,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Sección: Datos Personales */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-semibold font-urbanist text-white mb-4 flex items-center gap-2">
               <User className="w-5 h-5 text-yellow-400" />
               Datos Personales
             </h3>
@@ -193,7 +193,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
                   name="sexo"
                   value={formData.sexo}
                   onChange={handleChange}
-                  className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-400 outline-none"
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-400 outline-none"
                   required
                 >
                   <option value="hombre">Hombre</option>
@@ -213,7 +213,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
                   onChange={handleChange}
                   min="13"
                   max="90"
-                  className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-400 outline-none"
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-400 outline-none"
                   required
                 />
               </div>
@@ -230,7 +230,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
                   onChange={handleChange}
                   min="120"
                   max="230"
-                  className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-400 outline-none"
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-400 outline-none"
                   required
                 />
               </div>
@@ -248,7 +248,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
                   min="30"
                   max="250"
                   step="0.1"
-                  className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-400 outline-none"
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-400 outline-none"
                   required
                 />
               </div>
@@ -257,7 +257,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
 
           {/* Sección: Objetivo */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-semibold font-urbanist text-white mb-4 flex items-center gap-2">
               <Target className="w-5 h-5 text-yellow-400" />
               Objetivo
             </h3>
@@ -275,7 +275,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
                   className={`p-4 rounded-lg border-2 transition-all ${
                     formData.objetivo === value
                       ? `border-${color}-500 bg-${color}-500/10`
-                      : 'border-gray-600 bg-gray-700 hover:border-gray-500'
+                      : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20'
                   }`}
                 >
                   <div className="text-white font-semibold">{label}</div>
@@ -287,7 +287,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
 
           {/* Sección: Actividad Física */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-semibold font-urbanist text-white mb-4 flex items-center gap-2">
               <Activity className="w-5 h-5 text-yellow-400" />
               Nivel de Actividad
             </h3>
@@ -296,7 +296,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
               name="actividad"
               value={formData.actividad}
               onChange={handleChange}
-              className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-yellow-400 outline-none"
+              className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-yellow-400 outline-none"
               required
             >
               <option value="sedentario">Sedentario (poco o ningún ejercicio)</option>
@@ -309,7 +309,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
 
           {/* Sección: Comidas al Día */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-semibold font-urbanist text-white mb-4 flex items-center gap-2">
               <Utensils className="w-5 h-5 text-yellow-400" />
               Comidas al Día
             </h3>
@@ -323,7 +323,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
                   className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
                     formData.comidas_dia === num
                       ? 'bg-yellow-400 text-gray-900'
-                      : 'bg-gray-700 text-white hover:bg-gray-600'
+                      : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
                   }`}
                 >
                   {num}
@@ -334,7 +334,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
 
           {/* Sección: Preferencias Alimentarias */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4">
+            <h3 className="text-lg font-semibold font-urbanist text-white mb-4">
               Preferencias Alimentarias
             </h3>
 
@@ -352,7 +352,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
                   className={`p-3 rounded-lg text-sm font-medium transition-all ${
                     formData.preferencias[key]
                       ? 'bg-yellow-400 text-gray-900'
-                      : 'bg-gray-700 text-white hover:bg-gray-600'
+                      : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
                   }`}
                 >
                   {label}
@@ -363,7 +363,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
 
           {/* Sección: Alergias */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4">
+            <h3 className="text-lg font-semibold font-urbanist text-white mb-4">
               Alergias o Restricciones
             </h3>
 
@@ -374,7 +374,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
                 onChange={(e) => setAlergiaInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addAlergia())}
                 placeholder="Ej: frutos secos, mariscos..."
-                className="flex-1 bg-gray-700 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-400 outline-none"
+                className="flex-1 bg-white/5 border border-white/10 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-400 outline-none"
               />
               <button
                 type="button"

@@ -26,7 +26,7 @@ export function buildTrainingCalendar(config) {
   const sessionsNeeded = totalWeeks * cycleLength;
   const startDateObj = new Date(startDate);
   const startDay = startDateObj.getDay();
-  const allowOneSaturday = includeSaturday && startDay === 4; // Solo si empieza jueves
+  const allowOneSaturday = includeSaturday && (startDay === 4 || startDay === 5); // Jueves o viernes
 
   const trainingDays = [];
   let currentDate = new Date(startDateObj);

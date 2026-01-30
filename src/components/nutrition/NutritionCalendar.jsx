@@ -374,10 +374,10 @@ export default function NutritionCalendar({ nutritionPlan, userMacros, onPlanUpd
   return (
     <div className="space-y-6">
       {/* Header del calendario */}
-      <Card className="bg-gray-800/70 border-gray-600">
+      <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5 border-l-2 border-l-yellow-400/30">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white flex items-center gap-2 font-urbanist">
               <Calendar className="text-yellow-400" size={24} />
               Calendario Nutricional
             </CardTitle>
@@ -387,7 +387,7 @@ export default function NutritionCalendar({ nutritionPlan, userMacros, onPlanUpd
                 size="sm"
                 onClick={() => setCurrentWeek(prev => Math.max(0, prev - 1))}
                 disabled={!canGoBack}
-                className="border-gray-600 text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                className="border-white/10 bg-white/5 text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <ChevronLeft size={16} />
               </Button>
@@ -395,7 +395,7 @@ export default function NutritionCalendar({ nutritionPlan, userMacros, onPlanUpd
                 <div className="text-white font-semibold">
                   Semana {currentWeek + 1} de {maxWeeks}
                 </div>
-                <div className="text-gray-400 text-xs">
+                <div className="text-gray-300/70 text-xs">
                   {weekDays[0]?.date.toLocaleDateString('es-ES', {
                     day: 'numeric',
                     month: 'short'
@@ -410,7 +410,7 @@ export default function NutritionCalendar({ nutritionPlan, userMacros, onPlanUpd
                 size="sm"
                 onClick={() => setCurrentWeek(prev => Math.min(maxWeeks - 1, prev + 1))}
                 disabled={!canGoForward}
-                className="border-gray-600 text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                className="border-white/10 bg-white/5 text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <ChevronRight size={16} />
               </Button>
@@ -431,12 +431,12 @@ export default function NutritionCalendar({ nutritionPlan, userMacros, onPlanUpd
               key={day.dateString}
               className={`cursor-pointer transition-all duration-200 ${
                 !day.isWithinPlan
-                  ? 'bg-gray-900/50 border-gray-700 opacity-60'
+                  ? 'bg-neutral-900/50 border-white/10 opacity-60'
                   : progress.percentage === 100
-                    ? 'bg-green-900/20 border-green-500/40 hover:bg-green-900/30'
+                    ? 'bg-neutral-900/70 border-white/10 ring-1 ring-white/5 border-l-2 border-l-emerald-400/50 hover:border-white/20'
                     : progress.percentage > 0
-                      ? 'bg-gray-800/70 border-yellow-600/40 hover:bg-gray-700/70'
-                      : 'bg-gray-800/70 border-gray-600 hover:bg-gray-700/70'
+                      ? 'bg-neutral-900/70 border-white/10 ring-1 ring-white/5 border-l-2 border-l-yellow-400/50 hover:border-white/20'
+                      : 'bg-neutral-900/70 border-white/10 ring-1 ring-white/5 border-l-2 border-l-sky-400/40 hover:border-white/20'
               } ${
                 day.isToday ? 'ring-2 ring-yellow-400 shadow-lg shadow-yellow-400/20' : ''
               } ${
@@ -448,7 +448,7 @@ export default function NutritionCalendar({ nutritionPlan, userMacros, onPlanUpd
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-white font-semibold">{day.name}</h3>
-                    <p className="text-gray-300 text-sm">
+                    <p className="text-gray-300/80 text-sm">
                       {day.date.getDate()} {day.date.toLocaleDateString('es-ES', { month: 'short' })}
                     </p>
                     {!day.isWithinPlan && (
@@ -463,18 +463,18 @@ export default function NutritionCalendar({ nutritionPlan, userMacros, onPlanUpd
                             ? 'text-green-400'
                             : progress.percentage > 0
                               ? 'text-yellow-400'
-                              : 'text-gray-400'
+                              : 'text-gray-300/70'
                         }`}>
                           {progress.percentage}%
                         </div>
-                        <div className="w-16 h-2 bg-gray-600 rounded-full overflow-hidden">
+                        <div className="w-16 h-2 bg-white/10 rounded-full overflow-hidden">
                           <div
                             className={`h-full transition-all duration-300 ${
                               progress.percentage === 100
                                 ? 'bg-green-400'
                                 : progress.percentage > 0
                                   ? 'bg-yellow-400'
-                                  : 'bg-gray-500'
+                                  : 'bg-white/20'
                             }`}
                             style={{ width: `${progress.percentage}%` }}
                           />
@@ -495,7 +495,7 @@ export default function NutritionCalendar({ nutritionPlan, userMacros, onPlanUpd
                     </Badge>
                   )}
                   {!day.isWithinPlan && (
-                    <Badge className="bg-gray-700 text-gray-400 text-xs w-fit">
+                    <Badge className="bg-white/5 border border-white/10 text-gray-300/70 text-xs w-fit">
                       Sin plan
                     </Badge>
                   )}
@@ -508,18 +508,18 @@ export default function NutritionCalendar({ nutritionPlan, userMacros, onPlanUpd
                     <div 
                       key={mealId}
                       className={`flex items-center justify-between p-2 rounded-lg transition-colors ${
-                        isMealCompleted(day.dateString, mealId) 
-                          ? 'bg-green-500/20 border border-green-500/30' 
-                          : 'bg-gray-700/50'
+                        isMealCompleted(day.dateString, mealId)
+                          ? 'bg-white/5 border border-white/10 border-l-2 border-l-emerald-400/40'
+                          : 'bg-white/5 border border-white/10'
                       }`}
                     >
                       <div className="flex items-center gap-2">
                         <Utensils size={14} className={
-                          isMealCompleted(day.dateString, mealId) ? 'text-green-400' : 'text-gray-400'
-                        } />
+                            isMealCompleted(day.dateString, mealId) ? 'text-emerald-300' : 'text-gray-300/70'
+                          } />
                         <div>
                           <p className={`text-sm font-medium ${
-                            isMealCompleted(day.dateString, mealId) ? 'text-green-300' : 'text-white'
+                            isMealCompleted(day.dateString, mealId) ? 'text-emerald-300' : 'text-white'
                           }`}>
                             {meal.name}
                           </p>
@@ -536,8 +536,8 @@ export default function NutritionCalendar({ nutritionPlan, userMacros, onPlanUpd
                         }}
                         className={`p-1 rounded transition-colors ${
                           isMealCompleted(day.dateString, mealId)
-                            ? 'text-green-400 hover:text-green-300'
-                            : 'text-gray-400 hover:text-white'
+                            ? 'text-emerald-300 hover:text-emerald-200'
+                            : 'text-gray-300/70 hover:text-white'
                         }`}
                       >
                         <CheckCircle size={16} />
@@ -557,16 +557,16 @@ export default function NutritionCalendar({ nutritionPlan, userMacros, onPlanUpd
         const selectedDayMeals = getMealPlanForDay(selectedDayData?.name, selectedDayData?.dayIndex);
 
         return (
-          <Card className="bg-gray-800/70 border-gray-600">
+          <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5 border-l-2 border-l-yellow-400/30">
             <CardHeader>
-              <CardTitle className="text-white flex items-center justify-between">
+              <CardTitle className="text-white flex items-center justify-between font-urbanist">
                 <span>
                   Detalle del {selectedDayData?.name} ({selectedDayData?.date.getDate()} de {selectedDayData?.date.toLocaleDateString('es-ES', { month: 'long' })})
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-gray-600 text-white hover:bg-gray-700"
+                  className="border-white/10 bg-white/5 text-white hover:bg-white/10"
                 >
                   <Plus size={16} className="mr-1" />
                   Editar Plan
@@ -589,20 +589,20 @@ export default function NutritionCalendar({ nutritionPlan, userMacros, onPlanUpd
                   </div>
 
                   <div className="grid grid-cols-4 gap-2 text-sm">
-                    <div className="text-center p-2 bg-blue-500/20 rounded border border-blue-500/30">
-                      <p className="font-bold text-blue-400">{meal.calories}</p>
+                    <div className="text-center p-2 bg-white/5 rounded border border-white/10 border-l-2 border-l-sky-400/40">
+                      <p className="font-bold text-sky-300">{meal.calories}</p>
                       <p className="text-gray-300 text-xs">kcal</p>
                     </div>
-                    <div className="text-center p-2 bg-red-500/20 rounded border border-red-500/30">
-                      <p className="font-bold text-red-400">{meal.protein}g</p>
+                    <div className="text-center p-2 bg-white/5 rounded border border-white/10 border-l-2 border-l-red-400/40">
+                      <p className="font-bold text-red-300">{meal.protein}g</p>
                       <p className="text-gray-300 text-xs">Prot.</p>
                     </div>
-                    <div className="text-center p-2 bg-green-500/20 rounded border border-green-500/30">
-                      <p className="font-bold text-green-400">{meal.carbs}g</p>
+                    <div className="text-center p-2 bg-white/5 rounded border border-white/10 border-l-2 border-l-emerald-400/40">
+                      <p className="font-bold text-emerald-300">{meal.carbs}g</p>
                       <p className="text-gray-300 text-xs">Carb.</p>
                     </div>
-                    <div className="text-center p-2 bg-yellow-500/20 rounded border border-yellow-500/30">
-                      <p className="font-bold text-yellow-400">{meal.fat}g</p>
+                    <div className="text-center p-2 bg-white/5 rounded border border-white/10 border-l-2 border-l-yellow-400/40">
+                      <p className="font-bold text-yellow-300">{meal.fat}g</p>
                       <p className="text-gray-300 text-xs">Gras.</p>
                     </div>
                   </div>
@@ -626,7 +626,7 @@ export default function NutritionCalendar({ nutritionPlan, userMacros, onPlanUpd
                     className={
                       isMealCompleted(selectedDay, mealId)
                         ? "bg-green-600 hover:bg-green-700 text-white"
-                        : "border-gray-600 text-white hover:bg-gray-700"
+                        : "border-white/10 bg-white/5 text-white hover:bg-white/10"
                     }
                   >
                     <CheckCircle size={14} className="mr-1" />

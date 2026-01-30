@@ -124,6 +124,58 @@ export const cycleControllers = {
         }
       }
 
+      try {
+        const deloadStatus = await pool.query(
+          `SELECT
+             hs.deload_active,
+             hs.deload_reason,
+             mp.current_week,
+             mp.plan_data
+           FROM app.hipertrofia_v2_state hs
+           JOIN app.methodology_plans mp ON mp.id = hs.methodology_plan_id
+           WHERE hs.user_id = $1
+           LIMIT 1`,
+          [userId]
+        );
+
+        if (deloadStatus.rows.length > 0) {
+          const {
+            deload_active: deloadActive,
+            deload_reason: deloadReason,
+            current_week: currentWeek,
+            plan_data: planData
+          } = deloadStatus.rows[0];
+
+          let isDeloadWeek = false;
+          if (planData?.semanas && Number.isFinite(currentWeek)) {
+            const weekMatch = planData.semanas.find((week) => {
+              const raw =
+                week?.numero ??
+                week?.semana ??
+                week?.week ??
+                week?.week_number ??
+                null;
+              const weekNumber = Number(raw);
+              if (!Number.isFinite(weekNumber)) return false;
+              return weekNumber === Number(currentWeek);
+            });
+
+            if (weekMatch) {
+              const weekType = String(weekMatch.tipo || '').toLowerCase();
+              isDeloadWeek = Boolean(weekMatch.es_deload) || weekType === 'deload';
+            }
+          }
+
+          cycleResult.deload_active = Boolean(deloadActive);
+          cycleResult.deload_reason = deloadReason || null;
+          cycleResult.current_week = currentWeek ?? null;
+          cycleResult.planned_deload_week = planData?.deload_week ?? null;
+          cycleResult.is_deload_week = isDeloadWeek;
+        }
+      } catch (deloadError) {
+        logger.warn('⚠️ [CYCLE] No se pudo adjuntar estado de deload:', deloadError.message);
+      }
+
       res.json({
         success: true,
         cycleAdvanced: true,
@@ -325,7 +377,7 @@ export const overlapControllers = {
 
       // Obtener plan activo
       const planQuery = await pool.query(
-        `SELECT plan_data FROM app.methodology_plans
+        `SELECT plan_data, current_week FROM app.methodology_plans
          WHERE user_id = $1 AND status = 'active'
          ORDER BY created_at DESC LIMIT 1`,
         [userId]
@@ -336,17 +388,33 @@ export const overlapControllers = {
       }
 
       const planData = planQuery.rows[0].plan_data;
+      const currentWeekNumber = Number(planQuery.rows[0].current_week || 1);
       let currentSession = null;
 
-      // Buscar sesión del cycleDay
-      for (const semana of (planData.semanas || [])) {
-        for (const sesion of (semana.sesiones || [])) {
+      // Buscar primero en la semana actual
+      const semanas = planData.semanas || [];
+      const currentWeek = semanas.find(semana => Number(semana.numero) === currentWeekNumber) || semanas[0];
+
+      if (currentWeek) {
+        for (const sesion of (currentWeek.sesiones || [])) {
           if (sesion.ciclo_dia == cycleDay || sesion.cycle_day == cycleDay) {
             currentSession = sesion;
             break;
           }
         }
-        if (currentSession) break;
+      }
+
+      // Fallback: buscar en cualquier semana si no se encontró en la actual
+      if (!currentSession) {
+        for (const semana of semanas) {
+          for (const sesion of (semana.sesiones || [])) {
+            if (sesion.ciclo_dia == cycleDay || sesion.cycle_day == cycleDay) {
+              currentSession = sesion;
+              break;
+            }
+          }
+          if (currentSession) break;
+        }
       }
 
       if (!currentSession) {
@@ -370,14 +438,16 @@ export const overlapControllers = {
         overlapInfo = overlapResult.rows[0]?.result || {};
 
         if (overlapInfo.overlap !== 'none' && overlapInfo.adjustment < 0) {
-          logger.info(`⚠️ [OVERLAP] ${overlapInfo.overlap} detectado, ajustando -10%`);
+          const adjustmentFactor = 1 + Number(overlapInfo.adjustment || 0);
+          const adjustmentPct = Math.round(Number(overlapInfo.adjustment || 0) * 1000) / 10;
+          logger.info(`⚠️ [OVERLAP] ${overlapInfo.overlap} detectado, ajustando ${adjustmentPct}%`);
 
           adjustedSession.ejercicios = currentSession.ejercicios.map(ex => {
             if (ex.tipo_ejercicio === 'multiarticular') {
               return {
                 ...ex,
-                intensidad_porcentaje: Math.round(ex.intensidad_porcentaje * 0.9 * 10) / 10,
-                notas: (ex.notas || '') + ' [⚠️ -10% por solapamiento neural]'
+                intensidad_porcentaje: Math.round(ex.intensidad_porcentaje * adjustmentFactor * 10) / 10,
+                notas: (ex.notas || '') + ` [⚠️ ${adjustmentPct}% por solapamiento ${overlapInfo.overlap}]`
               };
             }
             return ex;
@@ -390,7 +460,8 @@ export const overlapControllers = {
         session: adjustedSession,
         overlap_detected: overlapInfo?.overlap !== 'none',
         overlap_info: overlapInfo,
-        nivel
+        nivel,
+        current_week: currentWeekNumber
       });
     } catch (error) {
       logger.error('❌ [SESSION+OVERLAP] Error:', error);

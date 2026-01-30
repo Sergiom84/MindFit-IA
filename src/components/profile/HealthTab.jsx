@@ -39,9 +39,9 @@ export const HealthTab = (props) => {
       />
 
       {/* Tarjeta de alergias y medicamentos */}
-      <Card className="bg-gray-900 border-yellow-400/20">
+      <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
         <CardHeader>
-          <CardTitle className="text-white flex items-center justify-between">
+          <CardTitle className="text-white font-urbanist flex items-center justify-between">
             <span>Alergias, Medicamentos y Lesiones</span>
             <div className="flex items-center gap-2">
               {isEditing
@@ -50,7 +50,7 @@ export const HealthTab = (props) => {
                   <Button onClick={handleSave} size="sm" className="bg-green-500 hover:bg-green-600 text-white">
                     <Save className="w-4 h-4 mr-1" /> Guardar
                   </Button>
-                  <Button onClick={handleCancel} size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
+                  <Button onClick={handleCancel} size="sm" variant="outline" className="border-white/10 text-gray-200/80 hover:bg-white/10">
                     Cancelar
                   </Button>
                 </>
@@ -65,7 +65,7 @@ export const HealthTab = (props) => {
                     })
                   }}
                   disabled={!!(editingSection && editingSection !== 'health')}
-                  className="p-2 text-gray-400 hover:text-yellow-400 transition-colors"
+                  className="p-2 text-gray-300/70 hover:text-yellow-300 transition-colors"
                   title="Editar alergias, medicamentos y lesiones"
                 >
                   <Pencil className="w-4 h-4" />

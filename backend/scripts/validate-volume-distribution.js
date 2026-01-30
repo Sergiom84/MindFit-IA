@@ -24,41 +24,73 @@ async function validateVolumeDistribution() {
       ORDER BY cycle_day
     `);
 
+    const rulesetResult = await pool.query(
+      `SELECT app.get_active_mindfeed_ruleset($1) AS rules`,
+      ['hipertrofia_v2_principiante']
+    );
+    const ruleset = rulesetResult.rows[0]?.rules || {};
+    const volumeProfiles = ruleset.volumeProfiles || {};
+    const deloadRules = ruleset.deloadRules || {};
+    const rulesetDeloadWeeks = Array.isArray(deloadRules.deloadWeeks)
+      ? deloadRules.deloadWeeks.map((week) => Number(week)).filter((week) => !Number.isNaN(week))
+      : [6];
+    const deloadLoadFactor = Number(deloadRules.loadFactor || 0.7);
+    const deloadVolumeFactor = Number(deloadRules.volumeFactor || 0.5);
+
     console.log('🔢 CONFIGURACIÓN D1-D5:\n');
 
     // Estructura para acumular volumen por músculo
     const muscleVolume = {};
 
     d1d5Config.rows.forEach((session) => {
-      const totalExercises =
-        (session.multiarticular_count || 0) +
-        (session.unilateral_count || 0) +
-        (session.analitico_count || 0);
-
-      const totalSetsPerSession = totalExercises * session.default_sets;
+      const muscleGroups = Array.isArray(session.muscle_groups)
+        ? session.muscle_groups
+        : JSON.parse(session.muscle_groups || '[]');
 
       console.log(`D${session.cycle_day} - ${session.session_name} (${session.is_heavy_day ? 'PESADO' : 'LIGERO'}):`);
-      console.log(`  Músculos: ${JSON.stringify(session.muscle_groups)}`);
-      console.log(`  Ejercicios: ${session.multiarticular_count}M + ${session.unilateral_count}U + ${session.analitico_count}A = ${totalExercises}`);
-      console.log(`  Series por sesión: ${totalExercises} × ${session.default_sets} = ${totalSetsPerSession}`);
-      console.log(`  Intensidad: ${session.intensity_percentage}% 1RM`);
+      console.log(`  Músculos: ${JSON.stringify(muscleGroups)}`);
+      console.log(`  Intensidad base: ${session.intensity_percentage}% 1RM`);
       console.log(`  Reps: ${session.default_reps_range} | RIR objetivo: ${session.default_rir_target}`);
 
-      // Acumular volumen por músculo
-      session.muscle_groups.forEach((muscle) => {
+      let sessionTotalSets = 0;
+
+      for (const muscle of muscleGroups) {
+        const profile = volumeProfiles[muscle];
+        const counts = profile
+          ? {
+              multi: Number(profile.multiarticular || 0),
+              uni: Number(profile.unilateral || 0),
+              ana: Number(profile.analitico || 0),
+              sets: Number(profile.sets || session.default_sets || 0)
+            }
+          : {
+              multi: Number(session.multiarticular_count || 0),
+              uni: Number(session.unilateral_count || 0),
+              ana: Number(session.analitico_count || 0),
+              sets: Number(session.default_sets || 0)
+            };
+
+        const exerciseCount = counts.multi + counts.uni + counts.ana;
+        const setsPerMuscleSession = exerciseCount * counts.sets;
+        sessionTotalSets += setsPerMuscleSession;
+
+        console.log(`  - ${muscle}: ${counts.multi}M + ${counts.uni}U + ${counts.ana}A × ${counts.sets} = ${setsPerMuscleSession} series`);
+
         if (!muscleVolume[muscle]) {
           muscleVolume[muscle] = { sessions: 0, totalSets: 0, details: [] };
         }
+
         muscleVolume[muscle].sessions += 1;
-        muscleVolume[muscle].totalSets += totalSetsPerSession;
+        muscleVolume[muscle].totalSets += setsPerMuscleSession;
         muscleVolume[muscle].details.push({
           day: `D${session.cycle_day}`,
-          sets: totalSetsPerSession,
+          sets: setsPerMuscleSession,
           type: session.is_heavy_day ? 'pesado' : 'ligero',
           intensity: session.intensity_percentage
         });
-      });
+      }
 
+      console.log(`  Total series sesión (suma por músculo): ${sessionTotalSets}`);
       console.log('');
     });
 
@@ -78,6 +110,25 @@ async function validateVolumeDistribution() {
       console.log('');
     });
 
+    const aggregateGroups = {
+      'Piernas': ['Piernas (cuádriceps)', 'Piernas (isquios)', 'Glúteo', 'Gemelos'],
+      'Hombros': ['Hombro', 'Hombro (medios)', 'Hombro (posterior)']
+    };
+
+    const aggregateVolume = { ...muscleVolume };
+
+    Object.entries(aggregateGroups).forEach(([aggregateName, muscles]) => {
+      const totalSets = muscles.reduce((sum, muscle) => sum + (muscleVolume[muscle]?.totalSets || 0), 0);
+      const totalSessions = muscles.reduce((sum, muscle) => sum + (muscleVolume[muscle]?.sessions || 0), 0);
+      const details = muscles.flatMap((muscle) => muscleVolume[muscle]?.details || []);
+
+      aggregateVolume[aggregateName] = {
+        sessions: totalSessions,
+        totalSets,
+        details
+      };
+    });
+
     // 3. Comparación con teoría
     console.log('\n✅ COMPARACIÓN CON TEORÍA:\n');
 
@@ -93,14 +144,14 @@ async function validateVolumeDistribution() {
 
     Object.keys(theoreticalVolume).forEach((muscle) => {
       const theory = theoreticalVolume[muscle];
-      const actual = muscleVolume[muscle];
+      const actual = aggregateVolume[muscle];
 
       if (actual) {
         const inRange = actual.totalSets >= theory.min && actual.totalSets <= theory.max;
         const status = inRange ? '✅' : '⚠️';
         console.log(`${status} ${muscle}: ${actual.totalSets} series/semana (teoría: ${theory.min}-${theory.max})`);
         
-        if (actual.sessions !== 2 && muscle !== 'Core') {
+        if (actual.sessions !== 2 && muscle !== 'Core' && !aggregateGroups[muscle]) {
           console.log(`   ⚠️ Frecuencia: ${actual.sessions}/semana (esperado: 2)`);
         }
       } else {
@@ -114,7 +165,7 @@ async function validateVolumeDistribution() {
     
     // Verificar niveles y duraciones
     const levelDurations = {
-      'Principiante': { weeks: 10, deloadAt: [6] },
+      'Principiante': { weeks: 10, deloadAt: rulesetDeloadWeeks },
       'Intermedio': { weeks: 12, deloadAt: [6, 11] },
       'Avanzado': { weeks: 12, deloadAt: [6, 11] }
     };
@@ -124,7 +175,10 @@ async function validateVolumeDistribution() {
       console.log(`${level}:`);
       console.log(`  - Duración total: ${config.weeks} semanas`);
       console.log(`  - Semana 0: Calibración (70% intensidad)`);
-      console.log(`  - Semanas ${config.deloadAt.join(', ')}: Deload (-30% carga, -50% volumen)`);
+      const deloadWeeksLabel = config.deloadAt.length > 0 ? config.deloadAt.join(', ') : '—';
+      console.log(
+        `  - Semanas ${deloadWeeksLabel}: Deload (${Math.round((1 - deloadLoadFactor) * 100)}% carga, ${Math.round((1 - deloadVolumeFactor) * 100)}% volumen)`
+      );
       console.log(`  - Total sesiones: ${config.weeks * 5} (5 por semana)`);
       console.log('');
     });
@@ -132,29 +186,29 @@ async function validateVolumeDistribution() {
     // 5. NUEVO: Calcular volumen acumulado para 10-12 semanas
     console.log('\n📊 PROYECCIÓN DE VOLUMEN ACUMULADO:\n');
     
-    const weeksPerLevel = {
-      'Principiante': 10,
-      'Intermedio': 12,
-      'Avanzado': 12
-    };
-    
-    Object.entries(weeksPerLevel).forEach(([level, weeks]) => {
+    Object.entries(levelDurations).forEach(([level, config]) => {
+      const weeks = config.weeks;
       console.log(`\n${level} (${weeks} semanas):`);
       console.log('─'.repeat(40));
       
-      // Calcular volumen total sin deload
-      const normalWeeks = level === 'Principiante' ? 9 : 10; // Descontando semana 0 y deload(s)
-      const deloadWeeks = level === 'Principiante' ? 1 : 2;
+      const calibrationWeeks = 1;
+      const deloadWeeksCount = config.deloadAt.length;
+      const normalWeeks = Math.max(weeks - calibrationWeeks - deloadWeeksCount, 0);
       
-      Object.keys(muscleVolume).sort().forEach((muscle) => {
-        const data = muscleVolume[muscle];
+      Object.keys(theoreticalVolume).forEach((muscle) => {
+        const data = aggregateVolume[muscle];
+        if (!data) {
+          return;
+        }
+
         const normalVolume = data.totalSets * normalWeeks;
-        const deloadVolume = Math.floor(data.totalSets * 0.5) * deloadWeeks; // -50% en deload
+        const deloadSetsPerWeek = Math.floor(data.totalSets * deloadVolumeFactor);
+        const deloadVolume = deloadSetsPerWeek * deloadWeeksCount;
         const totalVolume = normalVolume + deloadVolume;
         
         console.log(`  ${muscle}: ${totalVolume} series totales`);
         console.log(`    → Normal: ${normalVolume} (${normalWeeks} sem × ${data.totalSets} series)`);
-        console.log(`    → Deload: ${deloadVolume} (${deloadWeeks} sem × ${Math.floor(data.totalSets * 0.5)} series)`);
+        console.log(`    → Deload: ${deloadVolume} (${deloadWeeksCount} sem × ${deloadSetsPerWeek} series)`);
       });
     });
 

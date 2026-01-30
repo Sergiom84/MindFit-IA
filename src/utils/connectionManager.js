@@ -243,17 +243,19 @@ class ConnectionManager {
 
     for (const item of queueCopy) {
       try {
-        const success = await this.retryRequest(item);
-        if (success) {
-          results.successful++;
-        } else {
-          results.failed++;
-          // Re-agregar a queue si no se pudo procesar
+      const success = await this.retryRequest(item);
+      if (success) {
+        results.successful++;
+      } else {
+        results.failed++;
+        // Re-agregar solo si el error es reintetable y quedan intentos
+        if (item.retryable && item.attempts < item.maxAttempts) {
           this.offlineQueue.push(item);
         }
-      } catch (error) {
-        console.error('Error processing offline request:', error);
-        results.failed++;
+      }
+    } catch (error) {
+      console.error('Error processing offline request:', error);
+      results.failed++;
 
         // Re-agregar si no ha excedido intentos
         if (item.attempts < item.maxAttempts) {
@@ -283,12 +285,15 @@ class ConnectionManager {
    */
   async retryRequest(item) {
     item.attempts++;
+    item.retryable = false;
+    item.lastStatus = null;
 
     try {
       console.log(`Retrying request (attempt ${item.attempts}): ${item.url}`);
 
+      const timeoutMs = item.metadata?.timeout ?? item.options?.timeout ?? TIMEOUT_CONFIG.REQUEST_TIMEOUT;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_CONFIG.REQUEST_TIMEOUT);
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       const response = await fetch(item.url, {
         ...item.options,
@@ -301,6 +306,8 @@ class ConnectionManager {
         console.log(`Request successful: ${item.url}`);
         return true;
       } else if (RETRY_CONFIG.RETRYABLE_STATUS_CODES.includes(response.status)) {
+        item.retryable = true;
+        item.lastStatus = response.status;
         console.log(`Request failed with retryable status ${response.status}: ${item.url}`);
 
         if (item.attempts < item.maxAttempts) {
@@ -309,6 +316,7 @@ class ConnectionManager {
         }
         return false;
       } else {
+        item.lastStatus = response.status;
         console.error(`Request failed permanently with status ${response.status}: ${item.url}`);
         return false;
       }
@@ -317,6 +325,7 @@ class ConnectionManager {
 
       if (RETRY_CONFIG.RETRYABLE_ERRORS.some(retryableError =>
         error.name.includes(retryableError) || error.message.includes(retryableError))) {
+        item.retryable = true;
 
         if (item.attempts < item.maxAttempts) {
           this.scheduleRetry(item);
@@ -381,8 +390,9 @@ class ConnectionManager {
     }
 
     try {
+      const timeoutMs = metadata?.timeout ?? options?.timeout ?? TIMEOUT_CONFIG.REQUEST_TIMEOUT;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_CONFIG.REQUEST_TIMEOUT);
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       const response = await fetch(url, {
         ...options,

@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button.jsx";
 import apiClient from "@/lib/apiClient";
 import { getActivePlan } from "@/components/routines/api";
 import { Brain, Smartphone, Camera, CalendarDays, ListChecks, Zap } from "lucide-react";
-import { CycleHomeCard } from "./MenstrualCycle";
 
 const formatDate = (value) => {
   if (!value) return "Sin sesiones aún";
@@ -39,29 +38,8 @@ const HomePage = () => {
     activePlan: null,
     progress: null
   });
-  const [showCycleCard, setShowCycleCard] = useState(false);
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading } = useAuth();
-
-  // Verificar si el usuario es femenino para mostrar tarjeta de ciclo
-  useEffect(() => {
-    const checkCycleFeature = async () => {
-      if (!isAuthenticated) return;
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('/api/menstrual-cycle/check-user', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setShowCycleCard(data.showCycleFeature === true);
-        }
-      } catch (err) {
-        console.error('Error verificando ciclo:', err);
-      }
-    };
-    checkCycleFeature();
-  }, [isAuthenticated]);
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -158,30 +136,42 @@ const HomePage = () => {
   const todayExercisesCount = parseExercisesCount(todaySession?.exercises);
   const lastSessionLabel = formatDate(progress?.lastSessionDate);
   const todayDateLabel = todaySession?.scheduled_date ? formatDate(todaySession.scheduled_date) : "Hoy";
+  const cardBase = "bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg";
 
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden pt-24 pb-24">
-      <div
-        className="absolute inset-0 opacity-10"
-        style={{
-          background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, yellow 0%, transparent 50%)`
-        }}
-      />
+    <div className="min-h-screen bg-[#050506] text-white relative overflow-hidden font-body">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[url('/assets/tech-lux/bg-tech-lux-mobile.jpg')] sm:bg-[url('/assets/tech-lux/bg-tech-lux-desktop.jpg')] bg-cover bg-center opacity-80 sm:opacity-70" />
+        <div className="absolute inset-0 bg-[url('/assets/tech-lux/texture-tech-lux-tile.jpg')] bg-repeat opacity-20 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/80 sm:from-black/40 sm:via-black/60 sm:to-black" />
+        <div className="absolute -top-24 right-0 h-60 w-60 bg-yellow-400/10 blur-[140px]" />
+        <div className="absolute top-1/3 -left-16 h-72 w-72 bg-yellow-400/10 blur-[160px]" />
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(250, 204, 21, 0.18), transparent 60%)`
+          }}
+        />
+      </div>
 
-      <div className="relative z-10 px-6">
+      <div className="relative z-10 px-4 py-8">
         <div className="max-w-6xl mx-auto space-y-10">
-          <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between animate-fade-in">
             <div>
-              <p className="text-xs uppercase tracking-[0.35em] text-yellow-400/80">Dashboard</p>
-              <h1 className="text-4xl md:text-5xl font-bold mt-3">
+              <p className="text-xs uppercase tracking-[0.4em] text-yellow-200/80">Dashboard</p>
+              <h1 className="text-4xl md:text-5xl font-semibold font-urbanist mt-3">
                 Hola, {user?.nombre || "atleta"}
               </h1>
-              <p className="text-gray-300 mt-3 max-w-2xl">
-                Tu panel de entrenamiento con acceso directo a la sesión de hoy y el estado del plan.
+              <p className="text-gray-200/80 mt-3 max-w-2xl">
+                Acceso rápido a la sesión de hoy, tu progreso y el estado del plan.
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <Badge className={hasActivePlan ? "bg-yellow-400 text-black" : "bg-white/10 text-gray-200 border border-white/10"}>
+              <Badge
+                className={hasActivePlan
+                  ? "bg-gradient-to-r from-yellow-300 to-amber-400 text-black border border-yellow-200/60"
+                  : "bg-white/10 text-gray-200 border border-white/10"}
+              >
                 {hasActivePlan ? "Plan activo" : "Sin plan activo"}
               </Badge>
             </div>
@@ -200,18 +190,11 @@ const HomePage = () => {
                 </div>
               ) : null}
 
-              {/* Tarjeta de Ciclo Menstrual - Solo para mujeres */}
-              {showCycleCard && (
-                <div className="mb-6">
-                  <CycleHomeCard userId={user?.id} />
-                </div>
-              )}
-
-              <div className="grid gap-6 lg:grid-cols-5">
-                <Card className="lg:col-span-3 bg-gradient-to-br from-yellow-400/20 via-black/80 to-black border-yellow-400/30">
+              <div className="grid gap-6 lg:grid-cols-5 animate-slide-up">
+                <Card className={`lg:col-span-3 ${cardBase} border-l-2 border-l-yellow-400/30`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-white">Entrenamiento de hoy</CardTitle>
+                      <CardTitle className="text-white font-urbanist">Entrenamiento de hoy</CardTitle>
                       <Badge className="bg-black/70 text-yellow-300 border border-yellow-400/30">
                         {todaySession ? "Programado" : "Sin sesión"}
                       </Badge>
@@ -221,7 +204,7 @@ const HomePage = () => {
                     {hasActivePlan ? (
                       <>
                         <div>
-                          <p className="text-2xl font-semibold text-white">
+                          <p className="text-2xl font-semibold text-white font-urbanist">
                             {todaySession?.session_title || "No hay sesión programada para hoy"}
                           </p>
                           <p className="text-gray-300 mt-2">
@@ -244,14 +227,14 @@ const HomePage = () => {
                         </div>
                         <div className="flex flex-wrap gap-3 pt-2">
                           <Button
-                            className="bg-yellow-400 text-black hover:bg-yellow-300"
+                            className="bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]"
                             onClick={() => navigate("/routines")}
                             type="button"
                           >
                             Ir al entrenamiento
                           </Button>
                           <Button
-                            className="border border-yellow-400/40 text-yellow-200 hover:bg-yellow-400/10"
+                            className="border border-yellow-400/40 text-yellow-100 hover:bg-yellow-400/10"
                             variant="outline"
                             onClick={() => navigate("/routines")}
                             type="button"
@@ -262,12 +245,12 @@ const HomePage = () => {
                       </>
                     ) : (
                       <>
-                        <p className="text-xl font-semibold">Aún no tienes un plan activo</p>
+                        <p className="text-xl font-semibold font-urbanist">Aún no tienes un plan activo</p>
                         <p className="text-gray-300">
                           Crea tu metodología para empezar a ver tus sesiones y progreso.
                         </p>
                         <Button
-                          className="bg-yellow-400 text-black hover:bg-yellow-300"
+                          className="bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]"
                           onClick={() => navigate("/methodologies")}
                           type="button"
                         >
@@ -278,9 +261,9 @@ const HomePage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="lg:col-span-2 bg-black/60 border-yellow-400/20">
+                <Card className={`lg:col-span-2 ${cardBase}`}>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-white">Estado del plan</CardTitle>
+                    <CardTitle className="text-white font-urbanist">Estado del plan</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-5">
                     {hasActivePlan ? (
@@ -292,7 +275,7 @@ const HomePage = () => {
                           </div>
                           <div className="h-2 rounded-full bg-white/10 overflow-hidden">
                             <div
-                              className="h-full bg-yellow-400"
+                              className="h-full bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500"
                               style={{ width: `${completionRate}%` }}
                             />
                           </div>
@@ -325,54 +308,54 @@ const HomePage = () => {
                 </Card>
               </div>
 
-              <div className="grid gap-6 lg:grid-cols-3">
-                <Card className="lg:col-span-2 bg-black/60 border-yellow-400/20">
+              <div className="grid gap-6 lg:grid-cols-3 animate-slide-up">
+                <Card className={`lg:col-span-2 ${cardBase}`}>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-white">Resumen reciente</CardTitle>
+                    <CardTitle className="text-white font-urbanist">Resumen reciente</CardTitle>
                   </CardHeader>
                   <CardContent className="grid gap-4 md:grid-cols-3 text-sm text-gray-200">
                     <div className="space-y-1">
-                      <p className="text-gray-400">Última sesión</p>
-                      <p className="text-lg font-semibold text-white">{lastSessionLabel}</p>
+                      <p className="text-gray-300/70">Última sesión</p>
+                      <p className="text-lg font-semibold text-white font-urbanist">{lastSessionLabel}</p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-gray-400">Sesiones completadas</p>
-                      <p className="text-lg font-semibold text-white">{completedSessions}</p>
+                      <p className="text-gray-300/70">Sesiones completadas</p>
+                      <p className="text-lg font-semibold text-white font-urbanist">{completedSessions}</p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-gray-400">Progreso del plan</p>
-                      <p className="text-lg font-semibold text-white">{completionRate}%</p>
+                      <p className="text-gray-300/70">Progreso del plan</p>
+                      <p className="text-lg font-semibold text-white font-urbanist">{completionRate}%</p>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-black/60 border-yellow-400/20">
+                <Card className={cardBase}>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-white">Accesos rápidos</CardTitle>
+                    <CardTitle className="text-white font-urbanist">Accesos rápidos</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <button
-                      className="w-full flex items-center gap-3 rounded-lg border border-yellow-400/20 px-4 py-3 text-left text-sm text-gray-200 hover:border-yellow-400/50 hover:text-white transition-colors"
+                      className="group w-full flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-gray-200 hover:border-yellow-400/50 hover:text-white transition-all hover:bg-white/10"
                       onClick={() => navigate("/methodologies")}
                       type="button"
                     >
-                      <Brain className="w-5 h-5 text-yellow-300" />
-                      IA Adaptativa
+                      <Brain className="w-5 h-5 text-yellow-300 group-hover:text-yellow-200" />
+                      IA adaptativa
                     </button>
                     <button
-                      className="w-full flex items-center gap-3 rounded-lg border border-yellow-400/20 px-4 py-3 text-left text-sm text-gray-200 hover:border-yellow-400/50 hover:text-white transition-colors"
+                      className="group w-full flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-gray-200 hover:border-yellow-400/50 hover:text-white transition-all hover:bg-white/10"
                       onClick={() => navigate("/home-training")}
                       type="button"
                     >
-                      <Smartphone className="w-5 h-5 text-yellow-300" />
+                      <Smartphone className="w-5 h-5 text-yellow-300 group-hover:text-yellow-200" />
                       Entrenamiento en Casa
                     </button>
                     <button
-                      className="w-full flex items-center gap-3 rounded-lg border border-yellow-400/20 px-4 py-3 text-left text-sm text-gray-200 hover:border-yellow-400/50 hover:text-white transition-colors"
+                      className="group w-full flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-gray-200 hover:border-yellow-400/50 hover:text-white transition-all hover:bg-white/10"
                       onClick={() => navigate("/video-correction")}
                       type="button"
                     >
-                      <Camera className="w-5 h-5 text-yellow-300" />
+                      <Camera className="w-5 h-5 text-yellow-300 group-hover:text-yellow-200" />
                       Corrección por Video IA
                     </button>
                   </CardContent>

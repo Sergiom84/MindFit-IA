@@ -244,7 +244,7 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
             };
             if (effectiveMethodologyPlanId) loadProgressData();
           }}
-          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="mt-4 px-4 py-2 bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black rounded-lg hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 transition-colors shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]"
         >
           Reintentar
         </button>
@@ -265,7 +265,7 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
   if (loading || (!progressData && !error)) {
     return (
       <div className="space-y-6">
-        <Card className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-blue-600/30 p-6">
+        <Card className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 border-l-2 border-l-yellow-400/25 p-6 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20">
           <div className="animate-pulse">
             <div className="h-6 bg-gray-700 rounded w-1/3 mb-4"></div>
             <div className="h-3 bg-gray-700 rounded w-full mb-4"></div>
@@ -280,7 +280,7 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
           </div>
         </Card>
 
-        <Card className="bg-gray-900/50 border-gray-700 p-6">
+        <Card className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 border-l-2 border-l-yellow-400/25 p-6 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20">
           <div className="animate-pulse">
             <div className="h-5 bg-gray-700 rounded w-1/4 mb-4"></div>
             <div className="space-y-3">
@@ -296,7 +296,7 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
 
         <div className="grid md:grid-cols-2 gap-6">
           {[1, 2].map((i) => (
-            <Card key={i} className="bg-gray-900/50 border-gray-700 p-6">
+            <Card key={i} className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 border-l-2 border-l-yellow-400/25 p-6 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20">
               <div className="animate-pulse">
                 <div className="h-5 bg-gray-700 rounded w-1/3 mb-4"></div>
                 <div className="space-y-3">
@@ -315,19 +315,19 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
   return (
     <div className="space-y-6">
       {/* Resumen general */}
-      <Card className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-blue-600/30 p-6">
+      <Card className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 border-l-2 border-l-yellow-400/40 p-6 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20">
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-white mb-2">Progreso General</h2>
-            <Badge variant="secondary" className="bg-yellow-400/20 text-yellow-300">
+            <h2 className="text-2xl font-semibold font-urbanist text-white mb-2">Progreso General</h2>
+            <Badge variant="secondary" className="bg-yellow-400/20 text-yellow-200 border border-yellow-400/30">
               {effectivePlan?.selected_style || effectivePlan?.nombre || 'Metodología'}
             </Badge>
           </div>
           <div className="text-right">
-            <div className="text-3xl font-bold text-blue-400">
+            <div className="text-3xl font-bold text-yellow-300">
               {calculateOverallProgress()}%
             </div>
-            <div className="text-sm text-gray-400">Completado</div>
+            <div className="text-sm text-gray-300/70">Completado</div>
           </div>
         </div>
 
@@ -339,39 +339,39 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
             <div className="text-2xl font-bold text-white">{progressData.currentWeek || 1}</div>
-            <div className="text-sm text-gray-400">Semana Actual</div>
+            <div className="text-sm text-gray-300/70">Semana Actual</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-green-400">{progressData.completedSessions || 0}</div>
-            <div className="text-sm text-gray-400">Sesiones Completadas</div>
+            <div className="text-2xl font-bold text-emerald-300">{progressData.completedSessions || 0}</div>
+            <div className="text-sm text-gray-300/70">Sesiones Completadas</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-yellow-400">{progressData.completedExercises || 0}</div>
-            <div className="text-sm text-gray-400">Ejercicios Completados</div>
+            <div className="text-2xl font-bold text-yellow-300">{progressData.completedExercises || 0}</div>
+            <div className="text-sm text-gray-300/70">Ejercicios Completados</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-purple-400">{progressData.totalSeriesCompleted || 0}</div>
-            <div className="text-sm text-gray-400">Series Totales</div>
+            <div className="text-2xl font-bold text-sky-300">{progressData.totalSeriesCompleted || 0}</div>
+            <div className="text-sm text-gray-300/70">Series Totales</div>
           </div>
         </div>
       </Card>
 
       {/* Progreso por semanas */}
-      <Card className="bg-gray-900/50 border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-          <Calendar className="w-5 h-5 mr-2 text-yellow-400" />
+      <Card className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 border-l-2 border-l-sky-400/35 p-6 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20">
+        <h3 className="text-lg font-semibold font-urbanist text-white mb-4 flex items-center">
+          <Calendar className="w-5 h-5 mr-2 text-yellow-300" />
           Progreso por Semanas
         </h3>
 
         <div className="space-y-4">
           {progressData.weeklyProgress?.length > 0 ? progressData.weeklyProgress.map((week) => (
-            <div key={week.week} className="border border-gray-700 rounded-lg p-4">
+            <div key={week.week} className="border border-white/10 rounded-lg p-4 bg-black/50">
               <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center space-x-3">
-                  <Badge variant="outline" className="border-yellow-400/50 text-yellow-400">
+                  <Badge variant="outline" className="border-yellow-400/40 text-yellow-300">
                     Semana {week.week}
                   </Badge>
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-300/70">
                     {week.completed || 0}/{week.sessions || 0} sesiones
                   </span>
                 </div>
@@ -385,15 +385,15 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
                 className="h-2 mb-2"
               />
 
-              <div className="flex justify-between text-xs text-gray-400">
+              <div className="flex justify-between text-xs text-gray-300/70">
                 <span>{week.exercisesCompleted || 0}/{week.exercises || 0} ejercicios</span>
                 {(week.seriesCompleted || 0) > 0 && (
-                  <span className="text-blue-400">
+                  <span className="text-sky-300">
                     {week.seriesCompleted || 0} series completadas
                   </span>
                 )}
                 {(week.completed || 0) === (week.sessions || 0) && (week.completed || 0) > 0 && (
-                  <span className="text-green-400 flex items-center">
+                  <span className="text-emerald-300 flex items-center">
                     <CheckCircle className="w-3 h-3 mr-1" />
                     Completada
                   </span>
@@ -401,7 +401,7 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
               </div>
             </div>
           )) : (
-            <div className="text-center py-8 text-gray-400">
+            <div className="text-center py-8 text-gray-300/70">
               <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-500" />
               <p>No hay progreso por semanas aún</p>
               <p className="text-sm">Completa entrenamientos para ver tu progreso semanal</p>
@@ -413,19 +413,19 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
       {/* Estadísticas adicionales */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Tiempo total */}
-        <Card className="bg-gray-900/50 border-gray-700 p-6">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-            <Clock className="w-5 h-5 mr-2 text-yellow-400" />
+        <Card className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 border-l-2 border-l-yellow-400/30 p-6 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20">
+          <h3 className="text-lg font-semibold font-urbanist text-white mb-4 flex items-center">
+            <Clock className="w-5 h-5 mr-2 text-yellow-300" />
             Tiempo de Entrenamiento
           </h3>
           
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-gray-400">Total entrenado:</span>
+              <span className="text-gray-300/70">Total entrenado:</span>
               <span className="text-white font-semibold">{formatTime(progressData.totalTimeSpentSeconds || 0)}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-400">Promedio por sesión:</span>
+              <span className="text-gray-300/70">Promedio por sesión:</span>
               <span className="text-white font-semibold">
                 {(progressData.completedSessions || 0) > 0
                   ? formatTime(Math.round((progressData.totalTimeSpentSeconds || 0) / progressData.completedSessions))
@@ -434,53 +434,53 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-400">Sesiones completadas:</span>
+              <span className="text-gray-300/70">Sesiones completadas:</span>
               <span className="text-white font-semibold">{progressData.completedSessions || 0}/{progressData.totalSessions || 0}</span>
             </div>
           </div>
         </Card>
 
         {/* Logros */}
-        <Card className="bg-gray-900/50 border-gray-700 p-6">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-            <Award className="w-5 h-5 mr-2 text-yellow-400" />
+        <Card className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 border-l-2 border-l-emerald-400/30 p-6 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20">
+          <h3 className="text-lg font-semibold font-urbanist text-white mb-4 flex items-center">
+            <Award className="w-5 h-5 mr-2 text-yellow-300" />
             Logros
           </h3>
           
           <div className="space-y-3">
-            <div className={`flex items-center space-x-3 p-2 bg-black/40 rounded-lg ${(progressData.completedSessions || 0) > 0 ? '' : 'opacity-50'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${(progressData.completedSessions || 0) > 0 ? 'bg-green-600' : 'bg-gray-600'}`}>
+            <div className={`flex items-center space-x-3 p-2 bg-black/40 border border-white/10 rounded-lg ${(progressData.completedSessions || 0) > 0 ? '' : 'opacity-50'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${(progressData.completedSessions || 0) > 0 ? 'bg-emerald-500/60' : 'bg-gray-600/60'}`}>
                 <Target className={`w-4 h-4 ${(progressData.completedSessions || 0) > 0 ? 'text-white' : 'text-gray-400'}`} />
               </div>
               <div>
-                <p className={`text-sm font-medium ${(progressData.completedSessions || 0) > 0 ? 'text-green-400' : 'text-gray-400'}`}>
+                <p className={`text-sm font-medium ${(progressData.completedSessions || 0) > 0 ? 'text-emerald-300' : 'text-gray-400'}`}>
                   Primera Sesión {(progressData.completedSessions || 0) > 0 ? '✓' : ''}
                 </p>
-                <p className="text-xs text-gray-500">Completa tu primer entrenamiento</p>
+                <p className="text-xs text-gray-400/70">Completa tu primer entrenamiento</p>
               </div>
             </div>
 
-            <div className={`flex items-center space-x-3 p-2 bg-black/40 rounded-lg ${progressData.weeklyProgress?.some(w => (w.completed || 0) === (w.sessions || 0) && (w.sessions || 0) > 0) ? '' : 'opacity-50'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${progressData.weeklyProgress?.some(w => (w.completed || 0) === (w.sessions || 0) && (w.sessions || 0) > 0) ? 'bg-green-600' : 'bg-gray-600'}`}>
+            <div className={`flex items-center space-x-3 p-2 bg-black/40 border border-white/10 rounded-lg ${progressData.weeklyProgress?.some(w => (w.completed || 0) === (w.sessions || 0) && (w.sessions || 0) > 0) ? '' : 'opacity-50'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${progressData.weeklyProgress?.some(w => (w.completed || 0) === (w.sessions || 0) && (w.sessions || 0) > 0) ? 'bg-emerald-500/60' : 'bg-gray-600/60'}`}>
                 <Activity className={`w-4 h-4 ${progressData.weeklyProgress?.some(w => (w.completed || 0) === (w.sessions || 0) && (w.sessions || 0) > 0) ? 'text-white' : 'text-gray-400'}`} />
               </div>
               <div>
-                <p className={`text-sm font-medium ${progressData.weeklyProgress?.some(w => (w.completed || 0) === (w.sessions || 0) && (w.sessions || 0) > 0) ? 'text-green-400' : 'text-gray-400'}`}>
+                <p className={`text-sm font-medium ${progressData.weeklyProgress?.some(w => (w.completed || 0) === (w.sessions || 0) && (w.sessions || 0) > 0) ? 'text-emerald-300' : 'text-gray-400'}`}>
                   Semana Completa {progressData.weeklyProgress?.some(w => (w.completed || 0) === (w.sessions || 0) && (w.sessions || 0) > 0) ? '✓' : ''}
                 </p>
-                <p className="text-xs text-gray-500">Completa una semana de entrenamientos</p>
+                <p className="text-xs text-gray-400/70">Completa una semana de entrenamientos</p>
               </div>
             </div>
 
-            <div className={`flex items-center space-x-3 p-2 bg-black/40 rounded-lg ${(progressData.completedSessions || 0) >= 7 ? '' : 'opacity-50'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${(progressData.completedSessions || 0) >= 7 ? 'bg-green-600' : 'bg-gray-600'}`}>
+            <div className={`flex items-center space-x-3 p-2 bg-black/40 border border-white/10 rounded-lg ${(progressData.completedSessions || 0) >= 7 ? '' : 'opacity-50'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${(progressData.completedSessions || 0) >= 7 ? 'bg-emerald-500/60' : 'bg-gray-600/60'}`}>
                 <TrendingUp className={`w-4 h-4 ${(progressData.completedSessions || 0) >= 7 ? 'text-white' : 'text-gray-400'}`} />
               </div>
               <div>
-                <p className={`text-sm font-medium ${(progressData.completedSessions || 0) >= 7 ? 'text-green-400' : 'text-gray-400'}`}>
+                <p className={`text-sm font-medium ${(progressData.completedSessions || 0) >= 7 ? 'text-emerald-300' : 'text-gray-400'}`}>
                   Constancia {(progressData.completedSessions || 0) >= 7 ? '✓' : ''}
                 </p>
-                <p className="text-xs text-gray-500">Completa 7 sesiones de entrenamiento</p>
+                <p className="text-xs text-gray-400/70">Completa 7 sesiones de entrenamiento</p>
               </div>
             </div>
           </div>
@@ -488,38 +488,38 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
       </div>
 
       {/* Actividad reciente */}
-      <Card className="bg-gray-900/50 border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-          <Activity className="w-5 h-5 mr-2 text-yellow-400" />
+      <Card className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 border-l-2 border-l-sky-400/30 p-6 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20">
+        <h3 className="text-lg font-semibold font-urbanist text-white mb-4 flex items-center">
+          <Activity className="w-5 h-5 mr-2 text-yellow-300" />
           Actividad Reciente
         </h3>
 
         {progressData.recentActivity?.length > 0 ? (
           <div className="space-y-3">
             {progressData.recentActivity.map((activity, index) => (
-              <div key={activity.sessionId || index} className="flex items-center justify-between p-3 bg-black/40 rounded-lg border border-gray-700">
+              <div key={activity.sessionId || index} className="flex items-center justify-between p-3 bg-black/50 rounded-lg border border-white/10">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-emerald-500/60 rounded-full flex items-center justify-center">
                     <CheckCircle className="w-5 h-5 text-white" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">
                       Semana {activity.weekNumber || 'N/A'} - {activity.dayName || 'Sin día'}
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-300/70">
                       {activity.exercisesCount || 0} ejercicios • {activity.totalSeries || 0} series
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-gray-400">{activity.formattedDate || 'Fecha no disponible'}</p>
-                  <p className="text-xs text-blue-400">{formatTime(activity.durationSeconds || 0)}</p>
+                  <p className="text-xs text-gray-300/70">{activity.formattedDate || 'Fecha no disponible'}</p>
+                  <p className="text-xs text-yellow-300/80">{formatTime(activity.durationSeconds || 0)}</p>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-400">
+          <div className="text-center py-8 text-gray-300/70">
             <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-500" />
             <p>No hay actividad reciente</p>
             <p className="text-sm">Completa tu primer entrenamiento para ver tu progreso aquí</p>
@@ -528,47 +528,47 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
       </Card>
 
       {/* Racha de entrenamiento */}
-      <Card className="bg-gradient-to-br from-orange-900/30 to-red-900/30 border-orange-600/30 p-6">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-          <Flame className="w-5 h-5 mr-2 text-orange-400" />
+      <Card className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 border-l-2 border-l-orange-400/35 p-6 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20">
+        <h3 className="text-lg font-semibold font-urbanist text-white mb-4 flex items-center">
+          <Flame className="w-5 h-5 mr-2 text-yellow-300" />
           Racha de Entrenamiento
         </h3>
 
         <div className="grid md:grid-cols-3 gap-6">
           <div className="text-center">
-            <div className="w-20 h-20 mx-auto mb-3 bg-orange-600/20 rounded-full flex items-center justify-center">
-              <Flame className="w-10 h-10 text-orange-400" />
+            <div className="w-20 h-20 mx-auto mb-3 bg-yellow-400/10 rounded-full flex items-center justify-center">
+              <Flame className="w-10 h-10 text-yellow-300" />
             </div>
-            <div className="text-3xl font-bold text-orange-400 mb-1">
+            <div className="text-3xl font-bold text-yellow-300 mb-1">
               {calculateCurrentStreak()}
             </div>
-            <div className="text-sm text-gray-400">Días consecutivos</div>
+            <div className="text-sm text-gray-300/70">Días consecutivos</div>
           </div>
 
           <div className="text-center">
-            <div className="w-20 h-20 mx-auto mb-3 bg-yellow-600/20 rounded-full flex items-center justify-center">
-              <Trophy className="w-10 h-10 text-yellow-400" />
+            <div className="w-20 h-20 mx-auto mb-3 bg-emerald-500/10 rounded-full flex items-center justify-center">
+              <Trophy className="w-10 h-10 text-emerald-300" />
             </div>
-            <div className="text-3xl font-bold text-yellow-400 mb-1">
+            <div className="text-3xl font-bold text-emerald-300 mb-1">
               {calculateBestStreak()}
             </div>
-            <div className="text-sm text-gray-400">Mejor racha</div>
+            <div className="text-sm text-gray-300/70">Mejor racha</div>
           </div>
 
           <div className="text-center">
-            <div className="w-20 h-20 mx-auto mb-3 bg-blue-600/20 rounded-full flex items-center justify-center">
-              <Star className="w-10 h-10 text-blue-400" />
+            <div className="w-20 h-20 mx-auto mb-3 bg-sky-500/10 rounded-full flex items-center justify-center">
+              <Star className="w-10 h-10 text-sky-300" />
             </div>
-            <div className="text-3xl font-bold text-blue-400 mb-1">
+            <div className="text-3xl font-bold text-sky-300 mb-1">
               {progressData.completedSessions || 0}
             </div>
-            <div className="text-sm text-gray-400">Entrenamientos totales</div>
+            <div className="text-sm text-gray-300/70">Entrenamientos totales</div>
           </div>
         </div>
 
         {calculateCurrentStreak() > 0 && (
-          <div className="mt-6 p-4 bg-orange-600/10 border border-orange-600/30 rounded-lg">
-            <p className="text-center text-orange-300 text-sm">
+          <div className="mt-6 p-4 bg-yellow-400/10 border border-yellow-400/30 rounded-lg">
+            <p className="text-center text-yellow-200 text-sm">
               🔥 ¡Sigue así! Llevas {calculateCurrentStreak()} {calculateCurrentStreak() === 1 ? 'día' : 'días'} entrenando consecutivamente
             </p>
           </div>
@@ -578,17 +578,17 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
       {/* Estadísticas detalladas */}
       <div className="grid md:grid-cols-3 gap-6">
         {/* Intensidad promedio */}
-        <Card className="bg-gray-900/50 border-gray-700 p-6">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-            <Zap className="w-5 h-5 mr-2 text-yellow-400" />
+        <Card className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 border-l-2 border-l-yellow-400/35 p-6 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20">
+          <h3 className="text-lg font-semibold font-urbanist text-white mb-4 flex items-center">
+            <Zap className="w-5 h-5 mr-2 text-yellow-300" />
             Intensidad
           </h3>
 
           <div className="text-center">
-            <div className="text-4xl font-bold text-yellow-400 mb-2">
+            <div className="text-4xl font-bold text-yellow-300 mb-2">
               {calculateAverageIntensity()}%
             </div>
-            <div className="text-sm text-gray-400 mb-4">Promedio</div>
+            <div className="text-sm text-gray-300/70 mb-4">Promedio</div>
 
             <Progress
               value={calculateAverageIntensity()}
@@ -598,23 +598,23 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
         </Card>
 
         {/* Volumen total */}
-        <Card className="bg-gray-900/50 border-gray-700 p-6">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-            <Dumbbell className="w-5 h-5 mr-2 text-purple-400" />
+        <Card className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 border-l-2 border-l-sky-400/35 p-6 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20">
+          <h3 className="text-lg font-semibold font-urbanist text-white mb-4 flex items-center">
+            <Dumbbell className="w-5 h-5 mr-2 text-sky-300" />
             Volumen
           </h3>
 
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-gray-400 text-sm">Series totales:</span>
+              <span className="text-gray-300/70 text-sm">Series totales:</span>
               <span className="text-white font-semibold">{progressData.totalSeriesCompleted || 0}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-400 text-sm">Ejercicios:</span>
+              <span className="text-gray-300/70 text-sm">Ejercicios:</span>
               <span className="text-white font-semibold">{progressData.completedExercises || 0}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-400 text-sm">Por sesión:</span>
+              <span className="text-gray-300/70 text-sm">Por sesión:</span>
               <span className="text-white font-semibold">
                 {(progressData.completedSessions || 0) > 0
                   ? Math.round((progressData.totalSeriesCompleted || 0) / progressData.completedSessions)
@@ -626,17 +626,17 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
         </Card>
 
         {/* Consistencia */}
-        <Card className="bg-gray-900/50 border-gray-700 p-6">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-            <Timer className="w-5 h-5 mr-2 text-green-400" />
+        <Card className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 border-l-2 border-l-emerald-400/35 p-6 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20">
+          <h3 className="text-lg font-semibold font-urbanist text-white mb-4 flex items-center">
+            <Timer className="w-5 h-5 mr-2 text-emerald-300" />
             Consistencia
           </h3>
 
           <div className="text-center">
-            <div className="text-4xl font-bold text-green-400 mb-2">
+            <div className="text-4xl font-bold text-emerald-300 mb-2">
               {calculateConsistency()}%
             </div>
-            <div className="text-sm text-gray-400 mb-4">
+            <div className="text-sm text-gray-300/70 mb-4">
               {progressData.completedSessions || 0} de {progressData.totalSessions || 0} sesiones
             </div>
 
@@ -649,20 +649,20 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
       </div>
 
       {/* Próximos hitos */}
-      <Card className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border-purple-600/30 p-6">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-          <Target className="w-5 h-5 mr-2 text-purple-400" />
+      <Card className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 border-l-2 border-l-yellow-400/35 p-6 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20">
+        <h3 className="text-lg font-semibold font-urbanist text-white mb-4 flex items-center">
+          <Target className="w-5 h-5 mr-2 text-yellow-300" />
           Próximos Hitos
         </h3>
 
         <div className="grid md:grid-cols-2 gap-4">
           {getNextMilestones().map((milestone, index) => (
-            <div key={index} className="flex items-center space-x-3 p-3 bg-black/40 rounded-lg border border-gray-700">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${milestone.achieved ? 'bg-green-600' : 'bg-gray-600'}`}>
+            <div key={index} className="flex items-center space-x-3 p-3 bg-black/50 rounded-lg border border-white/10">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${milestone.achieved ? 'bg-emerald-500/60' : 'bg-gray-600/60'}`}>
                 {milestone.icon}
               </div>
               <div className="flex-1">
-                <p className={`text-sm font-medium ${milestone.achieved ? 'text-green-400' : 'text-gray-300'}`}>
+                <p className={`text-sm font-medium ${milestone.achieved ? 'text-emerald-300' : 'text-gray-300'}`}>
                   {milestone.title}
                 </p>
                 <div className="flex items-center space-x-2 mt-1">
@@ -670,7 +670,7 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
                     value={milestone.progress}
                     className="h-1 flex-1"
                   />
-                  <span className="text-xs text-gray-400">{milestone.progress}%</span>
+                  <span className="text-xs text-gray-300/70">{milestone.progress}%</span>
                 </div>
               </div>
             </div>

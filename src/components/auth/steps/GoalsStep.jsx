@@ -1,21 +1,16 @@
-import { useState } from 'react';
-import { Droplet, Calendar, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import TagsInput from '../../ui/TagsInput'
 
 // Constantes para estilos reutilizables
 const INPUT_STYLES = {
-  base: "w-full bg-gray-700/50 border rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 transition-colors",
-  normal: "border-gray-600",
+  base: "w-full bg-white/5 border rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400/60 transition-colors",
+  normal: "border-white/10",
   error: "border-red-500"
 };
 
-const LABEL_STYLES = "block text-white font-medium mb-2";
+const LABEL_STYLES = "block text-gray-200/90 font-medium mb-2";
 const ERROR_MESSAGE_STYLES = "text-red-400 text-sm mt-1";
 
 const GoalsStep = ({ formData, onInputChange, errors = {} }) => {
-  const [showCycleConfig, setShowCycleConfig] = useState(false);
-  const isFemale = formData.sexo === 'femenino';
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     onInputChange(name, value);
@@ -44,8 +39,8 @@ const GoalsStep = ({ formData, onInputChange, errors = {} }) => {
     <div className="space-y-8">
       {/* Sección: Header y descripción */}
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-yellow-400 mb-2">Metas y Objetivos</h2>
-        <p className="text-gray-400">Define tus objetivos para crear un plan personalizado</p>
+        <h2 className="text-2xl font-bold text-yellow-300 mb-2 font-urbanist">Metas y Objetivos</h2>
+        <p className="text-gray-300/80">Define tus objetivos para crear un plan personalizado</p>
       </div>
 
       {/* Sección: Metas principales */}
@@ -129,8 +124,8 @@ const GoalsStep = ({ formData, onInputChange, errors = {} }) => {
       </div>
 
       {/* Sección: Preferencias de nutrición y horarios */}
-      <div className="border-t border-gray-600 pt-8">
-        <h3 className="text-xl font-semibold text-yellow-400 mb-6">Preferencias de Nutrición y Horarios</h3>
+      <div className="border-t border-white/10 pt-8">
+        <h3 className="text-xl font-semibold text-yellow-300 mb-6 font-urbanist">Preferencias de Nutrición y Horarios</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Horario Preferido */}
@@ -193,139 +188,10 @@ const GoalsStep = ({ formData, onInputChange, errors = {} }) => {
         </div>
       </div>
 
-      {/* Sección: Ciclo Menstrual (solo para mujeres) */}
-      {isFemale && (
-        <div className="border-t border-gray-600 pt-8">
-          <div 
-            className="flex items-center justify-between cursor-pointer"
-            onClick={() => setShowCycleConfig(!showCycleConfig)}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center">
-                <Droplet className="w-5 h-5 text-pink-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-pink-400">Seguimiento del Ciclo Menstrual</h3>
-                <p className="text-sm text-gray-400">Opcional - Configúralo ahora o después en tu perfil</p>
-              </div>
-            </div>
-            <button type="button" className="p-2 hover:bg-gray-700 rounded-lg">
-              {showCycleConfig ? (
-                <ChevronUp className="w-5 h-5 text-gray-400" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-gray-400" />
-              )}
-            </button>
-          </div>
-
-          {showCycleConfig && (
-            <div className="mt-6 space-y-6 bg-pink-500/5 rounded-lg p-6 border border-pink-500/20">
-              <div className="flex items-start gap-3 p-3 bg-pink-500/10 rounded-lg">
-                <Info className="w-5 h-5 text-pink-400 mt-0.5" />
-                <p className="text-sm text-gray-300">
-                  El seguimiento del ciclo nos permite adaptar tus entrenamientos según tu fase hormonal, 
-                  optimizando resultados y respetando tu cuerpo.
-                </p>
-              </div>
-
-              {/* Activar seguimiento */}
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  name="cycleTrackingEnabled"
-                  checked={formData.cycleTrackingEnabled || false}
-                  onChange={(e) => onInputChange('cycleTrackingEnabled', e.target.checked)}
-                  className="w-5 h-5 text-pink-500 bg-gray-700 border-gray-600 rounded focus:ring-pink-500 focus:ring-2"
-                />
-                <label className="text-white font-medium">
-                  Quiero activar el seguimiento del ciclo
-                </label>
-              </div>
-
-              {formData.cycleTrackingEnabled && (
-                <div className="space-y-4 mt-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Fecha último periodo */}
-                    <div>
-                      <label className={LABEL_STYLES}>
-                        <Calendar className="w-4 h-4 inline mr-2 text-pink-400" />
-                        Fecha del último periodo
-                      </label>
-                      <input
-                        type="date"
-                        name="lastPeriodStart"
-                        value={formData.lastPeriodStart || ''}
-                        onChange={handleChange}
-                        max={new Date().toISOString().split('T')[0]}
-                        className={getInputClassName('lastPeriodStart')}
-                      />
-                    </div>
-
-                    {/* Duración del ciclo */}
-                    <div>
-                      <label className={LABEL_STYLES}>Duración del ciclo (días)</label>
-                      <input
-                        type="number"
-                        name="cycleLength"
-                        value={formData.cycleLength || 28}
-                        onChange={handleChange}
-                        min="21"
-                        max="35"
-                        className={getInputClassName('cycleLength')}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Normalmente entre 21-35 días. Si no sabes, déjalo en 28.</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Ciclo regular */}
-                    <div>
-                      <label className={LABEL_STYLES}>¿Tu ciclo es regular?</label>
-                      <select
-                        name="cycleIsRegular"
-                        value={formData.cycleIsRegular ?? ''}
-                        onChange={handleChange}
-                        className={getInputClassName('cycleIsRegular')}
-                      >
-                        <option value="">Seleccionar</option>
-                        <option value="true">Sí, es bastante regular</option>
-                        <option value="false">No, es irregular</option>
-                      </select>
-                    </div>
-
-                    {/* Anticonceptivos */}
-                    <div>
-                      <label className={LABEL_STYLES}>¿Usas anticonceptivos hormonales?</label>
-                      <select
-                        name="usesHormonalContraceptives"
-                        value={formData.usesHormonalContraceptives ?? ''}
-                        onChange={handleChange}
-                        className={getInputClassName('usesHormonalContraceptives')}
-                      >
-                        <option value="">Seleccionar</option>
-                        <option value="false">No</option>
-                        <option value="true">Sí (píldora, parche, DIU hormonal...)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {formData.usesHormonalContraceptives === 'true' && (
-                    <div className="p-3 bg-blue-900/30 border border-blue-500/30 rounded-lg text-sm text-blue-200">
-                      💡 Con anticonceptivos hormonales, las fases naturales no aplican igual. 
-                      Nos basaremos principalmente en cómo te sientes cada día.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Sección: Resumen motivacional */}
-      <div className="bg-gradient-to-r from-yellow-900/20 to-yellow-800/20 rounded-lg p-6 border border-yellow-700/50">
-        <h3 className="text-lg font-semibold text-yellow-400 mb-4">🎯 ¡Estás a punto de comenzar!</h3>
-        <div className="space-y-3 text-gray-300">
+      <div className="bg-white/5 rounded-lg p-6 border border-white/10 border-l-2 border-l-yellow-400/40">
+        <h3 className="text-lg font-semibold text-yellow-300 mb-4 font-urbanist">🎯 ¡Estás a punto de comenzar!</h3>
+        <div className="space-y-3 text-gray-300/80">
           <p>
             Con la información que has proporcionado, nuestra IA creará un plan de entrenamiento
             completamente personalizado para ti.
@@ -352,16 +218,16 @@ const GoalsStep = ({ formData, onInputChange, errors = {} }) => {
       </div>
 
       {/* Sección: Términos y condiciones */}
-      <div className="bg-gray-700/30 rounded-lg p-6 border border-gray-600">
+      <div className="bg-white/5 rounded-lg p-6 border border-white/10">
         <div className="flex items-start gap-3">
           <input
             type="checkbox"
             name="acceptTerms"
             checked={formData.acceptTerms || false}
             onChange={(e) => onInputChange('acceptTerms', e.target.checked)}
-            className="mt-1 w-4 h-4 text-yellow-400 bg-gray-700 border-gray-600 rounded focus:ring-yellow-400 focus:ring-2"
+            className="mt-1 w-4 h-4 text-yellow-400 bg-white/10 border-white/10 rounded focus:ring-yellow-400 focus:ring-2"
           />
-          <label htmlFor="acceptTerms" className="text-sm text-gray-300">
+          <label htmlFor="acceptTerms" className="text-sm text-gray-300/80">
             Acepto los{' '}
             <a href="#" className="text-yellow-400 hover:text-yellow-300 underline">
               términos y condiciones

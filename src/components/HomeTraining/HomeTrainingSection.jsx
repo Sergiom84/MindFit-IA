@@ -10,8 +10,6 @@ import HomeTrainingWarmupModal from './HomeTrainingWarmupModal';
 import UserEquipmentSummaryCard from './UserEquipmentSummaryCard';
 import logger from '../../utils/logger';
 import { useTrace } from '../../contexts/TraceContext';
-import useCycleAdjustment from '../../hooks/useCycleAdjustment';
-import { CycleAlert } from '../MenstrualCycle';
 
 
 const HomeTrainingSection = () => {
@@ -19,10 +17,7 @@ const HomeTrainingSection = () => {
   const { track } = useTrace();
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [selectedTrainingType, setSelectedTrainingType] = useState(null);
-  
-  // Hook para ajustes del ciclo menstrual (solo mujeres)
-  const cycleAdjustment = useCycleAdjustment();
-  const cycleAlert = cycleAdjustment.getAlert();
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   // Leer selección desde UserEquipmentSummaryCard
   useEffect(() => {
@@ -30,6 +25,13 @@ const HomeTrainingSection = () => {
       setSelectedEquipment('usar_este_equipamiento');
       sessionStorage.removeItem('selectPersonalizedEquipment');
     }
+  }, []);
+  useEffect(() => {
+    const handleMouseMove = (event) => {
+      setMousePosition({ x: event.clientX, y: event.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPersonalizedMessage, setShowPersonalizedMessage] = useState(false);
@@ -986,7 +988,9 @@ const HomeTrainingSection = () => {
       icon: Home,
       equipment: ['Peso corporal', 'Toallas', 'Silla/Sofá', 'Pared'],
       exercises: [], // Ejercicios generados por IA según perfil
-      borderColor: 'border-green-500'
+      borderColor: 'border-emerald-400/40',
+      accent: 'text-emerald-300',
+      accentBorder: 'border-l-2 border-l-emerald-400/40'
     },
     {
       id: 'basico',
@@ -994,7 +998,9 @@ const HomeTrainingSection = () => {
       icon: Target,
       equipment: ['Mancuernas ajustables', 'Bandas elásticas', 'Esterilla', 'Banco/Step'],
       exercises: [], // Ejercicios generados por IA según perfil
-      borderColor: 'border-blue-500'
+      borderColor: 'border-blue-400/40',
+      accent: 'text-blue-300',
+      accentBorder: 'border-l-2 border-l-blue-400/40'
     },
     {
       id: 'avanzado',
@@ -1002,7 +1008,9 @@ const HomeTrainingSection = () => {
       icon: Dumbbell,
       equipment: ['Barra dominadas', 'Kettlebells', 'TRX', 'Discos olímpicos'],
       exercises: [], // Ejercicios generados por IA según perfil
-      borderColor: 'border-purple-500'
+      borderColor: 'border-purple-400/40',
+      accent: 'text-purple-300',
+      accentBorder: 'border-l-2 border-l-purple-400/40'
     }
   ];
 
@@ -1042,6 +1050,7 @@ const HomeTrainingSection = () => {
       ]
     }
   };
+  const cardBase = 'bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg';
 
   // Si está mostrando el historial de preferencias, renderizar solo ese componente
   if (showPreferencesHistory) {
@@ -1053,48 +1062,55 @@ const HomeTrainingSection = () => {
   }
 
   return (
-    <div className="min-h-screen text-white">
-      <div className="container mx-auto px-6 py-8">
-        {/* Header con navegación */}
-        <div className="flex items-center justify-between mb-8">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center text-gray-300 hover:text-white transition-colors duration-200"
-          >
-            <ArrowLeft size={24} className="mr-2" />
-            Volver al inicio
-          </button>
-
-          {/* Botón de historial de preferencias */}
-          <button
-            onClick={() => setShowPreferencesHistory(true)}
-            className="flex items-center text-yellow-400 hover:text-yellow-300 transition-colors duration-200 bg-yellow-400/10 hover:bg-yellow-400/20 px-4 py-2 rounded-lg border border-yellow-400/30"
-          >
-            <BarChart3 size={20} className="mr-2" />
-            Mis Preferencias
-          </button>
-        </div>
-
-        {/* Título principal */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-yellow-400">
-            Entrenamiento en Casa
-          </h1>
-          <p className="text-lg text-gray-300 max-w-4xl mx-auto">
-            Modalidad multifuncional diseñada para maximizar resultados con el equipamiento
-            que tengas disponible, adaptándose a tu espacio y nivel.
-          </p>
-        </div>
-
-        {/* Alerta de ajuste del ciclo menstrual (solo para mujeres con config) */}
-        {cycleAlert && (
-          <div className="max-w-4xl mx-auto mb-8">
-            <CycleAlert alert={cycleAlert} />
-          </div>
-        )}
+    <div className="min-h-screen bg-[#050506] text-white relative overflow-hidden font-body">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[url('/assets/tech-lux/bg-tech-lux-mobile.jpg')] sm:bg-[url('/assets/tech-lux/bg-tech-lux-desktop.jpg')] bg-cover bg-center opacity-80 sm:opacity-70" />
+        <div className="absolute inset-0 bg-[url('/assets/tech-lux/texture-tech-lux-tile.jpg')] bg-repeat opacity-20 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/80 sm:from-black/40 sm:via-black/60 sm:to-black" />
+        <div className="absolute -top-24 right-0 h-60 w-60 bg-yellow-400/10 blur-[140px]" />
+        <div className="absolute top-1/3 -left-16 h-72 w-72 bg-yellow-400/10 blur-[160px]" />
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(250, 204, 21, 0.18), transparent 60%)`
+          }}
+        />
+      </div>
+      <div className="relative z-10 container mx-auto px-4 py-8">
+        <div className="space-y-10">
+          <header className="space-y-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="space-y-3">
+                <p className="text-xs uppercase tracking-[0.4em] text-yellow-200/80">Entrenamiento en casa</p>
+                <h1 className="text-4xl md:text-5xl font-semibold font-urbanist">
+                  Entrenamiento en Casa
+                </h1>
+                <p className="text-gray-200/80 max-w-2xl">
+                  Modalidad multifuncional diseñada para maximizar resultados con el equipamiento
+                  que tengas disponible, adaptándose a tu espacio y nivel.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => navigate('/')}
+                  className="flex items-center gap-2 text-gray-200 hover:text-white transition-all duration-200 px-4 py-2 rounded-full border border-white/10 bg-white/5 hover:border-yellow-400/30"
+                >
+                  <ArrowLeft size={18} />
+                  Volver al inicio
+                </button>
+                <button
+                  onClick={() => setShowPreferencesHistory(true)}
+                  className="flex items-center gap-2 text-yellow-200 hover:text-yellow-100 transition-all duration-200 px-4 py-2 rounded-full border border-yellow-400/30 bg-yellow-400/10 hover:bg-yellow-400/20"
+                >
+                  <BarChart3 size={18} />
+                  Mis Preferencias
+                </button>
+              </div>
+            </div>
+          </header>
 
         {/* Tarjetas de equipamiento */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto mb-8">
+        <div className="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto">
           {equipmentTypes.map((equipment) => (
             <div
               key={equipment.id}
@@ -1109,22 +1125,22 @@ const HomeTrainingSection = () => {
                   // Ignore tracking errors
                 }
               }}
-              className={`bg-gray-800/50 backdrop-blur-sm border-2 rounded-2xl p-6 cursor-pointer transition-all duration-200 hover:bg-gray-800/70 ${
+              className={`${cardBase} ${equipment.accentBorder} rounded-2xl p-6 cursor-pointer transition-all duration-300 ${
                 selectedEquipment === equipment.id
-                  ? `${equipment.borderColor} bg-gray-800/80`
-                  : 'border-gray-700'
+                  ? `${equipment.borderColor} bg-white/10 ring-2 ring-yellow-400/20 shadow-[0_20px_40px_-30px_rgba(250,204,21,0.6)]`
+                  : 'hover:border-yellow-400/30 hover:bg-white/5'
               }`}
             >
               <div className="flex items-center mb-4">
-                <equipment.icon size={24} className="text-white mr-3" />
+                <equipment.icon size={24} className={`${equipment.accent} mr-3`} />
                 <h3 className="text-lg font-semibold text-white">{equipment.title}</h3>
               </div>
 
               <div className="mb-4">
-                <p className="text-sm text-gray-300 mb-2">Equipamiento:</p>
+                <p className="text-sm text-gray-200/80 mb-2">Equipamiento:</p>
                 <div className="flex flex-wrap gap-1">
                   {equipment.equipment.map((item, idx) => (
-                    <span key={idx} className="text-xs bg-gray-700/50 text-gray-300 px-2 py-1 rounded">
+                    <span key={idx} className="text-xs bg-white/5 border border-white/10 text-gray-200/80 px-2 py-1 rounded-full">
                       {item}
                     </span>
                   ))}
@@ -1132,11 +1148,11 @@ const HomeTrainingSection = () => {
               </div>
 
               <div>
-                <p className="text-sm text-gray-300 mb-2">Ejercicios ejemplo:</p>
+                <p className="text-sm text-gray-200/80 mb-2">Ejercicios ejemplo:</p>
                 <div className="space-y-1">
                   {equipment.exercises.map((exercise, idx) => (
-                    <div key={idx} className="flex items-center text-xs text-gray-400">
-                      <span className="w-1 h-1 bg-green-400 rounded-full mr-2"></span>
+                    <div key={idx} className="flex items-center text-xs text-gray-300/80">
+                      <span className="w-1.5 h-1.5 bg-yellow-400/80 rounded-full mr-2"></span>
                       {exercise}
                     </div>
                   ))}
@@ -1156,19 +1172,19 @@ const HomeTrainingSection = () => {
                   // Ignore tracking errors
                 }
               }}
-              className={`bg-gray-800/50 backdrop-blur-sm border-2 rounded-2xl p-6 cursor-pointer transition-all duration-200 hover:bg-gray-800/70 ${
+              className={`${cardBase} border-l-2 border-l-yellow-400/40 rounded-2xl p-6 cursor-pointer transition-all duration-300 ${
                 selectedEquipment === 'personalizado'
-                  ? `border-yellow-500 bg-gray-800/80`
-                  : 'border-gray-700'
+                  ? 'border-yellow-400/50 bg-white/10 ring-2 ring-yellow-400/20 shadow-[0_20px_40px_-30px_rgba(250,204,21,0.6)]'
+                  : 'hover:border-yellow-400/30 hover:bg-white/5'
               }`}
             >
               <div className="flex items-center mb-4">
-                <Dumbbell size={24} className="text-white mr-3" />
+                <Dumbbell size={24} className="text-yellow-300 mr-3" />
                 <h3 className="text-lg font-semibold text-white">Usar mi equipamiento</h3>
               </div>
 
               <div className="mb-4 text-center">
-                <p className="text-sm text-gray-300 mb-2">Equipamiento:</p>
+                <p className="text-sm text-gray-200/80 mb-2">Equipamiento:</p>
                 <UserEquipmentSummaryCard />
               </div>
 
@@ -1176,43 +1192,45 @@ const HomeTrainingSection = () => {
         </div>
 
         {/* Fila de tipos de entrenamiento */}
-        <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
-          {trainingTypes.map((type) => (
-            <button
-              key={type.id}
-              data-trace="training-type"
-              data-trace-id={type.id}
-              data-trace-label={type.title}
-              onClick={() => {
-                setSelectedTrainingType(type.id);
-                try {
-                  track('TAB_CLICK', { id: type.id, title: type.title, group: 'training-type' }, { component: 'HomeTrainingSection' });
-                } catch {
-                  // Ignore tracking errors
-                }
-              }}
-              className={`py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
-                selectedTrainingType === type.id
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
-              }`}
-            >
-              {type.title}
-            </button>
-          ))}
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-black/60 p-2 backdrop-blur">
+            {trainingTypes.map((type) => (
+              <button
+                key={type.id}
+                data-trace="training-type"
+                data-trace-id={type.id}
+                data-trace-label={type.title}
+                onClick={() => {
+                  setSelectedTrainingType(type.id);
+                  try {
+                    track('TAB_CLICK', { id: type.id, title: type.title, group: 'training-type' }, { component: 'HomeTrainingSection' });
+                  } catch {
+                    // Ignore tracking errors
+                  }
+                }}
+                className={`py-3 px-3 rounded-xl text-xs sm:text-sm font-semibold uppercase tracking-wider transition-all duration-200 ${
+                  selectedTrainingType === type.id
+                    ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]'
+                    : 'text-gray-200 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {type.title}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Tarjeta informativa */}
         {selectedTrainingType && (
           <div className="max-w-4xl mx-auto mb-8">
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-              <h3 className="text-xl font-semibold text-white mb-4">
+            <div className={`${cardBase} rounded-2xl p-6 border-l-2 border-yellow-400/40`}>
+              <h3 className="text-xl font-semibold text-white mb-4 font-urbanist">
                 {trainingGuides[selectedTrainingType].title}
               </h3>
               <ul className="space-y-3">
                 {trainingGuides[selectedTrainingType].points.map((point, idx) => (
-                  <li key={idx} className="flex items-start text-gray-300">
-                    <span className="w-2 h-2 bg-yellow-400 rounded-full mr-3 mt-2 flex-shrink-0"></span>
+                  <li key={idx} className="flex items-start text-gray-200/80">
+                    <span className="w-2 h-2 bg-yellow-400/80 rounded-full mr-3 mt-2 flex-shrink-0"></span>
                     <span className="text-sm leading-relaxed">{point}</span>
                   </li>
                 ))}
@@ -1224,11 +1242,11 @@ const HomeTrainingSection = () => {
         {/* Tarjeta de generar entrenamiento */}
         {selectedEquipment && selectedTrainingType && !isGenerating && !generatedPlan && (
           <div className="max-w-4xl mx-auto mb-8">
-            <div className="bg-gray-800/70 backdrop-blur-sm border border-gray-600 rounded-2xl p-6 text-center">
-              <h3 className="text-xl font-semibold text-white mb-3">
+            <div className={`${cardBase} rounded-2xl p-6 text-center border-yellow-400/20`}>
+              <h3 className="text-xl font-semibold text-white mb-3 font-urbanist">
                 Generar Entrenamiento Personalizado
               </h3>
-              <p className="text-gray-300 mb-6">
+              <p className="text-gray-200/80 mb-6">
                 Basado en tu equipamiento: <span className="text-yellow-400 font-semibold">
                   {selectedEquipment === 'personalizado' || selectedEquipment === 'usar_este_equipamiento' ? 'Mi equipamiento' : (equipmentTypes.find(eq => eq.id === selectedEquipment)?.title || '')}
                 </span> y tipo de entrenamiento: <span className="text-yellow-400 font-semibold">
@@ -1238,7 +1256,7 @@ const HomeTrainingSection = () => {
               <button
                 onClick={generateTraining}
                 disabled={isGenerating}
-                className="bg-yellow-400 hover:bg-yellow-500 disabled:opacity-60 disabled:cursor-not-allowed text-black font-semibold py-3 px-8 rounded-lg transition-colors duration-200 flex items-center mx-auto"
+                className="bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 disabled:opacity-60 disabled:cursor-not-allowed text-black font-semibold py-3 px-8 rounded-xl transition-all duration-200 flex items-center mx-auto shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]"
               >
                 {isGenerating ? (
                   <div className="w-4 h-4 border-2 border-black/60 border-t-transparent rounded-full animate-spin mr-2" />
@@ -1253,21 +1271,21 @@ const HomeTrainingSection = () => {
 
         {/* Modal de mensaje personalizado (Paso 3) */}
         {showPersonalizedMessage && !showProgress && !showExerciseModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-gray-800 border border-gray-600 rounded-2xl p-8 max-w-2xl mx-4">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-neutral-900/90 border border-white/10 ring-1 ring-white/10 rounded-3xl p-8 max-w-2xl w-full shadow-[0_30px_80px_-60px_rgba(0,0,0,0.9)]">
               <div className="text-center">
-                <div className="w-16 h-16 bg-yellow-400/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Target size={32} className="text-yellow-400" />
+                <div className="w-16 h-16 bg-yellow-400/15 rounded-full flex items-center justify-center mx-auto mb-4 border border-yellow-400/30">
+                  <Target size={32} className="text-yellow-300" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-4">
+                <h3 className="text-xl font-semibold text-white mb-4 font-urbanist">
                   ¡Tu Entrenamiento Está Listo!
                 </h3>
-                <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-lg p-4 mb-6">
+                <div className="bg-gradient-to-r from-yellow-400/10 to-amber-500/10 border border-yellow-400/30 rounded-2xl p-4 mb-6">
                   <p className="text-yellow-100 leading-relaxed">{personalizedMessage}</p>
                 </div>
                 <button
                   onClick={proceedToGenerating}
-                  className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-3 px-8 rounded-lg transition-colors duration-200"
+                  className="bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 text-black font-semibold py-3 px-8 rounded-xl transition-all duration-200 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]"
                 >
                   Ver Mi Plan de Entrenamiento
                 </button>
@@ -1278,14 +1296,14 @@ const HomeTrainingSection = () => {
 
         {/* Modal de carga (Paso 4) */}
         {isGenerating && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-            <div className="bg-black/90 border border-yellow-400/30 rounded-lg p-8 text-center shadow-xl">
-              <svg className="w-12 h-12 text-yellow-400 animate-spin mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+            <div className="bg-neutral-900/90 border border-white/10 ring-1 ring-white/10 rounded-3xl p-8 text-center shadow-[0_30px_80px_-60px_rgba(0,0,0,0.9)]">
+              <svg className="w-12 h-12 text-yellow-300 animate-spin mx-auto mb-4" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
               </svg>
-              <p className="text-white font-semibold text-lg">La IA está generando tu entrenamiento</p>
-              <p className="text-gray-400 text-sm mt-2">Analizando tu perfil para crear la rutina idónea…</p>
+              <p className="text-white font-semibold text-lg font-urbanist">Estamos generando tu entrenamiento</p>
+              <p className="text-gray-300/80 text-sm mt-2">Analizando tu perfil para crear la rutina idónea…</p>
             </div>
           </div>
         )}
@@ -1343,9 +1361,9 @@ const HomeTrainingSection = () => {
 
         {/* Modal de ejercicio individual */}
         {showExerciseModal &&
-         generatedPlan &&
-         generatedPlan.plan_entrenamiento.ejercicios &&
-         generatedPlan.plan_entrenamiento.ejercicios[currentExerciseIndex] && (
+          generatedPlan &&
+          generatedPlan.plan_entrenamiento.ejercicios &&
+          generatedPlan.plan_entrenamiento.ejercicios[currentExerciseIndex] && (
           <HomeTrainingExerciseModal
             exercise={generatedPlan.plan_entrenamiento.ejercicios[currentExerciseIndex]}
             exerciseIndex={currentExerciseIndex}
@@ -1373,6 +1391,7 @@ const HomeTrainingSection = () => {
             onClose={() => setShowRejectionModal(false)}
           />
         )}
+        </div>
       </div>
     </div>
   );

@@ -16,9 +16,9 @@ export const SettingsTab = () => {
       <TrainingPreferencesCard />
 
       {/* Configuración de Cuenta */}
-      <Card className="bg-gray-900 border-yellow-400/20">
+      <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
         <CardHeader>
-          <CardTitle className="text-white flex items-center">
+          <CardTitle className="text-white font-urbanist flex items-center">
             <Settings className="mr-2 text-yellow-400" /> Configuración de
             Cuenta
           </CardTitle>
@@ -28,7 +28,7 @@ export const SettingsTab = () => {
             <h3 className="text-lg font-semibold text-yellow-400">
               Cambiar Contraseña
             </h3>
-            <p className="text-gray-400">
+            <p className="text-gray-300/70">
               Esta funcionalidad estará disponible próximamente.
             </p>
           </div>

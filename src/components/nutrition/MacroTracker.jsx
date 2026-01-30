@@ -151,9 +151,9 @@ export default function MacroTracker({ targetMacros, userStats }) {
     <div className="space-y-6">
       {/* Header con fecha y estadísticas semanales */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="bg-gray-800/70 border-gray-600 lg:col-span-2">
+        <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5 lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white font-urbanist flex items-center gap-2">
               <Activity className="text-yellow-400" size={24} />
               Seguimiento Diario
             </CardTitle>
@@ -166,7 +166,7 @@ export default function MacroTracker({ targetMacros, userStats }) {
                   type="date"
                   value={currentDate}
                   onChange={(e) => setCurrentDate(e.target.value)}
-                  className="bg-gray-700 border-gray-600 text-white w-auto"
+                  className="bg-white/5 border-white/10 text-white w-auto"
                 />
               </div>
               <div className="text-sm text-gray-300">
@@ -252,9 +252,9 @@ export default function MacroTracker({ targetMacros, userStats }) {
         </Card>
 
         {/* Stats semanales */}
-        <Card className="bg-gray-800/70 border-gray-600">
+        <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-white font-urbanist flex items-center gap-2">
               <TrendingUp className="text-yellow-400" size={20} />
               Esta Semana
             </CardTitle>
@@ -288,9 +288,9 @@ export default function MacroTracker({ targetMacros, userStats }) {
       </div>
 
       {/* Añadir comidas rápido */}
-      <Card className="bg-gray-800/70 border-gray-600">
+      <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-white font-urbanist flex items-center gap-2">
             <Plus className="text-yellow-400" size={20} />
             Añadir Rápido
           </CardTitle>
@@ -301,7 +301,7 @@ export default function MacroTracker({ targetMacros, userStats }) {
               <Button
                 key={index}
                 variant="outline"
-                className="border-gray-600 text-white hover:bg-gray-700 h-auto p-3"
+                className="border-white/10 bg-white/5 text-white hover:bg-white/10 h-auto p-3"
                 onClick={() => addQuickMacros(option.calories, option.protein, option.carbs, option.fat, option.name)}
               >
                 <div className="text-center">
@@ -320,9 +320,9 @@ export default function MacroTracker({ targetMacros, userStats }) {
       </Card>
 
       {/* Registro de comidas del día */}
-      <Card className="bg-gray-800/70 border-gray-600">
+      <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-white font-urbanist flex items-center gap-2">
             <Target className="text-yellow-400" size={20} />
             Registro del Día
           </CardTitle>
@@ -339,7 +339,7 @@ export default function MacroTracker({ targetMacros, userStats }) {
               {dailyLog.meals.map(meal => (
                 <div 
                   key={meal.id}
-                  className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg"
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -354,7 +354,7 @@ export default function MacroTracker({ targetMacros, userStats }) {
                     variant="outline"
                     size="sm"
                     onClick={() => removeMeal(meal.id)}
-                    className="border-gray-600 text-red-400 hover:bg-red-900/20"
+                    className="border-white/10 text-red-300 hover:bg-red-500/10"
                   >
                     <Minus size={14} />
                   </Button>
@@ -366,9 +366,9 @@ export default function MacroTracker({ targetMacros, userStats }) {
       </Card>
 
       {/* Gráfico circular de macros */}
-      <Card className="bg-gray-800/70 border-gray-600">
+      <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
         <CardHeader>
-          <CardTitle className="text-white">Distribución de Macronutrientes</CardTitle>
+          <CardTitle className="text-white font-urbanist">Distribución de Macronutrientes</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -427,7 +427,7 @@ export default function MacroTracker({ targetMacros, userStats }) {
                 <span className="text-gray-300">{dailyLog.fat}g ({((dailyLog.fat * 9 / Math.max(dailyLog.calories, 1)) * 100).toFixed(0)}%)</span>
               </div>
 
-              <div className="pt-3 border-t border-gray-600">
+              <div className="pt-3 border-t border-white/10">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Restantes:</span>
                   <span className="text-white">

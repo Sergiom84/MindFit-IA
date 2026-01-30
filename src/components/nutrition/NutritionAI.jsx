@@ -122,7 +122,7 @@ El plan debe ser práctico, realista y adaptado específicamente a los objetivos
   return (
     <div className="space-y-6">
       {/* Header con resumen de macros */}
-      <Card className="bg-gray-800/70 border-gray-600">
+      <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Brain className="text-yellow-400" size={24} />
@@ -135,7 +135,7 @@ El plan debe ser práctico, realista y adaptado específicamente a los objetivos
           </p>
 
           {userData && userMacros && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-700/50 rounded-lg">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-white/5 rounded-lg">
               <div className="text-center">
                 <div className="text-lg font-bold text-blue-400">{userMacros.calories}</div>
                 <div className="text-xs text-gray-300">kcal objetivo</div>
@@ -158,7 +158,7 @@ El plan debe ser práctico, realista y adaptado específicamente a los objetivos
       </Card>
 
       {/* Opciones de configuración - AHORA VISIBLE SIEMPRE */}
-      <Card className="bg-gray-800/70 border-gray-600">
+      <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Target className="text-yellow-400" size={20} />
@@ -176,7 +176,7 @@ El plan debe ser práctico, realista y adaptado específicamente a los objetivos
               <select
                 value={selectedOptions.duration}
                 onChange={(e) => handleOptionChange('duration', parseInt(e.target.value))}
-                className="w-full bg-gray-700 border-gray-600 text-white rounded-lg px-3 py-2"
+                className="w-full bg-white/5 border-white/10 text-white rounded-lg px-3 py-2"
               >
                 <option value={3}>3 días</option>
                 <option value={7}>1 semana</option>
@@ -193,7 +193,7 @@ El plan debe ser práctico, realista y adaptado específicamente a los objetivos
               <select
                 value={selectedOptions.mealCount}
                 onChange={(e) => handleOptionChange('mealCount', parseInt(e.target.value))}
-                className="w-full bg-gray-700 border-gray-600 text-white rounded-lg px-3 py-2"
+                className="w-full bg-white/5 border-white/10 text-white rounded-lg px-3 py-2"
               >
                 <option value={3}>3 comidas</option>
                 <option value={4}>4 comidas</option>
@@ -208,7 +208,7 @@ El plan debe ser práctico, realista y adaptado específicamente a los objetivos
               <select
                 value={selectedOptions.dietary}
                 onChange={(e) => handleOptionChange('dietary', e.target.value)}
-                className="w-full bg-gray-700 border-gray-600 text-white rounded-lg px-3 py-2"
+                className="w-full bg-white/5 border-white/10 text-white rounded-lg px-3 py-2"
               >
                 <option value="none">Sin restricciones</option>
                 <option value="vegetarian">Vegetariano</option>
@@ -225,7 +225,7 @@ El plan debe ser práctico, realista y adaptado específicamente a los objetivos
               <select
                 value={selectedOptions.budget}
                 onChange={(e) => handleOptionChange('budget', e.target.value)}
-                className="w-full bg-gray-700 border-gray-600 text-white rounded-lg px-3 py-2"
+                className="w-full bg-white/5 border-white/10 text-white rounded-lg px-3 py-2"
               >
                 <option value="low">Económico</option>
                 <option value="medium">Medio</option>
@@ -257,14 +257,14 @@ El plan debe ser práctico, realista y adaptado específicamente a los objetivos
               placeholder="Ej: Evitar lácteos, preferir comidas rápidas de preparar, incluir más pescado, etc."
               value={customRequirements}
               onChange={(e) => setCustomRequirements(e.target.value)}
-              className="bg-gray-700 border-gray-600 text-white min-h-[100px]"
+              className="bg-white/5 border-white/10 text-white min-h-[100px]"
             />
           </div>
         </CardContent>
       </Card>
 
       {/* Botón de generación */}
-      <Card className="bg-gray-800/70 border-gray-600">
+      <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
         <CardContent className="pt-6">
           <Button
             onClick={generateNutritionPlan}
@@ -292,7 +292,7 @@ El plan debe ser práctico, realista y adaptado específicamente a los objetivos
 
       {/* Prompt generado (para desarrollo/debug) - Solo si userData está cargado */}
       {import.meta.env.DEV && userData && userData.peso && userData.altura && (
-        <Card className="bg-gray-800/70 border-gray-600">
+        <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
           <CardHeader>
             <CardTitle className="text-white text-sm flex items-center gap-2">
               <AlertCircle size={16} className="text-blue-400" />
@@ -300,7 +300,7 @@ El plan debe ser práctico, realista y adaptado específicamente a los objetivos
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="text-xs text-gray-300 whitespace-pre-wrap bg-gray-900 p-3 rounded overflow-auto max-h-64">
+            <pre className="text-xs text-gray-300 whitespace-pre-wrap bg-white/5 border border-white/10 p-3 rounded overflow-auto max-h-64">
               {getPersonalizedPrompt()}
             </pre>
           </CardContent>
@@ -309,7 +309,7 @@ El plan debe ser práctico, realista y adaptado específicamente a los objetivos
 
       {/* Plan generado */}
       {generatedPlan && (
-        <Card className="bg-gray-800/70 border-gray-600">
+        <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <CheckCircle className="text-green-400" size={20} />
@@ -356,7 +356,7 @@ El plan debe ser práctico, realista y adaptado específicamente a los objetivos
                 </Button>
                 <Button
                   variant="outline"
-                  className="border-gray-600 text-white hover:bg-gray-700"
+                  className="border-white/10 bg-white/5 text-white hover:bg-white/10"
                   onClick={() => {
                     // TODO: Descargar plan como PDF
                   }}
@@ -365,7 +365,7 @@ El plan debe ser práctico, realista y adaptado específicamente a los objetivos
                 </Button>
                 <Button
                   variant="outline"
-                  className="border-gray-600 text-white hover:bg-gray-700"
+                  className="border-white/10 bg-white/5 text-white hover:bg-white/10"
                   onClick={() => {
                     // TODO: Generar lista de compras
                   }}
@@ -375,7 +375,7 @@ El plan debe ser práctico, realista y adaptado específicamente a los objetivos
               </div>
 
               {/* Vista previa del contenido */}
-              <div className="bg-gray-700/50 rounded-lg p-4">
+              <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                 <h4 className="text-white font-semibold mb-2">Vista Previa del Plan:</h4>
                 <div className="text-sm text-gray-300 space-y-2">
                   <div>✓ Plan de {selectedOptions.duration} días personalizado</div>

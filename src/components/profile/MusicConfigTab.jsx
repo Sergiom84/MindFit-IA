@@ -164,13 +164,13 @@ const MusicConfigTab = ({ userId }) => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-white">Configuración de Música</h3>
-          <p className="text-sm text-gray-400">Conecta tus plataformas de música favoritas</p>
+          <h3 className="text-lg font-semibold font-urbanist text-white">Configuración de Música</h3>
+          <p className="text-sm text-gray-300/70">Conecta tus plataformas de música favoritas</p>
         </div>
         <button
           onClick={saveMusicConfig}
           disabled={loading}
-          className="flex items-center space-x-2 px-4 py-2 bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-600 rounded-lg transition-colors"
+          className="flex items-center space-x-2 px-4 py-2 bg-yellow-400 hover:bg-yellow-500 disabled:bg-white/10 rounded-lg transition-colors"
         >
           <Save className="w-4 h-4 text-gray-900" />
           <span className="text-gray-900 font-medium">
@@ -187,18 +187,18 @@ const MusicConfigTab = ({ userId }) => {
       )}
 
       {/* Spotify Configuration */}
-      <div className="bg-gray-800 rounded-lg p-6">
+      <div className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <FaSpotify className="w-6 h-6 text-green-500" />
             <div>
               <h4 className="text-white font-medium">Spotify</h4>
-              <p className="text-sm text-gray-400">Streaming de música premium</p>
+              <p className="text-sm text-gray-300/70">Streaming de música premium</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 rounded-full ${config.spotify.connected ? 'bg-green-500' : 'bg-red-500'}`} />
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-gray-300/70">
               {config.spotify.connected ? 'Conectado' : 'Desconectado'}
             </span>
           </div>
@@ -210,7 +210,7 @@ const MusicConfigTab = ({ userId }) => {
               type="checkbox"
               checked={config.spotify.enabled}
               onChange={(e) => updatePlatformConfig('spotify', 'enabled', e.target.checked)}
-              className="rounded border-gray-600 bg-gray-700"
+              className="rounded border-white/10 bg-white/5"
             />
             <label className="text-white">Habilitar Spotify</label>
           </div>
@@ -227,7 +227,7 @@ const MusicConfigTab = ({ userId }) => {
                     value={config.spotify.clientId}
                     onChange={(e) => updatePlatformConfig('spotify', 'clientId', e.target.value)}
                     placeholder="Tu Spotify Client ID"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
                   />
                 </div>
                 <div>
@@ -239,7 +239,7 @@ const MusicConfigTab = ({ userId }) => {
                     value={config.spotify.clientSecret}
                     onChange={(e) => updatePlatformConfig('spotify', 'clientSecret', e.target.value)}
                     placeholder="Tu Spotify Client Secret"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
                   />
                 </div>
               </div>
@@ -255,7 +255,7 @@ const MusicConfigTab = ({ userId }) => {
                 <button
                   onClick={() => testConnection('spotify')}
                   disabled={loading}
-                  className="flex items-center space-x-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 rounded-lg transition-colors"
+                  className="flex items-center space-x-2 px-4 py-2 bg-white/5 hover:bg-white/10 disabled:bg-white/10 rounded-lg transition-colors"
                 >
                   <Settings className="w-4 h-4" />
                   <span>Probar Conexión</span>
@@ -266,7 +266,7 @@ const MusicConfigTab = ({ userId }) => {
                 <p>Para obtener tus credenciales de Spotify:</p>
                 <p>1. Ve a <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">Spotify Developer Dashboard</a></p>
                 <p>2. Crea una nueva aplicación</p>
-                <p>3. Añade como Redirect URI: <code className="bg-gray-700 px-1 rounded">{window.location.origin}/spotify-callback</code></p>
+                <p>3. Añade como Redirect URI: <code className="bg-white/10 px-1 rounded">{window.location.origin}/spotify-callback</code></p>
               </div>
             </>
           )}
@@ -274,18 +274,18 @@ const MusicConfigTab = ({ userId }) => {
       </div>
 
       {/* YouTube Music Configuration */}
-      <div className="bg-gray-800 rounded-lg p-6">
+      <div className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <FaYoutube className="w-6 h-6 text-red-500" />
             <div>
               <h4 className="text-white font-medium">YouTube Music</h4>
-              <p className="text-sm text-gray-400">Biblioteca de música de YouTube</p>
+              <p className="text-sm text-gray-300/70">Biblioteca de música de YouTube</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 rounded-full ${config.youtube.connected ? 'bg-green-500' : 'bg-red-500'}`} />
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-gray-300/70">
               {config.youtube.connected ? 'Conectado' : 'Desconectado'}
             </span>
           </div>
@@ -297,7 +297,7 @@ const MusicConfigTab = ({ userId }) => {
               type="checkbox"
               checked={config.youtube.enabled}
               onChange={(e) => updatePlatformConfig('youtube', 'enabled', e.target.checked)}
-              className="rounded border-gray-600 bg-gray-700"
+              className="rounded border-white/10 bg-white/5"
             />
             <label className="text-white">Habilitar YouTube Music</label>
           </div>
@@ -313,14 +313,14 @@ const MusicConfigTab = ({ userId }) => {
                   value={config.youtube.apiKey}
                   onChange={(e) => updatePlatformConfig('youtube', 'apiKey', e.target.value)}
                   placeholder="Tu YouTube API Key"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
                 />
               </div>
 
               <button
                 onClick={() => testConnection('youtube')}
                 disabled={loading}
-                className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-800 rounded-lg transition-colors"
+                className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-white/10 rounded-lg transition-colors"
               >
                 <Settings className="w-4 h-4" />
                 <span>Probar Conexión</span>
@@ -338,18 +338,18 @@ const MusicConfigTab = ({ userId }) => {
       </div>
 
       {/* Apple Music Configuration */}
-      <div className="bg-gray-800 rounded-lg p-6">
+      <div className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <FaApple className="w-6 h-6 text-gray-300" />
             <div>
               <h4 className="text-white font-medium">Apple Music</h4>
-              <p className="text-sm text-gray-400">Servicio de streaming de Apple</p>
+              <p className="text-sm text-gray-300/70">Servicio de streaming de Apple</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 rounded-full ${config.apple.connected ? 'bg-green-500' : 'bg-red-500'}`} />
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-gray-300/70">
               {config.apple.connected ? 'Conectado' : 'Desconectado'}
             </span>
           </div>
@@ -361,7 +361,7 @@ const MusicConfigTab = ({ userId }) => {
               type="checkbox"
               checked={config.apple.enabled}
               onChange={(e) => updatePlatformConfig('apple', 'enabled', e.target.checked)}
-              className="rounded border-gray-600 bg-gray-700"
+              className="rounded border-white/10 bg-white/5"
             />
             <label className="text-white">Habilitar Apple Music</label>
           </div>
@@ -377,14 +377,14 @@ const MusicConfigTab = ({ userId }) => {
                   value={config.apple.developerToken}
                   onChange={(e) => updatePlatformConfig('apple', 'developerToken', e.target.value)}
                   placeholder="Tu Apple Music Developer Token"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
                 />
               </div>
 
               <button
                 onClick={() => testConnection('apple')}
                 disabled={loading}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 rounded-lg transition-colors"
+                className="flex items-center space-x-2 px-4 py-2 bg-white/5 hover:bg-white/10 disabled:bg-white/10 rounded-lg transition-colors"
               >
                 <Settings className="w-4 h-4" />
                 <span>Probar Conexión</span>
@@ -392,7 +392,7 @@ const MusicConfigTab = ({ userId }) => {
 
               <div className="text-xs text-gray-500">
                 <p>Para obtener tu Developer Token:</p>
-                <p>1. Únete al <a href="https://developer.apple.com/programs/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:underline">Apple Developer Program</a></p>
+                <p>1. Únete al <a href="https://developer.apple.com/programs/" target="_blank" rel="noopener noreferrer" className="text-gray-300/70 hover:underline">Apple Developer Program</a></p>
                 <p>2. Genera un Developer Token en MusicKit</p>
               </div>
             </>
@@ -401,18 +401,18 @@ const MusicConfigTab = ({ userId }) => {
       </div>
 
       {/* Local Player Configuration */}
-      <div className="bg-gray-800 rounded-lg p-6">
+      <div className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <Music className="w-6 h-6 text-blue-500" />
             <div>
               <h4 className="text-white font-medium">Reproductor Local</h4>
-              <p className="text-sm text-gray-400">Reproduce archivos de música locales</p>
+              <p className="text-sm text-gray-300/70">Reproduce archivos de música locales</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 rounded-full bg-green-500" />
-            <span className="text-sm text-gray-400">Siempre disponible</span>
+            <span className="text-sm text-gray-300/70">Siempre disponible</span>
           </div>
         </div>
 
@@ -422,7 +422,7 @@ const MusicConfigTab = ({ userId }) => {
               type="checkbox"
               checked={config.local.enabled}
               onChange={(e) => updatePlatformConfig('local', 'enabled', e.target.checked)}
-              className="rounded border-gray-600 bg-gray-700"
+              className="rounded border-white/10 bg-white/5"
             />
             <label className="text-white">Habilitar reproductor local</label>
           </div>
@@ -432,7 +432,7 @@ const MusicConfigTab = ({ userId }) => {
               type="checkbox"
               checked={config.local.autoPlay}
               onChange={(e) => updatePlatformConfig('local', 'autoPlay', e.target.checked)}
-              className="rounded border-gray-600 bg-gray-700"
+              className="rounded border-white/10 bg-white/5"
             />
             <label className="text-white">Reproducir automáticamente al cargar archivo</label>
           </div>
@@ -453,7 +453,7 @@ const MusicConfigTab = ({ userId }) => {
                         : config.local.supportedFormats.filter(f => f !== format);
                       updatePlatformConfig('local', 'supportedFormats', formats);
                     }}
-                    className="rounded border-gray-600 bg-gray-700"
+                    className="rounded border-white/10 bg-white/5"
                   />
                   <label className="text-sm text-gray-300">{format.toUpperCase()}</label>
                 </div>
@@ -464,12 +464,12 @@ const MusicConfigTab = ({ userId }) => {
       </div>
 
       {/* General Settings */}
-      <div className="bg-gray-800 rounded-lg p-6">
+      <div className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-lg p-6">
         <div className="flex items-center space-x-3 mb-4">
           <Settings className="w-6 h-6 text-purple-500" />
           <div>
             <h4 className="text-white font-medium">Configuración General</h4>
-            <p className="text-sm text-gray-400">Ajustes generales de reproducción</p>
+            <p className="text-sm text-gray-300/70">Ajustes generales de reproducción</p>
           </div>
         </div>
 
@@ -479,7 +479,7 @@ const MusicConfigTab = ({ userId }) => {
               type="checkbox"
               checked={config.general.autoSync}
               onChange={(e) => updateGeneralConfig('autoSync', e.target.checked)}
-              className="rounded border-gray-600 bg-gray-700"
+              className="rounded border-white/10 bg-white/5"
             />
             <label className="text-white">Sincronizar automáticamente con ejercicios</label>
           </div>
@@ -489,7 +489,7 @@ const MusicConfigTab = ({ userId }) => {
               type="checkbox"
               checked={config.general.exerciseBPMSync}
               onChange={(e) => updateGeneralConfig('exerciseBPMSync', e.target.checked)}
-              className="rounded border-gray-600 bg-gray-700"
+              className="rounded border-white/10 bg-white/5"
             />
             <label className="text-white">Adaptar BPM según tipo de ejercicio</label>
           </div>
@@ -499,7 +499,7 @@ const MusicConfigTab = ({ userId }) => {
               type="checkbox"
               checked={config.general.autoNext}
               onChange={(e) => updateGeneralConfig('autoNext', e.target.checked)}
-              className="rounded border-gray-600 bg-gray-700"
+              className="rounded border-white/10 bg-white/5"
             />
             <label className="text-white">Siguiente canción automática</label>
           </div>
@@ -515,7 +515,7 @@ const MusicConfigTab = ({ userId }) => {
               step="0.1"
               value={config.general.defaultVolume}
               onChange={(e) => updateGeneralConfig('defaultVolume', parseFloat(e.target.value))}
-              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+              className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer"
             />
           </div>
 
@@ -530,7 +530,7 @@ const MusicConfigTab = ({ userId }) => {
               step="1"
               value={config.general.crossfadeDuration}
               onChange={(e) => updateGeneralConfig('crossfadeDuration', parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+              className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer"
             />
           </div>
         </div>
@@ -545,7 +545,7 @@ const MusicConfigTab = ({ userId }) => {
             <p className="text-sm text-gray-300 mb-2">
               La música se adapta automáticamente al tipo de ejercicio:
             </p>
-            <ul className="text-xs text-gray-400 space-y-1">
+            <ul className="text-xs text-gray-300/70 space-y-1">
               <li>• <strong>Cardio/HIIT:</strong> 140-160 BPM - Electronic, Dance, Pop</li>
               <li>• <strong>Fuerza/Powerlifting:</strong> 100-130 BPM - Rock, Metal, Hip-hop</li>
               <li>• <strong>Yoga/Stretching:</strong> 60-90 BPM - Ambient, Chill, Classical</li>

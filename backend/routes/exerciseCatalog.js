@@ -281,17 +281,10 @@ router.get('/search/by-name/:name', authenticateToken, async (req, res) => {
     const { name } = req.params;
     const searchName = name.toLowerCase();
 
-    // Buscar en mock data
-    const mockExercise = EXERCISES_DB.find(ex =>
-      ex.name.toLowerCase() === searchName ||
-      ex.slug === searchName ||
-      ex.id === searchName
-    );
-
     // Buscar en calistenia BD
     const calisteniaResult = await pool.query(
       `SELECT * FROM app."Ejercicios_Calistenia"
-       WHERE LOWER(nombre) = $1 OR LOWER(exercise_id) = $1
+       WHERE LOWER(nombre) = $1 OR LOWER(exercise_id::text) = $1
        LIMIT 1`,
       [searchName]
     );
@@ -304,17 +297,25 @@ router.get('/search/by-name/:name', authenticateToken, async (req, res) => {
       [searchName]
     );
 
-    const exercise = mockExercise ||
+    // Buscar en mock data (fallback)
+    const mockExercise = EXERCISES_DB.find(ex =>
+      ex.name.toLowerCase() === searchName ||
+      ex.slug === searchName ||
+      ex.id === searchName
+    );
+
+    const exercise =
+      (hipertrofiaResult.rows[0] ? {
+        ...hipertrofiaResult.rows[0],
+        name: hipertrofiaResult.rows[0].nombre,
+        source: 'hipertrofia'
+      } : null) ||
       (calisteniaResult.rows[0] ? {
         ...calisteniaResult.rows[0],
         name: calisteniaResult.rows[0].nombre,
         source: 'calistenia'
       } : null) ||
-      (hipertrofiaResult.rows[0] ? {
-        ...hipertrofiaResult.rows[0],
-        name: hipertrofiaResult.rows[0].nombre,
-        source: 'hipertrofia'
-      } : null);
+      mockExercise;
 
     if (!exercise) {
       return res.status(404).json({

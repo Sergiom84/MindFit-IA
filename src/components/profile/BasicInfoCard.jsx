@@ -33,9 +33,9 @@ export const BasicInfoCard = ({
   ]
 
   return (
-    <Card className="bg-gray-900 border-yellow-400/20">
+    <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
       <CardHeader>
-        <CardTitle className="text-white flex items-center justify-between">
+        <CardTitle className="text-white font-urbanist flex items-center justify-between">
           <div className="flex items-center">
             <User className="mr-2 text-yellow-400" /> Datos Básicos
           </div>
@@ -54,7 +54,7 @@ export const BasicInfoCard = ({
                   onClick={handleCancel}
                   size="sm"
                   variant="outline"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  className="border-white/10 text-gray-200/80 hover:bg-white/10"
                 >
                   Cancelar
                 </Button>
@@ -74,7 +74,7 @@ export const BasicInfoCard = ({
                   })
                 }
                 disabled={editingSection && editingSection !== 'basic'}
-                className="p-2 text-gray-400 hover:text-yellow-400 transition-colors"
+                className="p-2 text-gray-300/70 hover:text-yellow-300 transition-colors"
                 title="Editar datos básicos"
               >
                 <Pencil className="w-4 h-4" />
@@ -103,12 +103,12 @@ export const BasicInfoCard = ({
             onInputChange={handleInputChange}
           />
           <div>
-            <label className="text-gray-400">Email</label>
+            <label className="text-gray-300/70">Email</label>
             <p className="text-white font-semibold break-all">
               {userProfile.email || currentUser?.email}
             </p>
             {isEditing && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-300/60 mt-1">
                 El email no se puede modificar
               </p>
             )}

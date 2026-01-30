@@ -69,6 +69,11 @@ export default function RoutineSessionModal({
   const progressState = useExerciseProgress(session, exercises);
   const timerState = useExerciseTimer(progressState.currentExercise, progressState.seriesTotal, 45, allowManualTimer);
   const sessionPatterns = useMemo(() => extractSessionPatterns(session), [session]);
+  const isHypertrofiaV2 = session?.metodologia === 'HipertrofiaV2_MindFeed' || session?.metodologia === 'HipertrofiaV2';
+  const trackingFlag = session?.tracking_enabled ?? session?.trackingEnabled;
+  const requiresSeriesTracking = isHypertrofiaV2 || trackingFlag === undefined
+    ? true
+    : Boolean(trackingFlag);
 
   // Estados locales para modales y feedback
   const [showFeedback, setShowFeedback] = useState(false);
@@ -78,13 +83,22 @@ export default function RoutineSessionModal({
   const [showExerciseToast, setShowExerciseToast] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
 
-  // 🎯 Estados para tracking RIR (HipertrofiaV2)
+  // 🎯 Estados para tracking RIR
   const [showSeriesTracking, setShowSeriesTracking] = useState(false);
   const [seriesTrackingData, setSeriesTrackingData] = useState([]);
   const [exerciseProgression, setExerciseProgression] = useState({});
   const [neuralOverlapInfo, setNeuralOverlapInfo] = useState(null);
   const [showApproximationModal, setShowApproximationModal] = useState(false);
   const [approxShownFor, setApproxShownFor] = useState(new Set());
+  const currentExerciseId = progressState.currentExercise?.exercise_id || progressState.currentExercise?.id;
+  const hasTrackingForCurrentSet = useMemo(() => {
+    if (!currentExerciseId) return false;
+    const currentId = String(currentExerciseId);
+    const currentSet = Number(timerState.series);
+    return seriesTrackingData.some((set) => (
+      String(set.exercise_id) === currentId && Number(set.set_number) === currentSet
+    ));
+  }, [seriesTrackingData, currentExerciseId, timerState.series]);
   // Guards y refs
   const closingRef = useRef(false);
   const toastTimeoutRef = useRef(null);
@@ -140,7 +154,6 @@ export default function RoutineSessionModal({
 
   // Mostrar modal de series de aproximación al cambiar de ejercicio (solo HipertrofiaV2)
   useEffect(() => {
-    const isHypertrofiaV2 = session?.metodologia === 'HipertrofiaV2_MindFeed' || session?.metodologia === 'HipertrofiaV2';
     const currentId = progressState.currentExercise?.exercise_id || progressState.currentExercise?.id;
     if (isHypertrofiaV2 && currentId && !approxShownFor.has(currentId)) {
       setShowApproximationModal(true);
@@ -150,7 +163,7 @@ export default function RoutineSessionModal({
         return next;
       });
     }
-  }, [progressState.currentExercise, session?.metodologia, approxShownFor]);
+  }, [progressState.currentExercise, isHypertrofiaV2, approxShownFor]);
 
 
   // Cargar feedback existente al abrir modal
@@ -210,37 +223,6 @@ export default function RoutineSessionModal({
            (timerState.phase === 'ready' && timerState.series > 1);
   }, [timerState.phase, timerState.series]);
 
-  // Manejar auto-avance del timer
-  useEffect(() => {
-    if (!isOpen) return;
-    if (timerState.timeLeft === 0 && timerState.isRunning) {
-      if (timerState.phase === 'exercise') {
-        // Fin de ejercicio -> descanso
-        timerState.actions._setPhase('rest');
-        timerState.actions._setTimeLeft(timerState.restDuration);
-        timerState.actions._setIsRunning(true);
-      } else if (timerState.phase === 'rest') {
-        if (timerState.series < timerState.seriesTotal) {
-          if (timerState.customTimePerSeries === 0) {
-            // Manual mode: increment series and wait for user to start next series
-            timerState.actions._setSeries(prev => prev + 1);
-            timerState.actions._setPhase('ready');
-            timerState.actions._setIsRunning(false);
-          } else {
-            // Auto mode: next series
-            timerState.actions._setSeries(prev => prev + 1);
-            timerState.actions._setPhase('exercise');
-            timerState.actions._setTimeLeft(timerState.baseDuration);
-            timerState.actions._setIsRunning(true);
-          }
-        } else {
-          // Ejercicio completado
-          handleCompleteExercise();
-        }
-      }
-    }
-  }, [timerState.timeLeft, timerState.isRunning, timerState.phase, timerState.series, timerState.seriesTotal, timerState.baseDuration, timerState.restDuration, timerState.customTimePerSeries, isOpen]);
-
   // Completar ejercicio actual
   const handleCompleteExercise = useCallback(() => {
     const result = progressState.actions.complete(
@@ -259,6 +241,55 @@ export default function RoutineSessionModal({
       setShowEndModal(true);
     }
   }, [progressState.actions, timerState.seriesTotal, timerState.spent, timerState.actions, onFinishExercise]);
+
+  const handleRestEnd = useCallback(() => {
+    if (timerState.series < timerState.seriesTotal) {
+      if (timerState.customTimePerSeries === 0) {
+        // Manual mode: increment series and wait for user to start next series
+        timerState.actions._setSeries(prev => prev + 1);
+        timerState.actions._setPhase('ready');
+        timerState.actions._setIsRunning(false);
+      } else {
+        // Auto mode: next series
+        timerState.actions._setSeries(prev => prev + 1);
+        timerState.actions._setPhase('exercise');
+        timerState.actions._setTimeLeft(timerState.baseDuration);
+        timerState.actions._setIsRunning(true);
+      }
+    } else {
+      // Ejercicio completado
+      handleCompleteExercise();
+    }
+  }, [timerState.series, timerState.seriesTotal, timerState.customTimePerSeries, timerState.baseDuration, timerState.actions, handleCompleteExercise]);
+
+  // Manejar auto-avance del timer
+  useEffect(() => {
+    if (!isOpen) return;
+    if (timerState.timeLeft === 0 && timerState.isRunning) {
+      if (timerState.phase === 'exercise') {
+        // Fin de ejercicio -> descanso
+        timerState.actions._setPhase('rest');
+        timerState.actions._setTimeLeft(timerState.restDuration);
+        timerState.actions._setIsRunning(true);
+      } else if (timerState.phase === 'rest') {
+        if (requiresSeriesTracking && !hasTrackingForCurrentSet) {
+          timerState.actions._setIsRunning(false);
+          setShowSeriesTracking(true);
+          return;
+        }
+        handleRestEnd();
+      }
+    }
+  }, [timerState.timeLeft, timerState.isRunning, timerState.phase, timerState.restDuration, isOpen, requiresSeriesTracking, hasTrackingForCurrentSet, handleRestEnd, timerState.actions]);
+
+  useEffect(() => {
+    if (!requiresSeriesTracking) return;
+    if (timerState.phase !== 'rest') return;
+    if (!currentExerciseId) return;
+    if (hasTrackingForCurrentSet) return;
+    if (showSeriesTracking) return;
+    setShowSeriesTracking(true);
+  }, [requiresSeriesTracking, timerState.phase, currentExerciseId, hasTrackingForCurrentSet, showSeriesTracking]);
 
   // Saltar ejercicio actual
   const handleSkipExercise = useCallback(() => {
@@ -393,29 +424,14 @@ export default function RoutineSessionModal({
       // Cerrar modal de tracking
       setShowSeriesTracking(false);
 
-      // Si completó todas las series, no avanzar mientras el descanso siga activo
       const isLastSet = trackingData.set_number >= progressState.seriesTotal;
-      const restPending = timerState.phase === 'rest' && timerState.timeLeft > 0;
+      const restEnded = timerState.phase === 'rest' && timerState.timeLeft === 0;
 
-      if (isLastSet && !restPending) {
-        const result = progressState.actions.complete(
-          timerState.seriesTotal,
-          timerState.spent,
-          onFinishExercise
-        );
+      if (restEnded) {
+        handleRestEnd();
+      }
 
-        if (result.hasNext) {
-          // Preparar siguiente ejercicio en estado listo (sin disparar descanso automatico)
-          timerState.actions.prepareNext();
-          setShowExerciseToast(true);
-          console.log('✅ Ejercicio completado, avanzando a ejercicio', result.nextIndex);
-        } else {
-          setShowEndModal(true);
-        }
-      } else if (isLastSet) {
-        // Mantener contador de descanso para cerrar ejercicio al llegar a 0
-        console.log('✅ Ultima serie registrada, esperando fin de descanso para completar ejercicio');
-      } else {
+      if (!isLastSet) {
         setShowExerciseToast(true);
       }
 
@@ -424,7 +440,7 @@ export default function RoutineSessionModal({
       alert('Error al guardar la serie. Por favor, intenta de nuevo.');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, session?.methodologyPlanId, progressState.seriesTotal, timerState.seriesTotal, timerState.spent, timerState.actions, progressState.actions, onFinishExercise]);
+  }, [sessionId, session?.methodologyPlanId, progressState.seriesTotal, timerState.phase, timerState.timeLeft, handleRestEnd]);
 
   const applyNeuralAdjustment = useCallback((weight) => {
     if (!weight || !neuralOverlapInfo?.adjustment) return weight;
@@ -505,10 +521,6 @@ export default function RoutineSessionModal({
               progressState={progressState}
               onShowFeedback={() => setShowFeedback(true)}
               onShowExerciseInfo={() => setShowExerciseInfo(true)}
-              onShowSeriesTracking={() => {
-                // 🎯 Abrir modal de tracking con datos del ejercicio actual
-                setShowSeriesTracking(true);
-              }}
               onComplete={handleCompleteExercise}
               onSkip={handleSkipExercise}
               onCancel={handleCancelExercise}
@@ -559,6 +571,7 @@ export default function RoutineSessionModal({
             onSave={handleSaveSeriesTracking}
             onClose={() => setShowSeriesTracking(false)}
             neuralOverlap={neuralOverlapInfo}
+            isMandatory={requiresSeriesTracking}
           />
         );
       })()}

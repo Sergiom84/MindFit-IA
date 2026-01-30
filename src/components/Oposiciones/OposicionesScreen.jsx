@@ -1,18 +1,18 @@
 /**
- * Oposiciones Screen - Pantalla principal de preparación física para oposiciones
- *
- * @description Interfaz para seleccionar y entrenar para diferentes oposiciones:
- *              - Bomberos
- *              - Guardia Civil
- *              - Policía Nacional
- *              - Policía Local
- *
- * @author Claude Code - Arquitectura Modular Profesional
- * @version 1.0.0
- * @date 2025-10-10
- */
+  * Oposiciones Screen - Pantalla principal de preparación física para oposiciones
+  *
+  * @description Interfaz para seleccionar y entrenar para diferentes oposiciones:
+  *       - Bomberos
+  *       - Guardia Civil
+  *       - Policía Nacional
+  *       - Policía Local
+  *
+  * @author Claude Code - Arquitectura Modular Profesional
+  * @version 1.0.0
+  * @date 2025-10-10
+  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Alert, AlertDescription } from '@/components/ui/alert.jsx';
@@ -102,6 +102,7 @@ const OPOSICIONES = [
 ];
 
 export default function OposicionesScreen() {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [selectedOposicion, setSelectedOposicion] = useState(null);
   const [showDetails, setShowDetails] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -115,6 +116,14 @@ export default function OposicionesScreen() {
   const [sessionId, setSessionId] = useState(null);
   const [sessionData, setSessionData] = useState(null);
   const [methodologyPlanId, setMethodologyPlanId] = useState(null);
+
+  useEffect(() => {
+    const handleMouseMove = (event) => {
+      setMousePosition({ x: event.clientX, y: event.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   // Contexts
   const { generatePlan, startSession, ui: { isLoading } } = useWorkout();
@@ -315,157 +324,174 @@ export default function OposicionesScreen() {
   const getColorClasses = (color) => {
     const colors = {
       orange: {
-        text: 'text-orange-400',
-        bg: 'bg-orange-400/10',
-        border: 'border-orange-400/30',
-        hover: 'hover:border-orange-400/60'
+        text: 'text-orange-200',
+        dot: 'text-orange-300',
+        iconBg: 'bg-orange-400/10',
+        accent: 'border-l-2 border-l-orange-400/40'
       },
       green: {
-        text: 'text-green-400',
-        bg: 'bg-green-400/10',
-        border: 'border-green-400/30',
-        hover: 'hover:border-green-400/60'
+        text: 'text-emerald-200',
+        dot: 'text-emerald-300',
+        iconBg: 'bg-emerald-400/10',
+        accent: 'border-l-2 border-l-emerald-400/40'
       },
       blue: {
-        text: 'text-blue-400',
-        bg: 'bg-blue-400/10',
-        border: 'border-blue-400/30',
-        hover: 'hover:border-blue-400/60'
+        text: 'text-sky-200',
+        dot: 'text-sky-300',
+        iconBg: 'bg-sky-400/10',
+        accent: 'border-l-2 border-l-sky-400/40'
       },
       purple: {
-        text: 'text-purple-400',
-        bg: 'bg-purple-400/10',
-        border: 'border-purple-400/30',
-        hover: 'hover:border-purple-400/60'
+        text: 'text-violet-200',
+        dot: 'text-violet-300',
+        iconBg: 'bg-violet-400/10',
+        accent: 'border-l-2 border-l-violet-400/40'
       }
     };
     return colors[color] || colors.blue;
   };
 
   return (
-    <div className="p-6 bg-black text-white min-h-screen pt-20">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-yellow-400 mb-3">
-          Preparación Física para Oposiciones
-        </h1>
-        <p className="text-gray-400 text-lg">
-          Entrena específicamente para superar las pruebas físicas de tu oposición objetivo
-        </p>
+    <div className="min-h-screen bg-[#050506] text-white relative overflow-hidden font-body">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[url('/assets/tech-lux/bg-tech-lux-mobile.jpg')] sm:bg-[url('/assets/tech-lux/bg-tech-lux-desktop.jpg')] bg-cover bg-center opacity-80 sm:opacity-70" />
+        <div className="absolute inset-0 bg-[url('/assets/tech-lux/texture-tech-lux-tile.jpg')] bg-repeat opacity-20 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/80 sm:from-black/40 sm:via-black/60 sm:to-black" />
+        <div className="absolute -top-24 right-0 h-60 w-60 bg-yellow-400/10 blur-[140px]" />
+        <div className="absolute top-1/3 -left-16 h-72 w-72 bg-yellow-400/10 blur-[160px]" />
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(250, 204, 21, 0.18), transparent 60%)`
+          }}
+        />
       </div>
 
-      {/* Alert informativo */}
-      <Alert className="mb-6 bg-yellow-400/10 border-yellow-400/30">
-        <Info className="w-5 h-5 text-yellow-400" />
-        <AlertDescription className="text-yellow-200">
-          Cada oposición tiene pruebas físicas específicas oficiales. Nuestro sistema IA crea planes personalizados
-          para ayudarte a alcanzar los baremos mínimos y maximizar tu puntuación.
-        </AlertDescription>
-      </Alert>
+      <div className="relative z-10 container mx-auto px-4 py-8">
+        <div className="space-y-10">
+          {/* Header */}
+          <header className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.4em] text-yellow-200/80">Oposiciones</p>
+            <h1 className="text-4xl md:text-5xl font-semibold font-urbanist text-white">
+              Preparación Física para Oposiciones
+            </h1>
+            <p className="text-gray-200/80 text-lg">
+              Entrena específicamente para superar las pruebas físicas de tu oposición objetivo.
+            </p>
+          </header>
 
-      {/* Grid de tarjetas de oposiciones */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
-        {OPOSICIONES.map((oposicion) => {
-          const colors = getColorClasses(oposicion.color);
-          const Icon = oposicion.icon;
+          {/* Alert informativo */}
+          <Alert className="bg-white/5 border-white/10">
+            <Info className="w-5 h-5 text-yellow-300" />
+            <AlertDescription className="text-gray-200/80">
+              Cada oposición tiene pruebas físicas oficiales. Nuestro sistema IA crea planes personalizados
+              para ayudarte a alcanzar los baremos mínimos y maximizar tu puntuación.
+            </AlertDescription>
+          </Alert>
 
-          return (
-            <Card
-              key={oposicion.id}
-              className={`bg-black/80 border-2 ${colors.border} ${colors.hover} transition-all duration-300 hover:scale-[1.02] cursor-pointer`}
-            >
-              <div className="p-6">
-                {/* Header de la tarjeta */}
-                <div className="flex items-center gap-4 mb-4">
-                  <div className={`p-3 ${colors.bg} rounded-xl`}>
-                    <Icon className={`w-8 h-8 ${colors.text}`} />
+          {/* Grid de tarjetas de oposiciones */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {OPOSICIONES.map((oposicion) => {
+              const colors = getColorClasses(oposicion.color);
+              const Icon = oposicion.icon;
+
+              return (
+                <Card
+                  key={oposicion.id}
+                  className={`bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 ${colors.accent} shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg transition-all duration-300 hover:border-white/20 cursor-pointer`}
+                >
+                  <div className="p-6">
+                    {/* Header de la tarjeta */}
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className={`p-3 ${colors.iconBg} rounded-xl`}>
+                        <Icon className={`w-8 h-8 ${colors.text}`} />
+                      </div>
+                      <div className="flex-1">
+                        <h2 className="text-2xl font-semibold font-urbanist text-white">{oposicion.name}</h2>
+                        <p className="text-sm text-gray-300/80">{oposicion.nivel} • {oposicion.duracion}</p>
+                      </div>
+                    </div>
+
+                    {/* Descripción */}
+                    <p className="text-gray-300/90 mb-4">{oposicion.description}</p>
+
+                    {/* Lista de pruebas (primeras 4) */}
+                    <div className="mb-4">
+                      <h3 className="text-sm font-semibold text-gray-300/70 mb-2">Pruebas principales</h3>
+                      <ul className="space-y-1">
+                        {oposicion.pruebas.slice(0, 4).map((prueba, index) => (
+                          <li key={index} className="text-sm text-gray-200/90 flex items-start gap-2">
+                            <span className={`${colors.dot} mt-1`}>•</span>
+                            <span>{prueba}</span>
+                          </li>
+                        ))}
+                        {oposicion.pruebas.length > 4 && (
+                          <li className="text-sm text-gray-400">
+                            + {oposicion.pruebas.length - 4} pruebas más...
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+
+                    {/* Botones de acción */}
+                    <div className="flex gap-3 pt-4 border-t border-white/10">
+                      <Button
+                        variant="outline"
+                        className="flex-1 border border-white/10 text-gray-200 hover:bg-white/10 hover:text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenDetails(oposicion);
+                        }}
+                      >
+                        Ver Detalles
+                      </Button>
+                      <Button
+                        className="flex-1 bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectOposicion(oposicion);
+                        }}
+                      >
+                        Comenzar Preparación
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-white">{oposicion.name}</h2>
-                    <p className="text-sm text-gray-400">{oposicion.nivel} • {oposicion.duracion}</p>
-                  </div>
-                </div>
+                </Card>
+              );
+            })}
+          </div>
 
-                {/* Descripción */}
-                <p className="text-gray-300 mb-4">{oposicion.description}</p>
-
-                {/* Lista de pruebas (primeras 4) */}
-                <div className="mb-4">
-                  <h3 className="text-sm font-semibold text-gray-400 mb-2">Pruebas principales:</h3>
-                  <ul className="space-y-1">
-                    {oposicion.pruebas.slice(0, 4).map((prueba, index) => (
-                      <li key={index} className="text-sm text-gray-300 flex items-start gap-2">
-                        <span className={`${colors.text} mt-1`}>•</span>
-                        <span>{prueba}</span>
-                      </li>
-                    ))}
-                    {oposicion.pruebas.length > 4 && (
-                      <li className="text-sm text-gray-400">
-                        + {oposicion.pruebas.length - 4} pruebas más...
-                      </li>
-                    )}
-                  </ul>
-                </div>
-
-                {/* Botones de acción */}
-                <div className="flex gap-3 pt-4 border-t border-gray-700">
-                  <Button
-                    variant="outline"
-                    className={`flex-1 border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenDetails(oposicion);
-                    }}
-                  >
-                    Ver Detalles
-                  </Button>
-                  <Button
-                    className={`flex-1 ${colors.bg} ${colors.text} border ${colors.border} hover:bg-opacity-80`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSelectOposicion(oposicion);
-                    }}
-                  >
-                    Comenzar Preparación
-                  </Button>
-                </div>
+          {/* Sección informativa adicional */}
+          <Card className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg p-6">
+            <h3 className="text-xl font-semibold font-urbanist text-white mb-4">¿Por qué entrenar con nosotros?</h3>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div>
+                <h4 className="font-semibold text-yellow-300 mb-2">🎯 Entrenamiento específico</h4>
+                <p className="text-gray-300/80 text-sm">
+                  Planes personalizados basados en las pruebas oficiales exactas de tu oposición objetivo.
+                </p>
               </div>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Sección informativa adicional */}
-      <Card className="bg-black/80 border-gray-700 p-6">
-        <h3 className="text-xl font-bold text-white mb-4">¿Por qué entrenar con nosotros?</h3>
-        <div className="grid md:grid-cols-3 gap-4">
-          <div>
-            <h4 className="font-semibold text-yellow-400 mb-2">🎯 Entrenamiento Específico</h4>
-            <p className="text-gray-400 text-sm">
-              Planes personalizados basados en las pruebas oficiales exactas de tu oposición objetivo.
-            </p>
-          </div>
-          <div>
-            <h4 className="font-semibold text-yellow-400 mb-2">📊 Seguimiento de Progreso</h4>
-            <p className="text-gray-400 text-sm">
-              Monitorea tu evolución hacia los baremos oficiales y ajusta tu entrenamiento en tiempo real.
-            </p>
-          </div>
-          <div>
-            <h4 className="font-semibold text-yellow-400 mb-2">🤖 IA Especializada</h4>
-            <p className="text-gray-400 text-sm">
-              Nuestro sistema IA conoce los requisitos de cada oposición y adapta el plan a tu nivel actual.
-            </p>
-          </div>
-        </div>
-      </Card>
+              <div>
+                <h4 className="font-semibold text-yellow-300 mb-2">📊 Seguimiento de progreso</h4>
+                <p className="text-gray-300/80 text-sm">
+                  Monitorea tu evolución hacia los baremos oficiales y ajusta tu entrenamiento en tiempo real.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-yellow-300 mb-2">🤖 IA especializada</h4>
+                <p className="text-gray-300/80 text-sm">
+                  Nuestro sistema IA conoce los requisitos de cada oposición y adapta el plan a tu nivel actual.
+                </p>
+              </div>
+            </div>
+          </Card>
 
       {/* Modal de detalles */}
       {showDetails && (
         <Dialog open={!!showDetails} onOpenChange={() => setShowDetails(null)}>
-          <DialogContent className="sm:max-w-2xl bg-gray-900 text-white border-gray-700">
+          <DialogContent className="sm:max-w-2xl bg-black/80 text-white border border-white/10 backdrop-blur-md">
             <DialogHeader>
-              <DialogTitle className="text-2xl flex items-center gap-3">
+              <DialogTitle className="text-2xl font-urbanist flex items-center gap-3">
                 <showDetails.icon className={`w-8 h-8 ${getColorClasses(showDetails.color).text}`} />
                 {showDetails.name}
               </DialogTitle>
@@ -473,35 +499,35 @@ export default function OposicionesScreen() {
 
             <div className="space-y-4">
               <div>
-                <h3 className="font-semibold text-yellow-400 mb-2">Descripción</h3>
-                <p className="text-gray-300">{showDetails.detalle}</p>
+                <h3 className="font-semibold text-yellow-300 mb-2">Descripción</h3>
+                <p className="text-gray-200/80">{showDetails.detalle}</p>
               </div>
 
               <div>
-                <h3 className="font-semibold text-yellow-400 mb-2">Todas las pruebas físicas</h3>
+                <h3 className="font-semibold text-yellow-300 mb-2">Todas las pruebas físicas</h3>
                 <ul className="space-y-2">
                   {showDetails.pruebas.map((prueba, index) => (
-                    <li key={index} className="text-gray-300 flex items-start gap-2">
-                      <span className="text-yellow-400 mt-1">•</span>
+                    <li key={index} className="text-gray-200/90 flex items-start gap-2">
+                      <span className="text-yellow-300 mt-1">•</span>
                       <span>{prueba}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-gray-700">
+              <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-white/10">
                 <div>
-                  <h4 className="font-semibold text-gray-400 mb-1">Nivel requerido</h4>
+                  <h4 className="font-semibold text-gray-300/70 mb-1">Nivel requerido</h4>
                   <p className="text-white">{showDetails.nivel}</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-400 mb-1">Duración preparación</h4>
+                  <h4 className="font-semibold text-gray-300/70 mb-1">Duración preparación</h4>
                   <p className="text-white">{showDetails.duracion}</p>
                 </div>
               </div>
 
               <Button
-                className="w-full bg-yellow-400 text-black hover:bg-yellow-300"
+                className="w-full bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]"
                 onClick={() => {
                   setShowDetails(null);
                   handleSelectOposicion(showDetails);
@@ -516,7 +542,7 @@ export default function OposicionesScreen() {
 
       {/* Error display */}
       {error && (
-        <Alert className="mb-6 bg-red-900/20 border-red-500/50">
+        <Alert className="mb-6 bg-red-900/30 border-red-500/40">
           <AlertCircle className="w-5 h-5 text-red-400" />
           <AlertDescription className="text-red-300">
             {error}
@@ -526,14 +552,14 @@ export default function OposicionesScreen() {
 
       {/* Loading overlay */}
       {isLoading && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60]">
-          <div className="bg-gray-900 border border-yellow-400/30 rounded-lg p-8 text-center shadow-xl max-w-md">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60]">
+          <div className="bg-black/80 border border-yellow-400/30 rounded-2xl p-8 text-center shadow-2xl max-w-md">
             <div className="relative mb-4">
-              <Loader className="w-12 h-12 text-yellow-400 animate-spin mx-auto" />
-              <Sparkles className="w-6 h-6 text-yellow-400 absolute top-0 right-1/3 animate-pulse" />
+              <Loader className="w-12 h-12 text-yellow-300 animate-spin mx-auto" />
+              <Sparkles className="w-6 h-6 text-yellow-300 absolute top-0 right-1/3 animate-pulse" />
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">Generando Plan de Entrenamiento</h3>
-            <p className="text-gray-400">
+            <p className="text-gray-300/80">
               Nuestra IA especializada está creando tu plan personalizado para {selectedOposicion?.name}...
             </p>
           </div>
@@ -556,7 +582,7 @@ export default function OposicionesScreen() {
       {/* Modal de Bomberos */}
       {showBomberosModal && (
         <Dialog open={showBomberosModal} onOpenChange={() => setShowBomberosModal(false)}>
-          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-900 text-white border-gray-700">
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-black/80 text-white border border-white/10 backdrop-blur-md">
             <DialogHeader className="sr-only">
               <DialogTitle>Evaluación Bomberos</DialogTitle>
             </DialogHeader>
@@ -600,6 +626,8 @@ export default function OposicionesScreen() {
           navigateToRoutines={() => navigate('/routines', { state: { activeTab: 'today', fromSession: true } })}
         />
       )}
+        </div>
+      </div>
     </div>
   );
 }

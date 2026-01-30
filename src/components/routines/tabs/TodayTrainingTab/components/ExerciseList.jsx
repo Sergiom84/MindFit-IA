@@ -39,18 +39,18 @@ export function ExerciseList({
   }
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <Card className="p-6 bg-neutral-900/70 border border-white/10 border-l-2 border-l-yellow-400/30 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.75)] backdrop-blur-lg transition-all duration-300 hover:border-white/20">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
-          <h3 className="text-xl font-semibold text-white">
+          <h3 className="text-xl font-semibold text-white font-urbanist">
             Sesión de {dayName}
           </h3>
-          <p className="text-gray-400 mt-1">
+          <p className="text-gray-300/80 mt-1">
             {exercises.length} ejercicios programados
           </p>
         </div>
 
-        <div className="flex items-center gap-4 text-sm text-gray-400">
+        <div className="flex items-center gap-4 text-sm text-gray-300/80">
           <div className="flex items-center gap-1">
             <Clock className="h-4 w-4" />
             <span>~{Math.round(estimatedDuration / 60)}min</span>
@@ -103,4 +103,3 @@ export function ExerciseList({
 }
 
 export default ExerciseList;
-

@@ -241,7 +241,7 @@ export async function completePlanManually(planId, userId, client) {
 export async function cancelActivePlans(userId, client, exceptPlanId = null) {
   const runner = getRunner(client);
 
-  // Cancelar TODOS los planes activos del usuario (sin filtrar por origin)
+  // Cancelar TODOS los planes activos/confirmados del usuario (sin filtrar por origin)
   // Esto previene tener múltiples planes activos simultáneos
   const result = await runner.query(
     `UPDATE app.methodology_plans
@@ -250,7 +250,7 @@ export async function cancelActivePlans(userId, client, exceptPlanId = null) {
          cancelled_at = NOW(),
          updated_at = NOW()
      WHERE user_id = $1
-       AND status = 'active'
+       AND status IN ('active', 'confirmed')
        ${exceptPlanId ? 'AND id != $2' : ''}
      RETURNING id, methodology_type`,
     exceptPlanId ? [userId, exceptPlanId] : [userId]

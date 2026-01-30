@@ -2,20 +2,20 @@ import TagsInput from '../../ui/TagsInput'
 
 // Constantes para estilos reutilizables
 const INPUT_STYLES = {
-  base: "w-full bg-gray-700/50 border rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 transition-colors",
-  normal: "border-gray-600",
+  base: "w-full bg-white/5 border rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400/60 transition-colors",
+  normal: "border-white/10",
   error: "border-red-500"
 };
 
 const TEXTAREA_STYLES = {
-  base: "w-full bg-gray-700/50 border rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 transition-colors resize-none",
-  normal: "border-gray-600",
+  base: "w-full bg-white/5 border rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400/60 transition-colors resize-none",
+  normal: "border-white/10",
   error: "border-red-500"
 };
 
-const LABEL_STYLES = "block text-white font-medium mb-2";
+const LABEL_STYLES = "block text-gray-200/90 font-medium mb-2";
 const ERROR_MESSAGE_STYLES = "text-red-400 text-sm mt-1";
-const HELP_TEXT_STYLES = "text-gray-500 text-sm mt-1";
+const HELP_TEXT_STYLES = "text-gray-400/70 text-sm mt-1";
 
 const HealthInfoStep = ({ formData, onInputChange, errors = {} }) => {
   const handleChange = (e) => {
@@ -46,8 +46,8 @@ const HealthInfoStep = ({ formData, onInputChange, errors = {} }) => {
     <div className="space-y-8">
       {/* Sección: Header y descripción */}
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-yellow-400 mb-2">Información de Salud (Opcional)</h2>
-        <p className="text-gray-400">Esta información nos ayuda a crear entrenamientos seguros y personalizados</p>
+        <h2 className="text-2xl font-bold text-yellow-300 mb-2 font-urbanist">Información de Salud (Opcional)</h2>
+        <p className="text-gray-300/80">Esta información nos ayuda a crear entrenamientos seguros y personalizados</p>
       </div>
 
       {/* Sección: Información médica */}
@@ -116,9 +116,9 @@ const HealthInfoStep = ({ formData, onInputChange, errors = {} }) => {
       </div>
 
       {/* Sección: Advertencia médica */}
-      <div className="bg-yellow-900/20 rounded-lg p-6 border border-yellow-700/50">
-        <h3 className="text-lg font-semibold text-yellow-400 mb-4">⚠️ Importante</h3>
-        <div className="space-y-3 text-gray-300 text-sm">
+      <div className="bg-white/5 rounded-lg p-6 border border-white/10 border-l-2 border-l-yellow-400/40">
+        <h3 className="text-lg font-semibold text-yellow-300 mb-4 font-urbanist">⚠️ Importante</h3>
+        <div className="space-y-3 text-gray-300/80 text-sm">
           <p>
             <strong>Consulta médica:</strong> Si tienes condiciones médicas serias o dudas sobre tu capacidad
             para hacer ejercicio, consulta con un profesional de la salud antes de comenzar cualquier programa

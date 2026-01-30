@@ -145,9 +145,9 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
 
   return (
     <>
-      <Card className="bg-gray-900 border-yellow-400/20">
+      <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
         <CardHeader>
-          <CardTitle className="text-white flex items-center">
+          <CardTitle className="text-white font-urbanist flex items-center">
             <FileText className="mr-2 text-yellow-400" />
             Documentación Médica
           </CardTitle>
@@ -155,9 +155,9 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
 
         <CardContent className="space-y-4">
           {/* Botón de subida */}
-          <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center">
-            <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <p className="text-gray-400 mb-4">
+          <div className="border-2 border-dashed border-white/10 bg-white/5 rounded-lg p-6 text-center">
+            <Upload className="mx-auto h-12 w-12 text-gray-300/70 mb-4" />
+            <p className="text-gray-300/70 mb-4">
               Sube tus documentos médicos (PDF únicamente)
             </p>
             <input
@@ -174,7 +174,7 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
             >
               {uploading ? 'Subiendo...' : 'Seleccionar Archivo'}
             </Button>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-gray-300/60 mt-2">
               Máximo 10MB por archivo
             </p>
           </div>
@@ -183,17 +183,17 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-              <p className="text-gray-400">Cargando documentos...</p>
+              <p className="text-gray-300/70">Cargando documentos...</p>
             </div>
           ) : medicalDocs.length > 0 ? (
             <div className="space-y-3">
-              <h4 className="text-sm font-medium text-gray-300">
+              <h4 className="text-sm font-medium text-gray-200/80">
                 Documentos subidos ({medicalDocs.length})
               </h4>
               {medicalDocs.map((doc) => (
                 <div
                   key={doc.id}
-                  className="flex items-center justify-between p-3 bg-gray-800 rounded-lg border border-gray-700"
+                  className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"
                 >
                   <div className="flex items-center space-x-3">
                     <FileText className="h-8 w-8 text-red-400" />
@@ -201,7 +201,7 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
                       <p className="text-white font-medium text-sm">
                         {doc.originalName || doc.fileName}
                       </p>
-                      <p className="text-gray-400 text-xs">
+                      <p className="text-gray-300/70 text-xs">
                         {formatFileSize(doc.size)} • {formatDate(doc.uploadedAt)}
                       </p>
                     </div>
@@ -218,7 +218,7 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
                       size="sm"
                       variant="outline"
                       onClick={() => handlePreview(doc)}
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                      className="border-white/10 text-gray-200/80 hover:bg-white/10"
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -236,11 +236,11 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
             </div>
           ) : (
             <div className="text-center py-8">
-              <FileText className="mx-auto h-16 w-16 text-gray-600 mb-4" />
-              <p className="text-gray-400">
+              <FileText className="mx-auto h-16 w-16 text-gray-500 mb-4" />
+              <p className="text-gray-300/70">
                 No hay documentos médicos subidos
               </p>
-              <p className="text-gray-500 text-sm">
+              <p className="text-gray-300/60 text-sm">
                 Sube tus informes médicos para un mejor seguimiento
               </p>
             </div>
@@ -251,8 +251,8 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
       {/* Modal de previsualización */}
       {showPreview && selectedDoc && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-yellow-400/20 rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <div className="bg-neutral-900/85 border border-white/10 ring-1 ring-white/5 rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
               <h3 className="text-white font-medium">
                 {selectedDoc.fileName}
               </h3>
@@ -260,7 +260,7 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
                 onClick={() => setShowPreview(false)}
                 variant="outline"
                 size="sm"
-                className="border-gray-600 text-gray-300"
+                className="border-white/10 text-gray-200/80 hover:bg-white/10"
               >
                 Cerrar
               </Button>

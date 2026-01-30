@@ -176,9 +176,9 @@ export function EquipmentTab({ onEquipmentChange }) {
 
   return (
     <div className="space-y-8">
-      <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-white mb-3">Sin equipamiento</h3>
-        <label className="flex items-center gap-2 text-sm text-gray-300">
+      <div className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-xl p-6">
+        <h3 className="text-lg font-semibold font-urbanist text-white mb-3">Sin equipamiento</h3>
+        <label className="flex items-center gap-2 text-sm text-gray-200/80">
           <input
             type="checkbox"
             checked={noEquipment}
@@ -188,22 +188,22 @@ export function EquipmentTab({ onEquipmentChange }) {
           No tengo equipamiento
         </label>
         {noEquipment && (
-          <p className="text-xs text-gray-400 mt-2">
+          <p className="text-xs text-gray-300/70 mt-2">
             Puedes desmarcarlo para volver a seleccionar equipamiento.
           </p>
         )}
       </div>
 
-      <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-        <h3 className="text-xl font-semibold text-white mb-4">Catálogo de equipamiento</h3>
+      <div className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-xl p-6">
+        <h3 className="text-xl font-semibold font-urbanist text-white mb-4">Catálogo de equipamiento</h3>
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar… (mancuernas, trx, esterilla)"
           disabled={noEquipment}
-          className={`w-full mb-4 px-3 py-2 rounded border border-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400 ${
-            noEquipment ? 'bg-gray-900/30 text-gray-500' : 'bg-gray-900/60 text-gray-200'
+          className={`w-full mb-4 px-3 py-2 rounded border border-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400 ${
+            noEquipment ? 'bg-white/5 text-gray-500' : 'bg-white/5 text-gray-200'
           }`}
         />
 
@@ -211,7 +211,7 @@ export function EquipmentTab({ onEquipmentChange }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {quickPresets.map(col => (
             <div key={col.level}>
-              <h4 className="text-sm uppercase tracking-wide text-gray-400 mb-2">{col.level}</h4>
+              <h4 className="text-sm uppercase tracking-wide text-gray-300/70 mb-2">{col.level}</h4>
               <div className="flex flex-wrap gap-2">
                 {col.items.map(p => (
                   <button
@@ -221,7 +221,7 @@ export function EquipmentTab({ onEquipmentChange }) {
                     className={`px-3 py-1 rounded-full text-sm border transition ${
                       curatedKeys.has(p.code)
                         ? 'bg-yellow-400 text-black border-yellow-400'
-                        : 'bg-gray-900/60 text-gray-200 border-gray-700 hover:bg-gray-800'
+                        : 'bg-white/5 text-gray-200/80 border-white/10 hover:bg-white/10'
                     } ${noEquipment ? 'opacity-50 cursor-not-allowed' : ''}`}
                     title={p.label}
                   >
@@ -247,7 +247,7 @@ export function EquipmentTab({ onEquipmentChange }) {
           <>
             {(['minimo','basico','avanzado']).map(level => (
               <div key={level} className="mb-4">
-                <h4 className="text-sm uppercase tracking-wide text-gray-400 mb-2">{level}</h4>
+                <h4 className="text-sm uppercase tracking-wide text-gray-300/70 mb-2">{level}</h4>
                 <div className="flex flex-wrap gap-2">
                     {grouped[level].map(item => (
                       <button
@@ -257,7 +257,7 @@ export function EquipmentTab({ onEquipmentChange }) {
                         className={`px-3 py-1 rounded-full text-sm border transition ${
                           curatedKeys.has(item.code)
                             ? 'bg-yellow-400 text-black border-yellow-400'
-                            : 'bg-gray-900/60 text-gray-200 border-gray-700 hover:bg-gray-800'
+                            : 'bg-white/5 text-gray-200/80 border-white/10 hover:bg-white/10'
                         } ${noEquipment ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title={item.name}
                       >
@@ -265,7 +265,7 @@ export function EquipmentTab({ onEquipmentChange }) {
                       </button>
                     ))}
                   {grouped[level].length === 0 && (
-                    <span className="text-gray-500 text-sm">Sin resultados</span>
+                    <span className="text-gray-300/60 text-sm">Sin resultados</span>
                   )}
                 </div>
               </div>
@@ -274,23 +274,23 @@ export function EquipmentTab({ onEquipmentChange }) {
         )}
       </div>
 
-      <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-        <h3 className="text-xl font-semibold text-white mb-4">Tu equipamiento</h3>
+      <div className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-xl p-6">
+        <h3 className="text-xl font-semibold font-urbanist text-white mb-4">Tu equipamiento</h3>
         <div className="mb-4">
-          <h4 className="text-sm text-gray-400 mb-2">Seleccionado del catálogo</h4>
+          <h4 className="text-sm text-gray-300/70 mb-2">Seleccionado del catálogo</h4>
           <div className="flex flex-wrap gap-2">
             {curated.map(i => (
-              <span key={i.key} className="px-3 py-1 rounded-full text-sm bg-gray-900/60 text-gray-200 border border-gray-700">
+              <span key={i.key} className="px-3 py-1 rounded-full text-sm bg-white/5 text-gray-200/80 border border-white/10">
                 {i.label}
                 <button onClick={() => toggleCurated(i.key)} className="ml-2 text-yellow-400 hover:text-yellow-300">×</button>
               </span>
             ))}
-            {curated.length === 0 && <span className="text-gray-500 text-sm">Aún no has seleccionado nada</span>}
+            {curated.length === 0 && <span className="text-gray-300/60 text-sm">Aún no has seleccionado nada</span>}
           </div>
         </div>
 
         <div>
-          <h4 className="text-sm text-gray-400 mb-2">Añade tu equipamiento (texto libre)</h4>
+          <h4 className="text-sm text-gray-300/70 mb-2">Añade tu equipamiento (texto libre)</h4>
           <div className="flex gap-2">
             <input
               type="text"
@@ -298,8 +298,8 @@ export function EquipmentTab({ onEquipmentChange }) {
               onChange={(e) => setNewCustom(e.target.value)}
               placeholder="p. ej. Bicicleta estática, Comba pesada"
               disabled={noEquipment}
-              className={`flex-1 px-3 py-2 rounded border border-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400 ${
-                noEquipment ? 'bg-gray-900/30 text-gray-500' : 'bg-gray-900/60 text-gray-200'
+              className={`flex-1 px-3 py-2 rounded border border-white/10 focus:outline-none focus:ring-2 focus:ring-yellow-400 ${
+                noEquipment ? 'bg-white/5 text-gray-500' : 'bg-white/5 text-gray-200'
               }`}
             />
             <button
@@ -312,12 +312,12 @@ export function EquipmentTab({ onEquipmentChange }) {
           </div>
           <div className="flex flex-wrap gap-2 mt-3">
             {custom.map(c => (
-              <span key={c.id} className="px-3 py-1 rounded-full text-sm bg-gray-900/60 text-gray-200 border border-gray-700">
+              <span key={c.id} className="px-3 py-1 rounded-full text-sm bg-white/5 text-gray-200/80 border border-white/10">
                 {c.name}
                 <button onClick={() => removeCustom(c.id)} className="ml-2 text-yellow-400 hover:text-yellow-300">×</button>
               </span>
             ))}
-            {custom.length === 0 && <span className="text-gray-500 text-sm">Sin elementos personalizados</span>}
+            {custom.length === 0 && <span className="text-gray-300/60 text-sm">Sin elementos personalizados</span>}
           </div>
         </div>
       </div>
@@ -325,7 +325,7 @@ export function EquipmentTab({ onEquipmentChange }) {
       <div className="text-center">
         <button
           onClick={() => navigate('/home-training')}
-          className="px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 rounded border border-white/10 bg-white/5 text-gray-200/80 font-semibold hover:bg-white/10 transition-colors"
         >
           Volver a Entrenamiento en casa
         </button>

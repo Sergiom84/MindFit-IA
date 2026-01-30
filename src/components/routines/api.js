@@ -35,7 +35,9 @@ export async function startSession({ methodology_plan_id, day_id = null, week_nu
   console.log('🔄 [API] Llamando a startSession con:', payload);
 
   try {
-    const data = await apiClient.post('/routines/sessions/start', payload);
+    const data = await apiClient.post('/routines/sessions/start', payload, {
+      timeout: 30000
+    });
     console.log('✅ [API] startSession respuesta:', data);
     if (!data.success) throw new Error(data.error || 'No se pudo iniciar la sesión');
     return data; // { session_id, total_exercises }
