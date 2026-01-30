@@ -2,6 +2,7 @@
 
 ## 30.01.2026
 
+- Habilitado el módulo de ciclo menstrual: la API ahora expone `/api/menstrual-cycle` y la app muestra la pestaña solo cuando el backend confirma usuarios femeninos, alineando la ruta de navegación (`/menstrual-cycle`) con el router.
 - Ajustado el estado activo en `/api/training/state` para ignorar planes cancelados/draft y la cancelación de rutina ahora desmarca `is_current` para evitar bloqueos al generar planes nuevos.
 - Planes con inicio en lunes: el modal final cambia a "Guardar plan" y la pestaña de hoy respeta la fecha de inicio futura para no mostrar sesión el viernes.
 - Fix en `TodayTrainingTab`: evitar uso de `plan` antes de inicializar para corregir el error en la pestaña de rutinas.

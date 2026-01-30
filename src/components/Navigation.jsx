@@ -1,19 +1,46 @@
 import { motion } from 'framer-motion';
-import { LogOut, Home, UserCircle, BookOpen, Calendar, Apple, Shield } from 'lucide-react';
+import { LogOut, Home, UserCircle, BookOpen, Calendar, Apple, Shield, Droplet } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
+  const [showCycleTab, setShowCycleTab] = useState(false);
 
   // Verificar si hay rutinas disponibles (memoizado)
-  const hasRoutines = useMemo(() => 
-    localStorage.getItem('currentRoutinePlan'), 
+  const hasRoutines = useMemo(() =>
+    localStorage.getItem('currentRoutinePlan'),
     []
   );
+
+  // Verificar si el usuario debe ver la pestaña de ciclo menstrual
+  useEffect(() => {
+    const checkCycleFeature = async () => {
+      if (!isAuthenticated) return;
+
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch('/api/menstrual-cycle/check-user', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setShowCycleTab(data.showCycleFeature === true);
+        }
+      } catch (err) {
+        console.error('Error verificando feature de ciclo:', err);
+      }
+    };
+
+    checkCycleFeature();
+  }, [isAuthenticated, user?.id]);
 
   // Helper para determinar si un botón está activo (memoizado)
   const isActive = useCallback((path) => 
@@ -164,7 +191,7 @@ const Navigation = () => {
               <button
                 onClick={() => navigate('/nutrition')}
                 className={`group flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition-all ${
-                  isActive('/nutrition') 
+                  isActive('/nutrition')
                     ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
                     : 'text-gray-300/80 hover:text-white hover:bg-white/5'
                 }`}
@@ -172,10 +199,23 @@ const Navigation = () => {
                 <Apple size={20} />
                 <span>Nutrición</span>
               </button>
+              {showCycleTab && (
+                <button
+                  onClick={() => navigate('/menstrual-cycle')}
+                  className={`group flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition-all ${
+                    isActive('/menstrual-cycle')
+                      ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
+                      : 'text-gray-300/80 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Droplet size={20} />
+                  <span>Ciclo</span>
+                </button>
+              )}
               <button
                 onClick={() => navigate('/profile')}
                 className={`group flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition-all ${
-                  isActive('/profile') 
+                  isActive('/profile')
                     ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
                     : 'text-gray-300/80 hover:text-white hover:bg-white/5'
                 }`}

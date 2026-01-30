@@ -247,7 +247,7 @@ const ROUTE_CONFIG = [
     preloadPriority: "low"
   },
   {
-    path: "/cycle",
+    path: "/menstrual-cycle",
     component: CycleSection,
     protected: true,
     name: "Ciclo Menstrual",
