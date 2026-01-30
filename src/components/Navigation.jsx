@@ -1,13 +1,37 @@
 import { motion } from 'framer-motion';
-import { LogOut, User, Home, Dumbbell, UserCircle, BookOpen, Calendar, Apple, Shield } from 'lucide-react';
+import { LogOut, User, Home, Dumbbell, UserCircle, BookOpen, Calendar, Apple, Shield, Droplet } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
+  const [showCycleTab, setShowCycleTab] = useState(false);
+
+  // Verificar si el usuario es femenino y debe ver la pestaña de ciclo
+  useEffect(() => {
+    const checkCycleFeature = async () => {
+      if (!isAuthenticated) return;
+      
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/menstrual-cycle/check-user', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setShowCycleTab(data.showCycleFeature === true);
+        }
+      } catch (err) {
+        console.error('Error verificando feature de ciclo:', err);
+      }
+    };
+
+    checkCycleFeature();
+  }, [isAuthenticated, user?.id]);
 
   // Verificar si hay rutinas disponibles (memoizado)
   const hasRoutines = useMemo(() => 
@@ -161,6 +185,19 @@ const Navigation = () => {
             <Apple size={22} />
             <span className="text-xs font-medium">Nutrición</span>
           </button>
+          {showCycleTab && (
+            <button
+              onClick={() => navigate('/cycle')}
+              className={`flex flex-col items-center gap-1 py-2 px-2 transition-colors ${
+                isActive('/cycle') 
+                  ? 'text-pink-400' 
+                  : 'text-gray-300 hover:text-pink-400'
+              }`}
+            >
+              <Droplet size={22} />
+              <span className="text-xs font-medium">Ciclo</span>
+            </button>
+          )}
           <button
             onClick={() => navigate('/profile')}
             className={`flex flex-col items-center gap-1 py-2 px-2 transition-colors ${

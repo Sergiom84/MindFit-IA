@@ -53,7 +53,14 @@ const INITIAL_FORM_DATA = {
   horarioPreferido: '',
   comidasPorDia: '',
   suplementacion: '',
-  alimentosExcluidos: ''
+  alimentosExcluidos: '',
+
+  // Ciclo menstrual (solo para mujeres)
+  cycleTrackingEnabled: false,
+  lastPeriodStart: '',
+  cycleLength: 28,
+  cycleIsRegular: '',
+  usesHormonalContraceptives: ''
 };
 
 const RegisterPage = () => {

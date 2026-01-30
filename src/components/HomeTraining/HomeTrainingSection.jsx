@@ -10,6 +10,8 @@ import HomeTrainingWarmupModal from './HomeTrainingWarmupModal';
 import UserEquipmentSummaryCard from './UserEquipmentSummaryCard';
 import logger from '../../utils/logger';
 import { useTrace } from '../../contexts/TraceContext';
+import useCycleAdjustment from '../../hooks/useCycleAdjustment';
+import { CycleAlert } from '../MenstrualCycle';
 
 
 const HomeTrainingSection = () => {
@@ -17,6 +19,10 @@ const HomeTrainingSection = () => {
   const { track } = useTrace();
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [selectedTrainingType, setSelectedTrainingType] = useState(null);
+  
+  // Hook para ajustes del ciclo menstrual (solo mujeres)
+  const cycleAdjustment = useCycleAdjustment();
+  const cycleAlert = cycleAdjustment.getAlert();
 
   // Leer selección desde UserEquipmentSummaryCard
   useEffect(() => {
@@ -1079,6 +1085,13 @@ const HomeTrainingSection = () => {
             que tengas disponible, adaptándose a tu espacio y nivel.
           </p>
         </div>
+
+        {/* Alerta de ajuste del ciclo menstrual (solo para mujeres con config) */}
+        {cycleAlert && (
+          <div className="max-w-4xl mx-auto mb-8">
+            <CycleAlert alert={cycleAlert} />
+          </div>
+        )}
 
         {/* Tarjetas de equipamiento */}
         <div className="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto mb-8">

@@ -50,7 +50,13 @@ router.post('/register', async (req, res) => {
       horarioPreferido,
       comidasPorDia,
       suplementacion,
-      alimentosExcluidos
+      alimentosExcluidos,
+      // Ciclo menstrual (solo mujeres)
+      cycleTrackingEnabled,
+      lastPeriodStart,
+      cycleLength,
+      cycleIsRegular,
+      usesHormonalContraceptives
     } = req.body;
 
     // Validar campos requeridos
@@ -238,6 +244,33 @@ router.post('/register', async (req, res) => {
     );
 
     const user = result.rows[0];
+
+    // Si es mujer y activó el seguimiento del ciclo, crear configuración
+    if (normalizeSexo(sexo) === 'femenino' && cycleTrackingEnabled) {
+      try {
+        const cycleLengthValue = toNumberOrNull(cycleLength) || 28;
+        const isRegular = cycleIsRegular === 'true' || cycleIsRegular === true;
+        const usesContraceptives = usesHormonalContraceptives === 'true' || usesHormonalContraceptives === true;
+        
+        await pool.query(
+          `INSERT INTO app.user_menstrual_config 
+           (user_id, cycle_length, is_regular, uses_hormonal_contraceptives, last_period_start, tracking_enabled)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            user.id,
+            cycleLengthValue,
+            isRegular,
+            usesContraceptives,
+            toNullIfEmpty(lastPeriodStart),
+            true
+          ]
+        );
+        console.log(`🩸 Configuración de ciclo menstrual creada para usuario ${user.id}`);
+      } catch (cycleError) {
+        // No fallar el registro si hay error en el ciclo
+        console.error('Error creando config de ciclo:', cycleError);
+      }
+    }
 
     // Generar JWT
     const token = jwt.sign(

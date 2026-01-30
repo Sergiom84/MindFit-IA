@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button.jsx";
 import apiClient from "@/lib/apiClient";
 import { getActivePlan } from "@/components/routines/api";
 import { Brain, Smartphone, Camera, CalendarDays, ListChecks, Zap } from "lucide-react";
+import { CycleHomeCard } from "./MenstrualCycle";
 
 const formatDate = (value) => {
   if (!value) return "Sin sesiones aún";
@@ -38,8 +39,29 @@ const HomePage = () => {
     activePlan: null,
     progress: null
   });
+  const [showCycleCard, setShowCycleCard] = useState(false);
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading } = useAuth();
+
+  // Verificar si el usuario es femenino para mostrar tarjeta de ciclo
+  useEffect(() => {
+    const checkCycleFeature = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/menstrual-cycle/check-user', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setShowCycleCard(data.showCycleFeature === true);
+        }
+      } catch (err) {
+        console.error('Error verificando ciclo:', err);
+      }
+    };
+    checkCycleFeature();
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -177,6 +199,13 @@ const HomePage = () => {
                   {dashboardState.error}
                 </div>
               ) : null}
+
+              {/* Tarjeta de Ciclo Menstrual - Solo para mujeres */}
+              {showCycleCard && (
+                <div className="mb-6">
+                  <CycleHomeCard userId={user?.id} />
+                </div>
+              )}
 
               <div className="grid gap-6 lg:grid-cols-5">
                 <Card className="lg:col-span-3 bg-gradient-to-br from-yellow-400/20 via-black/80 to-black border-yellow-400/30">

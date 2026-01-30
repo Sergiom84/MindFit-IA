@@ -45,6 +45,7 @@ import musicRoutes from './routes/music.js';
 import analyticsRoutes from './routes/analytics.js';
 import hipertrofiaV2Routes from './routes/hipertrofiaV2.js';
 import adaptationBlockRoutes from './routes/adaptationBlock.js';
+import menstrualCycleRoutes from './routes/menstrualCycle.js';
 
 // ===============================================
 // 🗄️ RUTAS LEGACY (MANTENER TEMPORALMENTE)
@@ -416,6 +417,7 @@ app.use('/api/music', musicRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/hipertrofiav2', hipertrofiaV2Routes); // Sistema de tracking RIR
 app.use('/api/adaptation', adaptationBlockRoutes); // Bloque de Adaptación Inicial
+app.use('/api/menstrual-cycle', menstrualCycleRoutes); // Ciclo menstrual (solo mujeres)
 
 // Endpoint simple de salud
 app.get('/api/health', (req, res) => {

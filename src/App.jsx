@@ -65,6 +65,9 @@ const ProfileSection = lazy(() => import('./components/profile/ProfileSection'))
 const NutritionScreen = lazy(() => import('./components/nutrition/NutritionScreen'));
 const VideoCorrection = lazy(() => import('./components/VideoCorrection'));
 
+// Módulo de ciclo menstrual (solo para usuarios femeninos)
+const CycleSection = lazy(() => import('./components/MenstrualCycle/CycleSection'));
+
 // =============================================================================
 // 🎨 COMPONENTES DE LOADING PERSONALIZADOS
 // =============================================================================
@@ -241,6 +244,16 @@ const ROUTE_CONFIG = [
     module: "Corrección de Video",
     context: "VideoCorrection",
     loadingMessage: "Cargando corrección...",
+    preloadPriority: "low"
+  },
+  {
+    path: "/cycle",
+    component: CycleSection,
+    protected: true,
+    name: "Ciclo Menstrual",
+    module: "Ciclo",
+    context: "MenstrualCycle",
+    loadingMessage: "Cargando ciclo...",
     preloadPriority: "low"
   },
   {
