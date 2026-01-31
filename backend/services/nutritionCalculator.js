@@ -1,48 +1,138 @@
 /**
  * Servicio de Cálculo Determinista de Nutrición
- * Sistema basado en fórmulas científicas (Mifflin-St Jeor)
+ * Sistema basado en fórmulas científicas (Tinsley, Ten Haaf, Mifflin, Harris)
  * Carb Cycling para optimización
  */
 
 /**
- * Calcula la Tasa Metabólica Basal (BMR) usando Mifflin-St Jeor
- * @param {Object} profile - Perfil del usuario
- * @param {string} profile.sexo - 'hombre' | 'mujer'
- * @param {number} profile.peso_kg - Peso en kilogramos
- * @param {number} profile.altura_cm - Altura en centímetros
- * @param {number} profile.edad - Edad en años
- * @returns {number} BMR en kcal/día
+ * Ecuaciones de TMB
  */
-export function calculateBMR({ sexo, peso_kg, altura_cm, edad }) {
-  // Mifflin-St Jeor Equation (más precisa que Harris-Benedict)
-  const baseBMR = 10 * peso_kg + 6.25 * altura_cm - 5 * edad;
-
-  if (sexo === 'hombre') {
-    return Math.round(baseBMR + 5);
-  } else {
-    return Math.round(baseBMR - 161);
+const BMR_FORMULAS = {
+  mifflin({ sexo, peso_kg, altura_cm, edad }) {
+    const base = 10 * peso_kg + 6.25 * altura_cm - 5 * edad;
+    return Math.round(base + (sexo === 'hombre' ? 5 : -161));
+  },
+  harris({ sexo, peso_kg, altura_cm, edad }) {
+    if (sexo === 'hombre') {
+      return Math.round(66.473 + 13.7516 * peso_kg + 5.0033 * altura_cm - 6.755 * edad);
+    }
+    return Math.round(655.0955 + 9.5634 * peso_kg + 1.8449 * altura_cm - 4.6756 * edad);
+  },
+  tinsley({ peso_kg }) {
+    return Math.round(24.8 * peso_kg + 10);
+  },
+  tenHaaf({ sexo, peso_kg, altura_cm, edad }) {
+    if (sexo === 'hombre') {
+      return Math.round(11.936 * peso_kg + 587.728 * (altura_cm / 100) - 8.129 * edad + 191.027 + 29.279);
+    }
+    return Math.round(11.936 * peso_kg + 587.728 * (altura_cm / 100) - 8.129 * edad + 29.279);
   }
+};
+
+/**
+ * Selecciona y calcula la TMB según perfil y reglas del documento
+ */
+export function calculateBMR(profile) {
+  const {
+    sexo,
+    peso_kg,
+    altura_cm,
+    edad,
+    formula_preferida,
+    training_type,
+    objetivo,
+    level,
+    cintura_cm,
+    bodyfat_percent
+  } = profile;
+
+  if (edad < 14 || edad > 80 || altura_cm < 120 || altura_cm > 220 || peso_kg < 30 || peso_kg > 250) {
+    throw new Error('Datos fuera de rango válido para cálculo TMB');
+  }
+
+  if (formula_preferida && BMR_FORMULAS[formula_preferida]) {
+    return BMR_FORMULAS[formula_preferida](profile);
+  }
+
+  const whtr = cintura_cm && altura_cm ? cintura_cm / altura_cm : null;
+  const highFat = (bodyfat_percent && bodyfat_percent >= 18) || (whtr && whtr >= 0.55);
+  const levelNormalized = level || (training_type === 'hipertrofia' || training_type === 'fuerza' ? 'intermedio' : 'principiante');
+
+  // Regla 1: principiante/sedentario
+  if (levelNormalized === 'principiante' || profile.actividad === 'sedentario') {
+    return BMR_FORMULAS.harris(profile);
+  }
+
+  // Regla 2: edad avanzada o altura extrema
+  const alturaExtrema =
+    (sexo === 'hombre' && (altura_cm >= 190 || altura_cm <= 160)) ||
+    (sexo === 'mujer' && (altura_cm >= 175 || altura_cm <= 150));
+  if (edad >= 50 || alturaExtrema) {
+    return BMR_FORMULAS.mifflin(profile);
+  }
+
+  // Regla 3: intermedio y edad <= 40
+  if (levelNormalized === 'intermedio' && edad <= 40) {
+    return BMR_FORMULAS.tenHaaf(profile);
+  }
+
+  // Regla 4: avanzado varón sin alta grasa y peso >=80
+  if (
+    levelNormalized === 'avanzado' &&
+    sexo === 'hombre' &&
+    peso_kg >= 80 &&
+    !highFat &&
+    (!bodyfat_percent || bodyfat_percent < 18) &&
+    (!whtr || whtr < 0.52)
+  ) {
+    return BMR_FORMULAS.tinsley(profile);
+  }
+
+  // Regla 5 fallback
+  return BMR_FORMULAS.mifflin(profile);
 }
 
 /**
  * Factores de actividad física para TDEE
  */
 const ACTIVITY_FACTORS = {
-  sedentario: 1.2,    // Poco o ningún ejercicio
-  ligero: 1.375,      // Ejercicio ligero 1-3 días/semana
-  moderado: 1.55,     // Ejercicio moderado 3-5 días/semana
-  alto: 1.725,        // Ejercicio intenso 6-7 días/semana
-  muy_alto: 1.9       // Ejercicio muy intenso + trabajo físico
+  sedentario: { base: 1.2, byTraining: { 4: 1.3, 5: 1.4, 6: 1.5 } },
+  ligero: { base: 1.4, byTraining: { 4: 1.5, 5: 1.6, 6: 1.7 } },
+  moderado: { base: 1.55, byTraining: { 4: 1.7, 5: 1.8, 6: 1.9 } },
+  activo: { base: 1.6, byTraining: { 4: 1.7, 5: 1.8, 6: 1.9 } },
+  muy_activo: { base: 1.8, byTraining: { 4: 1.9, 5: 2.0, 6: 2.1 } }
 };
 
 /**
  * Calcula el Gasto Energético Total Diario (TDEE)
  * @param {number} bmr - Tasa metabólica basal
  * @param {string} actividad - Nivel de actividad
+ * @param {number} trainingDays - Entrenos/semana para ajustar el factor
  * @returns {number} TDEE en kcal/día
  */
-export function calculateTDEE(bmr, actividad) {
-  const factor = ACTIVITY_FACTORS[actividad] || ACTIVITY_FACTORS.moderado;
+export function calculateTDEE(bmr, actividad, trainingDays, stepsPerDay) {
+  const activityConfig = ACTIVITY_FACTORS[actividad] || ACTIVITY_FACTORS.moderado;
+  let factor = activityConfig.base;
+
+  const entrenos = trainingDays || 0;
+  if (entrenos >= 4) {
+    const key = Math.min(entrenos, 6);
+    if (activityConfig.byTraining[key]) {
+      factor = activityConfig.byTraining[key];
+    }
+  }
+
+  // Ajuste NEAT por pasos
+  if (stepsPerDay) {
+    if (stepsPerDay < 5000) {
+      factor = Math.max(1.2, factor - 0.05);
+    } else if (stepsPerDay >= 7500 && stepsPerDay <= 10000) {
+      factor = factor + 0.05;
+    } else if (stepsPerDay > 10000) {
+      factor = Math.min(2.2, factor + 0.1);
+    }
+  }
+
   return Math.round(bmr * factor);
 }
 
@@ -55,11 +145,9 @@ export function calculateTDEE(bmr, actividad) {
 export function adjustCaloriesForGoal(tdee, objetivo) {
   switch (objetivo) {
     case 'cut':
-      // Déficit del 15-20% (usamos 17% como término medio)
-      return Math.round(tdee * 0.83);
+      return Math.round(tdee * 0.85); // -15%
     case 'bulk':
-      // Superávit del 10-15% (usamos 12% como término medio)
-      return Math.round(tdee * 1.12);
+      return Math.round(tdee * 1.08); // +8%
     case 'mant':
     default:
       // Mantenimiento
@@ -73,37 +161,41 @@ export function adjustCaloriesForGoal(tdee, objetivo) {
  * @param {number} peso_kg - Peso del usuario en kg
  * @param {string} trainingType - Tipo de entrenamiento
  * @param {string} objetivo - 'cut' | 'mant' | 'bulk'
+ * @param {string} metabolicType - 'tolerante' | 'intolerante' | 'mixto'
  * @returns {Object} Distribución de macros {protein_g, carbs_g, fat_g}
  */
-export function calculateMacros(kcalObjetivo, peso_kg, trainingType, objetivo) {
-  // 1. PROTEÍNA: Según objetivo y tipo de entrenamiento
-  let proteinPerKg;
-
-  if (trainingType === 'hipertrofia' || trainingType === 'fuerza') {
-    proteinPerKg = objetivo === 'bulk' ? 2.2 : 2.0;
-  } else if (trainingType === 'resistencia') {
-    proteinPerKg = 1.6;
-  } else {
-    proteinPerKg = 1.8; // Default
-  }
-
-  const protein_g = Math.round(peso_kg * proteinPerKg);
-  const proteinKcal = protein_g * 4; // 4 kcal por gramo de proteína
-
-  // 2. GRASAS: 25% de las calorías totales (20-30% rango saludable)
-  const fatPercentage = objetivo === 'cut' ? 0.25 : 0.28;
-  const fatKcal = Math.round(kcalObjetivo * fatPercentage);
-  const fat_g = Math.round(fatKcal / 9); // 9 kcal por gramo de grasa
-
-  // 3. CARBOHIDRATOS: El resto de las calorías
-  const carbsKcal = kcalObjetivo - proteinKcal - fatKcal;
-  const carbs_g = Math.round(carbsKcal / 4); // 4 kcal por gramo de carbohidratos
-
-  return {
-    protein_g,
-    carbs_g,
-    fat_g
+export function calculateMacros(kcalObjetivo, peso_kg, trainingType, objetivo, metabolicType, metabolicConfidence = 'media', level = 'intermedio') {
+  const ranges = {
+    tolerante: { protein: [0.2, 0.25], carbs: [0.5, 0.6], fat: [0.15, 0.25] },
+    intolerante: { protein: [0.3, 0.35], carbs: [0.2, 0.3], fat: [0.35, 0.45] },
+    mixto: { protein: [0.25, 0.3], carbs: [0.35, 0.4], fat: [0.3, 0.35] }
   };
+
+  const appliedMetabolicType = metabolicConfidence === 'baja' ? 'mixto' : (metabolicType || 'mixto');
+  let pct = ranges[appliedMetabolicType] || ranges.mixto;
+  const proteinMin =
+    objetivo === 'cut'
+      ? 2.0 * peso_kg
+      : objetivo === 'mant'
+        ? 1.6 * peso_kg
+        : (level === 'avanzado' ? 1.8 : 1.6) * peso_kg;
+  const fatMin = Math.max(0.6 * peso_kg, (kcalObjetivo * 0.20) / 9);
+
+  // Porcentajes base
+  let protein_g = Math.round((kcalObjetivo * ((pct.protein[0] + pct.protein[1]) / 2)) / 4);
+  let fat_g = Math.round((kcalObjetivo * ((pct.fat[0] + pct.fat[1]) / 2)) / 9);
+  let carbs_g = Math.round((kcalObjetivo * ((pct.carbs[0] + pct.carbs[1]) / 2)) / 4);
+
+  // Normalización con mínimos fisiológicos
+  protein_g = Math.max(protein_g, Math.round(proteinMin));
+  fat_g = Math.max(fat_g, Math.round(fatMin));
+
+  const proteinKcal = protein_g * 4;
+  const fatKcal = fat_g * 9;
+  const remainingKcal = Math.max(0, kcalObjetivo - proteinKcal - fatKcal);
+  carbs_g = Math.max(0, Math.round(remainingKcal / 4));
+
+  return { protein_g, carbs_g, fat_g };
 }
 
 /**
@@ -239,18 +331,24 @@ export function generateNutritionPlan(profile, duracionDias, trainingSchedule = 
     objetivo,
     actividad,
     comidas_dia,
-    training_type = 'general'
+    training_type = 'general',
+    metabolic_type,
+    metabolic_confidence = 'media',
+    level = 'intermedio',
+    steps_per_day
   } = profile;
 
+  const trainingDays = trainingSchedule.length > 0 ? trainingSchedule.filter(Boolean).length : profile.training_days || 4;
+
   // 1. Calcular BMR y TDEE
-  const bmr = calculateBMR({ sexo, peso_kg, altura_cm, edad });
-  const tdee = calculateTDEE(bmr, actividad);
+  const bmr = calculateBMR({ ...profile, sexo, peso_kg, altura_cm, edad });
+  const tdee = calculateTDEE(bmr, actividad, trainingDays, steps_per_day);
 
   // 2. Ajustar calorías por objetivo
   const kcalObjetivo = adjustCaloriesForGoal(tdee, objetivo);
 
   // 3. Calcular macros base
-  const baseMacros = calculateMacros(kcalObjetivo, peso_kg, training_type, objetivo);
+  const baseMacros = calculateMacros(kcalObjetivo, peso_kg, training_type, objetivo, metabolic_type, metabolic_confidence, level);
 
   // 4. Generar días del plan con carb cycling
   const days = [];

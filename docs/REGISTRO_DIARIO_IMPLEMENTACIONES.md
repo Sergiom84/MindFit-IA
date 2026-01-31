@@ -1,5 +1,18 @@
 # Registro diario de implementaciones
 
+## 31.01.2026
+
+- Limpieza: se eliminaron archivos vacíos duplicados creados por error (`0`, `backend/cd`, `backend/duracion`, `backend/entrena-con-ia-backend@1.0.0`, `backend/node`, `backend/nombre`, `backend/npm`) para evitar ruido en el repositorio.
+- Nutrición v2: cálculo TMB ahora selecciona fórmula (Tinsley, Ten Haaf, Mifflin, Harris) con reglas MindFeed (nivel, edad, altura extrema, WHtR/grasas altas), factores de actividad actualizados, ajuste NEAT por pasos y objetivos según fase; macros por perfil metabólico; nuevas columnas en `app.nutrition_profiles` (metabolic_type, formula_preferida, training_days, waist_cm, bodyfat_percent, steps_per_day); endpoints de mediciones y reevaluación 14 días (`/api/nutrition-v2/measurements`, `/api/nutrition-v2/evaluate`) ahora detectan mediciones sospechosas, aplican semáforos y sugieren ajustes de ±150-250 kcal según progreso.
+- Frontend Nutrición: el formulario de perfil (`NutritionProfileSetup`) ahora captura entrenos/semana, pasos diarios, nivel (principiante/intermedio/avanzado), perfil metabólico (tolerante/mixto/intolerante), cintura, % grasa y envía esos campos al backend al guardar el perfil.
+- Calendario Nutricional: se añadió botón "Menú del día" por jornada para llamar a `/api/nutrition-v2/generate-full-day-menus`, mostrando estado de generación y mensaje informativo; backend corrige generación masiva con helper compartido y expone `day_id` en el plan activo para identificar días.
+- Control nutricional integral: reevaluación normocalórica usa IEC (peso/cintura en 14 días) con acciones ROJO/AMARILLO/VERDE/VERDE+; se amplían sospechas (peso ±2% en 7 días); se añaden endpoints de saltos de dieta (`POST/GET /api/nutrition-v2/diet-breaks`) con sugerencia de compensación semanal (manteniendo proteína ≥2 g/kg).
+- Metabolismo: guardado de `metabolic_score`/`metabolic_confidence` en el perfil; si la confianza es baja, se fuerza perfil mixto; cálculo de macros aplica guardarraíles (proteína mínima por fase/level, grasa mínima 0.6 g/kg o 20% kcal) y reparte carbohidratos con las calorías restantes; se normaliza usando el perfil metabólico y nivel.
+- Evaluación metabólica cuantificada: nuevo endpoint `/api/nutrition-v2/metabolic-evaluate` que calcula score S a partir de respuestas y señales objetivas, determina confianza, aplica anti-ruido (2 reevaluaciones para cambiar, máximo 1 categoría por ciclo) y actualiza el perfil; columnas añadidas a `app.nutrition_profiles` para pendientes y última evaluación.
+- UI Nutrición: se añade el componente de cuestionario metabólico (score S, señales objetivas y anti-ruido) integrado en `NutritionProfileSetup`; el perfil muestra score, confianza y pendientes, y conserva los campos metabólicos al guardar el perfil para evitar sobrescrituras.
+- Puente Entrenamiento↔Nutrición: nuevo endpoint `/api/bridge/training-summary` calcula kcal/macros base (con perfil y objetivo) y aplica carb cycling por tipo de día (D0/D1/D2) redistribuyendo carbohidratos según reglas del puente; responde guía coordinada (deload/fatiga) para entrenamiento. Ruta montada en `server.js`.
+- Ajuste carb cycling según CLS: el puente ahora escala deltas de carbohidratos (D2 hasta +20%, D0 hasta -20%) en función del score de carga semanal y agrega recomendaciones cuando cae el rendimiento en normocalórica.
+
 ## 30.01.2026
 
 - HipertrofiaV2 ahora aplica ajustes de volumen/intensidad según el ajuste menstrual diario para usuarias femeninas, integrando el endpoint de ciclo en `/api/hipertrofiav2/current-session-with-adjustments`.

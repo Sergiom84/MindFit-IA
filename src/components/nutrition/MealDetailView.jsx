@@ -209,6 +209,21 @@ export default function MealDetailView({ day, planInfo, onClose }) {
                       📝 Menú específico pendiente de generación con IA
                     </p>
                   </div>
+
+                  {/* Menú generado (si existe) */}
+                  {meal.generated_menu?.items?.length > 0 && (
+                    <div className="mt-4 bg-white/5 border border-white/10 rounded-lg p-4">
+                      <div className="text-sm text-gray-300 font-semibold mb-2">Menú sugerido por IA</div>
+                      <div className="space-y-2 text-sm text-gray-200">
+                        {meal.generated_menu.items.map((item, idx) => (
+                          <div key={idx} className="flex justify-between gap-2 border-b border-white/5 pb-1">
+                            <span className="text-gray-200">{item.nombre || item.name}</span>
+                            <span className="text-gray-400">{item.porcion || item.porcion_sugerida || item.gramos || ''}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
