@@ -2,6 +2,7 @@
 
 ## 31.01.2026
 
+- Git: cambios de Nutrición se suben a la rama `feature/nutricion-bridge-metabolico` para seguir iterando sin merge a `main`.
 - Limpieza: se eliminaron archivos vacíos duplicados creados por error (`0`, `backend/cd`, `backend/duracion`, `backend/entrena-con-ia-backend@1.0.0`, `backend/node`, `backend/nombre`, `backend/npm`) para evitar ruido en el repositorio.
 - Nutrición v2: cálculo TMB ahora selecciona fórmula (Tinsley, Ten Haaf, Mifflin, Harris) con reglas MindFeed (nivel, edad, altura extrema, WHtR/grasas altas), factores de actividad actualizados, ajuste NEAT por pasos y objetivos según fase; macros por perfil metabólico; nuevas columnas en `app.nutrition_profiles` (metabolic_type, formula_preferida, training_days, waist_cm, bodyfat_percent, steps_per_day); endpoints de mediciones y reevaluación 14 días (`/api/nutrition-v2/measurements`, `/api/nutrition-v2/evaluate`) ahora detectan mediciones sospechosas, aplican semáforos y sugieren ajustes de ±150-250 kcal según progreso.
 - Frontend Nutrición: el formulario de perfil (`NutritionProfileSetup`) ahora captura entrenos/semana, pasos diarios, nivel (principiante/intermedio/avanzado), perfil metabólico (tolerante/mixto/intolerante), cintura, % grasa y envía esos campos al backend al guardar el perfil.
