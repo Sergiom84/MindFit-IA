@@ -8,6 +8,7 @@
 - Backend: añadido router `backend/routes/performanceConfirmation.js` para `/api/performance-confirmation` (registro de rendimiento, check 2 semanas, estado confirmado ICG/IPG/IEC).
 - SQL: ajustes de compatibilidad para Supabase en migraciones de nutrición (`backend/migrations/create_training_performance_tracking.sql` sin `RECORD[]` y `backend/migrations/create_nutrition_calibration_system.sql` asegurando columnas `kcal_objetivo`/`tdee`).
 - Seguridad: se eliminaron tokens `sbp_*` reales de documentación de setup MCP (se reemplazan por placeholders).
+- Git: merge de `feature/nutricion-bridge-metabolico` a `main`.
 
 ## 01.02.2026
 
