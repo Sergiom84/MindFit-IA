@@ -42,6 +42,7 @@ import techniqueRoutes from './routes/technique.js';
 import nutritionRoutes from './routes/nutrition.js';
 import nutritionV2Routes from './routes/nutritionV2.js';
 import metabolicProfileRoutes from './routes/metabolicProfile.js';
+import nutritionCalibrationRoutes from './routes/nutritionCalibration.js';
 import musicRoutes from './routes/music.js';
 import analyticsRoutes from './routes/analytics.js';
 import hipertrofiaV2Routes from './routes/hipertrofiaV2.js';
@@ -420,6 +421,7 @@ app.use('/api/technique', techniqueRoutes);
 app.use('/api/nutrition', nutritionRoutes);
 app.use('/api/nutrition-v2', nutritionV2Routes); // Sistema determinista normalizado
 app.use('/api/metabolic-profile', metabolicProfileRoutes); // Perfil metabolico y distribucion de macros
+app.use('/api/nutrition/calibration', nutritionCalibrationRoutes); // Sistema de calibracion automatica del GCT
 app.use('/api/bridge', trainingNutritionBridgeRoutes);
 app.use('/api/diet-deviation', dietDeviationRoutes); // Gestion de saltos de dieta
 app.use('/api/body-measurements', bodyMeasurementsRoutes); // Sistema completo de mediciones corporales
