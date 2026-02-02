@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 
+// Devuelve la fecha local (no UTC) en formato YYYY-MM-DD para evitar desfaces por zona horaria
+const getLocalDate = () => {
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return local.toISOString().split('T')[0];
+};
+
 /**
  * Hook para gestionar el ciclo menstrual
  * Maneja configuración, registro diario y cálculo de fases
@@ -36,7 +43,7 @@ export const useMenstrualCycle = (userId) => {
     
     try {
       const token = localStorage.getItem('token');
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDate();
       const response = await fetch(`/api/menstrual-cycle/log/${today}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -90,10 +97,15 @@ export const useMenstrualCycle = (userId) => {
   }, []);
 
   // Registrar "Hoy me bajó"
-  const logPeriodStart = useCallback(async () => {
+  const logPeriodStart = useCallback(async (options = {}) => {
     try {
       const token = localStorage.getItem('token');
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDate();
+
+      // Evitar doble registro dentro de la ventana de periodo activo
+      if (options.periodActive) {
+        return { success: true, skipped: true };
+      }
       
       const response = await fetch('/api/menstrual-cycle/log', {
         method: 'POST',
@@ -122,7 +134,7 @@ export const useMenstrualCycle = (userId) => {
   const logSymptoms = useCallback(async (symptoms) => {
     try {
       const token = localStorage.getItem('token');
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDate();
       
       const response = await fetch('/api/menstrual-cycle/log', {
         method: 'POST',
@@ -132,7 +144,9 @@ export const useMenstrualCycle = (userId) => {
         },
         body: JSON.stringify({
           log_date: today,
-          ...symptoms
+          ...symptoms,
+          // Si el periodo sigue activo por configuración, garantizamos que quede marcado
+          ...(periodActive ? { is_period_day: true } : {})
         })
       });
       
@@ -158,8 +172,9 @@ export const useMenstrualCycle = (userId) => {
       };
     }
 
+    const todayStr = getLocalDate();
     const lastPeriod = new Date(config.last_period_start);
-    const today = new Date();
+    const today = new Date(todayStr);
     const diffTime = today - lastPeriod;
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
     
@@ -212,6 +227,16 @@ export const useMenstrualCycle = (userId) => {
       phaseDescription,
       daysUntilNextPeriod
     };
+  }, [config]);
+
+  // Ventana de periodo activo según última fecha y duración configurada
+  const periodActive = useMemo(() => {
+    if (!config?.last_period_start) return false;
+    const todayStr = getLocalDate();
+    const start = new Date(config.last_period_start);
+    const today = new Date(todayStr);
+    const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;
+    return diff >= 1 && diff <= (config.period_length || 5);
   }, [config]);
 
   // Obtener ajuste de entrenamiento basado en síntomas + fase
@@ -297,10 +322,20 @@ export const useMenstrualCycle = (userId) => {
     };
   }, [todayLog, cycleInfo, config]);
 
+  // Log efectivo: si estamos dentro de la ventana de periodo, forzamos el flag en UI
+  const effectiveTodayLog = useMemo(() => {
+    if (periodActive) {
+      return todayLog ? { ...todayLog, is_period_day: true } : { is_period_day: true };
+    }
+    return todayLog;
+  }, [periodActive, todayLog]);
+
   return {
     // Estado
     config,
     todayLog,
+    effectiveTodayLog,
+    periodActive,
     loading,
     error,
     cycleInfo,

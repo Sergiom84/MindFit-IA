@@ -4,6 +4,22 @@ import authenticateToken from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Fecha local en formato YYYY-MM-DD (evita desfaces UTC)
+const getLocalDate = () => {
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return local.toISOString().split('T')[0];
+};
+
+// Determina si una fecha está dentro de la ventana de periodo activo según config
+const isDateInActivePeriod = (config, dateStr) => {
+  if (!config?.last_period_start) return false;
+  const checkDate = new Date(dateStr);
+  const start = new Date(config.last_period_start);
+  const diff = Math.floor((checkDate - start) / (1000 * 60 * 60 * 24)) + 1;
+  return diff >= 1 && diff <= (config.period_length || 5);
+};
+
 /**
  * Rutas para el módulo de Ciclo Menstrual
  * Todas las rutas requieren autenticación
@@ -118,13 +134,31 @@ router.get('/log/:date', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
     const { date } = req.params;
 
+    const configRes = await pool.query(
+      `SELECT last_period_start, period_length FROM app.user_menstrual_config WHERE user_id = $1`,
+      [userId]
+    );
+    const config = configRes.rows[0] || null;
+
     const result = await pool.query(
       `SELECT * FROM app.menstrual_daily_log 
        WHERE user_id = $1 AND log_date = $2`,
       [userId, date]
     );
 
-    res.json({ log: result.rows[0] || null });
+    let log = result.rows[0] || null;
+
+    // Si no hay log guardado pero estamos dentro de la ventana activa, devolvemos un log sintético
+    if (!log && isDateInActivePeriod(config, date)) {
+      log = { user_id: userId, log_date: date, is_period_day: true, synthetic: true };
+    }
+
+    // Si hay log pero no está marcado y la ventana indica periodo, reflejarlo en la respuesta
+    if (log && !log.is_period_day && isDateInActivePeriod(config, date)) {
+      log = { ...log, is_period_day: true, synthetic: true };
+    }
+
+    res.json({ log });
   } catch (error) {
     console.error('Error obteniendo log del día:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -145,16 +179,47 @@ router.get('/logs', authenticateToken, async (req, res) => {
     }
 
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
+
+    // Calcular correctamente el último día del mes (month en query es 1-12)
+    const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+    // Traer config para sintetizar días de periodo activo
+    const configRes = await pool.query(
+      `SELECT last_period_start, period_length FROM app.user_menstrual_config WHERE user_id = $1`,
+      [userId]
+    );
+    const config = configRes.rows[0] || null;
 
     const result = await pool.query(
-      `SELECT * FROM app.menstrual_daily_log 
+      `SELECT * FROM app.menstrual_daily_log
        WHERE user_id = $1 AND log_date BETWEEN $2 AND $3
        ORDER BY log_date ASC`,
       [userId, startDate, endDate]
     );
 
-    res.json({ logs: result.rows });
+    const logs = result.rows || [];
+    const hasLogForDate = new Set(logs.map(l => l.log_date?.toISOString ? l.log_date.toISOString().split('T')[0] : String(l.log_date)));
+
+    // Generar entradas sintéticas para los días dentro de la ventana de periodo que caen en el mes y no tienen log
+    if (config?.last_period_start) {
+      const periodLength = config.period_length || 5;
+      const start = new Date(config.last_period_start);
+      for (let i = 0; i < periodLength; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        const dStr = d.toISOString().split('T')[0];
+        if (dStr >= startDate && dStr <= endDate && !hasLogForDate.has(dStr)) {
+          logs.push({ user_id: userId, log_date: dStr, is_period_day: true, synthetic: true });
+          hasLogForDate.add(dStr);
+        }
+      }
+    }
+
+    // Ordenar por fecha asc
+    logs.sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
+
+    res.json({ logs });
   } catch (error) {
     console.error('Error obteniendo logs del mes:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -187,6 +252,15 @@ router.post('/log', authenticateToken, async (req, res) => {
 
     await client.query('BEGIN');
 
+    // Obtener config para validar ventana de periodo
+    const configRes = await client.query(
+      `SELECT last_period_start, period_length FROM app.user_menstrual_config WHERE user_id = $1`,
+      [userId]
+    );
+    const config = configRes.rows[0] || null;
+    const periodActiveForDate = isDateInActivePeriod(config, log_date);
+    const effectivePeriodFlag = periodActiveForDate ? true : is_period_day;
+
     // Verificar si ya existe un registro para ese día
     const existing = await client.query(
       `SELECT id FROM app.menstrual_daily_log WHERE user_id = $1 AND log_date = $2`,
@@ -201,9 +275,9 @@ router.post('/log', authenticateToken, async (req, res) => {
       const values = [];
       let paramCount = 1;
 
-      if (is_period_day !== undefined) {
+      if (effectivePeriodFlag !== undefined) {
         updates.push(`is_period_day = $${paramCount++}`);
-        values.push(is_period_day);
+        values.push(effectivePeriodFlag);
       }
       if (energy_level !== undefined) {
         updates.push(`energy_level = $${paramCount++}`);
@@ -246,12 +320,12 @@ router.post('/log', authenticateToken, async (req, res) => {
          (user_id, log_date, is_period_day, energy_level, pain_level, sleep_quality, mood, bloating, notes)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING *`,
-        [userId, log_date, is_period_day, energy_level, pain_level, sleep_quality, mood, bloating, notes]
+        [userId, log_date, effectivePeriodFlag, energy_level, pain_level, sleep_quality, mood, bloating, notes]
       );
     }
 
     // Si es día de periodo, actualizar last_period_start en config
-    if (is_period_day) {
+    if (effectivePeriodFlag) {
       // Verificar si este es el primer día de un nuevo periodo
       const yesterday = new Date(log_date);
       yesterday.setDate(yesterday.getDate() - 1);
@@ -301,7 +375,7 @@ router.post('/log', authenticateToken, async (req, res) => {
 router.get('/training-adjustment', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDate();
 
     // Obtener config
     const configResult = await pool.query(

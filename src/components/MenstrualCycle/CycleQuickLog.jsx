@@ -10,10 +10,11 @@ const CycleQuickLog = ({
   onSave, 
   onCancel, 
   currentLog = null,
+  periodActive = false,
   isModal = false 
 }) => {
   const [formData, setFormData] = useState({
-    is_period_day: currentLog?.is_period_day || false,
+    is_period_day: periodActive ? true : (currentLog?.is_period_day || false),
     energy_level: currentLog?.energy_level || 3,
     pain_level: currentLog?.pain_level || 1,
     sleep_quality: currentLog?.sleep_quality || 3,
@@ -22,11 +23,26 @@ const CycleQuickLog = ({
   });
   const [showOptional, setShowOptional] = useState(false);
   const [saving, setSaving] = useState(false);
+  const cardBase = 'bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg';
+  const iconColors = {
+    pink: 'text-pink-300',
+    yellow: 'text-yellow-300',
+    blue: 'text-sky-300',
+    purple: 'text-purple-300',
+    red: 'text-rose-300'
+  };
+  const sliderActiveClasses = {
+    pink: 'bg-pink-500/70 hover:bg-pink-500',
+    yellow: 'bg-yellow-500/70 hover:bg-yellow-500',
+    blue: 'bg-blue-500/70 hover:bg-blue-500',
+    purple: 'bg-purple-500/70 hover:bg-purple-500',
+    red: 'bg-red-500/70 hover:bg-red-500'
+  };
 
   const handleSave = async () => {
     setSaving(true);
     // Filtrar campos nulos opcionales
-    const dataToSave = { ...formData };
+    const dataToSave = { ...formData, ...(periodActive ? { is_period_day: true } : {}) };
     if (dataToSave.mood === null) delete dataToSave.mood;
     if (dataToSave.bloating === null) delete dataToSave.bloating;
     
@@ -45,10 +61,10 @@ const CycleQuickLog = ({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Icon className={`w-4 h-4 text-${color}-400`} />
-          <span className="text-sm text-gray-300">{label}</span>
+          <Icon className={`w-4 h-4 ${iconColors[color] || 'text-pink-300'}`} />
+          <span className="text-sm text-gray-300/80">{label}</span>
         </div>
-        <span className="text-xs text-gray-400">{labels[value - 1]}</span>
+        <span className="text-xs text-gray-400/70">{labels[value - 1]}</span>
       </div>
       <div className="flex gap-1">
         {[1, 2, 3, 4, 5].map(level => (
@@ -57,8 +73,8 @@ const CycleQuickLog = ({
             onClick={() => onChange(level)}
             className={`flex-1 h-8 rounded transition-all ${
               level <= value 
-                ? `bg-${color}-500/80 hover:bg-${color}-500`
-                : 'bg-gray-700 hover:bg-gray-600'
+                ? sliderActiveClasses[color] || sliderActiveClasses.pink
+                : 'bg-white/5 border border-white/10 hover:bg-white/10'
             }`}
             style={{
               backgroundColor: level <= value 
@@ -77,14 +93,14 @@ const CycleQuickLog = ({
   );
 
   const containerClasses = isModal 
-    ? "bg-gray-900 rounded-xl p-5 max-w-md mx-auto"
-    : "bg-gray-900/80 rounded-xl p-5 border border-pink-500/20";
+    ? `${cardBase} rounded-xl p-5 max-w-md mx-auto`
+    : `${cardBase} rounded-xl p-5 border-l-2 border-l-pink-400/40`;
 
   return (
     <div className={containerClasses}>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <h3 className="text-lg font-semibold text-white">¿Cómo estás hoy?</h3>
+        <h3 className="text-lg font-semibold text-white font-urbanist">¿Cómo estás hoy?</h3>
         {onCancel && (
           <button 
             onClick={onCancel}
@@ -98,16 +114,17 @@ const CycleQuickLog = ({
       <div className="space-y-5">
         {/* Botón de periodo */}
         <button
-          onClick={() => setFormData(prev => ({ ...prev, is_period_day: !prev.is_period_day }))}
+          onClick={() => !periodActive && setFormData(prev => ({ ...prev, is_period_day: !prev.is_period_day }))}
+          disabled={periodActive}
           className={`w-full p-4 rounded-lg border transition-all flex items-center justify-center gap-3 ${
             formData.is_period_day 
-              ? 'bg-red-500/20 border-red-500 text-red-300'
-              : 'bg-gray-800 border-gray-600 text-gray-300 hover:border-gray-500'
-          }`}
+              ? 'bg-white/5 border-rose-400/50 text-rose-200'
+              : 'bg-white/5 border-white/10 text-gray-300/80 hover:border-white/20'
+          } ${periodActive ? 'cursor-not-allowed opacity-80' : ''}`}
         >
           <Droplet className={`w-5 h-5 ${formData.is_period_day ? 'fill-current' : ''}`} />
           <span className="font-medium">
-            {formData.is_period_day ? 'Hoy tengo el periodo' : 'Marcar día de periodo'}
+            {formData.is_period_day ? 'Periodo activo' : 'Marcar día de periodo'}
           </span>
           {formData.is_period_day && <Check className="w-5 h-5" />}
         </button>
@@ -143,7 +160,7 @@ const CycleQuickLog = ({
         {/* Campos opcionales */}
         <button
           onClick={() => setShowOptional(!showOptional)}
-          className="text-sm text-gray-400 hover:text-gray-300 flex items-center gap-1"
+          className="text-sm text-gray-400/70 hover:text-gray-200 flex items-center gap-1"
         >
           {showOptional ? '- Ocultar campos opcionales' : '+ Añadir estado de ánimo e hinchazón'}
         </button>
@@ -178,16 +195,16 @@ const CycleQuickLog = ({
         </AnimatePresence>
 
         {/* Botón guardar */}
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full py-3 bg-pink-500 text-white rounded-lg font-medium hover:bg-pink-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {saving ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Guardando...
-            </>
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className="w-full py-3 bg-gradient-to-r from-pink-300 via-pink-400 to-rose-500 text-black rounded-lg font-semibold hover:from-pink-200 hover:via-pink-300 hover:to-rose-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_12px_30px_-18px_rgba(244,114,182,0.7)]"
+      >
+        {saving ? (
+          <>
+            <div className="w-5 h-5 border-2 border-black/40 border-t-transparent rounded-full animate-spin" />
+            Guardando...
+          </>
           ) : (
             <>
               <Check className="w-5 h-5" />
