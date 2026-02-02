@@ -1,34 +1,37 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Calendar, BarChart3, Settings, ArrowLeft, 
-  TrendingUp, Droplet, Moon, Zap, Clock,
-  ChevronLeft, ChevronRight, Info
+  Calendar, BarChart3, Settings,
+  TrendingUp, Droplet, Moon, Zap,
+  Info
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import useMenstrualCycle from './hooks/useMenstrualCycle';
+import CycleCalendar from './CycleCalendar';
+import DailyLogModal from './DailyLogModal';
 import CycleDayCard from './CycleDayCard';
 import CycleOnboarding from './CycleOnboarding';
-import CycleQuickLog from './CycleQuickLog';
 
 /**
  * Sección principal del Ciclo Menstrual
  * Accesible desde la navegación principal (solo para usuarios femeninos)
  */
 const CycleSection = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [activeView, setActiveView] = useState('today'); // 'today', 'calendar', 'insights', 'settings'
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [calendarLogs, setCalendarLogs] = useState([]);
+  const [dailyLogDate, setDailyLogDate] = useState(null);
+  const [dailyLogOpen, setDailyLogOpen] = useState(false);
   
   const {
     config,
     todayLog,
+    effectiveTodayLog,
     loading,
     cycleInfo,
+    periodActive,
     saveConfig,
     logPeriodStart,
     logSymptoms,
@@ -36,32 +39,32 @@ const CycleSection = () => {
     refresh
   } = useMenstrualCycle(user?.id);
 
+  const loadCalendarLogs = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const year = selectedMonth.getFullYear();
+      const month = selectedMonth.getMonth() + 1;
+      
+      const response = await fetch(
+        `/api/menstrual-cycle/logs?year=${year}&month=${month}`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCalendarLogs(data.logs || []);
+      }
+    } catch (err) {
+      console.error('Error cargando logs del calendario:', err);
+    }
+  }, [selectedMonth]);
+
   // Cargar logs del mes para calendario
   useEffect(() => {
-    const loadCalendarLogs = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const year = selectedMonth.getFullYear();
-        const month = selectedMonth.getMonth() + 1;
-        
-        const response = await fetch(
-          `/api/menstrual-cycle/logs?year=${year}&month=${month}`,
-          { headers: { 'Authorization': `Bearer ${token}` } }
-        );
-        
-        if (response.ok) {
-          const data = await response.json();
-          setCalendarLogs(data.logs || []);
-        }
-      } catch (err) {
-        console.error('Error cargando logs del calendario:', err);
-      }
-    };
-
     if (activeView === 'calendar') {
       loadCalendarLogs();
     }
-  }, [selectedMonth, activeView]);
+  }, [activeView, loadCalendarLogs]);
 
   // Si no hay config, mostrar onboarding
   useEffect(() => {
@@ -88,32 +91,16 @@ const CycleSection = () => {
     { id: 'settings', label: 'Ajustes', icon: Settings }
   ];
 
-  // Generar días del calendario
-  const generateCalendarDays = () => {
-    const year = selectedMonth.getFullYear();
-    const month = selectedMonth.getMonth();
-    
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDay = firstDay.getDay();
-    
-    const days = [];
-    
-    // Días vacíos al inicio
-    for (let i = 0; i < startingDay; i++) {
-      days.push({ day: null, log: null });
-    }
-    
-    // Días del mes
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const log = calendarLogs.find(l => l.log_date?.split('T')[0] === dateStr);
-      days.push({ day, log, date: dateStr });
-    }
-    
-    return days;
-  };
+  const handleSelectCalendarDate = useCallback(({ date }) => {
+    if (!date) return;
+    setDailyLogDate(date);
+    setDailyLogOpen(true);
+  }, []);
+
+  const handleDailyLogSaved = useCallback(async () => {
+    await loadCalendarLogs();
+    refresh();
+  }, [loadCalendarLogs, refresh]);
 
   if (loading) {
     return (
@@ -195,14 +182,16 @@ const CycleSection = () => {
                 />
               ) : (
                 <>
-                  <CycleDayCard
-                    cycleInfo={cycleInfo}
-                    todayLog={todayLog}
-                    adjustment={adjustment}
-                    onLogSymptoms={logSymptoms}
-                    onLogPeriodStart={logPeriodStart}
-                    onOpenSettings={() => setActiveView('settings')}
-                  />
+                <CycleDayCard
+                  cycleInfo={cycleInfo}
+                  todayLog={todayLog}
+                  effectiveTodayLog={effectiveTodayLog}
+                  periodActive={periodActive}
+                  adjustment={adjustment}
+                  onLogSymptoms={logSymptoms}
+                  onLogPeriodStart={logPeriodStart}
+                  onOpenSettings={() => setActiveView('settings')}
+                />
 
                   {/* Info educativa */}
                   <div className="bg-neutral-900/70 rounded-xl p-4 border border-white/10 ring-1 ring-white/5 backdrop-blur-lg border-l-2 border-l-pink-400/40">
@@ -227,75 +216,13 @@ const CycleSection = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
             >
-              {/* Navegación del mes */}
-              <div className="flex items-center justify-between mb-4">
-                <button
-                  onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1))}
-                  className="p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <h3 className="text-lg font-semibold font-urbanist">
-                  {selectedMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
-                </h3>
-                <button
-                  onClick={() => setSelectedMonth(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1))}
-                  className="p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Días de la semana */}
-              <div className="grid grid-cols-7 gap-1 mb-2">
-                {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(day => (
-                  <div key={day} className="text-center text-xs text-gray-400/80 py-2">
-                    {day}
-                  </div>
-                ))}
-              </div>
-
-              {/* Grid del calendario */}
-              <div className="grid grid-cols-7 gap-1">
-                {generateCalendarDays().map((item, idx) => (
-                  <div
-                    key={idx}
-                    className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm border ${
-                      item.day
-                        ? item.log?.is_period_day
-                          ? 'bg-red-500/15 text-red-200 border-red-400/30'
-                          : item.log
-                            ? 'bg-pink-500/15 text-pink-200 border-pink-400/30'
-                            : 'bg-white/5 text-gray-300/70 border-white/10 hover:bg-white/10'
-                        : 'border-transparent'
-                    }`}
-                  >
-                    {item.day && (
-                      <>
-                        <span className="font-medium">{item.day}</span>
-                        {item.log && (
-                          <div className="flex gap-0.5 mt-1">
-                            {item.log.is_period_day && <Droplet className="w-2 h-2 fill-current text-red-400" />}
-                            {item.log.energy_level && <Zap className="w-2 h-2 text-yellow-400" />}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Leyenda */}
-              <div className="flex gap-4 mt-4 text-xs text-gray-300/70">
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded bg-red-500/30" />
-                  <span>Periodo</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded bg-pink-500/20" />
-                  <span>Día registrado</span>
-                </div>
-              </div>
+              <CycleCalendar
+                selectedMonth={selectedMonth}
+                onChangeMonth={setSelectedMonth}
+                calendarLogs={calendarLogs}
+                config={config}
+                onSelectDate={handleSelectCalendarDate}
+              />
             </motion.div>
           )}
 
@@ -379,9 +306,16 @@ const CycleSection = () => {
               </div>
             </motion.div>
           )}
-        </AnimatePresence>
+      </AnimatePresence>
         </div>
       </div>
+
+      <DailyLogModal
+        isOpen={dailyLogOpen}
+        date={dailyLogDate}
+        onClose={() => setDailyLogOpen(false)}
+        onSaved={handleDailyLogSaved}
+      />
 
       {/* Modal de onboarding */}
       <AnimatePresence>

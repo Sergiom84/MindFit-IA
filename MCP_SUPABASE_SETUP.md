@@ -3,7 +3,7 @@
 ## Estado Actual
 
 - ✅ `.mcp.json` configurado en `/mnt/c/Users/Sergio/Desktop/Entrenaconia/.mcp.json`
-- ✅ Access Token: `sbp_a695c76d20b4c0e34b4bf218f79c76469b04fa57`
+- ✅ Access Token: `sbp_TU_TOKEN_AQUI`
 - ✅ Servidor MCP: `@supabase/mcp-server-supabase@latest`
 - ⚠️ Conexión: Fallando
 
@@ -33,12 +33,12 @@ Esto mostrará los logs en tiempo real. Busca líneas como:
 
 ```bash
 npm cache clean --force
-npx -y @supabase/mcp-server-supabase@latest --access-token "sbp_a695c76d20b4c0e34b4bf218f79c76469b04fa57"
+npx -y @supabase/mcp-server-supabase@latest --access-token "sbp_TU_TOKEN_AQUI"
 ```
 
 ### 4️⃣ Verifica el Token de Acceso
 
-El token actual es: `sbp_a695c76d20b4c0e34b4bf218f79c76469b04fa57`
+El token actual es: `sbp_TU_TOKEN_AQUI`
 
 Puedes verificarlo en: https://supabase.com/dashboard/account/tokens
 
@@ -59,7 +59,7 @@ Puedes verificarlo en: https://supabase.com/dashboard/account/tokens
         "-y",
         "@supabase/mcp-server-supabase@latest",
         "--access-token",
-        "sbp_a695c76d20b4c0e34b4bf218f79c76469b04fa57"
+        "sbp_TU_TOKEN_AQUI"
       ]
     }
   }

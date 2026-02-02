@@ -3,7 +3,7 @@
 ## Token Confirmado
 
 ```
-sbp_a695c76d20b4c0e34b4bf218f79c76469b04fa57
+sbp_TU_TOKEN_AQUI
 ```
 
 ## Ubicaciones Donde Está Configurado
@@ -26,7 +26,7 @@ sbp_a695c76d20b4c0e34b4bf218f79c76469b04fa57
         "-y",
         "@supabase/mcp-server-supabase@latest",
         "--access-token",
-        "sbp_a695c76d20b4c0e34b4bf218f79c76469b04fa57"
+        "sbp_TU_TOKEN_AQUI"
       ]
     }
   }
@@ -37,7 +37,7 @@ sbp_a695c76d20b4c0e34b4bf218f79c76469b04fa57
 
 | Campo            | Valor                                                                                                                                                                                                              |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Access Token** | `sbp_a695c76d20b4c0e34b4bf218f79c76469b04fa57`                                                                                                                                                                     |
+| **Access Token** | `sbp_TU_TOKEN_AQUI`                                                                                                                                                                                                |
 | **Project ID**   | `lhsnmjgdtjalfcsurxvg`                                                                                                                                                                                             |
 | **Project URL**  | `https://lhsnmjgdtjalfcsurxvg.supabase.co`                                                                                                                                                                         |
 | **Database URL** | `postgresql://postgres.lhsnmjgdtjalfcsurxvg:G6FNjQq1Sc08y3MQ@aws-1-eu-north-1.pooler.supabase.com:6543/postgres`                                                                                                   |

@@ -56,7 +56,9 @@ export const BodyMeasuresCard = ({
                     brazos: userProfile.brazos,
                     muslos: userProfile.muslos,
                     cuello: userProfile.cuello,
-                    antebrazos: userProfile.antebrazos
+                    antebrazos: userProfile.antebrazos,
+                    gemelo: userProfile.gemelo,
+                    pliegue_abdominal: userProfile.pliegue_abdominal
                   })
                 }
                 disabled={editingSection && editingSection !== 'bodyMeasures'}
@@ -103,6 +105,16 @@ export const BodyMeasuresCard = ({
             onInputChange={handleInputChange}
           />
           <EditableField
+            label="Gemelo"
+            field="gemelo"
+            value={userProfile.gemelo}
+            type="number"
+            suffix=" cm"
+            editing={isEditing}
+            editedData={editedData}
+            onInputChange={handleInputChange}
+          />
+          <EditableField
             label="Muslos"
             field="muslos"
             value={userProfile.muslos}
@@ -128,6 +140,16 @@ export const BodyMeasuresCard = ({
             value={userProfile.antebrazos}
             type="number"
             suffix=" cm"
+            editing={isEditing}
+            editedData={editedData}
+            onInputChange={handleInputChange}
+          />
+          <EditableField
+            label="Pliegue abdominal"
+            field="pliegue_abdominal"
+            value={userProfile.pliegue_abdominal}
+            type="number"
+            suffix=" mm"
             editing={isEditing}
             editedData={editedData}
             onInputChange={handleInputChange}

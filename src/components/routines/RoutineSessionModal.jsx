@@ -44,6 +44,7 @@ export default function RoutineSessionModal({
 }) {
   const [adjustedSession, setAdjustedSession] = useState(null);
   const [menstrualAdjustment, setMenstrualAdjustment] = useState(null);
+  const [menstrualExclusions, setMenstrualExclusions] = useState(null);
 
   // Datos de la sesión (soporta "ejercicios" y fallback a "exercises")
   const exercises = useMemo(() => {
@@ -233,6 +234,9 @@ export default function RoutineSessionModal({
           }));
           if (data.menstrual_adjustment?.adjustment) {
             setMenstrualAdjustment(data.menstrual_adjustment);
+          }
+          if (data.menstrual_exclusions) {
+            setMenstrualExclusions(data.menstrual_exclusions);
           }
         }
       } catch (err) {
@@ -559,13 +563,59 @@ export default function RoutineSessionModal({
           {/* Body - Vista del ejercicio */}
           <div className="p-6 space-y-4">
             {menstrualAdjustment?.adjustment && (
-              <div className="p-3 rounded-lg border border-pink-500/40 bg-pink-500/10 text-pink-100 text-sm">
+              <div className="p-3 rounded-lg border border-pink-500/40 bg-pink-500/10 text-pink-100 text-sm space-y-2">
                 <div className="font-semibold">Ajuste por ciclo menstrual</div>
                 <div className="text-pink-100/90">
                   {menstrualAdjustment.adjustment.message}
                 </div>
+
+                {/* ✨ Información de ejercicios reemplazados */}
+                {menstrualExclusions?.total_replaced > 0 && (
+                  <div className="mt-2 pt-2 border-t border-pink-400/30">
+                    <div className="text-xs text-pink-200/80 flex items-center gap-1">
+                      <span className="text-green-400">✓</span>
+                      {menstrualExclusions.total_replaced} ejercicio(s) reemplazado(s) por alternativas más seguras
+                    </div>
+                  </div>
+                )}
+
+                {/* ✨ Información de ejercicios con advertencia crítica */}
+                {menstrualExclusions?.total_warnings_critical > 0 && (
+                  <div className="mt-2 pt-2 border-t border-pink-400/30">
+                    <div className="text-xs text-pink-200/80 flex items-center gap-1">
+                      <span className="text-red-400">⚠️</span>
+                      {menstrualExclusions.total_warnings_critical} ejercicio(s) con advertencia (no se encontró alternativa)
+                    </div>
+                  </div>
+                )}
+
+                {/* ✨ Información de ejercicios con intensidad modificada */}
+                {menstrualExclusions?.total_modified > 0 && (
+                  <div className="mt-2 pt-2 border-t border-pink-400/30">
+                    <div className="text-xs text-pink-200/80 flex items-center gap-1">
+                      <span className="text-yellow-400">⚡</span>
+                      {menstrualExclusions.total_modified} ejercicio(s) con intensidad reducida al 70%
+                    </div>
+                  </div>
+                )}
               </div>
             )}
+
+            {/* ✨ Detalles de ejercicios reemplazados */}
+            {menstrualExclusions?.replaced_exercises?.length > 0 && (
+              <div className="p-3 bg-blue-500/10 border border-blue-400/30 rounded-lg">
+                <div className="text-sm font-semibold text-blue-200 mb-2">Ejercicios adaptados:</div>
+                <div className="space-y-1">
+                  {menstrualExclusions.replaced_exercises.map((rep, idx) => (
+                    <div key={idx} className="text-xs text-blue-100/80">
+                      • <span className="line-through opacity-60">{rep.original}</span> → <span className="font-medium text-blue-300">{rep.replacement}</span>
+                      {rep.auto && <span className="ml-1 text-blue-400/70">(auto)</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <ExerciseSessionView
               exercise={progressState.currentExercise}
               exerciseIndex={progressState.currentIndex}

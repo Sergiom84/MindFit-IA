@@ -41,11 +41,19 @@ import uploadsRoutes from './routes/uploads.js';
 import techniqueRoutes from './routes/technique.js';
 import nutritionRoutes from './routes/nutrition.js';
 import nutritionV2Routes from './routes/nutritionV2.js';
+import metabolicProfileRoutes from './routes/metabolicProfile.js';
+import nutritionCalibrationRoutes from './routes/nutritionCalibration.js';
 import musicRoutes from './routes/music.js';
 import analyticsRoutes from './routes/analytics.js';
 import hipertrofiaV2Routes from './routes/hipertrofiaV2.js';
 import adaptationBlockRoutes from './routes/adaptationBlock.js';
 import menstrualCycleRoutes from './routes/menstrualCycle.js';
+import trainingNutritionBridgeRoutes from './routes/trainingNutritionBridge.js';
+import dietDeviationRoutes from './routes/dietDeviation.js';
+import bodyMeasurementsRoutes from './routes/bodyMeasurements.js';
+import carbTimingRoutes from './routes/carbTiming.js';
+import performanceConfirmationRoutes from './routes/performanceConfirmation.js';
+import nutritionSupplementsRoutes from './routes/nutritionSupplements.js';
 
 // ===============================================
 // 🗄️ RUTAS LEGACY (MANTENER TEMPORALMENTE)
@@ -414,6 +422,14 @@ app.use('/api/ia-home-training', homeTrainingRoutes); // Alias para IA home trai
 app.use('/api/technique', techniqueRoutes);
 app.use('/api/nutrition', nutritionRoutes);
 app.use('/api/nutrition-v2', nutritionV2Routes); // Sistema determinista normalizado
+app.use('/api/metabolic-profile', metabolicProfileRoutes); // Perfil metabolico y distribucion de macros
+app.use('/api/nutrition/calibration', nutritionCalibrationRoutes); // Sistema de calibracion automatica del GCT
+app.use('/api/bridge', trainingNutritionBridgeRoutes);
+app.use('/api/diet-deviation', dietDeviationRoutes); // Gestion de saltos de dieta
+app.use('/api/body-measurements', bodyMeasurementsRoutes); // Sistema completo de mediciones corporales
+app.use('/api/carb-timing', carbTimingRoutes); // Timing de carbohidratos pre/post entreno
+app.use('/api/performance-confirmation', performanceConfirmationRoutes); // Tracking rendimiento y confirmacion estados ICG/IPG
+app.use('/api/nutrition/supplements', nutritionSupplementsRoutes); // Complementos de control nutricional (ritmo, pliegues, perimetros)
 app.use('/api/music', musicRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/hipertrofiav2', hipertrofiaV2Routes); // Sistema de tracking RIR

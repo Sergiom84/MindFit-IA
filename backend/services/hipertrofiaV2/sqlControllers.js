@@ -5,6 +5,7 @@
 
 import pool from '../../db.js';
 import { logger } from './logger.js';
+import { filterMenstrualRestrictedExercises, getMenstrualFilterStats } from './menstrualExerciseFilter.js';
 
 /**
  * Calcula ajuste de entrenamiento según ciclo menstrual (si aplica)
@@ -28,7 +29,9 @@ async function getMenstrualTrainingAdjustment(userId) {
     if (configResult.rows.length === 0) return null;
 
     const config = configResult.rows[0];
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+    const today = local.toISOString().split('T')[0];
 
     const logResult = await pool.query(
       `SELECT * FROM app.menstrual_daily_log WHERE user_id = $1 AND log_date = $2`,
@@ -581,7 +584,17 @@ export const overlapControllers = {
       if (menstrualAdjustment?.adjustment) {
         const exercisesKey = adjustedSession?.ejercicios ? 'ejercicios' : (adjustedSession?.exercises ? 'exercises' : null);
         if (exercisesKey && adjustedSession[exercisesKey]?.length) {
+
+        // ✨ PASO 1: Filtrar ejercicios restringidos (ANTES de aplicar modificadores)
+        logger.info(`🔍 [MENSTRUAL_FILTER] Aplicando filtrado de ejercicios restringidos`);
+        adjustedSession[exercisesKey] = await filterMenstrualRestrictedExercises(
+          adjustedSession[exercisesKey],
+          menstrualAdjustment
+        );
+
         const { volumeModifier = 0, intensityModifier = 0, message, reason } = menstrualAdjustment.adjustment;
+
+        // ✨ PASO 2: Aplicar modificadores de volumen/intensidad (DESPUÉS del filtrado)
         if (volumeModifier !== 0 || intensityModifier !== 0) {
           adjustedSession[exercisesKey] = adjustedSession[exercisesKey].map(ex => {
             const newSeries = Math.max(1, Math.round(Number(ex.series || 1) * (1 + volumeModifier)));
@@ -602,12 +615,19 @@ export const overlapControllers = {
       }
       }
 
+      // ✨ Calcular estadísticas de restricciones menstruales aplicadas
+      const exercisesKey = adjustedSession?.ejercicios ? 'ejercicios' : (adjustedSession?.exercises ? 'exercises' : null);
+      const menstrualExclusions = menstrualAdjustment?.adjustment && exercisesKey
+        ? getMenstrualFilterStats(adjustedSession[exercisesKey])
+        : null;
+
       res.json({
         success: true,
         session: adjustedSession,
         overlap_detected: overlapInfo?.overlap !== 'none',
         overlap_info: overlapInfo,
         menstrual_adjustment: menstrualAdjustment,
+        menstrual_exclusions: menstrualExclusions,  // ✨ Nuevo campo con info de restricciones
         nivel,
         current_week: currentWeekNumber
       });

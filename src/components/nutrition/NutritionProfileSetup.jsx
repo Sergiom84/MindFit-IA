@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { User, Activity, Target, Utensils, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { User, Activity, Target, Utensils, AlertCircle, CheckCircle2, Brain } from 'lucide-react';
+import MetabolicQuestionnaire from './MetabolicQuestionnaire.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
 
@@ -21,6 +22,16 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
     objetivo: 'mant',
     actividad: 'moderado',
     comidas_dia: 4,
+    training_days: 4,
+    steps_per_day: '',
+    waist_cm: '',
+    bodyfat_percent: '',
+    level: 'principiante',
+    metabolic_type: 'mixto',
+    metabolic_score: null,
+    metabolic_confidence: null,
+    metabolic_pending_type: null,
+    metabolic_pending_count: 0,
     preferencias: {
       vegetariano: false,
       vegano: false,
@@ -56,6 +67,16 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
           objetivo: data.objetivo,
           actividad: data.actividad,
           comidas_dia: data.comidas_dia,
+          training_days: data.training_days || 4,
+          steps_per_day: data.steps_per_day || '',
+          waist_cm: data.waist_cm || '',
+          bodyfat_percent: data.bodyfat_percent || '',
+          level: data.level || 'principiante',
+          metabolic_type: data.metabolic_type || 'mixto',
+          metabolic_score: data.metabolic_score ?? null,
+          metabolic_confidence: data.metabolic_confidence ?? null,
+          metabolic_pending_type: data.metabolic_pending_type ?? null,
+          metabolic_pending_count: data.metabolic_pending_count ?? 0,
           preferencias: data.preferencias || {},
           alergias: data.alergias || []
         });
@@ -146,6 +167,15 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleMetabolicResult = (result) => {
+    setFormData(prev => ({
+      ...prev,
+      ...result
+    }));
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 5000);
   };
 
   return (
@@ -307,29 +337,165 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
             </select>
           </div>
 
-          {/* Sección: Comidas al Día */}
+          {/* Sección: Entrenos y pasos */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Entrenos por semana
+              </label>
+              <input
+                type="number"
+                name="training_days"
+                value={formData.training_days}
+                onChange={handleChange}
+                min="1"
+                max="7"
+                className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-400 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Pasos diarios (opcional)
+              </label>
+              <input
+                type="number"
+                name="steps_per_day"
+                value={formData.steps_per_day}
+                onChange={handleChange}
+                min="0"
+                max="30000"
+                className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-400 outline-none"
+              />
+              <p className="text-xs text-gray-500 mt-1">Ajusta el factor de actividad con NEAT</p>
+            </div>
+          </div>
+
+          {/* Sección: Nivel y tolerancia */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Nivel de entrenamiento</label>
+              <select
+                name="level"
+                value={formData.level}
+                onChange={handleChange}
+                className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-yellow-400 outline-none"
+              >
+                <option value="principiante">Principiante (0-6 meses)</option>
+                <option value="intermedio">Intermedio (6-24 meses)</option>
+                <option value="avanzado">Avanzado (24+ meses)</option>
+              </select>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-sm text-gray-200">
+              <p className="font-semibold text-white mb-2">Reevaluación cada 14 días</p>
+              <p className="text-gray-300">
+                Las decisiones de fase y el perfil metabólico se recalibran con mediciones objetivas (peso, cintura) y el cuestionario.
+                Usa el módulo de evaluación inferior para mantener el perfil actualizado con anti-ruido.
+              </p>
+            </div>
+          </div>
+
+          {/* Sección: Medidas corporales */}
           <div>
-            <h3 className="text-lg font-semibold font-urbanist text-white mb-4 flex items-center gap-2">
-              <Utensils className="w-5 h-5 text-yellow-400" />
-              Comidas al Día
+            <h3 className="text-lg font-semibold font-urbanist text-white mb-4">Medidas corporales</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Cintura (cm)</label>
+                <input
+                  type="number"
+                  name="waist_cm"
+                  value={formData.waist_cm}
+                  onChange={handleChange}
+                  min="50"
+                  max="200"
+                  step="0.1"
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-400 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Grasa corporal (%)</label>
+                <input
+                  type="number"
+                  name="bodyfat_percent"
+                  value={formData.bodyfat_percent}
+                  onChange={handleChange}
+                  min="3"
+                  max="60"
+                  step="0.1"
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-400 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Comidas al día</label>
+                <div className="flex gap-2">
+                  {[3, 4, 5, 6].map(num => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, comidas_dia: num }))}
+                      className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
+                        formData.comidas_dia === num
+                          ? 'bg-yellow-400 text-gray-900'
+                          : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
+                      }`}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+          {/* Sección: Evaluación metabólica */}
+          <div className="space-y-4 mt-6">
+            <h3 className="text-lg font-semibold font-urbanist text-white mb-2 flex items-center gap-2">
+              <Brain className="w-5 h-5 text-yellow-400" />
+              Evaluación metabólica (tolerancia a carbohidratos)
             </h3>
 
-            <div className="flex gap-2">
-              {[3, 4, 5, 6].map(num => (
-                <button
-                  key={num}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, comidas_dia: num }))}
-                  className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
-                    formData.comidas_dia === num
-                      ? 'bg-yellow-400 text-gray-900'
-                      : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
-                  }`}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Perfil actual
+                </label>
+                <select
+                  name="metabolic_type"
+                  value={formData.metabolic_type}
+                  onChange={handleChange}
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-yellow-400 outline-none"
                 >
-                  {num}
-                </button>
-              ))}
+                  <option value="tolerante">Tolerante a carbohidratos</option>
+                  <option value="mixto">Mixto / equilibrado</option>
+                  <option value="intolerante">Intolerante a carbohidratos</option>
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  El cuestionario actualiza este campo con anti-ruido (2 reevaluaciones, máximo 1 salto de categoría).
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                  <p className="text-gray-400 text-xs uppercase">Score S</p>
+                  <p className="text-white text-lg font-semibold">{formData.metabolic_score ?? '—'}</p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                  <p className="text-gray-400 text-xs uppercase">Confianza</p>
+                  <p className="text-white text-lg font-semibold">{formData.metabolic_confidence || '—'}</p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                  <p className="text-gray-400 text-xs uppercase">Pendiente</p>
+                  <p className="text-white text-sm">
+                    {formData.metabolic_pending_type ? `${formData.metabolic_pending_type} (${formData.metabolic_pending_count}/2)` : 'Ninguno'}
+                  </p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                  <p className="text-gray-400 text-xs uppercase">Guardarraíles</p>
+                  <p className="text-white text-sm">Prote ≥ fase; Grasa ≥ 0.6 g/kg o 20% kcal</p>
+                </div>
+              </div>
             </div>
+
+            <MetabolicQuestionnaire onResult={handleMetabolicResult} />
           </div>
 
           {/* Sección: Preferencias Alimentarias */}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Dumbbell, Moon, ChevronLeft, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
+import { Calendar, Dumbbell, Moon, ChevronLeft, ChevronRight, Loader2, RefreshCw, Sparkles } from 'lucide-react';
 import MealDetailView from './MealDetailView';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
@@ -17,6 +17,8 @@ export default function NutritionCalendarView() {
   const [error, setError] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(0);
   const [selectedDay, setSelectedDay] = useState(null);
+  const [generatingDay, setGeneratingDay] = useState(null);
+  const [infoMessage, setInfoMessage] = useState(null);
 
   useEffect(() => {
     loadActivePlan();
@@ -27,7 +29,7 @@ export default function NutritionCalendarView() {
     setError(null);
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       const response = await fetch(`${API_URL}/api/nutrition-v2/active-plan`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -49,6 +51,36 @@ export default function NutritionCalendarView() {
       console.error('Error cargando plan:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const generateMenusForDay = async (day) => {
+    if (!day?.day_id) return;
+    setGeneratingDay(day.day_id);
+    setInfoMessage(null);
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const response = await fetch(`${API_URL}/api/nutrition-v2/generate-full-day-menus`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ dayId: day.day_id })
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al generar menús del día');
+      }
+
+      const data = await response.json();
+      setInfoMessage(`Menús generados para ${data.menus_generated}/${data.total_meals} comidas`);
+      // Recargar plan para reflejar menús si se persistieran a futuro
+      await loadActivePlan();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGeneratingDay(null);
     }
   };
 
@@ -131,6 +163,10 @@ export default function NutritionCalendarView() {
             <RefreshCw className="w-5 h-5 text-white" />
           </button>
         </div>
+
+        {infoMessage && (
+          <div className="mt-2 text-sm text-emerald-300">{infoMessage}</div>
+        )}
 
         {/* Resumen de Macros */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -254,9 +290,18 @@ export default function NutritionCalendarView() {
                 )}
               </div>
 
-              {/* Indicador de click */}
-              <div className="mt-2 text-center text-xs text-gray-400">
-                Click para detalles
+              {/* Acciones */}
+              <div className="mt-3 flex items-center justify-between text-xs text-gray-400">
+                <span>Click para detalles</span>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); generateMenusForDay(day); }}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-yellow-400/10 border border-yellow-400/40 text-yellow-200 hover:bg-yellow-400/20 disabled:opacity-50"
+                  disabled={generatingDay === day.day_id}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  {generatingDay === day.day_id ? 'Generando...' : 'Menú del día'}
+                </button>
               </div>
             </div>
           );
