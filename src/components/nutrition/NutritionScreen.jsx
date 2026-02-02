@@ -1,43 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { useUserContext } from '@/contexts/UserContext';
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Calendar,
-  Utensils,
-  Target,
-  Zap,
-  ShoppingCart,
-  TrendingUp,
-  Activity,
-  Apple
-} from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Calendar, Target, TrendingUp } from 'lucide-react';
 
-// Importar componentes individuales (Legacy)
-import NutritionCalendar from './NutritionCalendar';
-import FoodDatabase from './FoodDatabase';
-import MacroTracker from './MacroTracker';
-import SupplementsSection from './SupplementsSection';
-import NutritionAI from './NutritionAI';
-import MealPlanner from './MealPlanner';
-import ShoppingList from './ShoppingList';
-
-// Importar componentes V2 (Sistema Determinista)
-
+// Sistema V2 + Dashboard
 import NutritionPlanGenerator from './NutritionPlanGenerator';
 import NutritionCalendarView from './NutritionCalendarView';
+import NutritionDashboard from './NutritionDashboard';
 
 export default function NutritionScreen() {
-  const { currentUser, user } = useAuth();
   const { userData } = useUserContext();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [activeTab, setActiveTab] = useState('overview');
-  const [nutritionPlan, setNutritionPlan] = useState(null);
-  const [userStats, setUserStats] = useState(null);
-  const [weekStats, setWeekStats] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('generate-plan');
+  const [, setNutritionPlan] = useState(null);
+  const [, setIsLoading] = useState(false);
 
   useEffect(() => {
     const handleMouseMove = (event) => {
@@ -63,7 +40,6 @@ export default function NutritionScreen() {
       });
       if (profileRes.ok) {
         const data = await profileRes.json();
-        setUserStats(data.stats);
         setNutritionPlan(data.currentPlan);
 
         console.log('📊 Plan nutricional cargado desde BD:', {
@@ -76,55 +52,8 @@ export default function NutritionScreen() {
         });
       }
 
-      // Estadísticas de la semana (consistencia, calorías medias)
-      const weekRes = await fetch('/api/nutrition/week-stats', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (weekRes.ok) {
-        const data = await weekRes.json();
-        setWeekStats(data.weekStats);
-      }
-
     } catch (error) {
       console.error('Error fetching nutrition data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCancelPlan = async () => {
-    if (!nutritionPlan?.id) return;
-
-    const confirmed = window.confirm(
-      '¿Estás seguro de que quieres cancelar tu plan nutricional actual? Esta acción no se puede deshacer.'
-    );
-
-    if (!confirmed) return;
-
-    try {
-      setIsLoading(true);
-      const token = localStorage.getItem('token');
-
-      const response = await fetch(`/api/nutrition/plan/${nutritionPlan.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        console.log('✅ Plan nutricional cancelado exitosamente');
-        setNutritionPlan(null);
-        await fetchUserNutritionData();
-      } else {
-        const error = await response.json();
-        console.error('❌ Error al cancelar plan:', error);
-        alert('Error al cancelar el plan nutricional. Por favor, intenta de nuevo.');
-      }
-    } catch (error) {
-      console.error('❌ Error al cancelar plan:', error);
-      alert('Error de conexión. Por favor, intenta de nuevo.');
     } finally {
       setIsLoading(false);
     }
@@ -229,22 +158,6 @@ export default function NutritionScreen() {
 
   const basicMacros = calculateBasicMacros();
 
-  // Derivados para mostrar g/kg y % ajuste
-  const pesoKg = parseFloat(userData?.peso || 0);
-  const proteinPerKg = pesoKg && basicMacros ? (basicMacros.protein / pesoKg).toFixed(2) : null;
-  const carbsPerKg = pesoKg && basicMacros ? (basicMacros.carbs / pesoKg).toFixed(2) : null;
-  const fatPerKg = pesoKg && basicMacros ? (basicMacros.fat / pesoKg).toFixed(2) : null;
-  const deficitPct = basicMacros && basicMacros.tdee ? Math.round(((basicMacros.calories - basicMacros.tdee) / basicMacros.tdee) * 100) : null;
-
-  // Resumen de plan (soporta plan de BD y plan recién generado)
-  const planSummary = (nutritionPlan?.plan_data?.plan_summary) || (nutritionPlan?.plan_summary) || null;
-
-  // Validación rápida de perfil para avisos
-  const missingProfile = [];
-  if (!userData?.peso) missingProfile.push('peso');
-  if (!userData?.altura) missingProfile.push('altura');
-  if (!userData?.edad) missingProfile.push('edad');
-
   const nutritionTabs = [
     // ===== SISTEMA V2 (DETERMINISTA) =====
     {
@@ -261,54 +174,12 @@ export default function NutritionScreen() {
       description: 'Vista semanal del plan determinista',
       isV2: true
     },
-    // ===== SISTEMA LEGACY (IA COMPLETA) =====
+    // ===== CONTROL Y PROGRESO (NUEVO DASHBOARD) =====
     {
-      id: 'overview',
-      label: 'Resumen',
+      id: 'dashboard',
+      label: 'Dashboard Nutrición',
       icon: Target,
-      description: 'Vista general de tu nutrición'
-    },
-    {
-      id: 'calendar',
-      label: 'Calendario Legacy',
-      icon: Calendar,
-      description: 'Plan semanal de comidas (sistema anterior)'
-    },
-    {
-      id: 'planner',
-      label: 'Planificador',
-      icon: Utensils,
-      description: 'Crear planes de comidas'
-    },
-    {
-      id: 'shopping',
-      label: 'Lista Compras',
-      icon: ShoppingCart,
-      description: 'Lista de compras del plan'
-    },
-    {
-      id: 'tracker',
-      label: 'Macros',
-      icon: Activity,
-      description: 'Seguimiento de macronutrientes'
-    },
-    {
-      id: 'database',
-      label: 'Alimentos',
-      icon: Apple,
-      description: 'Base de datos nutricional'
-    },
-    {
-      id: 'supplements',
-      label: 'Suplementos',
-      icon: Zap,
-      description: 'Recomendaciones y compras'
-    },
-    {
-      id: 'ai',
-      label: 'IA Nutricional',
-      icon: TrendingUp,
-      description: 'Asistente inteligente'
+      description: 'Mediciones, ICG/IPG, saltos y timing'
     }
   ];
 
@@ -382,266 +253,6 @@ export default function NutritionScreen() {
 
         {/* Tab Content */}
         <div className="space-y-6">
-          {activeTab === 'overview' && (
-            <>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Macros Overview */}
-              {basicMacros ? (
-                <Card className={`${cardBase} border-l-2 border-l-yellow-400/30 lg:col-span-2`}>
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2 font-urbanist">
-                      <Target className="text-yellow-400" size={24} />
-                      Objetivos Nutricionales
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10 border-l-2 border-l-sky-400/40">
-                        <p className="text-2xl font-bold text-sky-300">
-                          {basicMacros.calories}
-                        </p>
-                        <p className="text-sm text-gray-300">Calorías</p>
-                      </div>
-                      <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10 border-l-2 border-l-red-400/40">
-                        <p className="text-2xl font-bold text-red-300">
-                          {basicMacros.protein}g
-                        </p>
-                        <p className="text-sm text-gray-300">Proteína</p>
-                      </div>
-                      <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10 border-l-2 border-l-emerald-400/40">
-                        <p className="text-2xl font-bold text-emerald-300">
-                          {basicMacros.carbs}g
-                        </p>
-                        <p className="text-sm text-gray-300">Carbohidratos</p>
-                      </div>
-                      <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10 border-l-2 border-l-yellow-400/40">
-                        <p className="text-2xl font-bold text-yellow-300">
-                          {basicMacros.fat}g
-                        </p>
-                        <p className="text-sm text-gray-300">Grasas</p>
-                      </div>
-                    </div>
-                    {missingProfile.length > 0 && (
-                      <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                        <p className="text-sm text-yellow-300">
-                          ⚠️ Completa tu perfil ({missingProfile.join(', ')}) para mejorar la precisión de los cálculos.
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className={`${cardBase} border-l-2 border-l-yellow-400/30 lg:col-span-2`}>
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2 font-urbanist">
-                      <Target className="text-yellow-400" size={24} />
-                      Objetivos Nutricionales
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="p-6 text-center bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                      <p className="text-yellow-300 mb-3">
-                        ⚠️ No se pueden calcular los objetivos nutricionales
-                      </p>
-                      <p className="text-sm text-gray-300 mb-4">
-                        Completa tu perfil con peso, altura, edad y sexo para obtener recomendaciones personalizadas.
-                      </p>
-                      <Button
-                        onClick={() => window.location.href = '/profile'}
-                        className="bg-yellow-400 hover:bg-yellow-500 text-black"
-                      >
-                        Completar Perfil
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Quick Actions */}
-              <Card className={`${cardBase} border-l-2 border-l-sky-400/30`}>
-                <CardHeader>
-                  <CardTitle className="text-white font-urbanist">Acciones Rápidas</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button
-                    onClick={() => setActiveTab('ai')}
-                    className="w-full bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]"
-                  >
-                    <TrendingUp size={16} className="mr-2" />
-                    Generar Plan con IA
-                  </Button>
-                  <Button
-                    onClick={() => setActiveTab('planner')}
-                    variant="outline"
-                    className="w-full border-white/10 bg-white/5 text-white hover:bg-white/10"
-                  >
-                    <Utensils size={16} className="mr-2" />
-                    Planificar Comidas
-                  </Button>
-                  <Button
-                    onClick={() => setActiveTab('supplements')}
-                    variant="outline"
-                    className="w-full border-white/10 bg-white/5 text-white hover:bg-white/10"
-                  >
-                    <ShoppingCart size={16} className="mr-2" />
-                    Ver Suplementos
-                  </Button>
-                  {nutritionPlan && (
-                    <Button
-                      onClick={handleCancelPlan}
-                      variant="outline"
-                      className="w-full border-red-500/40 text-red-300 hover:bg-red-500/10 hover:text-red-200"
-                    >
-                      <Activity size={16} className="mr-2" />
-                      Cancelar Plan Actual
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-              {/* Métricas avanzadas: BMR/TDEE, g/kg y semana */}
-              {basicMacros && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* BMR/TDEE/Ajuste */}
-                  <Card className={`${cardBase} border-l-2 border-l-sky-400/30`}>
-                    <CardHeader>
-                      <CardTitle className="text-white font-urbanist">Gasto Energético</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                          <p className="text-xl font-bold text-sky-300">{basicMacros.bmr}</p>
-                          <p className="text-xs text-gray-300">TMB</p>
-                        </div>
-                        <div>
-                          <p className="text-xl font-bold text-emerald-300">{basicMacros.tdee}</p>
-                          <p className="text-xs text-gray-300">TDEE</p>
-                        </div>
-                        <div>
-                          <p className={`text-xl font-bold ${deficitPct && deficitPct < 0 ? 'text-red-300' : 'text-yellow-300'}`}>{deficitPct} %</p>
-                          <p className="text-xs text-gray-300">Ajuste</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* g/kg */}
-                  <Card className={`${cardBase} border-l-2 border-l-emerald-400/30`}>
-                    <CardHeader>
-                      <CardTitle className="text-white font-urbanist">Objetivos (g/kg)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {pesoKg ? (
-                        <div className="grid grid-cols-3 gap-4 text-center">
-                          <div>
-                            <p className="text-xl font-bold text-red-300">{proteinPerKg}</p>
-                            <p className="text-xs text-gray-300">Proteína</p>
-                          </div>
-                          <div>
-                            <p className="text-xl font-bold text-emerald-300">{carbsPerKg}</p>
-                            <p className="text-xs text-gray-300">Carbohidratos</p>
-                          </div>
-                          <div>
-                            <p className="text-xl font-bold text-yellow-300">{fatPerKg}</p>
-                            <p className="text-xs text-gray-300">Grasas</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-sm text-gray-300">Completa tu peso para ver g/kg</div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Semana */}
-                  <Card className={`${cardBase} border-l-2 border-l-yellow-400/30`}>
-                    <CardHeader>
-                      <CardTitle className="text-white font-urbanist">Semana (últimos 7 días)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {weekStats ? (
-                        <div className="grid grid-cols-3 gap-4 text-center">
-                          <div>
-                            <p className="text-xl font-bold text-sky-300">{weekStats.daysCompleted}</p>
-                            <p className="text-xs text-gray-300">Días completados</p>
-                          </div>
-                          <div>
-                            <p className="text-xl font-bold text-emerald-300">{weekStats.avgCalories}</p>
-                            <p className="text-xs text-gray-300">kcal medias</p>
-                          </div>
-                          <div>
-                            <p className="text-xl font-bold text-yellow-300">{weekStats.consistency}%</p>
-                            <p className="text-xs text-gray-300">Consistencia</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-sm text-gray-300">Sin datos de la semana aún</div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
-
-              {/* Sin plan activo */}
-              {!planSummary && (
-                <Card className={`${cardBase} border-l-2 border-l-yellow-400/30`}>
-                  <CardHeader>
-                    <CardTitle className="text-white font-urbanist">Aún no tienes un plan nutricional activo</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-300 mb-3">Genera un plan personalizado con IA según tu perfil y objetivos.</p>
-                    <Button onClick={() => setActiveTab('ai')} className="bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]">
-                      Generar Plan con IA
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Plan activo */}
-              {planSummary && (
-                <Card className={`${cardBase} border-l-2 border-l-yellow-400/30`}>
-                  <CardHeader>
-                    <CardTitle className="text-white font-urbanist">Plan Nutricional Activo</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
-                      <div>
-                        <p className="text-lg font-bold text-yellow-300">{planSummary.duration_days}</p>
-                        <p className="text-xs text-gray-300">Días</p>
-                      </div>
-                      <div>
-                        <p className="text-lg font-bold text-sky-300">{planSummary.target_calories}</p>
-                        <p className="text-xs text-gray-300">kcal/día</p>
-                      </div>
-                      <div>
-                        <p className="text-lg font-bold text-red-300">{planSummary.target_macros?.protein}g</p>
-                        <p className="text-xs text-gray-300">Proteína</p>
-                      </div>
-                      <div>
-                        <p className="text-lg font-bold text-emerald-300">{planSummary.target_macros?.carbs}g</p>
-                        <p className="text-xs text-gray-300">Carbohidratos</p>
-                      </div>
-                      <div>
-                        <p className="text-lg font-bold text-yellow-300">{planSummary.meals_per_day}</p>
-                        <p className="text-xs text-gray-300">Comidas/día</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-3 mt-4">
-                      <Button className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white" onClick={() => setActiveTab('calendar')}>
-                        Ver en Calendario
-                      </Button>
-                      <Button variant="outline" className="border-white/10 bg-white/5 text-white hover:bg-white/10" onClick={() => setActiveTab('ai')}>
-                        Ajustar con IA
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </>
-
-          )}
-
           {/* ===== SISTEMA V2 (DETERMINISTA) ===== */}
           {activeTab === 'generate-plan' && (
             <NutritionPlanGenerator
@@ -658,55 +269,9 @@ export default function NutritionScreen() {
             <NutritionCalendarView />
           )}
 
-          {/* ===== SISTEMA LEGACY (IA COMPLETA) ===== */}
-          {activeTab === 'calendar' && (
-            <NutritionCalendar
-              nutritionPlan={nutritionPlan}
-              userMacros={basicMacros}
-              onPlanUpdate={setNutritionPlan}
-            />
-          )}
-
-          {activeTab === 'planner' && (
-            <MealPlanner
-              userMacros={basicMacros}
-              userData={userData}
-              onPlanCreated={setNutritionPlan}
-              initialPlan={nutritionPlan?.plan_data ?? nutritionPlan}
-            />
-          )}
-
-          {activeTab === 'shopping' && (
-            <ShoppingList
-              nutritionPlan={nutritionPlan}
-            />
-          )}
-
-          {activeTab === 'tracker' && (
-            <MacroTracker
-              targetMacros={basicMacros}
-              userStats={userStats}
-            />
-          )}
-
-          {activeTab === 'database' && (
-            <FoodDatabase />
-          )}
-
-          {activeTab === 'supplements' && (
-            <SupplementsSection
-              userData={userData}
-              userMacros={basicMacros}
-            />
-          )}
-
-          {activeTab === 'ai' && (
-            <NutritionAI
-              userData={userData}
-              currentRoutine={null} // TODO: Obtener rutina actual
-              userMacros={basicMacros}
-              onPlanGenerated={setNutritionPlan}
-            />
+          {/* ===== DASHBOARD DE CONTROL ===== */}
+          {activeTab === 'dashboard' && (
+            <NutritionDashboard />
           )}
         </div>
       </div>

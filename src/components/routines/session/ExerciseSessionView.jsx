@@ -125,6 +125,30 @@ export const ExerciseSessionView = ({
               Volumen ajustado
             </span>
           )}
+
+          {/* ✨ Indicador de ejercicio reemplazado por ciclo menstrual */}
+          {exercise?.replaced && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 ml-2 bg-green-500/15 text-green-200 rounded-md text-xs font-normal border border-green-400/30">
+              <span className="text-lg">✓</span>
+              Adaptado
+            </span>
+          )}
+
+          {/* ✨ Advertencia crítica - ejercicio no recomendado */}
+          {exercise?.warning_level === 'critical' && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 ml-2 bg-red-500/15 text-red-200 rounded-md text-xs font-normal border border-red-400/30">
+              <span className="text-lg">⚠️</span>
+              NO RECOMENDADO
+            </span>
+          )}
+
+          {/* ✨ Advertencia moderada - intensidad reducida */}
+          {exercise?.modified_for_menstrual && !exercise?.replaced && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 ml-2 bg-yellow-500/15 text-yellow-200 rounded-md text-xs font-normal border border-yellow-400/30">
+              <span className="text-lg">⚡</span>
+              Intensidad reducida
+            </span>
+          )}
         </h4>
         <div className="flex items-center gap-3 text-sm">
           <div className="text-gray-200/80">
@@ -142,6 +166,51 @@ export const ExerciseSessionView = ({
       {exercise?.adjustment_note && (
         <div className="mb-4 text-sm text-orange-200 bg-orange-500/10 border border-orange-400/30 rounded-xl px-3 py-2">
           <span className="font-semibold">Nota:</span> {exercise.adjustment_note}
+        </div>
+      )}
+
+      {/* ✨ Mensaje de ejercicio reemplazado por ciclo menstrual */}
+      {exercise?.replaced && (
+        <div className="mb-4 text-sm text-blue-200 bg-blue-500/10 border border-blue-400/30 rounded-xl px-3 py-2 space-y-1">
+          <div className="font-semibold text-blue-300">✓ Ejercicio adaptado para ciclo menstrual</div>
+          <div className="text-blue-100/80">
+            Reemplaza a: <span className="font-medium">{exercise.original_exercise}</span>
+          </div>
+          {exercise.replacement_reason && (
+            <div className="text-blue-100/70 text-xs mt-1">
+              Motivo: {exercise.replacement_reason}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ✨ Advertencia crítica - ejercicio no recomendado */}
+      {exercise?.warning_level === 'critical' && (
+        <div className="mb-4 text-sm text-red-200 bg-red-500/10 border border-red-400/40 rounded-xl px-3 py-2 space-y-1">
+          <div className="font-semibold text-red-300">⚠️ EJERCICIO NO RECOMENDADO</div>
+          <div className="text-red-100/90">
+            {exercise.warning_message}
+          </div>
+          {exercise.menstrual_notes && (
+            <div className="text-red-100/70 text-xs mt-1 pt-1 border-t border-red-400/20">
+              {exercise.menstrual_notes}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ✨ Advertencia moderada - intensidad reducida */}
+      {exercise?.modified_for_menstrual && !exercise?.replaced && (
+        <div className="mb-4 text-sm text-yellow-200 bg-yellow-500/10 border border-yellow-400/30 rounded-xl px-3 py-2 space-y-1">
+          <div className="font-semibold text-yellow-300">⚡ Intensidad reducida para ciclo menstrual</div>
+          <div className="text-yellow-100/90">
+            {exercise.warning_message || `Carga reducida al 70% durante este período`}
+          </div>
+          {exercise.menstrual_modification_reason && (
+            <div className="text-yellow-100/70 text-xs mt-1">
+              Motivo: {exercise.menstrual_modification_reason}
+            </div>
+          )}
         </div>
       )}
 

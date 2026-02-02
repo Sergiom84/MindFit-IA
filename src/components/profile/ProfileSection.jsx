@@ -204,6 +204,8 @@ const ProfileSection = () => {
       { key: 'muslos', label: 'Muslos (cm)', category: 'Medidas corporales', type: 'number' },
       { key: 'cuello', label: 'Cuello (cm)', category: 'Medidas corporales', type: 'number' },
       { key: 'antebrazos', label: 'Antebrazos (cm)', category: 'Medidas corporales', type: 'number' },
+      { key: 'gemelo', label: 'Gemelo (cm)', category: 'Medidas corporales', type: 'number' },
+      { key: 'pliegue_abdominal', label: 'Pliegue abdominal (mm)', category: 'Medidas corporales', type: 'number' },
       { key: 'cadera', label: 'Cadera (cm)', category: 'Medidas corporales', type: 'number', isRelevant: (profile) => profile?.sexo === 'femenino' },
       { key: 'objetivo_principal', label: 'Objetivo principal', category: 'Objetivos', type: 'select', options: profileState.objetivosOptions },
       { key: 'meta_peso', label: 'Meta de peso (kg)', category: 'Objetivos', type: 'number' },

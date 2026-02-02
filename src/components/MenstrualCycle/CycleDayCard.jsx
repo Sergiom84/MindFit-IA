@@ -12,7 +12,9 @@ import CycleQuickLog from './CycleQuickLog';
  */
 const CycleDayCard = ({ 
   cycleInfo, 
-  todayLog, 
+  todayLog,
+  effectiveTodayLog,
+  periodActive,
   adjustment,
   onLogSymptoms,
   onLogPeriodStart,
@@ -70,7 +72,7 @@ const CycleDayCard = ({
 
   const handleLogSave = async (data) => {
     if (data.is_period_day) {
-      await onLogPeriodStart?.();
+      await onLogPeriodStart?.({ periodActive });
     }
     await onLogSymptoms?.(data);
     setShowQuickLog(false);
@@ -110,7 +112,8 @@ const CycleDayCard = ({
         className="rounded-xl border border-white/10 bg-neutral-900/80 overflow-hidden ring-1 ring-white/5 backdrop-blur-lg"
       >
         <CycleQuickLog
-          currentLog={todayLog}
+          currentLog={effectiveTodayLog}
+          periodActive={periodActive}
           onSave={handleLogSave}
           onCancel={() => setShowQuickLog(false)}
         />
@@ -173,11 +176,6 @@ const CycleDayCard = ({
         </div>
       </div>
 
-      {/* Descripción de fase */}
-      <div className="px-4 pb-3">
-        <p className="text-sm text-gray-300/80">{cycleInfo.phaseDescription}</p>
-      </div>
-
       {/* Registro del día (si existe) */}
       {todayLog && (
         <div className="px-4 pb-3">
@@ -216,15 +214,16 @@ const CycleDayCard = ({
       {/* Botones de acción */}
       <div className="p-4 pt-2 flex gap-2">
         <button
-          onClick={onLogPeriodStart}
+          onClick={() => onLogPeriodStart?.({ periodActive })}
           className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
-            todayLog?.is_period_day
+            periodActive
               ? 'bg-white/5 text-rose-200 border border-rose-400/40'
               : 'bg-white/5 text-gray-300/80 hover:bg-white/10 border border-white/10'
           }`}
+          disabled={periodActive}
         >
-          <Droplet className={`w-4 h-4 ${todayLog?.is_period_day ? 'fill-current' : ''}`} />
-          {todayLog?.is_period_day ? 'Periodo activo' : 'Hoy me bajó'}
+          <Droplet className={`w-4 h-4 ${periodActive ? 'fill-current' : ''}`} />
+          {periodActive ? 'Periodo activo' : 'Hoy me bajó'}
         </button>
         <button
           onClick={() => setShowQuickLog(true)}

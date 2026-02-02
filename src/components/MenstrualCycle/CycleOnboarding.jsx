@@ -11,6 +11,7 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
   const [formData, setFormData] = useState({
     last_period_start: '',
     cycle_length: 28,
+    period_length: 5,
     is_regular: null,
     uses_hormonal_contraceptives: false
   });
@@ -21,10 +22,10 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
   };
 
   const handleNext = () => {
-    if (step < 3) {
+    const lastStep = steps.length - 1;
+    if (step < lastStep) {
       setStep(step + 1);
     } else {
-      // Completar onboarding
       onComplete(formData);
     }
   };
@@ -39,8 +40,9 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
     switch (step) {
       case 0: return formData.last_period_start !== '';
       case 1: return formData.cycle_length >= 21 && formData.cycle_length <= 35;
-      case 2: return formData.is_regular !== null;
-      case 3: return true; // Anticonceptivos es opcional
+      case 2: return formData.period_length >= 2 && formData.period_length <= 10;
+      case 3: return formData.is_regular !== null;
+      case 4: return true; // Anticonceptivos es opcional
       default: return false;
     }
   };
@@ -54,6 +56,11 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
     {
       title: '¿Cuánto dura tu ciclo normalmente?',
       subtitle: 'Desde el primer día de un periodo hasta el primer día del siguiente',
+      icon: Clock
+    },
+    {
+      title: '¿Cuántos días dura tu periodo?',
+      subtitle: 'Selecciona la duración habitual de tu sangrado (promedio)',
       icon: Clock
     },
     {
@@ -83,7 +90,7 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
             <CurrentIcon className="w-5 h-5 text-pink-300" />
           </div>
           <div>
-            <p className="text-xs text-gray-400/70">Paso {step + 1} de 4</p>
+            <p className="text-xs text-gray-400/70">Paso {step + 1} de {steps.length}</p>
             <p className="text-sm font-medium text-white font-urbanist">Configuración del ciclo</p>
           </div>
         </div>
@@ -99,7 +106,7 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
 
       {/* Barra de progreso */}
       <div className="flex gap-1 mb-6">
-        {[0, 1, 2, 3].map(i => (
+        {steps.map((_, i) => (
           <div
             key={i}
             className={`h-1 flex-1 rounded-full transition-colors ${
@@ -201,8 +208,49 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
             </div>
           )}
 
-          {/* Paso 2: Regularidad */}
+          {/* Paso 2: Duración del periodo */}
           {step === 2 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => handleInputChange('period_length', Math.max(2, formData.period_length - 1))}
+                  className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 text-xl font-bold"
+                >
+                  -
+                </button>
+                <div className="flex-1 text-center">
+                  <span className="text-4xl font-bold text-white">{formData.period_length}</span>
+                  <span className="text-gray-300/70 ml-2">días</span>
+                </div>
+                <button
+                  onClick={() => handleInputChange('period_length', Math.min(10, formData.period_length + 1))}
+                  className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 text-xl font-bold"
+                >
+                  +
+                </button>
+              </div>
+
+              {/* Presets rápidos */}
+              <div className="flex gap-2">
+                {[3, 4, 5, 6, 7].map(days => (
+                  <button
+                    key={days}
+                    onClick={() => handleInputChange('period_length', days)}
+                    className={`flex-1 py-2 rounded-lg text-sm transition-colors ${
+                      formData.period_length === days
+                        ? 'bg-gradient-to-r from-pink-300 via-pink-400 to-rose-500 text-black'
+                        : 'bg-white/5 text-gray-300/80 hover:bg-white/10 border border-white/10'
+                    }`}
+                  >
+                    {days}d
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Paso 3: Regularidad */}
+          {step === 3 && (
             <div className="space-y-3">
               <button
                 onClick={() => handleInputChange('is_regular', true)}
@@ -244,8 +292,8 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
             </div>
           )}
 
-          {/* Paso 3: Anticonceptivos */}
-          {step === 3 && (
+          {/* Paso 4: Anticonceptivos */}
+          {step === 4 && (
             <div className="space-y-3">
               <button
                 onClick={() => handleInputChange('uses_hormonal_contraceptives', false)}
@@ -314,7 +362,7 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
               : 'bg-white/10 text-gray-500 cursor-not-allowed'
           }`}
         >
-          {step === 3 ? (
+          {step === steps.length - 1 ? (
             <>
               <Check className="w-5 h-5" />
               Completar

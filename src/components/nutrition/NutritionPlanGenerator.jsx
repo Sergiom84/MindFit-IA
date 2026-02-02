@@ -150,7 +150,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
 
     const buildProfileFromUser = () => ({
       ...DEFAULT_PROFILE,
@@ -271,7 +271,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     setProfileSuccess(null);
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       if (!token) {
         throw new Error('No se encontro un token de autenticacion');
       }
@@ -334,19 +334,29 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     setPlanSuccess(false);
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       if (!token) {
         throw new Error('No se encontro un token de autenticacion');
       }
 
-      const profileCheck = await fetch(`${API_URL}/api/nutrition-v2/profile`, {
+      // Asegurar que exista un perfil antes de generar (upsert)
+      const profileUpsert = await fetch(`${API_URL}/api/nutrition-v2/profile`, {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
-        }
+        },
+        body: JSON.stringify(profileData)
       });
 
-      if (!profileCheck.ok) {
-        throw new Error('Debes guardar primero tu configuracion nutricional');
+      if (!profileUpsert.ok) {
+        const errorData = await profileUpsert.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Debes guardar primero tu configuracion nutricional');
+      }
+
+      const profilePayload = await profileUpsert.json().catch(() => null);
+      if (profilePayload?.estimaciones) {
+        setEstimaciones(profilePayload.estimaciones);
       }
 
       const response = await fetch(`${API_URL}/api/nutrition-v2/generate-plan`, {

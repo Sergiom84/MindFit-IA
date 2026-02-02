@@ -10,10 +10,11 @@ const CycleQuickLog = ({
   onSave, 
   onCancel, 
   currentLog = null,
+  periodActive = false,
   isModal = false 
 }) => {
   const [formData, setFormData] = useState({
-    is_period_day: currentLog?.is_period_day || false,
+    is_period_day: periodActive ? true : (currentLog?.is_period_day || false),
     energy_level: currentLog?.energy_level || 3,
     pain_level: currentLog?.pain_level || 1,
     sleep_quality: currentLog?.sleep_quality || 3,
@@ -41,7 +42,7 @@ const CycleQuickLog = ({
   const handleSave = async () => {
     setSaving(true);
     // Filtrar campos nulos opcionales
-    const dataToSave = { ...formData };
+    const dataToSave = { ...formData, ...(periodActive ? { is_period_day: true } : {}) };
     if (dataToSave.mood === null) delete dataToSave.mood;
     if (dataToSave.bloating === null) delete dataToSave.bloating;
     
@@ -113,16 +114,17 @@ const CycleQuickLog = ({
       <div className="space-y-5">
         {/* Botón de periodo */}
         <button
-          onClick={() => setFormData(prev => ({ ...prev, is_period_day: !prev.is_period_day }))}
+          onClick={() => !periodActive && setFormData(prev => ({ ...prev, is_period_day: !prev.is_period_day }))}
+          disabled={periodActive}
           className={`w-full p-4 rounded-lg border transition-all flex items-center justify-center gap-3 ${
             formData.is_period_day 
               ? 'bg-white/5 border-rose-400/50 text-rose-200'
               : 'bg-white/5 border-white/10 text-gray-300/80 hover:border-white/20'
-          }`}
+          } ${periodActive ? 'cursor-not-allowed opacity-80' : ''}`}
         >
           <Droplet className={`w-5 h-5 ${formData.is_period_day ? 'fill-current' : ''}`} />
           <span className="font-medium">
-            {formData.is_period_day ? 'Hoy tengo el periodo' : 'Marcar día de periodo'}
+            {formData.is_period_day ? 'Periodo activo' : 'Marcar día de periodo'}
           </span>
           {formData.is_period_day && <Check className="w-5 h-5" />}
         </button>

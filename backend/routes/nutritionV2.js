@@ -178,6 +178,50 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+function normalizeSexo(value) {
+  if (!value) return null;
+  const normalized = String(value).trim().toLowerCase();
+
+  if (['hombre', 'masculino', 'male', 'm'].includes(normalized)) return 'hombre';
+  if (['mujer', 'femenino', 'female', 'f'].includes(normalized)) return 'mujer';
+
+  return null;
+}
+
+function normalizeActividad(value) {
+  if (!value) return null;
+  const normalized = String(value).trim().toLowerCase();
+
+  const mapping = {
+    sedentario: 'sedentario',
+    ligero: 'ligero',
+    moderado: 'moderado',
+    activo: 'activo',
+    muy_activo: 'muy_activo',
+    alto: 'alto',
+    muy_alto: 'muy_alto'
+  };
+
+  return mapping[normalized] || null;
+}
+
+function normalizeNivelEntrenamiento(value) {
+  if (!value) return null;
+  const normalized = String(value).trim().toLowerCase();
+
+  const mapping = {
+    beginner: 'principiante',
+    intermediate: 'intermedio',
+    advanced: 'avanzado',
+    principiante: 'principiante',
+    intermedio: 'intermedio',
+    avanzado: 'avanzado',
+    'intermedio+': 'intermedio'
+  };
+
+  return mapping[normalized] || normalized;
+}
+
 // ================================================
 // PERFIL NUTRICIONAL
 // ================================================
@@ -199,7 +243,10 @@ router.get('/profile', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Perfil nutricional no encontrado' });
     }
 
-    res.json(result.rows[0]);
+    const profile = result.rows[0];
+    // Garantizar campo de sincronización con default false
+    profile.nutrition_overrides_profile = profile.nutrition_overrides_profile || false;
+    res.json(profile);
   } catch (error) {
     console.error('Error al obtener perfil nutricional:', error);
     res.status(500).json({ error: 'Error al obtener perfil' });
@@ -213,35 +260,117 @@ router.get('/profile', authenticateToken, async (req, res) => {
 router.post('/profile', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    const {
-      sexo,
-      edad,
-      altura_cm,
-      peso_kg,
-      objetivo,
-      actividad,
-      comidas_dia = 4,
-      preferencias = {},
-      alergias = [],
-      metabolic_type = null,
-      formula_preferida = null,
-      training_days = null,
-      waist_cm = null,
-      bodyfat_percent = null,
-      steps_per_day = null,
-      level = null,
-      metabolic_score = null,
-      metabolic_confidence = null,
-      metabolic_pending_type = null,
-      metabolic_pending_count = 0
-    } = req.body;
+    const payload = req.body || {};
+    const hasField = (field) => Object.prototype.hasOwnProperty.call(payload, field);
 
-    // Validar campos requeridos
+    const existingProfileResult = await pool.query(
+      'SELECT * FROM app.nutrition_profiles WHERE user_id = $1',
+      [userId]
+    );
+    const existingProfile = existingProfileResult.rows[0] || null;
+
+    let userFallback = null;
+    const getUserFallback = async () => {
+      if (userFallback) return userFallback;
+
+      const userResult = await pool.query(
+        `
+          SELECT
+            sexo,
+            edad,
+            altura,
+            peso,
+            nivel_actividad,
+            comidas_por_dia,
+            frecuencia_semanal,
+            cintura,
+            grasa_corporal,
+            nivel_entrenamiento
+          FROM app.users
+          WHERE id = $1
+        `,
+        [userId]
+      );
+
+      userFallback = userResult.rows[0] || null;
+      return userFallback;
+    };
+
+    // Base requerido: permite omitirlos si ya existen en nutrition_profiles o en app.users
+    let sexo = hasField('sexo') ? normalizeSexo(payload.sexo) : normalizeSexo(existingProfile?.sexo);
+    let edad = hasField('edad') ? payload.edad : existingProfile?.edad;
+    let altura_cm = hasField('altura_cm') ? payload.altura_cm : existingProfile?.altura_cm;
+    let peso_kg = hasField('peso_kg') ? payload.peso_kg : existingProfile?.peso_kg;
+    let objetivo = hasField('objetivo') ? payload.objetivo : existingProfile?.objetivo;
+    let actividad = hasField('actividad') ? normalizeActividad(payload.actividad) : normalizeActividad(existingProfile?.actividad);
+
+    // Otros campos (preservan valores existentes si no se envían)
+    let comidas_dia = hasField('comidas_dia') ? payload.comidas_dia : existingProfile?.comidas_dia;
+    let preferencias = hasField('preferencias') ? payload.preferencias : existingProfile?.preferencias;
+    let alergias = hasField('alergias') ? payload.alergias : existingProfile?.alergias;
+
+    let metabolic_type = hasField('metabolic_type') ? payload.metabolic_type : existingProfile?.metabolic_type;
+    let formula_preferida = hasField('formula_preferida') ? payload.formula_preferida : existingProfile?.formula_preferida;
+    let training_days = hasField('training_days') ? payload.training_days : existingProfile?.training_days;
+    let waist_cm = hasField('waist_cm') ? payload.waist_cm : existingProfile?.waist_cm;
+    let bodyfat_percent = hasField('bodyfat_percent') ? payload.bodyfat_percent : existingProfile?.bodyfat_percent;
+    let steps_per_day = hasField('steps_per_day') ? payload.steps_per_day : existingProfile?.steps_per_day;
+    let level = hasField('level') ? payload.level : existingProfile?.level;
+
+    let metabolic_score = hasField('metabolic_score') ? payload.metabolic_score : existingProfile?.metabolic_score;
+    let metabolic_confidence = hasField('metabolic_confidence') ? payload.metabolic_confidence : existingProfile?.metabolic_confidence;
+    let metabolic_pending_type = hasField('metabolic_pending_type') ? payload.metabolic_pending_type : existingProfile?.metabolic_pending_type;
+    let metabolic_pending_count = hasField('metabolic_pending_count')
+      ? payload.metabolic_pending_count
+      : (existingProfile?.metabolic_pending_count ?? 0);
+
+    let nutrition_overrides_profile = hasField('nutrition_overrides_profile')
+      ? payload.nutrition_overrides_profile
+      : (existingProfile?.nutrition_overrides_profile ?? false);
+
     if (!sexo || !edad || !altura_cm || !peso_kg || !objetivo || !actividad) {
-      return res.status(400).json({ error: 'Faltan campos requeridos' });
+      const userData = await getUserFallback();
+      if (userData) {
+        sexo = sexo || normalizeSexo(userData.sexo);
+        edad = edad ?? userData.edad;
+        altura_cm = altura_cm ?? userData.altura;
+        peso_kg = peso_kg ?? userData.peso;
+        actividad = actividad || normalizeActividad(userData.nivel_actividad);
+
+        if (comidas_dia == null) comidas_dia = userData.comidas_por_dia;
+        if (training_days == null) training_days = userData.frecuencia_semanal;
+        if (waist_cm == null) waist_cm = userData.cintura;
+        if (bodyfat_percent == null) bodyfat_percent = userData.grasa_corporal;
+        if (level == null) level = userData.nivel_entrenamiento;
+      }
     }
 
-    if (edad < 14 || edad > 80 || altura_cm < 120 || altura_cm > 220 || peso_kg < 30 || peso_kg > 250) {
+    // Validar campos requeridos (tras fallbacks)
+    if (!sexo || !edad || !altura_cm || !peso_kg || !objetivo || !actividad) {
+      return res.status(400).json({
+        error: 'Faltan campos requeridos (sexo/edad/altura_cm/peso_kg/objetivo/actividad). Completa tu perfil o envía estos campos.'
+      });
+    }
+
+    const edadValue = Number.parseInt(edad, 10);
+    const alturaValue = Number.parseInt(altura_cm, 10);
+    const pesoValue = Number.parseFloat(peso_kg);
+    const comidasValue = comidas_dia == null ? 4 : Number.parseInt(comidas_dia, 10);
+
+    const trainingDaysValue = training_days == null ? null : Number.parseInt(training_days, 10);
+    const stepsValue = steps_per_day == null ? null : Number.parseInt(steps_per_day, 10);
+    const waistValue = waist_cm == null ? null : Number.parseFloat(waist_cm);
+    const bodyfatValue = bodyfat_percent == null ? null : Number.parseFloat(bodyfat_percent);
+
+    const levelValue = level == null ? null : normalizeNivelEntrenamiento(level);
+    const preferenciasValue = preferencias && typeof preferencias === 'object' ? preferencias : {};
+    const alergiasValue = Array.isArray(alergias) ? alergias : [];
+
+    if (!Number.isFinite(edadValue) || !Number.isFinite(alturaValue) || !Number.isFinite(pesoValue)) {
+      return res.status(400).json({ error: 'Datos inválidos: edad/altura_cm/peso_kg deben ser numéricos' });
+    }
+
+    if (edadValue < 14 || edadValue > 80 || alturaValue < 120 || alturaValue > 220 || pesoValue < 30 || pesoValue > 250) {
       return res.status(400).json({ error: 'Datos fuera de rango: edad 14-80, altura 120-220 cm, peso 30-250 kg' });
     }
 
@@ -250,8 +379,8 @@ router.post('/profile', authenticateToken, async (req, res) => {
       INSERT INTO app.nutrition_profiles (
         user_id, sexo, edad, altura_cm, peso_kg, objetivo, actividad, comidas_dia, preferencias, alergias,
         metabolic_type, formula_preferida, training_days, waist_cm, bodyfat_percent, steps_per_day, level,
-        metabolic_score, metabolic_confidence, metabolic_pending_type, metabolic_pending_count
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+        metabolic_score, metabolic_confidence, metabolic_pending_type, metabolic_pending_count, nutrition_overrides_profile
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
       ON CONFLICT (user_id)
       DO UPDATE SET
         sexo = EXCLUDED.sexo,
@@ -274,6 +403,7 @@ router.post('/profile', authenticateToken, async (req, res) => {
         metabolic_confidence = EXCLUDED.metabolic_confidence,
         metabolic_pending_type = EXCLUDED.metabolic_pending_type,
         metabolic_pending_count = EXCLUDED.metabolic_pending_count,
+        nutrition_overrides_profile = EXCLUDED.nutrition_overrides_profile,
         updated_at = NOW()
       RETURNING *;
     `;
@@ -281,25 +411,26 @@ router.post('/profile', authenticateToken, async (req, res) => {
     const result = await pool.query(query, [
       userId,
       sexo,
-      edad,
-      altura_cm,
-      peso_kg,
+      edadValue,
+      alturaValue,
+      pesoValue,
       objetivo,
       actividad,
-      comidas_dia,
-      JSON.stringify(preferencias),
-      JSON.stringify(alergias),
+      comidasValue,
+      JSON.stringify(preferenciasValue),
+      JSON.stringify(alergiasValue),
       metabolic_type,
       formula_preferida,
-      training_days,
-      waist_cm,
-      bodyfat_percent,
-      steps_per_day,
-      level,
+      trainingDaysValue,
+      waistValue,
+      bodyfatValue,
+      stepsValue,
+      levelValue,
       metabolic_score,
       metabolic_confidence,
       metabolic_pending_type,
-      metabolic_pending_count
+      metabolic_pending_count,
+      nutrition_overrides_profile
     ]);
 
     // Calcular estimaciones
@@ -449,6 +580,12 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
           ]);
         }
       }
+
+      // Una vez generado el plan, la fuente pasa a ser nutrición -> perfil
+      await client.query(
+        'UPDATE app.nutrition_profiles SET nutrition_overrides_profile = TRUE, updated_at = NOW() WHERE user_id = $1',
+        [userId]
+      );
 
       await client.query('COMMIT');
 

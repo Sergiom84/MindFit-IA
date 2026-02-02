@@ -111,7 +111,13 @@ const ACTIVITY_FACTORS = {
  * @returns {number} TDEE en kcal/día
  */
 export function calculateTDEE(bmr, actividad, trainingDays, stepsPerDay) {
-  const activityConfig = ACTIVITY_FACTORS[actividad] || ACTIVITY_FACTORS.moderado;
+  const actividadNormalizada = actividad === 'alto'
+    ? 'activo'
+    : actividad === 'muy_alto'
+      ? 'muy_activo'
+      : actividad;
+
+  const activityConfig = ACTIVITY_FACTORS[actividadNormalizada] || ACTIVITY_FACTORS.moderado;
   let factor = activityConfig.base;
 
   const entrenos = trainingDays || 0;

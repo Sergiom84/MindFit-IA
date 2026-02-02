@@ -52,6 +52,8 @@ export const useProfileState = () => {
     cuello: '',
     antebrazos: '',
     cadera: '',
+    gemelo: '',
+    pliegue_abdominal: '',
     // Documentación médica
     medical_docs: [],
   }), [])
@@ -116,7 +118,9 @@ export const useProfileState = () => {
     muslos: u.muslos ?? '',
     cuello: u.cuello ?? '',
     antebrazos: u.antebrazos ?? '',
-    cadera: u.cadera ?? ''
+    cadera: u.cadera ?? '',
+    gemelo: u.gemelo ?? '',
+    pliegue_abdominal: u.pliegue_abdominal ?? ''
   }), [defaultProfile])
 
   const mapUiToDb = (data = {}) => {
@@ -138,7 +142,7 @@ export const useProfileState = () => {
       delete payload.enfoque
     }
     // Normalizar numéricos comunes
-    ;['edad','peso','altura','grasa_corporal','masa_muscular','agua_corporal','metabolismo_basal','cintura','pecho','brazos','muslos','cuello','antebrazos','cadera','frecuencia_semanal','meta_peso','meta_grasa']
+    ;['edad','peso','altura','grasa_corporal','masa_muscular','agua_corporal','metabolismo_basal','cintura','pecho','brazos','muslos','cuello','antebrazos','cadera','gemelo','pliegue_abdominal','frecuencia_semanal','meta_peso','meta_grasa']
       .forEach(k => { if (k in payload) payload[k] = toNumber(payload[k]) })
     return payload
   }

@@ -48,6 +48,9 @@ import hipertrofiaV2Routes from './routes/hipertrofiaV2.js';
 import adaptationBlockRoutes from './routes/adaptationBlock.js';
 import menstrualCycleRoutes from './routes/menstrualCycle.js';
 import trainingNutritionBridgeRoutes from './routes/trainingNutritionBridge.js';
+import dietDeviationRoutes from './routes/dietDeviation.js';
+import bodyMeasurementsRoutes from './routes/bodyMeasurements.js';
+import carbTimingRoutes from './routes/carbTiming.js';
 
 // ===============================================
 // 🗄️ RUTAS LEGACY (MANTENER TEMPORALMENTE)
@@ -418,6 +421,9 @@ app.use('/api/nutrition', nutritionRoutes);
 app.use('/api/nutrition-v2', nutritionV2Routes); // Sistema determinista normalizado
 app.use('/api/metabolic-profile', metabolicProfileRoutes); // Perfil metabolico y distribucion de macros
 app.use('/api/bridge', trainingNutritionBridgeRoutes);
+app.use('/api/diet-deviation', dietDeviationRoutes); // Gestion de saltos de dieta
+app.use('/api/body-measurements', bodyMeasurementsRoutes); // Sistema completo de mediciones corporales
+app.use('/api/carb-timing', carbTimingRoutes); // Timing de carbohidratos pre/post entreno
 app.use('/api/music', musicRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/hipertrofiav2', hipertrofiaV2Routes); // Sistema de tracking RIR

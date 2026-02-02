@@ -29,7 +29,7 @@ export default function NutritionCalendarView() {
     setError(null);
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       const response = await fetch(`${API_URL}/api/nutrition-v2/active-plan`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -59,7 +59,7 @@ export default function NutritionCalendarView() {
     setGeneratingDay(day.day_id);
     setInfoMessage(null);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       const response = await fetch(`${API_URL}/api/nutrition-v2/generate-full-day-menus`, {
         method: 'POST',
         headers: {
