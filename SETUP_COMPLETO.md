@@ -98,7 +98,7 @@ Una vez las proporciones, crearé el archivo `.env` automáticamente.
 **Pasos:**
 
 1. Ve a: https://supabase.com/dashboard/account/tokens
-2. Busca el token: `sbp_a695c76d20b4c0e34b4bf218f79c76469b04fa57`
+2. Busca el token: `sbp_TU_TOKEN_AQUI`
 3. **Revócalo** si existe
 4. Genera un nuevo token con estos permisos:
    - ✅ Read access to all projects
