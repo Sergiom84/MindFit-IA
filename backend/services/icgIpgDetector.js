@@ -14,6 +14,12 @@
  */
 
 import { pool } from '../db.js';
+import {
+  evaluateWeightLossRate,
+  evaluateSkinfold,
+  evaluateMuscleCircumferences,
+  validateSkinfoldChange
+} from './nutritionControlSupplements.js';
 
 /**
  * Estados de ICG para volumen
@@ -313,7 +319,8 @@ export async function detectProgressionIssues(userId) {
         waist_cm,
         biceps_cm,
         chest_cm,
-        calf_cm
+        calf_cm,
+        skinfold_abdominal_mm
        FROM app.body_measurements
        WHERE user_id = $1
          AND is_validated = TRUE
@@ -373,18 +380,41 @@ export async function detectProgressionIssues(userId) {
       const icg = calculateICG(current, previous);
       const icgEval = evaluateICG(icg);
 
+      // Registrar estado y validar confirmación
+      const validation = await registerAndValidateState(
+        userId,
+        'icg',
+        { ...current, weight_change: weightChange, waist_change: waistChange },
+        icg,
+        icgEval.status
+      );
+
       analysis.indicators.icg = {
         value: icg,
         status: icgEval.status,
-        message: icgEval.message
+        message: icgEval.message,
+        confirmation: validation
       };
 
-      if (icgEval.severity !== 'none') {
+      // Solo generar alertas si el cambio debe aplicarse
+      if (validation && !validation.shouldApplyChange) {
+        analysis.alerts.push({
+          type: 'ICG_PENDING_CONFIRMATION',
+          severity: 'info',
+          message: `ICG ${icgEval.status.toUpperCase()} detectado - ${validation.confirmationReason}`,
+          triggered_at: new Date().toISOString(),
+          consecutive_count: validation.consecutiveCount
+        });
+        analysis.recommendations.push(
+          `Estado ${icgEval.status.toUpperCase()} requiere confirmación. Continúa monitoreando.`
+        );
+      } else if (icgEval.severity !== 'none') {
         analysis.alerts.push({
           type: 'ICG',
           severity: icgEval.severity,
           message: icgEval.message,
-          triggered_at: new Date().toISOString()
+          triggered_at: new Date().toISOString(),
+          confirmed: validation?.statusConfirmed || false
         });
         analysis.recommendations.push(icgEval.action);
       }
@@ -394,18 +424,41 @@ export async function detectProgressionIssues(userId) {
       const ipg = calculateIPG(current, previous);
       const ipgEval = evaluateIPG(ipg);
 
+      // Registrar estado y validar confirmación
+      const validation = await registerAndValidateState(
+        userId,
+        'ipg',
+        { ...current, weight_change: weightChange, waist_change: waistChange },
+        ipg,
+        ipgEval.status
+      );
+
       analysis.indicators.ipg = {
         value: ipg,
         status: ipgEval.status,
-        message: ipgEval.message
+        message: ipgEval.message,
+        confirmation: validation
       };
 
-      if (ipgEval.severity !== 'none') {
+      // Solo generar alertas si el cambio debe aplicarse
+      if (validation && !validation.shouldApplyChange) {
+        analysis.alerts.push({
+          type: 'IPG_PENDING_CONFIRMATION',
+          severity: 'info',
+          message: `IPG ${ipgEval.status.toUpperCase()} detectado - ${validation.confirmationReason}`,
+          triggered_at: new Date().toISOString(),
+          consecutive_count: validation.consecutiveCount
+        });
+        analysis.recommendations.push(
+          `Estado ${ipgEval.status.toUpperCase()} requiere confirmación. Continúa monitoreando.`
+        );
+      } else if (ipgEval.severity !== 'none') {
         analysis.alerts.push({
           type: 'IPG',
           severity: ipgEval.severity,
           message: ipgEval.message,
-          triggered_at: new Date().toISOString()
+          triggered_at: new Date().toISOString(),
+          confirmed: validation?.statusConfirmed || false
         });
         analysis.recommendations.push(ipgEval.action);
       }
@@ -421,6 +474,22 @@ export async function detectProgressionIssues(userId) {
         analysis.recommendations.push(
           'ALERTA: Estás perdiendo peso pero tu cintura NO baja. Esto sugiere pérdida de masa muscular. ' +
           'ACCIÓN: Aumenta calorías 100-200/día, asegura proteína alta (2.2g/kg+), y reduce cardio si es excesivo.'
+        );
+      }
+
+      // Verificar bajada de rendimiento 2 semanas consecutivas (documentación)
+      const performanceCheck = await checkPerformanceDrop(userId);
+      if (performanceCheck && performanceCheck.hasPerformanceDrop) {
+        analysis.alerts.push({
+          type: 'PERFORMANCE_DROP',
+          severity: 'high',
+          message: `Rendimiento bajando ${performanceCheck.consecutiveWeeks} semanas consecutivas`,
+          triggered_at: new Date().toISOString(),
+          consecutive_weeks: performanceCheck.consecutiveWeeks
+        });
+        analysis.recommendations.push(
+          'ALERTA RENDIMIENTO: Tu rendimiento ha bajado 2+ semanas consecutivas. ' +
+          'ACCIÓN: Considera hacer un diet break (2-4 semanas en normocalórica) o aumentar calorías 100-200/día para recuperar.'
         );
       }
 
@@ -446,8 +515,124 @@ export async function detectProgressionIssues(userId) {
       }
     }
 
-    // 6. Análisis de perímetros musculares (si están disponibles)
-    if (current.biceps_cm && previous.biceps_cm) {
+    // 6. COMPLEMENTOS DE CONTROL - Ritmo de pérdida, pliegues, perímetros
+    
+    // 6.1 Ritmo de pérdida semanal (solo en definición)
+    if (currentPhase === 'definicion' && Math.abs(weightChange) > 0.1) {
+      try {
+        const weightLossRateEval = await evaluateWeightLossRate(
+          userId, 
+          weightChange, 
+          current.weight_kg
+        );
+        
+        if (weightLossRateEval.success) {
+          analysis.indicators.weight_loss_rate = weightLossRateEval.data;
+          
+          if (weightLossRateEval.severity !== 'none') {
+            analysis.alerts.push({
+              type: 'WEIGHT_LOSS_RATE',
+              severity: weightLossRateEval.severity,
+              message: weightLossRateEval.message,
+              triggered_at: new Date().toISOString(),
+              data: weightLossRateEval.data
+            });
+            analysis.recommendations.push(weightLossRateEval.action);
+          }
+        }
+      } catch (error) {
+        console.error('[Complemento] Error evaluando ritmo de pérdida:', error);
+      }
+    }
+
+    // 6.2 Validación de pliegue abdominal (si está disponible)
+    if (current.skinfold_abdominal_mm) {
+      try {
+        const skinfoldEval = await evaluateSkinfold(
+          userId,
+          current.skinfold_abdominal_mm,
+          currentPhase
+        );
+
+        if (skinfoldEval.success) {
+          analysis.indicators.skinfold = {
+            current_mm: current.skinfold_abdominal_mm,
+            status: skinfoldEval.status,
+            message: skinfoldEval.message
+          };
+
+          if (skinfoldEval.severity !== 'none') {
+            analysis.alerts.push({
+              type: 'SKINFOLD',
+              severity: skinfoldEval.severity,
+              message: skinfoldEval.message,
+              triggered_at: new Date().toISOString()
+            });
+            analysis.recommendations.push(skinfoldEval.action);
+          }
+        }
+
+        // Validar cambio brusco de pliegue (±20% en 1 semana)
+        if (previous.skinfold_abdominal_mm) {
+          const skinfoldChange = validateSkinfoldChange(
+            current.skinfold_abdominal_mm,
+            previous.skinfold_abdominal_mm
+          );
+
+          if (skinfoldChange.is_suspicious) {
+            analysis.alerts.push({
+              type: 'SUSPICIOUS_SKINFOLD_CHANGE',
+              severity: 'medium',
+              message: skinfoldChange.reason,
+              triggered_at: new Date().toISOString(),
+              change_percent: skinfoldChange.change_percent
+            });
+            analysis.recommendations.push(
+              'Cambio brusco de pliegue detectado. Repite la medición para confirmar.'
+            );
+          }
+        }
+      } catch (error) {
+        console.error('[Complemento] Error evaluando pliegue:', error);
+      }
+    }
+
+    // 6.3 Análisis de perímetros musculares (MEJORADO con umbrales específicos)
+    if (current.biceps_cm && previous.biceps_cm && current.chest_cm && previous.chest_cm) {
+      try {
+        const circumferenceEval = evaluateMuscleCircumferences(
+          current,
+          previous,
+          currentPhase
+        );
+
+        if (circumferenceEval.success) {
+          analysis.indicators.muscle_circumferences = {
+            biceps_change: circumferenceEval.biceps_change_cm,
+            chest_change: circumferenceEval.chest_change_cm,
+            phase: currentPhase
+          };
+
+          // Agregar alertas de perímetros
+          circumferenceEval.alerts.forEach(alert => {
+            if (alert.severity !== 'none') {
+              analysis.alerts.push({
+                ...alert,
+                triggered_at: new Date().toISOString()
+              });
+            }
+          });
+
+          // Agregar recomendaciones de perímetros
+          circumferenceEval.recommendations.forEach(rec => {
+            analysis.recommendations.push(rec);
+          });
+        }
+      } catch (error) {
+        console.error('[Complemento] Error evaluando perímetros:', error);
+      }
+    } else if (current.biceps_cm && previous.biceps_cm) {
+      // Fallback: análisis básico si no hay pecho
       const bicepsChange = current.biceps_cm - previous.biceps_cm;
 
       if (currentPhase === 'definicion' && bicepsChange < -0.5) {
@@ -480,6 +665,83 @@ export async function detectProgressionIssues(userId) {
   } catch (error) {
     console.error('Error en detectProgressionIssues:', error);
     throw new Error(`Error detectando progresión: ${error.message}`);
+  }
+}
+
+/**
+ * Verifica si hay bajada de rendimiento 2 semanas consecutivas
+ * 
+ * @param {number} userId - ID del usuario
+ * @returns {Promise<Object>} Resultado de verificación
+ */
+async function checkPerformanceDrop(userId) {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM app.check_performance_drop($1)`,
+      [userId]
+    );
+
+    if (result.rows.length > 0) {
+      const check = result.rows[0];
+      return {
+        hasPerformanceDrop: check.has_performance_drop,
+        consecutiveWeeks: check.consecutive_weeks,
+        lastMeasurementDate: check.last_measurement_date,
+        shouldSuggestDietBreak: check.should_suggest_diet_break,
+        reason: check.reason
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error verificando rendimiento:', error);
+    return null;
+  }
+}
+
+/**
+ * Registra el estado ICG/IPG/IEC en el historial y valida confirmación
+ * 
+ * @param {number} userId - ID del usuario
+ * @param {string} indicatorType - 'icg' | 'ipg' | 'iec'
+ * @param {Object} measurement - Datos de medición
+ * @param {number} indicatorValue - Valor calculado del indicador
+ * @param {string} status - Estado detectado
+ * @returns {Promise<Object>} Resultado de validación
+ */
+async function registerAndValidateState(userId, indicatorType, measurement, indicatorValue, status) {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM app.register_icg_ipg_state($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        userId,
+        measurement.measurement_date,
+        indicatorType,
+        measurement.weight_kg,
+        measurement.waist_cm,
+        measurement.weight_change || 0,
+        measurement.waist_change || 0,
+        indicatorValue,
+        status
+      ]
+    );
+
+    if (result.rows.length > 0) {
+      const validation = result.rows[0];
+      return {
+        stateId: validation.state_id,
+        consecutiveCount: validation.consecutive_count,
+        statusConfirmed: validation.status_confirmed,
+        previousStatus: validation.previous_status,
+        shouldApplyChange: validation.should_apply_change,
+        confirmationReason: validation.confirmation_reason
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error registrando estado:', error);
+    return null;
   }
 }
 

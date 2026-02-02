@@ -52,6 +52,8 @@ import trainingNutritionBridgeRoutes from './routes/trainingNutritionBridge.js';
 import dietDeviationRoutes from './routes/dietDeviation.js';
 import bodyMeasurementsRoutes from './routes/bodyMeasurements.js';
 import carbTimingRoutes from './routes/carbTiming.js';
+import performanceConfirmationRoutes from './routes/performanceConfirmation.js';
+import nutritionSupplementsRoutes from './routes/nutritionSupplements.js';
 
 // ===============================================
 // 🗄️ RUTAS LEGACY (MANTENER TEMPORALMENTE)
@@ -426,6 +428,8 @@ app.use('/api/bridge', trainingNutritionBridgeRoutes);
 app.use('/api/diet-deviation', dietDeviationRoutes); // Gestion de saltos de dieta
 app.use('/api/body-measurements', bodyMeasurementsRoutes); // Sistema completo de mediciones corporales
 app.use('/api/carb-timing', carbTimingRoutes); // Timing de carbohidratos pre/post entreno
+app.use('/api/performance-confirmation', performanceConfirmationRoutes); // Tracking rendimiento y confirmacion estados ICG/IPG
+app.use('/api/nutrition/supplements', nutritionSupplementsRoutes); // Complementos de control nutricional (ritmo, pliegues, perimetros)
 app.use('/api/music', musicRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/hipertrofiav2', hipertrofiaV2Routes); // Sistema de tracking RIR
