@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS app.user_calibration_config (
   calibration_frequency_days INTEGER DEFAULT 14 CHECK (calibration_frequency_days >= 7 AND calibration_frequency_days <= 60),
   
   -- Preferencias de ajuste
-  min_measurements_required INTEGER DEFAULT 5, -- Mínimo de mediciones en 7 días
+  min_measurements_required INTEGER DEFAULT 5, -- Mínimo de mediciones en 14 días (media móvil)
   max_adjustment_kcal INTEGER DEFAULT 250, -- Máximo ajuste por iteración
   
   -- Notificaciones
@@ -139,10 +139,10 @@ END $$;
 -- FUNCIONES DE UTILIDAD
 -- ============================================================================
 
--- 5. Función para calcular media de peso de los últimos N días
+-- 5. Función para calcular media de peso de los últimos N días (documentación: 14 días)
 CREATE OR REPLACE FUNCTION app.calculate_weight_average(
   p_user_id INTEGER,
-  p_days INTEGER DEFAULT 7,
+  p_days INTEGER DEFAULT 14,
   p_min_measurements INTEGER DEFAULT 5
 )
 RETURNS TABLE (
@@ -164,7 +164,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION app.calculate_weight_average IS 'Calcula la media de peso de los últimos N días con validación de cantidad mínima de mediciones';
+COMMENT ON FUNCTION app.calculate_weight_average IS 'Calcula la media móvil de peso de los últimos N días (default 14 según documentación) con validación de cantidad mínima de mediciones';
 
 -- 6. Función para validar si una medición de cintura es sospechosa
 CREATE OR REPLACE FUNCTION app.validate_waist_measurement(
@@ -235,6 +235,88 @@ END;
 $$ LANGUAGE plpgsql;
 
 COMMENT ON FUNCTION app.validate_waist_measurement IS 'Valida si un cambio de cintura es sospechoso (>2.5cm en 7 días sin cambio proporcional de peso)';
+
+-- 6b. Función para validar si un cambio de peso es sospechoso (> 3 kg en 7 días)
+CREATE OR REPLACE FUNCTION app.validate_weight_change(
+  p_user_id INTEGER,
+  p_new_weight_kg DECIMAL(5,2),
+  p_new_waist_cm DECIMAL(5,2) DEFAULT NULL
+)
+RETURNS TABLE (
+  is_suspicious BOOLEAN,
+  reason TEXT,
+  should_repeat BOOLEAN,
+  previous_weight DECIMAL(5,2),
+  weight_change_kg DECIMAL(5,2),
+  days_diff INTEGER
+) AS $$
+DECLARE
+  v_prev_weight DECIMAL(5,2);
+  v_prev_waist DECIMAL(5,2);
+  v_prev_date DATE;
+  v_days_diff INTEGER;
+  v_weight_change DECIMAL(5,2);
+  v_waist_change DECIMAL(5,2);
+BEGIN
+  -- Obtener última medición de peso en los últimos 7 días
+  SELECT peso_kg, cintura_cm, measurement_date
+  INTO v_prev_weight, v_prev_waist, v_prev_date
+  FROM app.user_body_measurements
+  WHERE user_id = p_user_id
+  AND measurement_date >= CURRENT_DATE - INTERVAL '7 days'
+  AND validated = TRUE
+  ORDER BY measurement_date DESC
+  LIMIT 1;
+
+  -- Si no hay medición previa, no es sospechosa
+  IF v_prev_weight IS NULL THEN
+    RETURN QUERY SELECT FALSE, NULL::TEXT, FALSE, NULL::DECIMAL(5,2), NULL::DECIMAL(5,2), NULL::INTEGER;
+    RETURN;
+  END IF;
+
+  -- Calcular cambios
+  v_days_diff := CURRENT_DATE - v_prev_date;
+  v_weight_change := ABS(p_new_weight_kg - v_prev_weight);
+
+  -- Regla documentación: Peso cambia > 3 kg en 7 días sin cambios coherentes en cintura y/o pliegue
+  IF v_weight_change > 3.0 AND v_days_diff <= 7 THEN
+    -- Si tenemos datos de cintura, verificar coherencia
+    IF p_new_waist_cm IS NOT NULL AND v_prev_waist IS NOT NULL THEN
+      v_waist_change := ABS(p_new_waist_cm - v_prev_waist);
+      
+      -- Si el peso cambió mucho pero la cintura no cambió proporcionalmente, es sospechoso
+      IF v_waist_change < 1.0 THEN
+        RETURN QUERY SELECT 
+          TRUE,
+          FORMAT('Cambio de peso de %.1f kg en %s días sin cambio proporcional de cintura (%.1f cm)', 
+                 v_weight_change, v_days_diff, v_waist_change),
+          TRUE,
+          v_prev_weight,
+          v_weight_change,
+          v_days_diff;
+        RETURN;
+      END IF;
+    ELSE
+      -- Sin datos de cintura, marcar como sospechoso si > 3 kg en 7 días
+      RETURN QUERY SELECT 
+        TRUE,
+        FORMAT('Cambio de peso muy rápido: %.1f kg en %s días - Verificar medición', 
+               v_weight_change, v_days_diff),
+        TRUE,
+        v_prev_weight,
+        v_weight_change,
+        v_days_diff;
+      RETURN;
+    END IF;
+  END IF;
+
+  -- No es sospechosa
+  RETURN QUERY SELECT FALSE, NULL::TEXT, FALSE, v_prev_weight, v_weight_change, v_days_diff;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION app.validate_weight_change IS 'Valida si un cambio de peso es sospechoso (>3kg en 7 días según documentación)';
+
 
 -- 7. Función para verificar si toca calibración nutricional
 CREATE OR REPLACE FUNCTION app.should_trigger_nutrition_calibration(p_user_id INTEGER)

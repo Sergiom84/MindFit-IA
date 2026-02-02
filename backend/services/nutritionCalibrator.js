@@ -10,11 +10,11 @@ import pool from '../db.js';
 /**
  * Calcula la media de peso de los últimos N días
  * @param {number} userId 
- * @param {number} days - Número de días a promediar (default: 7)
+ * @param {number} days - Número de días a promediar (default: 14, según documentación)
  * @param {number} minMeasurements - Mínimo de mediciones requeridas (default: 5)
  * @returns {Object|null} { mediaPeso, numMeasurements, isValid }
  */
-export async function calculateWeightAverage(userId, days = 7, minMeasurements = 5) {
+export async function calculateWeightAverage(userId, days = 14, minMeasurements = 5) {
   try {
     const result = await pool.query(
       `SELECT * FROM app.calculate_weight_average($1, $2, $3)`,
@@ -70,6 +70,39 @@ export async function validateWaistMeasurement(userId, newWaist_cm, newWeight_kg
 }
 
 /**
+ * Valida si un cambio de peso es sospechoso (> 3 kg en 7 días)
+ * @param {number} userId
+ * @param {number} newWeight_kg
+ * @param {number} newWaist_cm - Opcional
+ * @returns {Object} Resultado de validación
+ */
+export async function validateWeightChange(userId, newWeight_kg, newWaist_cm = null) {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM app.validate_weight_change($1, $2, $3)`,
+      [userId, newWeight_kg, newWaist_cm]
+    );
+
+    if (result.rows.length === 0) {
+      return { isSuspicious: false, shouldRepeat: false };
+    }
+
+    const row = result.rows[0];
+    return {
+      isSuspicious: row.is_suspicious,
+      reason: row.reason,
+      shouldRepeat: row.should_repeat,
+      previousWeight: row.previous_weight ? parseFloat(row.previous_weight) : null,
+      weightChange: row.weight_change_kg ? parseFloat(row.weight_change_kg) : null,
+      daysDiff: row.days_diff
+    };
+  } catch (error) {
+    console.error('Error validando cambio de peso:', error);
+    throw error;
+  }
+}
+
+/**
  * Guarda una medición corporal con validación automática
  * @param {number} userId
  * @param {Object} measurement - Datos de medición
@@ -92,11 +125,23 @@ export async function saveMeasurement(userId, measurement) {
   } = measurement;
 
   try {
-    // Validar cintura si se proporciona
-    let validation = { isSuspicious: false, shouldRepeat: false };
+    // Validar cintura y peso si se proporcionan
+    let waistValidation = { isSuspicious: false, shouldRepeat: false };
+    let weightValidation = { isSuspicious: false, shouldRepeat: false };
+    
     if (cintura_cm) {
-      validation = await validateWaistMeasurement(userId, cintura_cm, peso_kg);
+      waistValidation = await validateWaistMeasurement(userId, cintura_cm, peso_kg);
     }
+    
+    // Validar peso > 3 kg en 7 días (documentación exacta)
+    weightValidation = await validateWeightChange(userId, peso_kg, cintura_cm);
+    
+    // Combinar validaciones
+    const isSuspicious = waistValidation.isSuspicious || weightValidation.isSuspicious;
+    const suspicionReasons = [];
+    if (waistValidation.isSuspicious) suspicionReasons.push(waistValidation.reason);
+    if (weightValidation.isSuspicious) suspicionReasons.push(weightValidation.reason);
+    const combinedReason = suspicionReasons.join(' | ');
 
     // Insertar medición
     const result = await pool.query(
@@ -112,9 +157,9 @@ export async function saveMeasurement(userId, measurement) {
         brazo_cm, pierna_cm, bodyfat_percent, muscle_mass_kg,
         measurement_date || new Date().toISOString().split('T')[0],
         source,
-        validation.isSuspicious,
-        validation.reason || null,
-        !validation.isSuspicious, // validated = true si no es sospechosa
+        isSuspicious,
+        isSuspicious ? combinedReason : null,
+        !isSuspicious, // validated = true si no es sospechosa
         notes || null
       ]
     );
@@ -124,7 +169,8 @@ export async function saveMeasurement(userId, measurement) {
       measurementId: result.rows[0].id,
       flagged: result.rows[0].flagged_suspicious,
       validated: result.rows[0].validated,
-      validation
+      waistValidation,
+      weightValidation
     };
   } catch (error) {
     console.error('Error guardando medición:', error);
@@ -140,22 +186,22 @@ export async function saveMeasurement(userId, measurement) {
  */
 export async function evaluateCalibration(userId, objetivo) {
   try {
-    // 1. Verificar si hay suficientes mediciones actuales (últimos 7 días)
-    const currentWeightAvg = await calculateWeightAverage(userId, 7, 5);
+    // 1. Verificar si hay suficientes mediciones actuales (últimos 14 días, media móvil)
+    const currentWeightAvg = await calculateWeightAverage(userId, 14, 5);
     
     if (!currentWeightAvg) {
       return {
         canCalibrate: false,
-        reason: 'Insuficientes mediciones de peso en los últimos 7 días (requiere al menos 5 mediciones)'
+        reason: 'Insuficientes mediciones de peso en los últimos 14 días (requiere al menos 5 mediciones para media móvil)'
       };
     }
 
-    // 2. Obtener peso medio hace 14 días (periodo de 14-21 días atrás)
+    // 2. Obtener peso medio hace 14 días (periodo de 14-28 días atrás para comparación)
     const previousWeightResult = await pool.query(
       `SELECT AVG(peso_kg) as media_peso, COUNT(*) as num_measurements
        FROM app.user_body_measurements
        WHERE user_id = $1
-       AND measurement_date BETWEEN CURRENT_DATE - INTERVAL '21 days' AND CURRENT_DATE - INTERVAL '14 days'
+       AND measurement_date BETWEEN CURRENT_DATE - INTERVAL '28 days' AND CURRENT_DATE - INTERVAL '14 days'
        AND validated = TRUE
        AND flagged_suspicious = FALSE`,
       [userId]
@@ -165,7 +211,7 @@ export async function evaluateCalibration(userId, objetivo) {
         previousWeightResult.rows[0].num_measurements < 3) {
       return {
         canCalibrate: false,
-        reason: 'Insuficientes datos históricos (requiere al menos 3 mediciones hace 14-21 días)'
+        reason: 'Insuficientes datos históricos (requiere al menos 3 mediciones hace 14-28 días)'
       };
     }
 

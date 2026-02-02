@@ -194,28 +194,31 @@ function evaluateIPG(ipg) {
 
 /**
  * Evalúa estabilidad en mantenimiento (IEC)
- * Según documentación: ROJO (+1kg y +1cm), AMARILLO (±0.5kg), VERDE (±0.3kg), VERDE+ (estable + ↑ perímetros)
+ * Según documentación: Evaluación a 14 días (2 semanas, media móvil)
+ * ROJO (+1kg y +1cm), AMARILLO (±0.5kg), VERDE (±0.3kg), VERDE+ (estable + ↑ perímetros)
  *
- * @param {Array} measurements - Últimas 4 semanas de mediciones
+ * @param {Array} measurements - Últimas mediciones (al menos 2 para evaluar 14 días)
  * @returns {Object} - { status, severity, message, action, stable, weeks_stable }
  */
 function evaluateIEC(measurements) {
-  if (measurements.length < 4) {
+  // Documentación: evaluar a 14 días, necesitamos al menos 2 mediciones semanales
+  if (measurements.length < 2) {
     return {
       status: 'neutral',
       severity: 'none',
       stable: null,
       weeks_stable: measurements.length,
-      message: 'Necesitas al menos 4 semanas de mediciones para evaluar estabilidad (IEC)',
+      message: 'Necesitas al menos 2 mediciones (14 días) para evaluar estabilidad (IEC)',
       action: 'Continúa registrando tus mediciones semanales'
     };
   }
 
-  const first = measurements[measurements.length - 1];  // Más antigua (hace 4 semanas)
-  const last = measurements[0];                         // Más reciente (actual)
+  // Evaluar 14 días: comparar última medición con la de hace 2 semanas
+  const last = measurements[0];              // Más reciente
+  const twoWeeksAgo = measurements[1];       // Hace ~14 días
 
-  const weightChange = last.weight_kg - first.weight_kg;
-  const waistChange = last.waist_cm - first.waist_cm;
+  const weightChange = last.weight_kg - twoWeeksAgo.weight_kg;
+  const waistChange = last.waist_cm - twoWeeksAgo.waist_cm;
 
   const absWeightChange = Math.abs(weightChange);
   const absWaistChange = Math.abs(waistChange);
@@ -224,16 +227,16 @@ function evaluateIEC(measurements) {
   let hasRecomp = false;
   if (absWeightChange <= IEC_THRESHOLDS.WEIGHT_STABLE_OPTIMAL) {
     // Verificar si hay aumento de perímetros musculares
-    if (measurements[0].biceps_cm && measurements[measurements.length - 1].biceps_cm) {
-      const bicepsGain = measurements[0].biceps_cm - measurements[measurements.length - 1].biceps_cm;
-      const chestGain = measurements[0].chest_cm - measurements[measurements.length - 1].chest_cm;
+    if (last.biceps_cm && twoWeeksAgo.biceps_cm) {
+      const bicepsGain = last.biceps_cm - twoWeeksAgo.biceps_cm;
+      const chestGain = last.chest_cm - twoWeeksAgo.chest_cm;
       if (bicepsGain >= 0.3 || chestGain >= 0.5) {
         hasRecomp = true;
       }
     }
   }
 
-  // Estados según documentación
+  // Estados según documentación (evaluación a 14 días)
   if (weightChange >= 1.0 && waistChange >= 1.0) {
     // ROJO: Superávit no deseado
     return {
@@ -241,7 +244,7 @@ function evaluateIEC(measurements) {
       severity: 'high',
       stable: false,
       weeks_stable: 0,
-      message: 'IEC ROJO: +1 kg y +1 cm en 4 semanas - Superávit no deseado',
+      message: 'IEC ROJO: +1 kg y +1 cm en 14 días - Superávit no deseado',
       action: 'REDUCIR calorías 150 kcal/día. Estás ganando peso y grasa en fase de mantenimiento.'
     };
   } else if (hasRecomp) {
@@ -250,7 +253,7 @@ function evaluateIEC(measurements) {
       status: IEC_STATUS.GREEN_PLUS,
       severity: 'none',
       stable: true,
-      weeks_stable: measurements.length,
+      weeks_stable: 2,
       message: 'IEC VERDE+ (ÓPTIMO): Recomposición corporal - Peso estable con aumento de perímetros',
       action: 'Excelente. Estás ganando músculo sin subir grasa. Mantén tu plan actual o considera un micro superávit (+100 kcal/día).'
     };
@@ -260,11 +263,9 @@ function evaluateIEC(measurements) {
       status: IEC_STATUS.GREEN,
       severity: 'none',
       stable: true,
-      weeks_stable: measurements.length,
-      message: `IEC VERDE: Mantenimiento estable (±0.3 kg) durante ${measurements.length} semanas`,
-      action: measurements.length >= IEC_THRESHOLDS.MAX_WEEKS_STABLE
-        ? 'Has mantenido estabilidad por 4+ semanas. Si deseas progresar, considera entrar en volumen o definición según tus objetivos.'
-        : 'Mantienes tu composición corporal de forma estable. Continúa con tu plan actual.'
+      weeks_stable: 2,
+      message: 'IEC VERDE: Mantenimiento estable (±0.3 kg) en 14 días',
+      action: 'Mantienes tu composición corporal de forma estable. Continúa con tu plan actual.'
     };
   } else if (absWeightChange <= IEC_THRESHOLDS.WEIGHT_STABLE_NORMAL) {
     // AMARILLO: Oscilación normal
@@ -272,8 +273,8 @@ function evaluateIEC(measurements) {
       status: IEC_STATUS.YELLOW,
       severity: 'none',
       stable: true,
-      weeks_stable: measurements.length,
-      message: 'IEC AMARILLO: Oscilación normal (±0.5 kg)',
+      weeks_stable: 2,
+      message: 'IEC AMARILLO: Oscilación normal (±0.5 kg) en 14 días',
       action: 'Variación normal de peso. Mantén tu plan y sigue monitoreando.'
     };
   } else {
@@ -284,7 +285,7 @@ function evaluateIEC(measurements) {
       severity: 'medium',
       stable: false,
       weeks_stable: 0,
-      message: `No estás en mantenimiento estable - Estás ${trend} peso (${absWeightChange.toFixed(1)} kg en 4 semanas)`,
+      message: `No estás en mantenimiento estable - Estás ${trend} peso (${absWeightChange.toFixed(1)} kg en 14 días)`,
       action: trend === 'ganando'
         ? 'Estás ganando peso en fase de mantenimiento. Reduce 150 kcal/día o aumenta actividad.'
         : 'Estás perdiendo peso en fase de mantenimiento. Aumenta 150 kcal/día para estabilizar.'
