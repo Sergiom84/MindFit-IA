@@ -1,4 +1,8 @@
-# Hoja de ruta Nutrición & Bridge (Feb 1, 2026)
+# Hoja de ruta Nutrición & Bridge (Feb 2, 2026)
+
+## Objetivo inmediato (este ciclo)
+
+Sincronizar el proyecto local con los cambios de la rama `feature/nutricion-bridge-metabolico` en GitHub y dejar el backend **integrado y arrancable** (sin errores de imports/rutas), sin perder ninguna regla del documento (TMB/GCT + Control Nutricional Integral).
 
 ## Implementado
 
@@ -8,6 +12,21 @@
 - **Puente Entrenamiento↔Nutrición**: Estado unificado, carb cycling por tipo de día, matriz de fatiga/flags, logs de decisiones, endpoints bridge registrados en `server.js`.
 - **Carb timing**: Migración, servicios y rutas pre/post/daily/quick-guide integrados.
 - **Frontend**: `NutritionDashboard` accesible desde la pestaña "Dashboard Nutrición" (dentro de la sección Nutrición), con mediciones (form + history + semáforo), cheat meals, carb timing guide, post-workout modal y cuestionario metabólico; exportador en `src/components/nutrition/index.js`.
+
+## Pendiente (por incorporar desde GitHub a local)
+
+> Estado detectado: la rama local está por detrás respecto a `origin/feature/nutricion-bridge-metabolico`.
+
+- **Sistema de calibración automática GCT (cada 14 días)**: ajustes graduales 150–250 kcal/día, reglas por fase, validación de peso/cintura, endpoints dedicados y migraciones asociadas.
+- **Confirmación 2 semanas (regla anti-ruido 2.1) para ICG/IPG/IEC**: historial de estados + lógica para “mismo color 2 veces” antes de aplicar empeoramientos.
+- **Tracking de rendimiento (sube/mantiene/baja)**: registro y detección de “2 semanas consecutivas bajando” para sugerir diet break / normocalórica 2–4 semanas.
+- **Complementos de control**: ritmo de pérdida por nivel (beginner/intermediate/advanced), pliegue abdominal (20/25mm en volumen), perímetros (mínimos en volumen y pérdidas máximas en definición), y validación de cambios bruscos (±20% pliegue semanal).
+
+## Bloqueantes de integración (al traer cambios de GitHub)
+
+- **Rutas faltantes/imports inconsistentes**: asegurar que `backend/server.js` solo registre rutas existentes y que todos los servicios/rutas importen `pool` desde `backend/db.js` (sin default import y sin rutas a `backend/config/db.js`).
+- **Performance-confirmation API**: si el backend registra `/api/performance-confirmation`, debe existir su router y apoyarse en la migración `create_training_performance_tracking.sql` + funciones SQL.
+- **Fuente de verdad de mediciones**: evitar duplicidad/confusión entre `app.body_measurements` (sistema actual) y cualquier tabla paralela que se añada; decisión explícita y adaptación mínima para no romper UI ni bridge.
 
 ## Pendiente / Gaps detectados
 
@@ -21,9 +40,10 @@
 
 ## Mejoras sugeridas (orden prioridad)
 
-1. Anti-ruido y confirmación 14d en bridge y nutrición-v2 (bloquear cambios sin doble confirmación o media móvil).
-2. Ajustar IEC a ventana fija 14d y aplicar tabla de acciones coordinadas (nutrición ↔ entrenamiento).
-3. Saltos de dieta: proteína estable (2 g/kg), reparto de corrección por fase, macros en `daily_compensation_plan`, reevaluación al cierre semanal.
-4. Completar integración UI con HipertrofiaV2/bridge (confirmaciones 14d, alertas, acciones) y exponer semáforo/compensación/timing en el loop de uso.
-5. Snapshots semanales + mensajes explicativos en decision logs.
-6. Scheduler de reevaluación metabólica cada 14 días con recordatorio al usuario.
+1. **(Bloqueante)** Integrar cambios de GitHub + corregir errores de integración (rutas/imports) y dejar backend arrancable.
+2. Anti-ruido y confirmación 14d en bridge y nutrición-v2 (bloquear cambios sin doble confirmación o media móvil).
+3. Ajustar IEC a ventana fija 14d y aplicar tabla de acciones coordinadas (nutrición ↔ entrenamiento).
+4. Saltos de dieta: proteína estable (2 g/kg), reparto de corrección por fase, macros en `daily_compensation_plan`, reevaluación al cierre semanal.
+5. Completar integración UI con HipertrofiaV2/bridge (confirmaciones 14d, alertas, acciones) y exponer semáforo/compensación/timing en el loop de uso.
+6. Snapshots semanales + mensajes explicativos en decision logs.
+7. Scheduler de reevaluación metabólica cada 14 días con recordatorio al usuario.

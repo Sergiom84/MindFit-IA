@@ -1,5 +1,14 @@
 # Registro diario de implementaciones
 
+## 02.02.2026
+
+- Nutrición/Bridge: actualizado `docs/NUTRICION_ROADMAP.md` con objetivo inmediato, pendientes por incorporar desde GitHub y bloqueantes de integración.
+- Git: fast-forward de `feature/nutricion-bridge-metabolico` desde GitHub (calibración automática GCT, confirmación 2 semanas ICG/IPG/IEC, tracking rendimiento, complementos de control y documentación técnica).
+- Backend: fix de integración en `backend/services/nutritionControlSupplements.js` (pool desde `backend/db.js`).
+- Backend: añadido router `backend/routes/performanceConfirmation.js` para `/api/performance-confirmation` (registro de rendimiento, check 2 semanas, estado confirmado ICG/IPG/IEC).
+- SQL: ajustes de compatibilidad para Supabase en migraciones de nutrición (`backend/migrations/create_training_performance_tracking.sql` sin `RECORD[]` y `backend/migrations/create_nutrition_calibration_system.sql` asegurando columnas `kcal_objetivo`/`tdee`).
+- Seguridad: se eliminaron tokens `sbp_*` reales de documentación de setup MCP (se reemplazan por placeholders).
+
 ## 01.02.2026
 
 - Documentación: se creó `docs/NUTRICION_ROADMAP.md` con estado implementado, gaps y mejoras priorizadas para Nutrición/Bridge.
