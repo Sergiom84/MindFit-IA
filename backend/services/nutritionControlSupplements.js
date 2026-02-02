@@ -8,7 +8,7 @@
  * - Complementos para ICG/IPG/IEC
  */
 
-import pool from '../config/db.js';
+import pool from '../db.js';
 
 // ============================================
 // RITMO DE PÉRDIDA SEMANAL POR NIVEL DE DÉFICIT

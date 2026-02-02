@@ -135,6 +135,29 @@ BEGIN
   END IF;
 END $$;
 
+-- 4b. Asegurar columnas base usadas por calibración/vistas
+-- Nota: algunos entornos pueden tener un schema más antiguo de nutrition_profiles.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'app'
+      AND table_name = 'nutrition_profiles'
+      AND column_name = 'kcal_objetivo'
+  ) THEN
+    ALTER TABLE app.nutrition_profiles ADD COLUMN kcal_objetivo INTEGER;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'app'
+      AND table_name = 'nutrition_profiles'
+      AND column_name = 'tdee'
+  ) THEN
+    ALTER TABLE app.nutrition_profiles ADD COLUMN tdee INTEGER;
+  END IF;
+END $$;
+
 -- ============================================================================
 -- FUNCIONES DE UTILIDAD
 -- ============================================================================

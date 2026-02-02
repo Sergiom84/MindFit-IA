@@ -46,20 +46,31 @@ RETURNS TABLE (
   reason TEXT
 ) AS $$
 DECLARE
-  v_last_two_weeks RECORD[];
-  v_count_baja INTEGER;
+  v_trend_1 TEXT;
+  v_trend_2 TEXT;
+  v_date_1 DATE;
 BEGIN
-  -- Obtener últimas 2 semanas de rendimiento
-  SELECT ARRAY_AGG(ROW(measurement_date, performance_trend)::RECORD ORDER BY measurement_date DESC)
-  INTO v_last_two_weeks
-  FROM app.training_performance_log
-  WHERE user_id = p_user_id
-  AND measurement_date >= CURRENT_DATE - INTERVAL '14 days'
-  ORDER BY measurement_date DESC
-  LIMIT 2;
-  
-  -- Si no hay suficientes datos
-  IF ARRAY_LENGTH(v_last_two_weeks, 1) < 2 THEN
+  -- Obtener la última medición (dentro de 14 días)
+  SELECT tpl.performance_trend, tpl.measurement_date
+  INTO v_trend_1, v_date_1
+  FROM app.training_performance_log tpl
+  WHERE tpl.user_id = p_user_id
+    AND tpl.measurement_date >= CURRENT_DATE - INTERVAL '14 days'
+  ORDER BY tpl.measurement_date DESC
+  LIMIT 1;
+
+  -- Obtener la segunda última medición (dentro de 14 días)
+  SELECT tpl.performance_trend
+  INTO v_trend_2
+  FROM app.training_performance_log tpl
+  WHERE tpl.user_id = p_user_id
+    AND tpl.measurement_date >= CURRENT_DATE - INTERVAL '14 days'
+  ORDER BY tpl.measurement_date DESC
+  OFFSET 1
+  LIMIT 1;
+
+  -- Si no hay suficientes datos (requiere 2 registros)
+  IF v_trend_1 IS NULL OR v_trend_2 IS NULL THEN
     RETURN QUERY SELECT
       FALSE,
       0,
@@ -68,30 +79,27 @@ BEGIN
       'Insuficientes datos de rendimiento (requiere 2 semanas)'::TEXT;
     RETURN;
   END IF;
-  
-  -- Contar cuántas semanas consecutivas con bajada
-  v_count_baja := 0;
-  FOR i IN 1..ARRAY_LENGTH(v_last_two_weeks, 1) LOOP
-    IF (v_last_two_weeks[i]).performance_trend = 'baja' THEN
-      v_count_baja := v_count_baja + 1;
-    ELSE
-      EXIT; -- Si no es 'baja', salir del loop
-    END IF;
-  END LOOP;
-  
-  -- Evaluar si hay bajada consecutiva
-  IF v_count_baja >= 2 THEN
+
+  -- Contar semanas consecutivas bajando (solo evaluamos 2 semanas según especificación)
+  IF v_trend_1 = 'baja' AND v_trend_2 = 'baja' THEN
     RETURN QUERY SELECT
       TRUE,
-      v_count_baja,
-      (v_last_two_weeks[1]).measurement_date::DATE,
+      2,
+      v_date_1,
       TRUE,
-      FORMAT('Rendimiento bajando %s semanas consecutivas - Sugerir diet break o normocalórica', v_count_baja)::TEXT;
+      'Rendimiento bajando 2 semanas consecutivas - Sugerir diet break o normocalórica'::TEXT;
+  ELSIF v_trend_1 = 'baja' THEN
+    RETURN QUERY SELECT
+      FALSE,
+      1,
+      v_date_1,
+      FALSE,
+      'Rendimiento bajando 1 semana - requiere confirmación otra semana'::TEXT;
   ELSE
     RETURN QUERY SELECT
       FALSE,
-      v_count_baja,
-      (v_last_two_weeks[1]).measurement_date::DATE,
+      0,
+      v_date_1,
       FALSE,
       'Rendimiento estable o mejorando'::TEXT;
   END IF;
