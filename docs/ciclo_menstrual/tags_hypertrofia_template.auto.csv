@@ -1,0 +1,111 @@
+exercise_id,nombre,patron_movimiento,patron,equipamiento,pattern,equipment,impact_level,axial_load_level,cod_level,overhead
+1,Press de pecho en máquina,empuje_horizontal,Empuje horizontal,Máquina,push,maquina,0,0,0,false
+2,Press inclinado en máquina,empuje_vertical,Empuje horizontal (alto),Máquina,push,maquina,0,0,0,false
+3,Aperturas en máquina (Pec Deck),aislamiento_pecho,Aducción horizontal,Máquina,push,maquina,0,0,0,false
+4,Remo sentado en máquina,traccion_horizontal,Tracción horizontal,Máquina,pull,maquina,0,0,0,false
+5,Jalón al pecho en polea (agarre ancho),traccion_vertical,Tracción vertical,Polea,pull,polea,0,0,0,false
+6,Pullover en máquina,traccion_horizontal,Extensión de hombro,Máquina,pull,maquina,0,0,0,false
+7,Press militar en máquina,empuje_vertical,Empuje vertical,Máquina,push,maquina,0,2,0,true
+8,Elevaciones laterales en máquina,general,Abducción,Máquina,push,maquina,0,0,0,false
+9,Reverse Fly en máquina,general,Apertura horizontal,Máquina,pull,maquina,0,0,0,false
+10,Curl de bíceps en máquina (predicador),aislamiento_biceps,Flexión de codo,Máquina,pull,maquina,0,0,0,false
+11,Extensión de tríceps en polea con barra,aislamiento_triceps,Extensión de codo,Polea,push,polea,0,0,0,false
+12,Extensión de tríceps con cuerda,aislamiento_triceps,Extensión de codo,Polea,push,polea,0,0,0,false
+13,Sentadilla en prensa 45°,cuadriceps_dominante,Sentadilla guiada,Máquina (Prensa),squat,maquina (prensa),0,2,0,false
+14,Extensión de cuádriceps (Leg Extension),cuadriceps_dominante,Extensión de rodilla,Máquina,squat,maquina,0,0,0,false
+15,Curl femoral tumbado,cadena_posterior,Flexión de rodilla,Máquina,hinge,maquina,0,1,0,false
+16,Curl femoral sentado,cadena_posterior,Flexión de rodilla,Máquina,hinge,maquina,0,1,0,false
+17,Hip Thrust en máquina Smith (básico),cadena_posterior,Extensión de cadera,Máquina/Smith,hinge,maquina|smith,0,1,0,false
+18,Abducción de cadera en máquina,general,Abducción de cadera,Máquina,push,maquina,0,0,0,false
+19,Elevación de talones en prensa (gemelos),cuadriceps_dominante,Flexo-extensión de tobillo,Máquina/Prensa,squat,maquina|prensa,0,0,0,false
+20,Crunch en máquina,core_flexion,Flexión de tronco,Máquina,core,maquina,0,0,0,false
+21,Pallof Press en polea,core_estabilizacion,Anti-rotación,Polea,core,polea,0,0,0,false
+22,Extensión lumbar en banco 45° (peso corporal),general,Extensión de cadera,Banco 45°,hinge,banco 45°,0,1,0,false
+23,Press de banca con barra,empuje_horizontal,Empuje horizontal,Barra,push,barra,1,0,0,false
+24,Press inclinado con mancuernas,empuje_vertical,Empuje horizontal (alto),Mancuernas,push,mancuernas,1,0,0,false
+25,Aperturas con mancuernas en banco plano,aislamiento_pecho,Aducción horizontal,Mancuernas,push,mancuernas,1,0,0,false
+26,Remo con barra Pendlay,traccion_horizontal,Tracción horizontal,Barra,pull,barra,1,0,0,false
+27,Remo en polea baja (agarre neutro),traccion_horizontal,Tracción horizontal,Polea,pull,polea,0,0,0,false
+28,Jalón supino (agarre neutro),traccion_vertical,Tracción vertical,Polea,pull,polea,0,0,0,false
+29,Pullover en polea alta (barra recta),traccion_horizontal,Extensión de hombro,Polea,pull,polea,0,0,0,false
+30,Press militar con mancuernas (sentado),empuje_vertical,Empuje vertical,Mancuernas,push,mancuernas,1,2,0,true
+31,Elevaciones laterales con mancuernas,general,Abducción,Mancuernas,push,mancuernas,1,0,0,false
+32,Face Pull en polea con cuerda,general,Apertura horizontal + rotación externa,Polea,pull,polea,0,0,0,false
+33,Curl con barra recta (de pie),aislamiento_biceps,Flexión de codo,Barra,pull,barra,1,0,0,false
+34,Curl inclinado con mancuernas,aislamiento_biceps,Flexión de codo (estirado),Mancuernas,pull,mancuernas,1,0,0,false
+35,Press francés con barra Z (tumbado),aislamiento_triceps,Extensión de codo,Barra Z,push,barra z,0,0,0,false
+36,Extensión de tríceps por encima de la cabeza en polea,aislamiento_triceps,Extensión de codo (longa),Polea,push,polea,0,2,0,true
+37,Sentadilla frontal con barra (técnica),cuadriceps_dominante,Sentadilla,Barra,squat,barra,1,3,0,false
+38,Prensa 45° (carga moderada/alta),cuadriceps_dominante,Sentadilla guiada,Máquina,squat,maquina,0,1,0,false
+39,Hip Thrust con barra,cadena_posterior,Extensión de cadera,Barra,hinge,barra,1,1,0,false
+40,Peso muerto rumano (RDL) con barra,cadena_posterior,Bisagra de cadera,Barra,hinge,barra,1,3,0,false
+41,Curl femoral en máquina unilateral,cadena_posterior,Flexión de rodilla,Máquina,hinge,maquina,0,1,0,false
+42,Elevaciones de talón de pie en máquina,general,Flexo-extensión de tobillo,Máquina,squat,maquina,0,0,0,false
+43,Crunch en polea de rodillas,core_flexion,Flexión de tronco,Polea,core,polea,0,0,0,false
+44,Pallof Press en polea (alto/medio),core_estabilizacion,Anti-rotación,Polea,core,polea,0,0,0,false
+45,Farmer’s Walk con mancuernas (corto),general,Estabilidad + agarre,Mancuernas,carry,mancuernas,1,0,0,false
+46,Press de banca con pausa,empuje_horizontal,Empuje horizontal (fuerza-hiper),Barra,push,barra,1,0,0,false
+47,Press inclinado con barra (pesado),empuje_vertical,Empuje horizontal (alto),Barra,push,barra,1,0,0,false
+48,Aperturas con cable en polea de pie,aislamiento_pecho,Aducción horizontal,Polea,push,polea,0,0,0,false
+49,Remo con barra Pendlay (estricto),traccion_horizontal,Tracción horizontal,Barra,pull,barra,1,0,0,false
+50,Dominadas lastradas (si disponibles),traccion_vertical,Tracción vertical,Barra/Peso,pull,barra|peso,1,0,0,false
+51,Jalón en polea con agarre V (pesado),traccion_vertical,Tracción vertical,Polea,pull,polea,0,0,0,false
+52,Press militar con barra (de pie),empuje_vertical,Empuje vertical,Barra,push,barra,1,3,0,true
+53,Elevación lateral en cable unilateral,aislamiento_hombro_lateral,Abducción,Polea,push,polea,0,0,0,false
+54,Face Pull pesado con pausa,general,Apertura horizontal + rotación externa,Polea,pull,polea,0,0,0,false
+55,Curl con barra Z (pesado),aislamiento_biceps,Flexión de codo,Barra Z,pull,barra z,0,0,0,false
+56,Curl en polea baja con barra recta,aislamiento_biceps,Flexión de codo,Polea,pull,polea,0,0,0,false
+57,JM Press (press francés pesado),aislamiento_triceps,Extensión de codo,Barra Z/Barra,push,barra z|barra,1,0,0,false
+58,Extensión de tríceps en polea unilateral,aislamiento_triceps,Extensión de codo,Polea,push,polea,0,0,0,false
+59,Sentadilla trasera alta (High Bar),cuadriceps_dominante,Sentadilla,Barra,squat,barra,1,3,0,false
+60,Hack Squat en máquina (pesado),cuadriceps_dominante,Sentadilla guiada,Máquina,squat,maquina,0,1,0,false
+61,Peso muerto rumano con mancuernas (pesado),cadena_posterior,Bisagra de cadera,Mancuernas,hinge,mancuernas,1,2,0,false
+62,Buenos días con barra (ligero/moderado),general,Bisagra de cadera,Barra,hinge,barra,1,0,0,false
+63,Hip Thrust pesado con barra (pausas),cadena_posterior,Extensión de cadera,Barra,hinge,barra,1,1,0,false
+64,Step-Up alto con mancuernas,cuadriceps_dominante,Subida unilateral,Mancuernas,squat,mancuernas,1,1,0,false
+65,Sentadilla búlgara con mancuernas (pesada),cuadriceps_dominante,Sentadilla unilateral,Mancuernas,squat,mancuernas,1,2,0,false
+66,Elevación de talones sentado (sóleo),general,Flexo-extensión de tobillo,Máquina,squat,maquina,0,0,0,false
+67,Crunch con carga (disco en pecho),core_flexion,Flexión de tronco,Banco/Disco,core,banco|disco,1,0,0,false
+68,Rueda abdominal (Ab Wheel) controlada,core_estabilizacion,Anti-extensión,Rueda/Barra,core,rueda|barra,1,0,0,false
+69,Curl con mancuernas (alternado/unilateral),,Flexión de codo unilateral,Mancuernas,pull,mancuernas,1,0,0,false
+70,Extensión de rodilla unilateral en máquina,,Extensión de rodilla unilateral,Máquina,squat,maquina,0,0,0,false
+71,Leg Press en máquina,,Flexión de rodilla,Máquina,hinge,maquina,0,0,0,false
+72,Pájaros en polea (Reverse Pec Deck modificado),,Apertura horizontal + rotación externa,Polea dual,pull,polea dual,0,0,0,false
+73,Pallof Press con banda elástica,,Anti-rotación,Banda elástica,core,banda elastica,0,0,0,false
+74,Sentadilla Goblet (control técnico),,Flexión de rodilla,Kettlebell/Disco,hinge,kettlebell|disco,1,2,0,false
+75,Tríceps en máquina cerrada,,Extensión de codo,Máquina,push,maquina,0,0,0,false
+76,Ab Wheel posición avanzada,,Anti-extensión dinámica máxima,Rueda abdominal,core,rueda abdominal,0,0,0,false
+77,Crunches en banco declinado con disco,,Flexión de tronco avanzada,Banco declinado + Disco,core,banco declinado|disco,1,0,0,false
+78,Curl complejos con barra (Rest-Pause),,Flexión de codo con fatiga acumulada,Barra olímpica,pull,barra olimpica,0,0,0,false
+79,Curl con barra olímpica completo,,Flexión de codo completa,Barra olímpica,pull,barra olimpica,0,0,0,false
+80,Curl concentrado en banco,,Flexión de codo unilateral,Banco + Mancuerna,pull,banco|mancuerna,0,0,0,false
+81,Curl de bíceps con barra EZ (de pie),,Flexión de codo,Barra EZ,pull,barra ez,0,0,0,false
+82,Curl en predicador con mancuernas,,Flexión de codo aislada,Banco predicador + Mancuernas,pull,banco predicador|mancuernas,1,0,0,false
+83,Curl Scott con barra olímpica,,Flexión de codo profunda,Banco Scott + Barra olímpica,pull,banco scott|barra olimpica,0,0,0,false
+84,Curls isométricos con banda,,Tensión isométrica máxima,Banda elástica,pull,banda elastica,0,0,0,false
+85,Dead Bug ponderado,,Anti-extensión controlada,Disco/Mancuerna,core,disco|mancuerna,1,0,0,false
+86,Dips en máquina asistida,,Empuje vertical profundo,Máquina asistida,push,maquina asistida,0,0,0,false
+87,Dragon Flag (progresión),,Anti-extensión isométrica,Banco/Barra,core,banco|barra,1,0,0,false
+88,Dragon Flag completo,,Anti-extensión isométrica completa,Banco/Barra,core,banco|barra,1,0,0,false
+89,Elevación lateral en polea (unilateral),,Abducción unilateral,Polea,push,polea,0,0,0,false
+90,Extensión de tríceps en barras paralelas,,Extensión de codo profunda,Barras paralelas,push,barras paralelas,0,0,0,false
+91,Extensión de tríceps en polea alta (cuerda),,Extensión de codo,Polea + Cuerda,push,polea|cuerda,0,0,0,false
+92,Extensión francesa con barra EZ (sentado),,Extensión de codo,Barra EZ + Banco,push,barra ez|banco,0,0,0,false
+93,Fondos en barras paralelas asistidos,,Empuje vertical con asistencia,Barras paralelas + Banda,push,barras paralelas|banda,0,0,0,false
+94,Fondos en paralelas lastrados,,Empuje vertical (cierre),Paralelas + Peso,push,paralelas|peso,0,0,0,false
+95,Fondos pesados lastrados,,Empuje vertical con máxima carga,Barras paralelas + Chaleco,push,barras paralelas|chaleco,0,0,0,false
+96,Fondos unilateral asistido,,Empuje asimétrico intenso,Barras paralelas + Banda,push,barras paralelas|banda,0,0,0,false
+97,Hack Squat en máquina,,Flexión de rodilla profunda,Máquina Hack,hinge,maquina hack,0,0,0,false
+98,L-Sit ponderado,,Anti-flexión máxima,Paralelas + Disco,core,paralelas|disco,1,0,0,false
+99,Pistol Squat asistida,,Sentadilla unilateral profunda,TRX/Banda,squat,trx|banda,0,2,0,false
+100,Plank pesado (con disco en espalda),,Anti-extensión,Disco,core,disco,1,0,0,false
+101,Prensa inclinada 45°,,Flexión de rodilla angulada,Máquina Prensa,hinge,maquina prensa,0,0,0,false
+102,Press Arnold con mancuernas,,Empuje vertical con rotación,Mancuernas + Banco,push,mancuernas|banco,1,2,0,true
+103,Press militar con barra (pesado con pausa),,Empuje vertical máximo,Barra olímpica,push,barra olimpica,0,2,0,true
+104,Press overhead unilateral con mancuerna,,Empuje vertical unilateral,Mancuerna,push,mancuerna,0,2,0,true
+105,Sentadilla búlgara con mancuernas,,Flexión de rodilla unilateral,Mancuernas + Banco,hinge,mancuernas|banco,1,2,0,false
+106,Sentadilla olímpica con barra,,Sentadilla profunda completa,Barra olímpica,squat,barra olimpica,0,2,0,false
+107,Sentadilla Sissy con mancuernas,,Flexión de rodilla aislada,Mancuernas,hinge,mancuernas,1,2,0,false
+108,Shrugs (encorvamientos) con barra olímpica,,Elevación de hombros,Barra olímpica,pull,barra olimpica,0,0,0,false
+109,Snatch Grip High Pull,,Tracción explosiva amplia,Barra olímpica,pull,barra olimpica,2,2,0,true
+110,Walking Lunges con mancuernas pesadas,,Flexión de rodilla dinámica,Mancuernas,hinge,mancuernas,1,1,0,false

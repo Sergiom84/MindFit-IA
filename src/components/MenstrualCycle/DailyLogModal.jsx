@@ -73,7 +73,7 @@ const DailyLogModal = ({ isOpen, date, onClose, onSaved }) => {
       setLoading(true);
       setError(null);
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("authToken") || localStorage.getItem("token");
         const resp = await fetch(`/api/menstrual-cycle/log/${date}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -103,7 +103,7 @@ const DailyLogModal = ({ isOpen, date, onClose, onSaved }) => {
     setSaving(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("authToken") || localStorage.getItem("token");
       const payload = {
         log_date: date,
         is_period_day: formData.is_period_day,
@@ -253,4 +253,3 @@ const DailyLogModal = ({ isOpen, date, onClose, onSaved }) => {
 };
 
 export default DailyLogModal;
-

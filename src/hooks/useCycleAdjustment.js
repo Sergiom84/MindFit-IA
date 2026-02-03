@@ -11,8 +11,13 @@ const useCycleAdjustment = () => {
     hasConfig: false,
     cycleDay: null,
     phase: null,
+    phaseV3: null,
+    mode: null,
+    cycleConfidence: null,
     todayLog: null,
     adjustment: null,
+    restExtraSeconds: 0,
+    swapRequired: false,
     loading: true,
     error: null
   });
@@ -36,12 +41,27 @@ const useCycleAdjustment = () => {
 
       const data = await response.json();
       
+      const resolvedCycleDay = data.cycleDay ?? data.cycle_day ?? null;
+      const resolvedPhase = data.phase ?? null;
+      const resolvedPhaseV3 = data.phase_v3 ?? null;
+      const resolvedMode = data.mode ?? null;
+      const resolvedConfidence = data.cycle_confidence ?? null;
+      const resolvedRestExtra = Number.isFinite(data.adjustment?.rest_extra_seconds)
+        ? data.adjustment.rest_extra_seconds
+        : 0;
+      const resolvedSwapRequired = Boolean(data.adjustment?.swap_required);
+
       setCycleData({
         hasConfig: data.hasConfig || false,
-        cycleDay: data.cycleDay,
-        phase: data.phase,
+        cycleDay: resolvedCycleDay,
+        phase: resolvedPhase,
+        phaseV3: resolvedPhaseV3,
+        mode: resolvedMode,
+        cycleConfidence: resolvedConfidence,
         todayLog: data.todayLog,
         adjustment: data.adjustment,
+        restExtraSeconds: resolvedRestExtra,
+        swapRequired: resolvedSwapRequired,
         loading: false,
         error: null
       });
@@ -70,11 +90,17 @@ const useCycleAdjustment = () => {
       return { volume: baseVolume, intensity: baseIntensity };
     }
 
-    const { volumeModifier, intensityModifier } = cycleData.adjustment;
+    const { volumeModifier = 0, intensityModifier = 0, multipliers } = cycleData.adjustment;
+    const volumeMultiplier = Number.isFinite(multipliers?.volume)
+      ? multipliers.volume
+      : (1 + volumeModifier);
+    const intensityMultiplier = Number.isFinite(multipliers?.intensity)
+      ? multipliers.intensity
+      : (1 + intensityModifier);
 
-    const adjustedVolume = Math.round(baseVolume * (1 + volumeModifier));
-    const adjustedIntensity = baseIntensity 
-      ? Math.round(baseIntensity * (1 + intensityModifier) * 10) / 10
+    const adjustedVolume = Math.round(baseVolume * volumeMultiplier);
+    const adjustedIntensity = baseIntensity
+      ? Math.round(baseIntensity * intensityMultiplier * 10) / 10
       : null;
 
     return {

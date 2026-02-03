@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 
-// Devuelve la fecha local (no UTC) en formato YYYY-MM-DD para evitar desfaces por zona horaria
+// Devuelve la fecha local (no UTC) en formato YYYY-MM-DD para evitar desfases por zona horaria
 const getLocalDate = () => {
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
@@ -14,6 +14,7 @@ const getLocalDate = () => {
 export const useMenstrualCycle = (userId) => {
   const [config, setConfig] = useState(null);
   const [todayLog, setTodayLog] = useState(null);
+  const [trainingData, setTrainingData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -22,7 +23,7 @@ export const useMenstrualCycle = (userId) => {
     if (!userId) return;
     
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
       const response = await fetch('/api/menstrual-cycle/config', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -42,7 +43,7 @@ export const useMenstrualCycle = (userId) => {
     if (!userId) return;
     
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
       const today = getLocalDate();
       const response = await fetch(`/api/menstrual-cycle/log/${today}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -57,23 +58,42 @@ export const useMenstrualCycle = (userId) => {
     }
   }, [userId]);
 
+  // Cargar ajuste de entrenamiento (backend v3)
+  const loadTrainingAdjustment = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+      const response = await fetch('/api/menstrual-cycle/training-adjustment', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTrainingData(data);
+      }
+    } catch (err) {
+      console.error('Error cargando ajuste de ciclo:', err);
+    }
+  }, [userId]);
+
   // Cargar datos iniciales
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([loadConfig(), loadTodayLog()]);
+      await Promise.all([loadConfig(), loadTodayLog(), loadTrainingAdjustment()]);
       setLoading(false);
     };
     
     if (userId) {
       loadData();
     }
-  }, [userId, loadConfig, loadTodayLog]);
+  }, [userId, loadConfig, loadTodayLog, loadTrainingAdjustment]);
 
   // Guardar configuración inicial (onboarding)
   const saveConfig = useCallback(async (configData) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
       const response = await fetch('/api/menstrual-cycle/config', {
         method: 'POST',
         headers: {
@@ -97,15 +117,10 @@ export const useMenstrualCycle = (userId) => {
   }, []);
 
   // Registrar "Hoy me bajó"
-  const logPeriodStart = useCallback(async (options = {}) => {
+  const logPeriodStart = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
       const today = getLocalDate();
-
-      // Evitar doble registro dentro de la ventana de periodo activo
-      if (options.periodActive) {
-        return { success: true, skipped: true };
-      }
       
       const response = await fetch('/api/menstrual-cycle/log', {
         method: 'POST',
@@ -122,18 +137,19 @@ export const useMenstrualCycle = (userId) => {
       if (response.ok) {
         await loadTodayLog();
         await loadConfig(); // Actualizar last_period_start
+        await loadTrainingAdjustment();
         return { success: true };
       }
       return { success: false };
     } catch (err) {
       return { success: false, error: err.message };
     }
-  }, [loadTodayLog, loadConfig]);
+  }, [loadTodayLog, loadConfig, loadTrainingAdjustment]);
 
   // Registrar síntomas del día
   const logSymptoms = useCallback(async (symptoms) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
       const today = getLocalDate();
       
       const response = await fetch('/api/menstrual-cycle/log', {
@@ -144,26 +160,52 @@ export const useMenstrualCycle = (userId) => {
         },
         body: JSON.stringify({
           log_date: today,
-          ...symptoms,
-          // Si el periodo sigue activo por configuración, garantizamos que quede marcado
-          ...(periodActive ? { is_period_day: true } : {})
+          ...symptoms
         })
       });
       
       if (response.ok) {
         await loadTodayLog();
+        await loadTrainingAdjustment();
         return { success: true };
       }
       return { success: false };
     } catch (err) {
       return { success: false, error: err.message };
     }
-  }, [loadTodayLog]);
+  }, [loadTodayLog, loadTrainingAdjustment]);
 
-  // Calcular día del ciclo y fase actual
+  const resolvePhaseLabels = (phase) => {
+    const labels = {
+      menstrual: {
+        phaseName: 'Fase Menstrual',
+        phaseDescription: 'Período activo. Prioriza el descanso y la recuperación. Entrenamientos de baja intensidad recomendados.'
+      },
+      follicular: {
+        phaseName: 'Fase Folicular',
+        phaseDescription: 'Energía en aumento. Excelente momento para entrenamientos de fuerza e intensidad alta.'
+      },
+      ovulation: {
+        phaseName: 'Ovulación',
+        phaseDescription: 'Pico de energía y rendimiento. Aprovecha para tus entrenamientos más exigentes.'
+      },
+      luteal: {
+        phaseName: 'Fase Lútea',
+        phaseDescription: 'Energía decreciente. Enfócate en resistencia y técnica. Reduce intensidad si lo necesitas.'
+      },
+      hormonal: {
+        phaseName: 'Anticonceptivos hormonales',
+        phaseDescription: 'Con anticonceptivos hormonales, las fases naturales no aplican. Nos basamos en tus síntomas diarios.'
+      }
+    };
+    return labels[phase] || { phaseName: 'Sin datos', phaseDescription: 'Registra tu ciclo para comenzar el seguimiento.' };
+  };
+
+  // Calcular día del ciclo y fase actual (con override del backend v3)
   const cycleInfo = useMemo(() => {
-    if (!config?.last_period_start) {
+    if (!config) {
       return {
+        hasConfig: false,
         cycleDay: null,
         phase: null,
         phaseName: 'Sin datos',
@@ -172,9 +214,19 @@ export const useMenstrualCycle = (userId) => {
       };
     }
 
-    const todayStr = getLocalDate();
+    if (!config.last_period_start) {
+      return {
+        hasConfig: true,
+        cycleDay: null,
+        phase: null,
+        phaseName: 'Sin datos',
+        phaseDescription: 'Registra tu último periodo para comenzar el seguimiento',
+        daysUntilNextPeriod: null
+      };
+    }
+
     const lastPeriod = new Date(config.last_period_start);
-    const today = new Date(todayStr);
+    const today = new Date(getLocalDate());
     const diffTime = today - lastPeriod;
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
     
@@ -188,157 +240,116 @@ export const useMenstrualCycle = (userId) => {
     // Días hasta próximo periodo
     const daysUntilNextPeriod = cycleLength - cycleDay + 1;
     
+    let phase = null;
+
     // Determinar fase (si no usa anticonceptivos hormonales)
     if (config.uses_hormonal_contraceptives) {
+      phase = 'hormonal';
+    } else if (cycleDay <= periodLength) {
+      phase = 'menstrual';
+    } else if (cycleDay <= Math.floor(cycleLength * 0.5)) {
+      phase = 'follicular';
+    } else if (cycleDay <= Math.floor(cycleLength * 0.5) + 3) {
+      phase = 'ovulation';
+    } else {
+      phase = 'luteal';
+    }
+
+    const baseLabels = resolvePhaseLabels(phase);
+
+    const backendMode = trainingData?.mode;
+    const backendCycleDay = trainingData?.cycleDay ?? trainingData?.cycle_day ?? null;
+    const backendPhase = trainingData?.phase ?? null;
+
+    if (backendMode === 'symptoms') {
       return {
-        cycleDay,
-        phase: 'hormonal',
-        phaseName: 'Anticonceptivos hormonales',
-        phaseDescription: 'Con anticonceptivos hormonales, las fases naturales no aplican. Nos basamos en tus síntomas diarios.',
+        hasConfig: true,
+        cycleDay: null,
+        phase: null,
+        phaseName: 'Modo síntomas',
+        phaseDescription: 'Usamos tus síntomas y rendimiento para ajustar la sesión.',
+        daysUntilNextPeriod: null
+      };
+    }
+
+    if (backendCycleDay || backendPhase) {
+      const overrideLabels = backendPhase ? resolvePhaseLabels(backendPhase) : baseLabels;
+      return {
+        hasConfig: true,
+        cycleDay: backendCycleDay ?? cycleDay,
+        phase: backendPhase ?? phase,
+        phaseName: overrideLabels.phaseName,
+        phaseDescription: overrideLabels.phaseDescription,
         daysUntilNextPeriod
       };
     }
-    
-    // Fases del ciclo natural
-    let phase, phaseName, phaseDescription;
-    
-    if (cycleDay <= periodLength) {
-      phase = 'menstrual';
-      phaseName = 'Fase Menstrual';
-      phaseDescription = 'Período activo. Prioriza el descanso y la recuperación. Entrenamientos de baja intensidad recomendados.';
-    } else if (cycleDay <= Math.floor(cycleLength * 0.5)) {
-      phase = 'follicular';
-      phaseName = 'Fase Folicular';
-      phaseDescription = 'Energía en aumento. Excelente momento para entrenamientos de fuerza e intensidad alta.';
-    } else if (cycleDay <= Math.floor(cycleLength * 0.5) + 3) {
-      phase = 'ovulation';
-      phaseName = 'Ovulación';
-      phaseDescription = 'Pico de energía y rendimiento. Aprovecha para tus entrenamientos más exigentes.';
-    } else {
-      phase = 'luteal';
-      phaseName = 'Fase Lútea';
-      phaseDescription = 'Energía decreciente. Enfócate en resistencia y técnica. Reduce intensidad si lo necesitas.';
-    }
-    
+
     return {
+      hasConfig: true,
       cycleDay,
       phase,
-      phaseName,
-      phaseDescription,
+      phaseName: baseLabels.phaseName,
+      phaseDescription: baseLabels.phaseDescription,
       daysUntilNextPeriod
     };
-  }, [config]);
+  }, [config, trainingData]);
 
-  // Ventana de periodo activo según última fecha y duración configurada
-  const periodActive = useMemo(() => {
-    if (!config?.last_period_start) return false;
-    const todayStr = getLocalDate();
-    const start = new Date(config.last_period_start);
-    const today = new Date(todayStr);
-    const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;
-    return diff >= 1 && diff <= (config.period_length || 5);
-  }, [config]);
-
-  // Obtener ajuste de entrenamiento basado en síntomas + fase
+  // Obtener ajuste de entrenamiento basado en backend v3
   const getTrainingAdjustment = useCallback(() => {
-    // Prioridad: síntomas reales del día > fase teórica
-    if (todayLog) {
-      const { energy_level, pain_level, sleep_quality } = todayLog;
-      
-      // Dolor alto = prioridad máxima
-      if (pain_level >= 4) {
-        return {
-          type: 'low_impact',
-          volumeModifier: -0.3,
-          intensityModifier: -0.3,
-          title: 'Día de recuperación activa',
-          message: 'Detectamos malestar. Hoy mejor movilidad, técnica o paseo suave.',
-          color: 'red',
-          icon: '🩹'
-        };
-      }
-      
-      // Energía baja o mal sueño
-      if (energy_level <= 2 || sleep_quality <= 2) {
-        return {
-          type: 'reduce_volume',
-          volumeModifier: -0.2,
-          intensityModifier: -0.1,
-          title: 'Volumen reducido',
-          message: 'Energía baja detectada. Reducimos series pero mantenemos calidad.',
-          color: 'yellow',
-          icon: '⚡'
-        };
-      }
-      
-      // Todo bien + buena energía
-      if (energy_level >= 4 && pain_level <= 2 && sleep_quality >= 3) {
-        return {
-          type: 'optimal',
-          volumeModifier: 0,
-          intensityModifier: 0,
-          title: 'Día óptimo',
-          message: '¡Excelente estado! Puedes dar el 100% hoy.',
-          color: 'green',
-          icon: '💪'
-        };
-      }
-    }
-    
-    // Sin registro de hoy: usar fase teórica
-    if (cycleInfo.phase === 'menstrual') {
-      return {
-        type: 'menstrual_phase',
-        volumeModifier: -0.15,
-        intensityModifier: -0.2,
+    if (!trainingData?.adjustment) return null;
+
+    const { type = 'normal', message } = trainingData.adjustment;
+    const base = {
+      low_impact: {
+        title: 'Día de recuperación activa',
+        color: 'red',
+        icon: '🩹'
+      },
+      reduce_volume: {
+        title: 'Volumen reducido',
+        color: 'yellow',
+        icon: '⚡'
+      },
+      menstrual_phase: {
         title: 'Fase menstrual',
-        message: 'Período activo. Escucha a tu cuerpo y ajusta según cómo te sientas.',
         color: 'purple',
         icon: '🩸'
-      };
-    }
-    
-    if (cycleInfo.phase === 'luteal' && cycleInfo.cycleDay > (config?.cycle_length || 28) - 5) {
-      return {
-        type: 'late_luteal',
-        volumeModifier: -0.1,
-        intensityModifier: -0.1,
+      },
+      late_luteal: {
         title: 'Fase premenstrual',
-        message: 'Posibles síntomas premenstruales. No fuerces si no te sientes bien.',
         color: 'orange',
         icon: '🌙'
-      };
-    }
-    
-    // Default: plan normal
-    return {
-      type: 'normal',
-      volumeModifier: 0,
-      intensityModifier: 0,
-      title: 'Plan normal',
-      message: 'Sin ajustes necesarios. Sigue tu rutina planificada.',
-      color: 'blue',
-      icon: '✓'
+      },
+      optimal: {
+        title: 'Día óptimo',
+        color: 'green',
+        icon: '💪'
+      },
+      normal: {
+        title: 'Plan normal',
+        color: 'blue',
+        icon: '✓'
+      }
     };
-  }, [todayLog, cycleInfo, config]);
 
-  // Log efectivo: si estamos dentro de la ventana de periodo, forzamos el flag en UI
-  const effectiveTodayLog = useMemo(() => {
-    if (periodActive) {
-      return todayLog ? { ...todayLog, is_period_day: true } : { is_period_day: true };
-    }
-    return todayLog;
-  }, [periodActive, todayLog]);
+    const fallback = base[type] || base.normal;
+    return {
+      type,
+      title: fallback.title,
+      color: fallback.color,
+      icon: fallback.icon,
+      message: message || 'Sin ajustes necesarios.'
+    };
+  }, [trainingData]);
 
   return {
     // Estado
     config,
     todayLog,
-    effectiveTodayLog,
-    periodActive,
     loading,
     error,
     cycleInfo,
+    trainingData,
     
     // Acciones
     saveConfig,
@@ -350,7 +361,8 @@ export const useMenstrualCycle = (userId) => {
     refresh: useCallback(() => {
       loadConfig();
       loadTodayLog();
-    }, [loadConfig, loadTodayLog])
+      loadTrainingAdjustment();
+    }, [loadConfig, loadTodayLog, loadTrainingAdjustment])
   };
 };
 

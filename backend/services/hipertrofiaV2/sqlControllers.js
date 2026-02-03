@@ -5,7 +5,13 @@
 
 import pool from '../../db.js';
 import { logger } from './logger.js';
-import { filterMenstrualRestrictedExercises, getMenstrualFilterStats } from './menstrualExerciseFilter.js';
+import { buildCycleAdjustment, computeCycleConfidence } from '../menstrualCycle/engine.js';
+import { findSwapCandidate, getExerciseTags } from '../menstrualCycle/swapEngine.js';
+import {
+  getActiveDeloadState,
+  getPatternAutoAdjustments,
+  resolvePattern
+} from '../menstrualCycle/autoAdjustService.js';
 
 /**
  * Calcula ajuste de entrenamiento según ciclo menstrual (si aplica)
@@ -29,95 +35,128 @@ async function getMenstrualTrainingAdjustment(userId) {
     if (configResult.rows.length === 0) return null;
 
     const config = configResult.rows[0];
-    const now = new Date();
-    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-    const today = local.toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
 
     const logResult = await pool.query(
       `SELECT * FROM app.menstrual_daily_log WHERE user_id = $1 AND log_date = $2`,
       [userId, today]
     );
     const todayLog = logResult.rows[0] || null;
-
-    let cycleDay = null;
-    let phase = null;
-
-    if (config.last_period_start) {
-      const lastPeriod = new Date(config.last_period_start);
-      const todayDate = new Date(today);
-      const diffDays = Math.floor((todayDate - lastPeriod) / (1000 * 60 * 60 * 24)) + 1;
-      cycleDay = diffDays % config.cycle_length || config.cycle_length;
-
-      if (config.uses_hormonal_contraceptives) {
-        phase = 'hormonal';
-      } else if (cycleDay <= config.period_length) {
-        phase = 'menstrual';
-      } else if (cycleDay <= Math.floor(config.cycle_length * 0.5)) {
-        phase = 'follicular';
-      } else if (cycleDay <= Math.floor(config.cycle_length * 0.5) + 3) {
-        phase = 'ovulation';
-      } else {
-        phase = 'luteal';
+    const normalizedLog = todayLog
+      ? {
+        pain_0_3: Number.isFinite(todayLog.pain_0_3)
+          ? todayLog.pain_0_3
+          : (Number.isFinite(todayLog.pain_level)
+            ? (todayLog.pain_level <= 1 ? 0 : todayLog.pain_level === 2 ? 1 : todayLog.pain_level === 3 ? 1 : todayLog.pain_level === 4 ? 2 : 3)
+            : undefined),
+        fatigue_0_3: Number.isFinite(todayLog.fatigue_0_3)
+          ? todayLog.fatigue_0_3
+          : (Number.isFinite(todayLog.energy_level)
+            ? (todayLog.energy_level <= 1 ? 3 : todayLog.energy_level === 2 ? 2 : todayLog.energy_level === 3 ? 1 : 0)
+            : undefined),
+        sleep_0_3: Number.isFinite(todayLog.sleep_0_3)
+          ? todayLog.sleep_0_3
+          : (Number.isFinite(todayLog.sleep_quality)
+            ? (todayLog.sleep_quality <= 1 ? 3 : todayLog.sleep_quality === 2 ? 2 : todayLog.sleep_quality === 3 ? 1 : 0)
+            : undefined),
+        stress_0_3: Number.isFinite(todayLog.stress_0_3) ? todayLog.stress_0_3 : undefined
       }
-    }
+      : {};
 
-    let adjustment = {
-      type: 'normal',
-      volumeModifier: 0,
-      intensityModifier: 0,
-      message: 'Sin ajustes necesarios'
+    const recentLogsResult = await pool.query(
+      `SELECT COUNT(*)::int AS total
+       FROM app.menstrual_daily_log
+       WHERE user_id = $1 AND log_date BETWEEN $2 AND $3`,
+      [userId, new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], today]
+    );
+    const hasRecentLogs = recentLogsResult.rows[0]?.total >= 10;
+
+    const historyResult = await pool.query(
+      `SELECT cycle_length_days
+       FROM app.menstrual_cycle_history
+       WHERE user_id = $1 AND cycle_length_days IS NOT NULL
+       ORDER BY bleed_start_date ASC`,
+      [userId]
+    );
+    const cycleLengths = historyResult.rows.map(row => row.cycle_length_days);
+    const resolvedContraceptionType = config.contraception_type || (config.uses_hormonal_contraceptives ? 'other/unknown' : 'none');
+    const computedConfidence = computeCycleConfidence({
+      cycleLengths,
+      hasLastBleedStartDate: !!(config.last_bleed_start_date || config.last_period_start),
+      hasRecentLogs,
+      contraceptionType: resolvedContraceptionType
+    });
+
+    const normalizedConfig = {
+      ...config,
+      contraception_type: resolvedContraceptionType,
+      cycle_confidence: computedConfidence || config.cycle_confidence || 'low',
+      last_bleed_start_date: config.last_bleed_start_date || config.last_period_start,
+      bleed_length_days: config.bleed_length_days || config.period_length || 5,
+      cycle_length_days: config.cycle_length_days || config.cycle_length || 28,
+      luteal_length_days: config.luteal_length_days || 14
     };
 
-    if (todayLog) {
-      if (todayLog.pain_level >= 4) {
-        adjustment = {
-          type: 'low_impact',
-          volumeModifier: -0.3,
-          intensityModifier: -0.3,
-          message: 'Malestar alto. Reducimos impacto y volumen.',
-          reason: 'high_pain'
-        };
-      } else if (todayLog.energy_level <= 2 || todayLog.sleep_quality <= 2) {
-        adjustment = {
-          type: 'reduce_volume',
-          volumeModifier: -0.2,
-          intensityModifier: -0.1,
-          message: 'Energía/sueño bajos. Reducimos volumen.',
-          reason: 'low_energy'
-        };
-      } else if (todayLog.energy_level >= 4 && todayLog.pain_level <= 2) {
-        adjustment = {
-          type: 'optimal',
-          volumeModifier: 0,
-          intensityModifier: 0,
-          message: 'Estado óptimo. Puedes entrenar normal.',
-          reason: 'optimal_state'
-        };
+    const deloadState = await getActiveDeloadState(pool, userId, today);
+    const adjustmentResult = buildCycleAdjustment({
+      config: normalizedConfig,
+      dailyLog: normalizedLog,
+      hasRecentLogs,
+      today,
+      deloadActive: Boolean(deloadState)
+    });
+
+    const painValue = Number.isFinite(normalizedLog.pain_0_3) ? normalizedLog.pain_0_3 : 0;
+    const fatigueValue = Number.isFinite(normalizedLog.fatigue_0_3) ? normalizedLog.fatigue_0_3 : 0;
+    const sleepValue = Number.isFinite(normalizedLog.sleep_0_3) ? normalizedLog.sleep_0_3 : 0;
+    const jointLaxityRisk = !!normalizedConfig.joint_laxity_risk;
+
+    const message = (() => {
+      if (adjustmentResult.deloadActive) {
+        return 'Semana de descarga: bajamos la carga para volver a progresar sin acumular fatiga.';
       }
-    } else if (phase === 'menstrual') {
-      adjustment = {
-        type: 'menstrual_phase',
-        volumeModifier: -0.15,
-        intensityModifier: -0.2,
-        message: 'Fase menstrual. Ajuste suave para gestionar fatiga.',
-        reason: 'menstrual_phase'
-      };
-    } else if (phase === 'luteal' && cycleDay && cycleDay > config.cycle_length - 5) {
-      adjustment = {
-        type: 'late_luteal',
-        volumeModifier: -0.1,
-        intensityModifier: -0.1,
-        message: 'Fase premenstrual. Ajuste ligero.',
-        reason: 'premenstrual'
-      };
-    }
+      if (adjustmentResult.mode === 'symptoms') {
+        return 'Usamos tus síntomas y rendimiento para ajustar la sesión (sin predecir fases).';
+      }
+      if (adjustmentResult.severity >= 2 && adjustmentResult.dominantDomain === 'pain') {
+        return 'Dolor moderado: cambiamos a una variante con menos impacto sin perder el estímulo.';
+      }
+      if (adjustmentResult.severity >= 2 && adjustmentResult.dominantDomain === 'sleep') {
+        return 'Sueño bajo: bajamos la intensidad y subimos el descanso para que recuperes mejor.';
+      }
+      if (adjustmentResult.severity >= 2 && adjustmentResult.dominantDomain === 'fatigue') {
+        return 'Fatiga alta: reducimos volumen para proteger la recuperación.';
+      }
+      if (adjustmentResult.severity >= 2 && adjustmentResult.dominantDomain === 'stress') {
+        return 'Estrés alto: bajamos la carga y cuidamos el descanso.';
+      }
+      return 'Sin ajustes necesarios.';
+    })();
+
+    const volumeModifier = (adjustmentResult.multipliers?.volume ?? 1) - 1;
+    const intensityModifier = (adjustmentResult.multipliers?.intensity ?? 1) - 1;
 
     return {
       hasConfig: true,
-      cycleDay,
-      phase,
+      cycleDay: adjustmentResult.cycleDay,
+      phase: adjustmentResult.phase,
       todayLog,
-      adjustment
+      adjustment: {
+        severity_global: adjustmentResult.severity,
+        dominant_domain: adjustmentResult.dominantDomain,
+        multipliers: adjustmentResult.multipliers,
+        rest_extra_seconds: adjustmentResult.restExtraSeconds,
+        volumeModifier,
+        intensityModifier,
+        pain_0_3: painValue,
+        fatigue_0_3: fatigueValue,
+        sleep_0_3: sleepValue,
+        joint_laxity_risk: jointLaxityRisk,
+        phase: adjustmentResult.phase,
+        mode: adjustmentResult.mode,
+        message,
+        deload_active: adjustmentResult.deloadActive
+      }
     };
   } catch (error) {
     logger.warn('⚠️ [CYCLE] Ajuste menstrual no disponible:', error.message);
@@ -490,6 +529,13 @@ export const overlapControllers = {
       }
       logger.debug(`🔍 [SESSION+OVERLAP] Obteniendo D${cycleDay} para usuario ${userId}`);
 
+      const normalizeExerciseReps = (exercise) => {
+        if (!exercise) return exercise;
+        if (exercise.repeticiones || exercise.series_reps_objetivo || exercise.reps) return exercise;
+        if (!exercise.reps_objetivo) return exercise;
+        return { ...exercise, repeticiones: exercise.reps_objetivo };
+      };
+
       // Obtener nivel del usuario
       const userQuery = await pool.query(
         `SELECT nivel_entrenamiento FROM app.users WHERE id = $1`,
@@ -550,6 +596,14 @@ export const overlapControllers = {
       let adjustedSession = { ...currentSession };
       let overlapInfo = null;
 
+      const baseExercisesKey = adjustedSession?.ejercicios ? 'ejercicios' : (adjustedSession?.exercises ? 'exercises' : null);
+      if (baseExercisesKey && Array.isArray(adjustedSession[baseExercisesKey])) {
+        adjustedSession = {
+          ...adjustedSession,
+          [baseExercisesKey]: adjustedSession[baseExercisesKey].map(normalizeExerciseReps)
+        };
+      }
+
       if (nivel === 'Principiante' && currentSession.ejercicios) {
         const currentPatterns = currentSession.ejercicios
           .map(ex => ex.patron_movimiento)
@@ -568,14 +622,15 @@ export const overlapControllers = {
           logger.info(`⚠️ [OVERLAP] ${overlapInfo.overlap} detectado, ajustando ${adjustmentPct}%`);
 
           adjustedSession.ejercicios = currentSession.ejercicios.map(ex => {
+            const normalized = normalizeExerciseReps(ex);
             if (ex.tipo_ejercicio === 'multiarticular') {
               return {
-                ...ex,
-                intensidad_porcentaje: Math.round(ex.intensidad_porcentaje * adjustmentFactor * 10) / 10,
-                notas: (ex.notas || '') + ` [⚠️ ${adjustmentPct}% por solapamiento ${overlapInfo.overlap}]`
+                ...normalized,
+                intensidad_porcentaje: Math.round(normalized.intensidad_porcentaje * adjustmentFactor * 10) / 10,
+                notas: (normalized.notas || '') + ` [⚠️ ${adjustmentPct}% por solapamiento ${overlapInfo.overlap}]`
               };
             }
-            return ex;
+            return normalized;
           });
         }
       }
@@ -583,43 +638,182 @@ export const overlapControllers = {
       // Aplicar ajuste menstrual a la sesión si corresponde
       if (menstrualAdjustment?.adjustment) {
         const exercisesKey = adjustedSession?.ejercicios ? 'ejercicios' : (adjustedSession?.exercises ? 'exercises' : null);
-        if (exercisesKey && adjustedSession[exercisesKey]?.length) {
+        const exercises = exercisesKey ? adjustedSession[exercisesKey] : null;
+        let autoAdjust = null;
 
-        // ✨ PASO 1: Filtrar ejercicios restringidos (ANTES de aplicar modificadores)
-        logger.info(`🔍 [MENSTRUAL_FILTER] Aplicando filtrado de ejercicios restringidos`);
-        adjustedSession[exercisesKey] = await filterMenstrualRestrictedExercises(
-          adjustedSession[exercisesKey],
-          menstrualAdjustment
-        );
+        if (exercisesKey && exercises?.length) {
+          const patterns = exercises
+            .map(ex => resolvePattern(ex.patron_movimiento || ex.patron || ex.pattern))
+            .filter(Boolean);
+          const uniquePatterns = [...new Set(patterns)];
+          autoAdjust = await getPatternAutoAdjustments(pool, userId, uniquePatterns);
+        } else {
+          autoAdjust = await getPatternAutoAdjustments(pool, userId, []);
+        }
 
-        const { volumeModifier = 0, intensityModifier = 0, message, reason } = menstrualAdjustment.adjustment;
+        if (exercisesKey && exercises?.length) {
+          let sessionExercises = exercises;
+          const {
+            multipliers = {},
+            rest_extra_seconds: restExtraSeconds = 0,
+            message,
+            dominant_domain: dominantDomain
+          } = menstrualAdjustment.adjustment;
+          const volumeMultiplier = Number.isFinite(multipliers.volume) ? multipliers.volume : 1;
+          const intensityMultiplier = Number.isFinite(multipliers.intensity) ? multipliers.intensity : 1;
 
-        // ✨ PASO 2: Aplicar modificadores de volumen/intensidad (DESPUÉS del filtrado)
-        if (volumeModifier !== 0 || intensityModifier !== 0) {
-          adjustedSession[exercisesKey] = adjustedSession[exercisesKey].map(ex => {
-            const newSeries = Math.max(1, Math.round(Number(ex.series || 1) * (1 + volumeModifier)));
-            const baseIntensity = Number(ex.intensidad_porcentaje ?? adjustedSession.intensity_percentage ?? 0);
-            const hasIntensity = Number.isFinite(baseIntensity) && baseIntensity > 0;
-            const newIntensity = hasIntensity
-              ? Math.min(100, Math.max(5, Math.round(baseIntensity * (1 + intensityModifier))))
-              : ex.intensidad_porcentaje;
+          const autoVolume = Number.isFinite(autoAdjust?.volumeMultiplier) ? autoAdjust.volumeMultiplier : 1;
+          const autoIntensity = Number.isFinite(autoAdjust?.intensityMultiplier) ? autoAdjust.intensityMultiplier : 1;
+          const autoRest = Number.isFinite(autoAdjust?.restExtraSeconds) ? autoAdjust.restExtraSeconds : 0;
 
-            return {
-              ...ex,
-              series: newSeries,
-              intensidad_porcentaje: hasIntensity ? newIntensity : ex.intensidad_porcentaje,
-              notas: `${ex.notas || ''} [Ajuste ciclo: ${reason || 'menstrual'} - ${message}]`.trim()
-            };
-          });
+          const combinedVolume = volumeMultiplier * autoVolume;
+          const combinedIntensity = intensityMultiplier * autoIntensity;
+          const combinedRest = restExtraSeconds + autoRest;
+
+          menstrualAdjustment.adjustment.auto_adjustment = autoAdjust;
+          menstrualAdjustment.adjustment.multipliers = {
+            intensity: combinedIntensity,
+            volume: combinedVolume
+          };
+          menstrualAdjustment.adjustment.rest_extra_seconds = combinedRest;
+          menstrualAdjustment.adjustment.volumeModifier = combinedVolume - 1;
+          menstrualAdjustment.adjustment.intensityModifier = combinedIntensity - 1;
+
+          if (combinedVolume !== 1 || combinedIntensity !== 1 || combinedRest > 0) {
+            sessionExercises = sessionExercises.map(ex => {
+              const newSeries = Math.max(1, Math.round(Number(ex.series || 1) * combinedVolume));
+              const baseIntensity = Number(ex.intensidad_porcentaje ?? adjustedSession.intensity_percentage ?? 0);
+              const hasIntensity = Number.isFinite(baseIntensity) && baseIntensity > 0;
+              const newIntensity = hasIntensity
+                ? Math.min(100, Math.max(5, Math.round(baseIntensity * combinedIntensity)))
+                : ex.intensidad_porcentaje;
+
+              const restBase = Number.isFinite(ex.descanso_seg)
+                ? ex.descanso_seg
+                : (Number.isFinite(ex.rest_seconds)
+                  ? ex.rest_seconds
+                  : (Number.isFinite(ex.rest) ? ex.rest : null));
+
+              const updated = {
+                ...ex,
+                series: newSeries,
+                intensidad_porcentaje: hasIntensity ? newIntensity : ex.intensidad_porcentaje,
+                notas: `${ex.notas || ''} [Ajuste ciclo: ${dominantDomain || 'menstrual'} - ${message}]`.trim()
+              };
+
+              if (restBase !== null && combinedRest > 0) {
+                const restValue = restBase + combinedRest;
+                if (Number.isFinite(ex.descanso_seg)) updated.descanso_seg = restValue;
+                else if (Number.isFinite(ex.rest_seconds)) updated.rest_seconds = restValue;
+                else if (Number.isFinite(ex.rest)) updated.rest = restValue;
+              }
+
+              return updated;
+            });
+          }
+
+          const painLevel = Number.isFinite(menstrualAdjustment.adjustment.pain_0_3)
+            ? menstrualAdjustment.adjustment.pain_0_3
+            : 0;
+          const fatigueLevel = Number.isFinite(menstrualAdjustment.adjustment.fatigue_0_3)
+            ? menstrualAdjustment.adjustment.fatigue_0_3
+            : 0;
+          const jointLaxityRisk = !!menstrualAdjustment.adjustment.joint_laxity_risk;
+          const phase = menstrualAdjustment.adjustment.phase;
+          const needsCodLimit = jointLaxityRisk && (phase === 'ovulation' || fatigueLevel >= 2);
+          const painLevelForSwap = Math.max(painLevel, autoAdjust?.painTriggered ? 2 : 0);
+
+          if (painLevelForSwap >= 2 || needsCodLimit) {
+            const exerciseIds = sessionExercises
+              .map(ex => Number(ex.exercise_id || ex.id))
+              .filter(Boolean);
+
+            const tagsById = await getExerciseTags(pool, exerciseIds);
+
+            sessionExercises = await Promise.all(sessionExercises.map(async ex => {
+              const exerciseId = Number(ex.exercise_id || ex.id);
+              const tags = tagsById.get(exerciseId);
+
+              const addNote = (note) => ({
+                ...ex,
+                notas: `${ex.notas || ''} ${note}`.trim()
+              });
+
+              if (!tags) {
+                return painLevelForSwap >= 2 || needsCodLimit
+                  ? addNote('[SWAP ciclo: sin tags, se mantiene ejercicio]')
+                  : ex;
+              }
+
+              const hasImpact = Number.isFinite(tags.impact_level);
+              const hasAxial = Number.isFinite(tags.axial_load_level);
+              const hasCod = Number.isFinite(tags.cod_level);
+
+              const needsImpactSwap = painLevelForSwap >= 2 && hasImpact && tags.impact_level >= 2;
+              const needsAxialSwap = painLevelForSwap >= 2 && hasAxial && tags.axial_load_level >= 2;
+              const needsCodSwap = needsCodLimit && hasCod && tags.cod_level >= 2;
+
+              if (!needsImpactSwap && !needsAxialSwap && !needsCodSwap) {
+                return ex;
+              }
+
+              if ((needsImpactSwap && !hasImpact) || (needsAxialSwap && !hasAxial) || (needsCodSwap && !hasCod)) {
+                return addNote('[SWAP ciclo: tags incompletos, se mantiene ejercicio]');
+              }
+
+              if (!tags.pattern) {
+                return addNote('[SWAP ciclo: sin patrón, se mantiene ejercicio]');
+              }
+
+              const maxImpact = needsImpactSwap ? 1 : null;
+              const maxAxial = needsAxialSwap ? 1 : null;
+              const maxCod = needsCodSwap ? 1 : null;
+
+              let candidate = await findSwapCandidate(pool, {
+                pattern: tags.pattern,
+                equipment: tags.equipment || [],
+                maxImpact,
+                maxAxial,
+                maxCod,
+                excludeIds: [exerciseId]
+              });
+
+              if (!candidate && needsAxialSwap) {
+                candidate = await findSwapCandidate(pool, {
+                  pattern: tags.pattern,
+                  equipment: tags.equipment || [],
+                  maxImpact,
+                  maxAxial: 2,
+                  maxCod,
+                  excludeIds: [exerciseId]
+                });
+              }
+
+              if (!candidate) {
+                return addNote('[SWAP ciclo: sin alternativa segura]');
+              }
+
+              const reasons = [];
+              if (needsImpactSwap) reasons.push('impacto');
+              if (needsAxialSwap) reasons.push('axial');
+              if (needsCodSwap) reasons.push('COD');
+
+              return {
+                ...ex,
+                id: candidate.exercise_id,
+                exercise_id: candidate.exercise_id,
+                nombre: candidate.nombre,
+                categoria: candidate.categoria ?? ex.categoria,
+                tipo_ejercicio: candidate.tipo_ejercicio ?? ex.tipo_ejercicio,
+                patron_movimiento: candidate.patron_movimiento ?? ex.patron_movimiento,
+                notas: `${ex.notas || ''} [SWAP ciclo: ${reasons.join('+')} -> ${candidate.nombre}]`.trim()
+              };
+            }));
+          }
+
+          adjustedSession[exercisesKey] = sessionExercises;
         }
       }
-      }
-
-      // ✨ Calcular estadísticas de restricciones menstruales aplicadas
-      const exercisesKey = adjustedSession?.ejercicios ? 'ejercicios' : (adjustedSession?.exercises ? 'exercises' : null);
-      const menstrualExclusions = menstrualAdjustment?.adjustment && exercisesKey
-        ? getMenstrualFilterStats(adjustedSession[exercisesKey])
-        : null;
 
       res.json({
         success: true,
@@ -627,7 +821,6 @@ export const overlapControllers = {
         overlap_detected: overlapInfo?.overlap !== 'none',
         overlap_info: overlapInfo,
         menstrual_adjustment: menstrualAdjustment,
-        menstrual_exclusions: menstrualExclusions,  // ✨ Nuevo campo con info de restricciones
         nivel,
         current_week: currentWeekNumber
       });

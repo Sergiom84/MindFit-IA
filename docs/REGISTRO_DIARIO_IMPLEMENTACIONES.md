@@ -1,5 +1,23 @@
 # Registro diario de implementaciones
 
+## 03.02.2026
+
+- Se documenta comparativa completa entre origin/main y la implementacion local+Supabase v3 en `docs/compraracion_ciclo_menstrual.md` (alcance, puntos en comun, complementariedad y merge).
+- Se amplian los planes y checklists v3 en `docs/ciclo_menstrual/PLAN_IMPLEMENTACION_V3.md`, `docs/ciclo_menstrual/SEGUIMIENTO_V3.md` y `docs/ciclo_menstrual/QA_TESTS_V3.md`.
+- Se agrega placeholder `AUTH_TOKEN` en `.env` y se documenta el uso local en `docs/ciclo_menstrual/QA_TESTS_V3.md`.
+- Se genera `docs/ciclo_menstrual/tags_hypertrofia_template.auto.csv` con autotag heuristico (impact/axial/cod/overhead) para revision manual.
+- Se alinea la UI del ciclo con backend v3 (useCycleAdjustment, useMenstrualCycle, CycleDayCard, CycleHomeCard) y se amplía el onboarding con campos v3.
+- Scripts ejecutados: `test-menstrual-cycle-db.mjs` OK, `test-menstrual-cycle-swaps.mjs` OK (rollback), `test-menstrual-cycle-api.mjs` OK (sin log de hoy por ALLOW_MENSTRUAL_TEST_WRITES=0).
+- Se importa el CSV de tags de riesgo en `app.exercise_tags` con `scripts/import-hypertrofia-tags.mjs` (110 filas).
+- Se integra autoajuste y deload en HipertrofiaV2 (multipliers combinados + swaps reforzados), se agrega fallback a `exercises_data` en autoajuste y se crea `scripts/test-menstrual-cycle-deload.mjs` (test falla por migracion pendiente).
+- Se aplica la migracion `20260203_menstrual_auto_adjust.sql` en Supabase y el test `scripts/test-menstrual-cycle-deload.mjs` pasa (rollback aplicado).
+- Se refuerza el aviso de ajuste menstrual en sesiones reanudadas: `RoutineSessionModal` reconoce `methodology_type` y `TodayTrainingTab` inyecta `metodologia` en la sesión efectiva.
+- Se normaliza `reps_objetivo` -> `repeticiones` en HipertrofiaV2 al servir la sesión ajustada (test OK con endpoint actual).
+- Fase 7 QA ciclo menstrual v3 completada: scripts DB, engine, API, swaps y deload OK; evidencias registradas en SEGUIMIENTO_V3.md.
+- Se recupera el calendario y el modal de log diario desde main y se adapta a v3 (modo phase, campos v3 y refresco de ajuste).
+- Se corrige el acceso al token en el módulo de ciclo (authToken fallback) para que el calendario cargue logs y el modal guarde registros correctamente.
+- Se corrige el endpoint `/api/menstrual-cycle/logs` para calcular el último día del mes y evitar error 500 en febrero.
+
 ## 02.02.2026
 
 - Nutrición/Bridge: actualizado `docs/NUTRICION_ROADMAP.md` con objetivo inmediato, pendientes por incorporar desde GitHub y bloqueantes de integración.
@@ -9,6 +27,16 @@
 - SQL: ajustes de compatibilidad para Supabase en migraciones de nutrición (`backend/migrations/create_training_performance_tracking.sql` sin `RECORD[]` y `backend/migrations/create_nutrition_calibration_system.sql` asegurando columnas `kcal_objetivo`/`tdee`).
 - Seguridad: se eliminaron tokens `sbp_*` reales de documentación de setup MCP (se reemplazan por placeholders).
 - Git: merge de `feature/nutricion-bridge-metabolico` a `main`.
+- Se crea la carpeta docs/ciclo_menstrual con plan de implementacion v3, QA/tests y seguimiento para retomar el contexto en reinicios.
+- Se ajusta el plan v3 con decisiones robustas (UTC, defaults conservadores, tagging manual de riesgo y comportamiento sin tags).
+- Fase 1 v3: migracion aplicada (columnas nuevas, historial de ciclos, exercise_tags y backfill conservador) y verificacion en Supabase OK; script local requiere DATABASE_URL.
+- Fase 1 v3: script `test-menstrual-cycle-db.mjs` ejecutado con .env y pasa verificacion de columnas/constraints.
+- Fase 2 v3: motor de ciclo determinista implementado con tests unitarios (node --test) OK.
+- Fase 3 v3: endpoints de ciclo actualizados con motor v3, compatibilidad UI y ajuste en HipertrofiaV2 (tests unitarios OK, falta test API).
+- Test integracion API v3 pendiente por falta de AUTH_TOKEN en .env/backend/.env.
+- Test integracion API v3 ejecutado con AUTH_TOKEN en runtime (OK; sin log de hoy porque no se habilito ALLOW_MENSTRUAL_TEST_WRITES).
+- Fase 4 v3: seeding de pattern/equipment en exercise_tags, template CSV exportado para tagging manual y swap engine integrado (tags de riesgo pendientes).
+- Test de swaps v3 ejecutado con rollback (OK).
 
 ## 01.02.2026
 

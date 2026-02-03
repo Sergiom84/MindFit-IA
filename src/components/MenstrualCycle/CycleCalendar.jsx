@@ -30,14 +30,21 @@ const normalizeLogDate = (value) => {
   return String(value).split("T")[0];
 };
 
-const getPhaseForDate = ({ dateStr, config, log }) => {
+const getPhaseForDate = ({ dateStr, config, log, mode }) => {
   if (log?.is_period_day) return "menstrual";
-  if (!config?.last_period_start || config?.uses_hormonal_contraceptives) return null;
+  if (mode !== "phase") return null;
 
-  const cycleLength = config.cycle_length || 28;
-  const periodLength = config.period_length || 5;
+  const lastBleedStart = config?.last_bleed_start_date || config?.last_period_start;
+  if (!lastBleedStart) return null;
 
-  const start = new Date(config.last_period_start);
+  const cycleLength = config?.cycle_length_days || config?.cycle_length || 28;
+  const bleedLength = config?.bleed_length_days || config?.period_length || 5;
+  const lutealLength = config?.luteal_length_days || 14;
+  const confidence = config?.cycle_confidence || "low";
+
+  if (confidence === "low") return null;
+
+  const start = new Date(lastBleedStart);
   const d = new Date(dateStr);
   const diffDays = Math.floor((d - start) / (1000 * 60 * 60 * 24)) + 1;
   if (!Number.isFinite(diffDays) || diffDays < 1) return null;
@@ -45,9 +52,16 @@ const getPhaseForDate = ({ dateStr, config, log }) => {
   let cycleDay = diffDays % cycleLength;
   if (cycleDay === 0) cycleDay = cycleLength;
 
-  if (cycleDay <= periodLength) return "menstrual";
-  if (cycleDay <= Math.floor(cycleLength * 0.5)) return "follicular";
-  if (cycleDay <= Math.floor(cycleLength * 0.5) + 3) return "ovulation";
+  const ovulationDay = cycleLength - lutealLength;
+  const window = confidence === "high" ? 1 : 2;
+  const ovulationStart = ovulationDay - window;
+  const ovulationEnd = ovulationDay + window;
+  const lutealLateStart = cycleLength - 4;
+
+  if (cycleDay <= bleedLength) return "menstrual";
+  if (cycleDay >= lutealLateStart) return "luteal";
+  if (cycleDay >= ovulationStart && cycleDay <= ovulationEnd) return "ovulation";
+  if (cycleDay < ovulationStart) return "follicular";
   return "luteal";
 };
 
@@ -81,7 +95,7 @@ const generateCalendarDays = ({ selectedMonth, calendarLogs }) => {
   return days;
 };
 
-const CycleCalendar = ({ selectedMonth, onChangeMonth, calendarLogs, config, onSelectDate }) => {
+const CycleCalendar = ({ selectedMonth, onChangeMonth, calendarLogs, config, onSelectDate, mode }) => {
   const days = generateCalendarDays({ selectedMonth, calendarLogs });
 
   return (
@@ -120,7 +134,7 @@ const CycleCalendar = ({ selectedMonth, onChangeMonth, calendarLogs, config, onS
 
       <div className="grid grid-cols-7 gap-1">
         {days.map((item, idx) => {
-          const phase = item.day ? getPhaseForDate({ dateStr: item.date, config, log: item.log }) : null;
+          const phase = item.day ? getPhaseForDate({ dateStr: item.date, config, log: item.log, mode }) : null;
           const phaseStyle = phase ? PHASE_STYLES[phase]?.cell : null;
 
           const baseClasses = "aspect-square rounded-lg flex flex-col items-center justify-center text-sm border transition-colors";
@@ -157,17 +171,18 @@ const CycleCalendar = ({ selectedMonth, onChangeMonth, calendarLogs, config, onS
         })}
       </div>
 
-      <div className="flex flex-wrap gap-4 mt-4 text-xs text-gray-300/70">
-        {["menstrual", "follicular", "ovulation", "luteal"].map((phase) => (
-          <div key={phase} className="flex items-center gap-1">
-            <div className={`w-3 h-3 rounded ${PHASE_STYLES[phase].legend}`} />
-            <span>{PHASE_STYLES[phase].label}</span>
-          </div>
-        ))}
-      </div>
+      {mode === "phase" && (
+        <div className="flex flex-wrap gap-4 mt-4 text-xs text-gray-300/70">
+          {["menstrual", "follicular", "ovulation", "luteal"].map((phase) => (
+            <div key={phase} className="flex items-center gap-1">
+              <div className={`w-3 h-3 rounded ${PHASE_STYLES[phase].legend}`} />
+              <span>{PHASE_STYLES[phase].label}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
 
 export default CycleCalendar;
-

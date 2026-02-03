@@ -140,7 +140,8 @@ const CycleHomeCard = ({ userId }) => {
   if (loading) return null;
   if (!cycleData) return null;
 
-  const { cycleDay, phase, todayLog, adjustment } = cycleData;
+  const { cycleDay, phase, todayLog, adjustment, mode } = cycleData;
+  const isSymptomsMode = mode === 'symptoms';
 
   return (
     <motion.div
@@ -157,8 +158,10 @@ const CycleHomeCard = ({ userId }) => {
           <div>
             <p className="text-xs text-pink-300 uppercase tracking-wider">Mi Ciclo</p>
             <p className="text-white font-semibold">
-              {cycleDay ? `Día ${cycleDay}` : 'Sin datos'}
-              {phase && <span className="text-pink-300 text-sm ml-2">· {getPhaseName(phase)}</span>}
+              {isSymptomsMode ? 'Modo síntomas' : (cycleDay ? `Día ${cycleDay}` : 'Sin datos')}
+              {!isSymptomsMode && phase && (
+                <span className="text-pink-300 text-sm ml-2">· {getPhaseName(phase)}</span>
+              )}
             </p>
           </div>
         </div>

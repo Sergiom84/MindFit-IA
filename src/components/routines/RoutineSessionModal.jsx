@@ -75,7 +75,8 @@ export default function RoutineSessionModal({
   const progressState = useExerciseProgress(sourceSession, exercises);
   const timerState = useExerciseTimer(progressState.currentExercise, progressState.seriesTotal, 45, allowManualTimer);
   const sessionPatterns = useMemo(() => extractSessionPatterns(sourceSession), [sourceSession]);
-  const isHypertrofiaV2 = sourceSession?.metodologia === 'HipertrofiaV2_MindFeed' || sourceSession?.metodologia === 'HipertrofiaV2';
+  const methodologyTag = sourceSession?.metodologia || sourceSession?.methodology_type;
+  const isHypertrofiaV2 = methodologyTag === 'HipertrofiaV2_MindFeed' || methodologyTag === 'HipertrofiaV2';
   const trackingFlag = sourceSession?.tracking_enabled ?? sourceSession?.trackingEnabled;
   const requiresSeriesTracking = isHypertrofiaV2 || trackingFlag === undefined
     ? true

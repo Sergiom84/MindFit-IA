@@ -22,6 +22,7 @@ const CycleDayCard = ({
   compact = false 
 }) => {
   const [showQuickLog, setShowQuickLog] = useState(false);
+  const isConfigured = cycleInfo?.hasConfig ?? Boolean(cycleInfo?.cycleDay);
 
   // Colores por fase
   const cardBase = 'bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg';
@@ -79,7 +80,7 @@ const CycleDayCard = ({
   };
 
   // Si no hay configuración de ciclo
-  if (!cycleInfo?.cycleDay) {
+  if (!isConfigured) {
     return (
       <div className={`rounded-xl ${cardBase} ${colors.accent} p-4`}>
         <div className="flex items-center justify-between">
@@ -129,8 +130,12 @@ const CycleDayCard = ({
           <div className="flex items-center gap-3">
             <span className="text-2xl">{colors.icon}</span>
             <div>
-              <p className="text-xs text-gray-300/70">Día {cycleInfo.cycleDay}</p>
-              <p className={`text-sm font-medium ${colors.text}`}>{cycleInfo.phaseName}</p>
+              <p className="text-xs text-gray-300/70">
+                {cycleInfo.cycleDay ? `Día ${cycleInfo.cycleDay}` : cycleInfo.phaseName}
+              </p>
+              {cycleInfo.cycleDay && (
+                <p className={`text-sm font-medium ${colors.text}`}>{cycleInfo.phaseName}</p>
+              )}
             </div>
           </div>
           <button
@@ -156,8 +161,12 @@ const CycleDayCard = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold text-white">Día {cycleInfo.cycleDay}</span>
-                <span className={`text-sm ${colors.text}`}>· {cycleInfo.phaseName}</span>
+                <span className="text-2xl font-bold text-white">
+                  {cycleInfo.cycleDay ? `Día ${cycleInfo.cycleDay}` : cycleInfo.phaseName}
+                </span>
+                {cycleInfo.cycleDay && (
+                  <span className={`text-sm ${colors.text}`}>· {cycleInfo.phaseName}</span>
+                )}
               </div>
               {cycleInfo.daysUntilNextPeriod && cycleInfo.daysUntilNextPeriod <= 7 && (
                 <p className="text-xs text-gray-300/70 flex items-center gap-1 mt-1">

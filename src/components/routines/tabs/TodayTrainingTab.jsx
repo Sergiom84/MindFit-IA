@@ -1632,11 +1632,23 @@ export default function TodayTrainingTab({
   });
 
 
+  const planMethodology = plan?.metodologia
+    || plan?.methodologyType
+    || plan?.methodology_type
+    || plan?.currentPlan?.metodologia
+    || plan?.currentPlan?.methodologyType
+    || plan?.currentPlan?.methodology_type
+    || routinePlan?.metodologia
+    || routinePlan?.methodologyType
+    || routinePlan?.methodology_type;
+
   const effectiveSession = localState.pendingSessionData?.session || (
     wantRoutineModal && (session.sessionId || localState.pendingSessionData?.sessionId) && filteredSessionData
       ? {
           ...filteredSessionData,
           sessionId: session.sessionId || localState.pendingSessionData?.sessionId,
+          metodologia: filteredSessionData?.metodologia || filteredSessionData?.methodology_type || planMethodology,
+          methodology_type: filteredSessionData?.methodology_type || filteredSessionData?.metodologia || planMethodology,
           currentExerciseIndex: 0, // Siempre empezar desde el primer ejercicio filtrado
           exerciseProgress: sessionExerciseProgress
         }

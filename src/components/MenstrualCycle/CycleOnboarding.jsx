@@ -11,22 +11,42 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
   const [formData, setFormData] = useState({
     last_period_start: '',
     cycle_length: 28,
+    bleed_length_days: 5,
     period_length: 5,
+    luteal_length_days: 14,
     is_regular: null,
-    uses_hormonal_contraceptives: false
+    uses_hormonal_contraceptives: false,
+    contraception_type: 'none',
+    joint_laxity_risk: false
   });
   const [showCycleLengthHelp, setShowCycleLengthHelp] = useState(false);
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [field]: value };
+      if (field === 'bleed_length_days') {
+        next.period_length = value;
+      }
+      if (field === 'uses_hormonal_contraceptives' && value === false) {
+        next.contraception_type = 'none';
+      }
+      return next;
+    });
   };
 
   const handleNext = () => {
-    const lastStep = steps.length - 1;
-    if (step < lastStep) {
+    if (step < 3) {
       setStep(step + 1);
     } else {
-      onComplete(formData);
+      // Completar onboarding
+      const resolvedContraception = formData.uses_hormonal_contraceptives
+        ? (formData.contraception_type || 'other/unknown')
+        : 'none';
+      onComplete({
+        ...formData,
+        contraception_type: resolvedContraception,
+        period_length: formData.bleed_length_days
+      });
     }
   };
 
@@ -39,10 +59,15 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
   const canProceed = () => {
     switch (step) {
       case 0: return formData.last_period_start !== '';
-      case 1: return formData.cycle_length >= 21 && formData.cycle_length <= 35;
-      case 2: return formData.period_length >= 2 && formData.period_length <= 10;
-      case 3: return formData.is_regular !== null;
-      case 4: return true; // Anticonceptivos es opcional
+      case 1:
+        return formData.cycle_length >= 21
+          && formData.cycle_length <= 45
+          && formData.bleed_length_days >= 1
+          && formData.bleed_length_days <= 10
+          && formData.luteal_length_days >= 9
+          && formData.luteal_length_days <= 18;
+      case 2: return formData.is_regular !== null;
+      case 3: return true; // Anticonceptivos es opcional
       default: return false;
     }
   };
@@ -56,11 +81,6 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
     {
       title: '¿Cuánto dura tu ciclo normalmente?',
       subtitle: 'Desde el primer día de un periodo hasta el primer día del siguiente',
-      icon: Clock
-    },
-    {
-      title: '¿Cuántos días dura tu periodo?',
-      subtitle: 'Selecciona la duración habitual de tu sangrado (promedio)',
       icon: Clock
     },
     {
@@ -90,7 +110,7 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
             <CurrentIcon className="w-5 h-5 text-pink-300" />
           </div>
           <div>
-            <p className="text-xs text-gray-400/70">Paso {step + 1} de {steps.length}</p>
+            <p className="text-xs text-gray-400/70">Paso {step + 1} de 4</p>
             <p className="text-sm font-medium text-white font-urbanist">Configuración del ciclo</p>
           </div>
         </div>
@@ -106,7 +126,7 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
 
       {/* Barra de progreso */}
       <div className="flex gap-1 mb-6">
-        {steps.map((_, i) => (
+        {[0, 1, 2, 3].map(i => (
           <div
             key={i}
             className={`h-1 flex-1 rounded-full transition-colors ${
@@ -205,52 +225,36 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
                   </button>
                 ))}
               </div>
-            </div>
-          )}
 
-          {/* Paso 2: Duración del periodo */}
-          {step === 2 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => handleInputChange('period_length', Math.max(2, formData.period_length - 1))}
-                  className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 text-xl font-bold"
-                >
-                  -
-                </button>
-                <div className="flex-1 text-center">
-                  <span className="text-4xl font-bold text-white">{formData.period_length}</span>
-                  <span className="text-gray-300/70 ml-2">días</span>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <label className="text-xs text-gray-300/70">Duración del sangrado (días)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={formData.bleed_length_days}
+                    onChange={(e) => handleInputChange('bleed_length_days', Number(e.target.value))}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-pink-400/60"
+                  />
                 </div>
-                <button
-                  onClick={() => handleInputChange('period_length', Math.min(10, formData.period_length + 1))}
-                  className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 text-white hover:bg-white/10 text-xl font-bold"
-                >
-                  +
-                </button>
-              </div>
-
-              {/* Presets rápidos */}
-              <div className="flex gap-2">
-                {[3, 4, 5, 6, 7].map(days => (
-                  <button
-                    key={days}
-                    onClick={() => handleInputChange('period_length', days)}
-                    className={`flex-1 py-2 rounded-lg text-sm transition-colors ${
-                      formData.period_length === days
-                        ? 'bg-gradient-to-r from-pink-300 via-pink-400 to-rose-500 text-black'
-                        : 'bg-white/5 text-gray-300/80 hover:bg-white/10 border border-white/10'
-                    }`}
-                  >
-                    {days}d
-                  </button>
-                ))}
+                <div className="space-y-2">
+                  <label className="text-xs text-gray-300/70">Fase lútea (días)</label>
+                  <input
+                    type="number"
+                    min="9"
+                    max="18"
+                    value={formData.luteal_length_days}
+                    onChange={(e) => handleInputChange('luteal_length_days', Number(e.target.value))}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-pink-400/60"
+                  />
+                </div>
               </div>
             </div>
           )}
 
-          {/* Paso 3: Regularidad */}
-          {step === 3 && (
+          {/* Paso 2: Regularidad */}
+          {step === 2 && (
             <div className="space-y-3">
               <button
                 onClick={() => handleInputChange('is_regular', true)}
@@ -292,8 +296,8 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
             </div>
           )}
 
-          {/* Paso 4: Anticonceptivos */}
-          {step === 4 && (
+          {/* Paso 3: Anticonceptivos */}
+          {step === 3 && (
             <div className="space-y-3">
               <button
                 onClick={() => handleInputChange('uses_hormonal_contraceptives', false)}
@@ -338,6 +342,41 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
                   <p>💡 Con anticonceptivos hormonales, las fases naturales no aplican igual. Nos basaremos principalmente en cómo te sientes cada día.</p>
                 </div>
               )}
+
+              {formData.uses_hormonal_contraceptives && (
+                <div className="space-y-2 pt-2">
+                  <label className="text-xs text-gray-300/70">Tipo de anticonceptivo</label>
+                  <select
+                    value={formData.contraception_type}
+                    onChange={(e) => handleInputChange('contraception_type', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-pink-400/60"
+                  >
+                    <option value="combined">Combinado (estrógeno + progestina)</option>
+                    <option value="progestin_only">Solo progestina</option>
+                    <option value="hormonal_iud">DIU hormonal</option>
+                    <option value="other/unknown">Otro / no sé</option>
+                  </select>
+                </div>
+              )}
+
+              <button
+                onClick={() => handleInputChange('joint_laxity_risk', !formData.joint_laxity_risk)}
+                className={`w-full p-4 rounded-lg border transition-colors flex items-center gap-3 ${
+                  formData.joint_laxity_risk
+                    ? 'bg-white/5 border-pink-400/60 text-white'
+                    : 'bg-white/5 border-white/10 text-gray-300/80 hover:border-white/20'
+                }`}
+              >
+                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                  formData.joint_laxity_risk ? 'border-pink-400 bg-pink-400' : 'border-gray-500/60'
+                }`}>
+                  {formData.joint_laxity_risk && <Check className="w-4 h-4 text-white" />}
+                </div>
+                <div className="text-left">
+                  <p className="font-medium">Tengo hiperlaxitud o lesiones articulares</p>
+                  <p className="text-sm text-gray-300/70">Esto limita COD/pliometría en ovulación.</p>
+                </div>
+              </button>
             </div>
           )}
         </motion.div>
@@ -362,7 +401,7 @@ const CycleOnboarding = ({ onComplete, onSkip, isModal = false }) => {
               : 'bg-white/10 text-gray-500 cursor-not-allowed'
           }`}
         >
-          {step === steps.length - 1 ? (
+          {step === 3 ? (
             <>
               <Check className="w-5 h-5" />
               Completar

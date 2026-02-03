@@ -28,10 +28,9 @@ const CycleSection = () => {
   const {
     config,
     todayLog,
-    effectiveTodayLog,
+    trainingData,
     loading,
     cycleInfo,
-    periodActive,
     saveConfig,
     logPeriodStart,
     logSymptoms,
@@ -41,7 +40,7 @@ const CycleSection = () => {
 
   const loadCalendarLogs = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
       const year = selectedMonth.getFullYear();
       const month = selectedMonth.getMonth() + 1;
       
@@ -182,16 +181,14 @@ const CycleSection = () => {
                 />
               ) : (
                 <>
-                <CycleDayCard
-                  cycleInfo={cycleInfo}
-                  todayLog={todayLog}
-                  effectiveTodayLog={effectiveTodayLog}
-                  periodActive={periodActive}
-                  adjustment={adjustment}
-                  onLogSymptoms={logSymptoms}
-                  onLogPeriodStart={logPeriodStart}
-                  onOpenSettings={() => setActiveView('settings')}
-                />
+                  <CycleDayCard
+                    cycleInfo={cycleInfo}
+                    todayLog={todayLog}
+                    adjustment={adjustment}
+                    onLogSymptoms={logSymptoms}
+                    onLogPeriodStart={logPeriodStart}
+                    onOpenSettings={() => setActiveView('settings')}
+                  />
 
                   {/* Info educativa */}
                   <div className="bg-neutral-900/70 rounded-xl p-4 border border-white/10 ring-1 ring-white/5 backdrop-blur-lg border-l-2 border-l-pink-400/40">
@@ -221,6 +218,7 @@ const CycleSection = () => {
                 onChangeMonth={setSelectedMonth}
                 calendarLogs={calendarLogs}
                 config={config}
+                mode={trainingData?.mode}
                 onSelectDate={handleSelectCalendarDate}
               />
             </motion.div>
@@ -306,7 +304,7 @@ const CycleSection = () => {
               </div>
             </motion.div>
           )}
-      </AnimatePresence>
+        </AnimatePresence>
         </div>
       </div>
 
