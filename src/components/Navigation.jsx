@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { LogOut, Home, UserCircle, BookOpen, Calendar, Apple, Shield, Droplet } from 'lucide-react';
+import { LogOut, Home, UserCircle, BookOpen, Calendar, Apple, Shield, Droplet, MoreHorizontal } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,6 +9,7 @@ const Navigation = () => {
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
   const [showCycleTab, setShowCycleTab] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   // Verificar si hay rutinas disponibles (memoizado)
   const hasRoutines = useMemo(() =>
@@ -22,7 +23,11 @@ const Navigation = () => {
       if (!isAuthenticated) return;
 
       try {
-        const token = localStorage.getItem('authToken');
+        const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+        if (!token) {
+          setShowCycleTab(user?.sexo === 'femenino');
+          return;
+        }
         const response = await fetch('/api/menstrual-cycle/check-user', {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -33,9 +38,12 @@ const Navigation = () => {
         if (response.ok) {
           const data = await response.json();
           setShowCycleTab(data.showCycleFeature === true);
+        } else {
+          setShowCycleTab(user?.sexo === 'femenino');
         }
       } catch (err) {
         console.error('Error verificando feature de ciclo:', err);
+        setShowCycleTab(user?.sexo === 'femenino');
       }
     };
 
@@ -53,6 +61,15 @@ const Navigation = () => {
       logout();
     }
   }, [logout]);
+
+  const isMoreActive = useMemo(() => (
+    ['/oposiciones', '/menstrual-cycle', '/profile'].includes(location.pathname)
+  ), [location.pathname]);
+
+  const handleNavigate = useCallback((path) => {
+    navigate(path);
+    setShowMoreMenu(false);
+  }, [navigate]);
 
   if (!isAuthenticated) {
     return null; // No mostrar navegación si no está autenticado
@@ -143,7 +160,7 @@ const Navigation = () => {
             <div className="flex items-center justify-between gap-1 px-2 py-2 font-body">
               <button
                 onClick={() => navigate('/')}
-                className={`group flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition-all ${
+                className={`group flex flex-shrink-0 flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-all sm:px-3 sm:py-2 ${
                   isActive('/') 
                     ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
                     : 'text-gray-300/80 hover:text-white hover:bg-white/5'
@@ -154,7 +171,7 @@ const Navigation = () => {
               </button>
               <button
                 onClick={() => navigate('/methodologies')}
-                className={`group flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition-all ${
+                className={`group flex flex-shrink-0 flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-all sm:px-3 sm:py-2 ${
                   isActive('/methodologies')
                     ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
                     : 'text-gray-300/80 hover:text-white hover:bg-white/5'
@@ -164,19 +181,8 @@ const Navigation = () => {
                 <span>Métodos</span>
               </button>
               <button
-                onClick={() => navigate('/oposiciones')}
-                className={`group flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition-all ${
-                  isActive('/oposiciones')
-                    ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
-                    : 'text-gray-300/80 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Shield size={20} />
-                <span>Oposiciones</span>
-              </button>
-              <button
                 onClick={() => navigate('/routines')}
-                className={`group relative flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition-all ${
+                className={`group relative flex flex-shrink-0 flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-all sm:px-3 sm:py-2 ${
                   isActive('/routines')
                     ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
                     : 'text-gray-300/80 hover:text-white hover:bg-white/5'
@@ -190,7 +196,7 @@ const Navigation = () => {
               </button>
               <button
                 onClick={() => navigate('/nutrition')}
-                className={`group flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition-all ${
+                className={`group flex flex-shrink-0 flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-all sm:px-3 sm:py-2 ${
                   isActive('/nutrition')
                     ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
                     : 'text-gray-300/80 hover:text-white hover:bg-white/5'
@@ -199,34 +205,56 @@ const Navigation = () => {
                 <Apple size={20} />
                 <span>Nutrición</span>
               </button>
-              {showCycleTab && (
-                <button
-                  onClick={() => navigate('/menstrual-cycle')}
-                  className={`group flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition-all ${
-                    isActive('/menstrual-cycle')
-                      ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
-                      : 'text-gray-300/80 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <Droplet size={20} />
-                  <span>Ciclo</span>
-                </button>
-              )}
               <button
-                onClick={() => navigate('/profile')}
-                className={`group flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition-all ${
-                  isActive('/profile')
+                onClick={() => setShowMoreMenu(true)}
+                className={`group flex flex-shrink-0 flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-all sm:px-3 sm:py-2 ${
+                  isMoreActive
                     ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
                     : 'text-gray-300/80 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <UserCircle size={20} />
-                <span>Perfil</span>
+                <MoreHorizontal size={20} />
+                <span>Más</span>
               </button>
             </div>
           </div>
         </div>
       </motion.nav>
+      {showMoreMenu && (
+        <div className="fixed inset-0 z-[70]">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowMoreMenu(false)}
+          />
+          <div className="absolute left-4 right-4 mx-auto max-w-sm rounded-2xl border border-white/10 bg-neutral-900/95 p-4 shadow-2xl ring-1 ring-white/5 backdrop-blur-xl bottom-[calc(env(safe-area-inset-bottom)+96px)]">
+            <div className="space-y-2">
+              <button
+                onClick={() => handleNavigate('/oposiciones')}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-gray-200/90 hover:bg-white/10"
+              >
+                <Shield size={18} className="text-yellow-300" />
+                <span>Oposiciones</span>
+              </button>
+              {showCycleTab && (
+                <button
+                  onClick={() => handleNavigate('/menstrual-cycle')}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-gray-200/90 hover:bg-white/10"
+                >
+                  <Droplet size={18} className="text-yellow-300" />
+                  <span>Ciclo</span>
+                </button>
+              )}
+              <button
+                onClick={() => handleNavigate('/profile')}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-gray-200/90 hover:bg-white/10"
+              >
+                <UserCircle size={18} className="text-yellow-300" />
+                <span>Perfil</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

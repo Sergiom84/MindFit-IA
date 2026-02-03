@@ -245,7 +245,7 @@ export default function TrainingPlanConfirmationModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="w-[95vw] sm:max-w-4xl lg:max-w-5xl max-h-[95vh] overflow-y-auto bg-neutral-900/95 border border-white/10 ring-1 ring-white/5 shadow-2xl backdrop-blur-xl z-50">
+        <DialogContent className="w-[95vw] max-w-[95vw] mx-auto sm:max-w-4xl lg:max-w-5xl max-h-[95vh] overflow-y-auto bg-neutral-900/95 border border-white/10 ring-1 ring-white/5 shadow-2xl backdrop-blur-xl z-50">
         <DialogHeader className="pb-4 border-b border-white/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -273,7 +273,7 @@ export default function TrainingPlanConfirmationModal({
           </div>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-6 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:pb-6">
           {/* Justificación de IA */}
           {aiJustification && (
             <div className="bg-white/5 border border-white/10 rounded-lg p-4">
@@ -306,7 +306,9 @@ export default function TrainingPlanConfirmationModal({
             </div>
             <div className="text-center p-3 bg-white/5 border border-white/10 rounded-lg border-l-2 border-l-yellow-400/30">
               <Target className="w-5 h-5 text-yellow-300 mx-auto mb-1" />
-              <div className="text-lg font-semibold text-white">{methodology}</div>
+              <div className="text-sm sm:text-lg font-semibold text-white leading-tight break-words">
+                {methodology}
+              </div>
               <div className="text-xs text-gray-300/70">Metodología</div>
             </div>
           </div>

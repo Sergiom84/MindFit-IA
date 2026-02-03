@@ -17,6 +17,18 @@
 - Se recupera el calendario y el modal de log diario desde main y se adapta a v3 (modo phase, campos v3 y refresco de ajuste).
 - Se corrige el acceso al token en el módulo de ciclo (authToken fallback) para que el calendario cargue logs y el modal guarde registros correctamente.
 - Se corrige el endpoint `/api/menstrual-cycle/logs` para calcular el último día del mes y evitar error 500 en febrero.
+- Git: merge fast-forward de `merge/menstrual-main` a `main` y push al remoto.
+- UI: se añade padding inferior con safe-area al modal de confirmación de plan para que el botón no quede oculto tras la bottom nav en móvil.
+- UI: se añade padding inferior con safe-area al modal de Hipertrofia V2 (evaluación/crear plan) para que el CTA no quede tapado por la bottom nav en móvil.
+- UI: se ajusta el ancho del modal de Hipertrofia V2 en móvil (`w-[95vw]`) para centrarlo y mejorar la respuesta visual.
+- UI: se ajusta el ancho del modal de confirmación de plan en móvil (`w-[95vw]`) para centrarlo y evitar desalineación.
+- UI: se evita overflow del nombre de metodología en cards (tamaño responsivo + wrap en móvil).
+- UI: se ajusta el texto de metodología en el resumen del plan para que no se desborde en móvil.
+- UI: la pestaña de ciclo en la bottom nav ahora usa `authToken || token` para mostrarse en móvil.
+- UI: fallback a `user.sexo` en la bottom nav cuando el check del ciclo falla o no hay token.
+- UI: bottom nav en móvil ahora permite scroll horizontal y reduce padding para que todos los tabs (incluido Ciclo/Perfil) sean accesibles.
+- UI: bottom nav se simplifica a 4 tabs + “Más” con modal (Oposiciones, Ciclo, Perfil) para mejorar la legibilidad en móvil.
+- Reglas: se añade en `CLAUDE_RULES.md` la norma de no hacer commit/push salvo solicitud explícita.
 
 ## 02.02.2026
 

@@ -281,9 +281,11 @@ export default function MethodologiesScreen() {
     >
       <div className="p-4 pb-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             {methodology.icon && <methodology.icon className="w-7 h-7 text-yellow-300" />}
-            <h3 className="text-white text-xl font-semibold font-urbanist">{methodology.name}</h3>
+            <h3 className="text-white text-base sm:text-xl font-semibold font-urbanist leading-tight break-words">
+              {methodology.name}
+            </h3>
           </div>
           <span className="text-xs px-2 py-1 border border-white/10 bg-white/5 text-gray-200 rounded">
             {methodology.level}
@@ -1779,7 +1781,7 @@ export default function MethodologiesScreen() {
       {/* Modal de Hipertrofia V2 Manual */}
       {ui.showHipertrofiaV2Manual && (
         <Dialog open={ui.showHipertrofiaV2Manual} onOpenChange={() => ui.hideModal('hipertrofiaV2Manual')}>
-          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] max-w-[95vw] mx-auto sm:max-w-4xl max-h-[90vh] overflow-y-auto pb-[calc(7rem+env(safe-area-inset-bottom))] sm:pb-6">
             <DialogHeader className="sr-only">
               <DialogTitle>Hipertrofia V2 - Tracking RIR</DialogTitle>
             </DialogHeader>
