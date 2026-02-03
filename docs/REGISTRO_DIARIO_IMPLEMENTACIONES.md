@@ -28,6 +28,13 @@
 - UI: fallback a `user.sexo` en la bottom nav cuando el check del ciclo falla o no hay token.
 - UI: bottom nav en móvil ahora permite scroll horizontal y reduce padding para que todos los tabs (incluido Ciclo/Perfil) sean accesibles.
 - UI: bottom nav se simplifica a 4 tabs + “Más” con modal (Oposiciones, Ciclo, Perfil) para mejorar la legibilidad en móvil.
+- UI: Nutrición en móvil ahora usa ancho completo (se reduce padding doble en Screen/Plan/Calendario/Dashboard).
+- UI: grid de días de entrenamiento en Nutrición ajusta tamaños/espaciado para que no se rompa en móvil.
+- UI: días de entrenamiento en Nutrición usan 4 columnas en móvil (4+3) para mejor legibilidad.
+- UI: botón "Generar plan nutricional" adopta estilo premium (gradiente y sombra).
+- UI: pestaña "Generar Plan" de Nutrición se divide en cards separadas (configuración, entrenamiento, resumen y CTA) para mejorar legibilidad.
+- Fix: se restaura `loadProfileFromUserData` en Nutrición para evitar el error en móvil.
+- UI: "Generar Plan" ya no usa card maestra; cada bloque queda en cards independientes con mismo ancho.
 - Reglas: se añade en `CLAUDE_RULES.md` la norma de no hacer commit/push salvo solicitud explícita.
 
 ## 02.02.2026

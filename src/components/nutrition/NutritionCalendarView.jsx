@@ -97,7 +97,7 @@ export default function NutritionCalendarView() {
 
   if (error) {
     return (
-      <div className="max-w-2xl mx-auto p-6">
+      <div className="w-full max-w-2xl mx-auto p-4 sm:p-6">
         <div className="bg-red-500/10 border border-red-500 rounded-lg p-6 text-center">
           <p className="text-red-500 mb-4">{error}</p>
           <button
@@ -114,7 +114,7 @@ export default function NutritionCalendarView() {
 
   if (!plan || !plan.days) {
     return (
-      <div className="max-w-2xl mx-auto p-6">
+      <div className="w-full max-w-2xl mx-auto p-4 sm:p-6">
         <div className={`${cardBase} rounded-lg p-6 text-center border-l-2 border-l-yellow-400/30`}>
           <Calendar className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <p className="text-gray-400 mb-4">No hay plan nutricional activo</p>
@@ -141,9 +141,9 @@ export default function NutritionCalendarView() {
   };
 
   return (
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="w-full max-w-7xl mx-auto p-0 sm:p-6">
       {/* Header del Plan */}
-      <div className={`${cardBase} rounded-2xl p-6 mb-6 border-l-2 border-l-yellow-400/30`}>
+      <div className={`${cardBase} rounded-2xl p-4 sm:p-6 mb-6 border-l-2 border-l-yellow-400/30`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <Calendar className="w-8 h-8 text-yellow-400" />

@@ -69,7 +69,7 @@ export default function NutritionDashboard() {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-7xl text-white space-y-6">
+    <div className="w-full max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6 text-white space-y-6">
       {/* Header */}
       <div className="mb-2">
         <h1 className="text-3xl font-semibold font-urbanist mb-2">🍽️ Control Nutricional</h1>

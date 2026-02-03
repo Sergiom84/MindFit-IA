@@ -200,7 +200,7 @@ export default function NutritionScreen() {
           }}
         />
       </div>
-      <div className="relative z-10 container mx-auto px-4 py-8">
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
@@ -278,4 +278,3 @@ export default function NutritionScreen() {
     </div>
   );
 }
-
