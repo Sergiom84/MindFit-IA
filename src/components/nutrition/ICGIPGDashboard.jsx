@@ -12,15 +12,22 @@ import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Alert } from '../ui/alert';
 import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
 
 export default function ICGIPGDashboard({ userId }) {
   const [progression, setProgression] = useState(null);
+  const [weeklySummary, setWeeklySummary] = useState(null);
+  const [bridgeState, setBridgeState] = useState(null);
+  const [summaryError, setSummaryError] = useState(null);
+  const [bridgeError, setBridgeError] = useState(null);
+  const [loadingSupplemental, setLoadingSupplemental] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const cardBase = "bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg text-white";
 
   useEffect(() => {
     loadProgressionData();
+    loadSupplementalData();
   }, [userId]);
 
   const loadProgressionData = async () => {
@@ -42,6 +49,82 @@ export default function ICGIPGDashboard({ userId }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadSupplementalData = async () => {
+    setLoadingSupplemental(true);
+    setSummaryError(null);
+    setBridgeError(null);
+
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const [weeklyRes, bridgeRes] = await Promise.all([
+        fetch('/api/diet-deviation/weekly', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('/api/bridge/state', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+
+      const weeklyData = await weeklyRes.json();
+      const bridgeData = await bridgeRes.json();
+
+      if (weeklyData?.success) {
+        setWeeklySummary(weeklyData.summary);
+      } else {
+        setWeeklySummary(null);
+        setSummaryError(weeklyData?.error || 'No se pudo cargar el resumen semanal');
+      }
+
+      if (bridgeData?.success) {
+        setBridgeState(bridgeData);
+      } else {
+        setBridgeState(null);
+        setBridgeError(bridgeData?.error || 'No se pudo cargar el estado del bridge');
+      }
+    } catch (err) {
+      setSummaryError(err.message || 'Error al cargar resumen semanal');
+      setBridgeError(err.message || 'Error al cargar estado del bridge');
+    } finally {
+      setLoadingSupplemental(false);
+    }
+  };
+
+  const getDaysRemaining = () => {
+    if (!weeklySummary?.weekStart) return null;
+    const weekStart = new Date(weeklySummary.weekStart);
+    const today = new Date();
+    const MS_PER_DAY = 1000 * 60 * 60 * 24;
+    const dayIndex = Math.floor((today - weekStart) / MS_PER_DAY);
+    if (!Number.isFinite(dayIndex)) return null;
+    return Math.max(0, 6 - dayIndex);
+  };
+
+  const getWeeklySuggestion = () => {
+    if (!weeklySummary) return null;
+    if (weeklySummary.netDeviation <= 0) {
+      return 'Sin compensación: la semana está dentro del objetivo.';
+    }
+    const daysRemaining = getDaysRemaining();
+    if (!daysRemaining || daysRemaining <= 0) {
+      return 'Semana cerrada: no quedan días para compensar.';
+    }
+    const perDay = Math.round(weeklySummary.netDeviation / daysRemaining);
+    return `Recorte sugerido ~${perDay} kcal/día durante ${daysRemaining} días, manteniendo proteína alta.`;
+  };
+
+  const normalizeFlags = (flags) => {
+    if (Array.isArray(flags)) return flags;
+    if (typeof flags === 'string') {
+      try {
+        const parsed = JSON.parse(flags);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
   };
 
   if (loading) {
@@ -261,9 +344,17 @@ export default function ICGIPGDashboard({ userId }) {
                       <span className="font-bold text-lg text-white">
                         {alert.severity === 'high' ? '🔴' : '🟡'} {alert.type.replace(/_/g, ' ').toUpperCase()}
                       </span>
-                      <Badge variant={alert.severity === 'high' ? 'destructive' : 'warning'}>
-                        {alert.severity === 'high' ? 'Crítico' : 'Advertencia'}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={alert.severity === 'high' ? 'destructive' : 'warning'}>
+                          {alert.severity === 'high' ? 'Crítico' : 'Advertencia'}
+                        </Badge>
+                        {(alert.type?.includes('PENDING_CONFIRMATION') || alert.confirmed === false || alert.severity === 'info') && (
+                          <Badge variant="secondary">Pendiente</Badge>
+                        )}
+                        {alert.confirmed && !alert.type?.includes('PENDING_CONFIRMATION') && (
+                          <Badge variant="success">Confirmada</Badge>
+                        )}
+                      </div>
                     </div>
                     <p className="font-semibold text-white">{alert.message}</p>
                     <p className="text-xs text-gray-300">
@@ -295,9 +386,116 @@ export default function ICGIPGDashboard({ userId }) {
         </Card>
       )}
 
+      {/* Compensación semanal */}
+      <Card className={`${cardBase} border-l-2 border-l-amber-400/30`}>
+        <CardHeader>
+          <CardTitle>📆 Compensación semanal</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingSupplemental && (
+            <p className="text-sm text-gray-300">Cargando resumen semanal...</p>
+          )}
+          {summaryError && (
+            <Alert className="bg-red-500/15 border-red-500/40 text-red-100">
+              <p>{summaryError}</p>
+            </Alert>
+          )}
+          {weeklySummary && !summaryError && (
+            <div className="space-y-3 text-sm text-gray-200">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-300">Objetivo semanal</span>
+                <span className="font-semibold">{weeklySummary.weeklyTarget} kcal</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-300">Exceso acumulado</span>
+                <span className={`font-semibold ${weeklySummary.netDeviation > 0 ? 'text-amber-300' : 'text-emerald-300'}`}>
+                  {weeklySummary.netDeviation} kcal
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-300">Compensado</span>
+                <span className="font-semibold">{weeklySummary.totalCompensated} kcal</span>
+              </div>
+              <Alert className="bg-white/5 border-white/10 text-gray-200">
+                <p className="font-semibold text-white">{getWeeklySuggestion()}</p>
+              </Alert>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Estado del bridge */}
+      <Card className={`${cardBase} border-l-2 border-l-sky-400/30`}>
+        <CardHeader>
+          <CardTitle>🔁 Estado del Bridge</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingSupplemental && (
+            <p className="text-sm text-gray-300">Cargando estado del bridge...</p>
+          )}
+          {bridgeError && (
+            <Alert className="bg-red-500/15 border-red-500/40 text-red-100">
+              <p>{bridgeError}</p>
+            </Alert>
+          )}
+          {bridgeState?.state && !bridgeError && (
+            <div className="space-y-4 text-sm text-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                  <p className="text-gray-300">Kcal actuales</p>
+                  <p className="text-lg font-semibold text-white">{bridgeState.state.current_kcal || 'N/A'}</p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                  <p className="text-gray-300">CLS semanal</p>
+                  <p className="text-lg font-semibold text-white">{bridgeState.state.weekly_cls || 'N/A'}</p>
+                </div>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                <p className="text-gray-300 mb-2">Macros base</p>
+                <div className="flex flex-wrap gap-3">
+                  <span>Proteína: {bridgeState.state.current_macros?.protein_g ?? 'N/A'} g</span>
+                  <span>Carbos: {bridgeState.state.current_macros?.carbs_g ?? 'N/A'} g</span>
+                  <span>Grasas: {bridgeState.state.current_macros?.fat_g ?? 'N/A'} g</span>
+                </div>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                <p className="text-gray-300 mb-2">Flags activos</p>
+                <div className="flex flex-wrap gap-2">
+                  {normalizeFlags(bridgeState.state.active_flags).length === 0 && (
+                    <span className="text-gray-400">Sin flags activos</span>
+                  )}
+                  {normalizeFlags(bridgeState.state.active_flags).map((flag, idx) => (
+                    <Badge key={`${flag.flag || flag}-${idx}`} variant="secondary">
+                      {(flag.flag || flag).toString().replace(/_/g, ' ')}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {bridgeState.recentDecisions?.[0]?.applied_nutrition?.per_day && (
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                  <p className="text-gray-300 mb-2">Carb cycling (última decisión)</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {Object.entries(bridgeState.recentDecisions[0].applied_nutrition.per_day).map(([key, value]) => (
+                      <div key={key} className="rounded-lg border border-white/10 bg-black/30 p-3">
+                        <p className="text-xs uppercase text-gray-400">{key}</p>
+                        <p className="text-sm text-white">{value.kcal} kcal</p>
+                        <p className="text-xs text-gray-300">P {value.protein_g}g · C {value.carbs_g}g · G {value.fat_g}g</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Botón para refrescar */}
       <div className="flex justify-center">
-        <Button onClick={loadProgressionData} variant="outline" className="border-white/10 bg-white/5 text-white hover:bg-white/10">
+        <Button onClick={() => { loadProgressionData(); loadSupplementalData(); }} variant="outline" className="border-white/10 bg-white/5 text-white hover:bg-white/10">
           🔄 Actualizar Estado
         </Button>
       </div>

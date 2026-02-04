@@ -1,5 +1,7 @@
 # Sistema de Calibración Nutricional Automática
 
+> Nota (04.02.2026): `app.user_body_measurements` queda **deprecada**. La fuente única es `app.body_measurements` y los endpoints de mediciones legacy devuelven `410 Gone`.
+
 ## 📋 Descripción
 
 Sistema completo para ajustar dinámicamente el **Gasto Calórico Total (GCT)** basado en datos reales del usuario, implementando:
@@ -16,7 +18,7 @@ Sistema completo para ajustar dinámicamente el **Gasto Calórico Total (GCT)** 
 ### Migraciones SQL
 
 - **`backend/migrations/create_nutrition_calibration_system.sql`**
-  - Tablas: `user_body_measurements`, `nutrition_calibrations`, `user_calibration_config`
+  - Tablas: `body_measurements` (fuente única), `nutrition_calibrations`, `user_calibration_config`
   - Funciones: `calculate_weight_average()`, `validate_waist_measurement()`, `should_trigger_nutrition_calibration()`
   - Triggers para actualización automática de timestamps y fechas
   - Vista: `v_pending_calibrations` para usuarios que necesitan calibración
@@ -36,11 +38,11 @@ Sistema completo para ajustar dinámicamente el **Gasto Calórico Total (GCT)** 
 ### Rutas API
 
 - **`backend/routes/nutritionCalibration.js`**
-  - `POST /api/nutrition/calibration/measurements` - Guardar medición corporal
-  - `GET /api/nutrition/calibration/measurements` - Historial de mediciones
-  - `GET /api/nutrition/calibration/measurements/latest` - Última medición
-  - `GET /api/nutrition/calibration/measurements/average` - Media de peso N días
-  - `POST /api/nutrition/calibration/measurements/validate-waist` - Validar cintura
+  - `POST /api/nutrition/calibration/measurements` - **Deprecated (410)** → usar `/api/body-measurements`
+  - `GET /api/nutrition/calibration/measurements` - **Deprecated (410)** → usar `/api/body-measurements/history`
+  - `GET /api/nutrition/calibration/measurements/latest` - **Deprecated (410)** → usar `/api/body-measurements/latest`
+  - `GET /api/nutrition/calibration/measurements/average` - **Deprecated (410)** → usar `/api/body-measurements/trends`
+  - `POST /api/nutrition/calibration/measurements/validate-waist` - **Deprecated (410)** → usar `/api/body-measurements`
   - `POST /api/nutrition/calibration/calibrate` - Ejecutar calibración manual
   - `GET /api/nutrition/calibration/calibrate/evaluate` - Evaluar sin aplicar
   - `GET /api/nutrition/calibration/calibrate/should-calibrate` - Verificar necesidad
@@ -54,32 +56,9 @@ Sistema completo para ajustar dinámicamente el **Gasto Calórico Total (GCT)** 
 
 ## 📊 Estructura de Datos
 
-### Tabla: `user_body_measurements`
+### Tabla: `body_measurements` (fuente única)
 
-Almacena el historial de mediciones corporales del usuario.
-
-```sql
-CREATE TABLE app.user_body_measurements (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL,
-  peso_kg DECIMAL(5,2) NOT NULL,
-  cintura_cm DECIMAL(5,2),
-  cuello_cm DECIMAL(5,2),
-  cadera_cm DECIMAL(5,2),
-  pecho_cm DECIMAL(5,2),
-  brazo_cm DECIMAL(5,2),
-  pierna_cm DECIMAL(5,2),
-  bodyfat_percent DECIMAL(4,2),
-  muscle_mass_kg DECIMAL(5,2),
-  measurement_date DATE DEFAULT CURRENT_DATE,
-  source VARCHAR(20) DEFAULT 'manual',
-  flagged_suspicious BOOLEAN DEFAULT FALSE,
-  suspension_reason TEXT,
-  validated BOOLEAN DEFAULT TRUE,
-  notes TEXT,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-```
+Almacena el historial de mediciones corporales del usuario. Ver schema completo en `backend/migrations/20260201_body_measurements_complete_system.sql`.
 
 ### Tabla: `nutrition_calibrations`
 
@@ -140,11 +119,15 @@ CREATE TABLE app.user_calibration_config (
 Usuario registra peso diariamente (mínimo 5 mediciones en 7 días).
 
 ```javascript
-POST /api/nutrition/calibration/measurements
+POST /api/body-measurements
 {
-  "peso_kg": 75.5,
-  "cintura_cm": 85.0,  // opcional
-  "measurement_date": "2026-02-02",
+  "weight": 75.5,
+  "waist": 85.0,
+  "date": "2026-02-02",
+  "conditions": {
+    "fasted": true,
+    "time_of_day": "morning"
+  },
   "notes": "Medición en ayunas"
 }
 ```
@@ -467,7 +450,7 @@ Este sistema se integra con:
 - ✅ **`nutrition_profiles`** - Actualiza `kcal_objetivo` automáticamente
 - ✅ **`metabolic_profile`** - Respeta distribución de macros según perfil metabólico
 - ✅ **`nutritionCalculator.js`** - Utiliza cálculos de TMB/TDEE existentes
-- ✅ **`user_body_measurements`** (legacy) - Compatible con sistema de mediciones corporales existente
+- ✅ **`body_measurements`** (fuente única) - Compatible con sistema de mediciones corporales existente
 
 ---
 

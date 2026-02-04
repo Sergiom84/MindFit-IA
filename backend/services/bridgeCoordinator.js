@@ -15,6 +15,7 @@ import {
   calculateMacrosWithMetabolicProfile,
   applyMinimumGuardrails
 } from './metabolicProfileCalculator.js';
+import { logNutritionChange } from './nutritionAuditLogger.js';
 
 // ============================================================================
 // CONSTANTES Y CONFIGURACION
@@ -25,6 +26,7 @@ export const COORDINATED_FLAGS = {
   // Flags de riesgo
   MUSCLE_LOSS_RISK: 'muscle_loss_risk',
   INJURY_PREVENTION: 'injury_prevention',
+  INJURY_ACTIVE: 'injury_active',
   ENERGY_WARNING: 'energy_warning',
   OVERTRAINING_RISK: 'overtraining_risk',
 
@@ -116,8 +118,10 @@ export async function processTrainingToNutrition(userId, trainingInputs) {
   // Calcular kcal base
   const bmr = calculateBMR(profile);
   const tdee = calculateTDEE(bmr, profile.actividad, profile.training_days || 4, profile.steps_per_day);
+  let effectiveTdee = tdee;
   const objetivo = profile.objetivo || 'mant';
-  let kcalBase = adjustCaloriesForGoal(tdee, objetivo);
+  let kcalBase = adjustCaloriesForGoal(effectiveTdee, objetivo, profile);
+  const auditEntries = [];
 
   // Calcular macros base (con o sin perfil metabolico)
   let macrosBase;
@@ -149,11 +153,94 @@ export async function processTrainingToNutrition(userId, trainingInputs) {
     activeFlags: currentState.active_flags || []
   });
 
+  const calendarTrainingDays = Array.isArray(calendar)
+    ? calendar.filter(day => day?.type !== 'rest' && day?.type !== 'descanso').length
+    : null;
+  const baselineTrainingDays = profile.training_days || calendarTrainingDays || 0;
+  const reducedSessions = baselineTrainingDays && calendarTrainingDays
+    ? Math.max(0, baselineTrainingDays - calendarTrainingDays)
+    : 0;
+
+  const injuryFlag = (currentState.active_flags || []).find(f => f.flag === COORDINATED_FLAGS.INJURY_ACTIVE);
+  const injuryActivatedAt = injuryFlag?.activated_at ? new Date(injuryFlag.activated_at) : (flags.lesion ? new Date() : null);
+  const injuryActiveDays = injuryActivatedAt
+    ? Math.floor((new Date() - injuryActivatedAt) / (1000 * 60 * 60 * 24))
+    : null;
+
+  // Regla lesión: no recalcular GCT el mismo día, esperar 7 días
+  if (injuryActiveDays !== null && injuryActiveDays < 7) {
+    evaluation.adjustments.kcal = 0;
+    evaluation.recommendations.push('Lesión activa: mantener kcal, no recalcular GCT durante 7 días.');
+  }
+
+  // Regla lesión: si reduce >=2 sesiones por semana durante 14 días, bajar factor actividad 0.05-0.10
+  if (injuryActiveDays !== null && injuryActiveDays >= 14 && reducedSessions >= 2) {
+    const reduction = reducedSessions >= 3 ? 0.10 : 0.05;
+    const adjustedTdee = Math.round(tdee * (1 - reduction));
+    const kcalBeforeInjury = kcalBase;
+    effectiveTdee = adjustedTdee;
+    kcalBase = adjustCaloriesForGoal(effectiveTdee, objetivo, profile);
+    evaluation.recommendations.push(`Lesión 14 días: ajustar actividad -${Math.round(reduction * 100)}%.`);
+
+    if (kcalBase !== kcalBeforeInjury) {
+      auditEntries.push({
+        userId,
+        changeType: 'activity_factor_adjust',
+        delta: { kcal: kcalBase - kcalBeforeInjury, activity_factor_delta: -reduction },
+        ruleId: 'NUTR-BRIDGE-040',
+        reason: 'Lesión 14 días con reducción de sesiones',
+        metrics: {
+          injury_active_days: injuryActiveDays,
+          reduced_sessions: reducedSessions,
+          tdee_before: tdee,
+          tdee_after: adjustedTdee
+        },
+        previousValues: { kcal_objetivo: kcalBeforeInjury, tdee },
+        newValues: { kcal_objetivo: kcalBase, tdee: adjustedTdee },
+        source: 'bridge'
+      });
+    }
+  }
+
+  // Regla deload: ajustar superávit a la mitad en volumen
+  if (flags.deload && objetivo === 'bulk') {
+    const kcalBeforeDeload = kcalBase;
+    const surplus = kcalBase - effectiveTdee;
+    kcalBase = Math.round(effectiveTdee + surplus / 2);
+    evaluation.recommendations.push('Deload en volumen: reducir superávit a la mitad esta semana.');
+
+    if (kcalBase !== kcalBeforeDeload) {
+      auditEntries.push({
+        userId,
+        changeType: 'kcal_adjust',
+        delta: { kcal: kcalBase - kcalBeforeDeload },
+        ruleId: 'NUTR-BRIDGE-020',
+        reason: 'Deload en volumen: reducir superávit a la mitad',
+        metrics: { tdee: effectiveTdee },
+        previousValues: { kcal_objetivo: kcalBeforeDeload },
+        newValues: { kcal_objetivo: kcalBase },
+        source: 'bridge'
+      });
+    }
+  }
+
   // Aplicar ajustes si los hay
   let adjustedKcal = kcalBase;
   let adjustedMacros = { ...macrosBase };
 
   if (evaluation.adjustments.kcal) {
+    auditEntries.push({
+      userId,
+      changeType: 'kcal_adjust',
+      delta: { kcal: evaluation.adjustments.kcal },
+      ruleId: 'NUTR-BRIDGE-030',
+      reason: evaluation.reason,
+      metrics: { weekly_cls, performance, decision_type: evaluation.decisionType },
+      previousValues: { kcal_objetivo: adjustedKcal },
+      newValues: { kcal_objetivo: adjustedKcal + evaluation.adjustments.kcal },
+      source: 'bridge'
+    });
+
     adjustedKcal += evaluation.adjustments.kcal;
     // Recalcular macros con nuevas kcal
     if (metabolicProfile) {
@@ -173,11 +260,35 @@ export async function processTrainingToNutrition(userId, trainingInputs) {
     }
   }
 
+  if (evaluation.adjustments.carbsD2) {
+    auditEntries.push({
+      userId,
+      changeType: 'carb_cycle_adjust',
+      delta: { carbsD2: evaluation.adjustments.carbsD2 },
+      ruleId: 'NUTR-BRIDGE-010',
+      reason: evaluation.reason,
+      metrics: { weekly_cls, performance, decision_type: evaluation.decisionType },
+      source: 'bridge'
+    });
+  }
+
   // Aplicar guardrails minimos
-  adjustedMacros = applyMinimumGuardrails(adjustedMacros, profile.peso_kg, objetivo);
+  adjustedMacros = applyMinimumGuardrails(adjustedMacros, profile.peso_kg, objetivo, adjustedKcal, profile.level || profile.nivel_entrenamiento);
 
   // Generar distribucion por tipo de dia (carb cycling)
-  const perDayMacros = buildCarbCyclingDistribution(adjustedMacros, profile.peso_kg, weekly_cls);
+  const perDayMacros = buildCarbCyclingDistribution(adjustedMacros, profile.peso_kg, weekly_cls, objetivo);
+
+  if (Array.isArray(calendar) && calendar.length > 0) {
+    auditEntries.push({
+      userId,
+      changeType: 'carb_cycle_adjust',
+      delta: { per_day: perDayMacros },
+      ruleId: 'NUTR-BRIDGE-010',
+      reason: 'Carb cycling según CLS y calendario',
+      metrics: { weekly_cls, calendar_days: calendarTrainingDays },
+      source: 'bridge'
+    });
+  }
 
   // Mapear calendario a macros
   const calendarWithMacros = calendar.map(day => ({
@@ -219,6 +330,14 @@ export async function processTrainingToNutrition(userId, trainingInputs) {
   // Activar nuevos flags si los hay
   for (const flag of evaluation.newFlags) {
     await activateBridgeFlag(userId, flag.name, flag.severity, flag.duration);
+  }
+
+  for (const entry of auditEntries) {
+    try {
+      await logNutritionChange(entry);
+    } catch (error) {
+      console.error('Error registrando log nutricional del bridge:', error);
+    }
   }
 
   return {
@@ -455,6 +574,16 @@ function evaluateTrainingFlags(params) {
     recommendations.push('Riesgo de sobrecarga: reducir intensidad en ejercicios de alto impacto');
   }
 
+  if (flags.lesion) {
+    newFlags.push({
+      name: COORDINATED_FLAGS.INJURY_ACTIVE,
+      severity: 'high',
+      duration: 14
+    });
+    recommendations.push('Lesión activa: priorizar recuperación, evitar cambios bruscos de kcal.');
+    decisionType = 'injury';
+  }
+
   return {
     adjustments,
     newFlags,
@@ -625,8 +754,10 @@ function redistributeMacros(baseMacros, weightKg, carbFactor) {
 /**
  * Construye distribucion de macros por tipo de dia
  */
-function buildCarbCyclingDistribution(baseMacros, weightKg, clsScore) {
-  const deltas = carbDeltaFromCLS(clsScore);
+function buildCarbCyclingDistribution(baseMacros, weightKg, clsScore, objetivo) {
+  const deltas = objetivo === 'cut'
+    ? { high: 1.10, low: 0.90 } // En déficit, limitar +/-10%
+    : carbDeltaFromCLS(clsScore);
   const baseKcal = baseMacros.protein_g * 4 + baseMacros.fat_g * 9 + baseMacros.carbs_g * 4;
 
   return {

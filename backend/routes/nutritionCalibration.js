@@ -6,211 +6,69 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
 import {
-  saveMeasurement,
-  validateWaistMeasurement,
-  calculateWeightAverage,
   evaluateCalibration,
   applyCalibration,
   shouldTriggerCalibration,
   getCalibrationHistory,
   runAutoCalibration
 } from '../services/nutritionCalibrator.js';
-import pool from '../db.js';
+import { pool } from '../db.js';
 
 const router = express.Router();
 
 // ============================================================================
-// POST /api/nutrition/measurements
+// POST /api/nutrition/calibration/measurements (DEPRECADO -> 410)
 // Guarda una nueva medición corporal con validación automática
 // ============================================================================
 router.post('/measurements', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const measurement = req.body;
-
-    // Validar datos requeridos
-    if (!measurement.peso_kg) {
-      return res.status(400).json({
-        success: false,
-        error: 'El peso es obligatorio'
-      });
-    }
-
-    // Guardar medición con validación
-    const result = await saveMeasurement(userId, measurement);
-
-    res.json({
-      success: true,
-      measurement: result,
-      message: result.flagged 
-        ? 'Medición guardada pero marcada como sospechosa. Por favor, verifica los datos.'
-        : 'Medición guardada correctamente'
-    });
-
-  } catch (error) {
-    console.error('Error guardando medición:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Error guardando medición corporal' 
-    });
-  }
+  return res.status(410).json({
+    error: 'Ruta deprecada. Usa /api/body-measurements',
+    replaced_by: '/api/body-measurements'
+  });
 });
 
 // ============================================================================
-// GET /api/nutrition/measurements
+// GET /api/nutrition/calibration/measurements (DEPRECADO -> 410)
 // Obtiene el historial de mediciones del usuario
 // ============================================================================
 router.get('/measurements', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const limit = parseInt(req.query.limit) || 30;
-    const includeFlagged = req.query.include_flagged === 'true';
-
-    const query = `
-      SELECT 
-        id, peso_kg, cintura_cm, cuello_cm, cadera_cm, pecho_cm,
-        brazo_cm, pierna_cm, bodyfat_percent, muscle_mass_kg,
-        measurement_date, source, flagged_suspicious, 
-        suspension_reason, validated, notes, created_at
-      FROM app.user_body_measurements
-      WHERE user_id = $1
-      ${!includeFlagged ? 'AND flagged_suspicious = FALSE' : ''}
-      ORDER BY measurement_date DESC, created_at DESC
-      LIMIT $2
-    `;
-
-    const result = await pool.query(query, [userId, limit]);
-
-    res.json({
-      success: true,
-      measurements: result.rows,
-      total: result.rows.length
-    });
-
-  } catch (error) {
-    console.error('Error obteniendo mediciones:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Error obteniendo historial de mediciones' 
-    });
-  }
+  return res.status(410).json({
+    error: 'Ruta deprecada. Usa /api/body-measurements/history',
+    replaced_by: '/api/body-measurements/history'
+  });
 });
 
 // ============================================================================
-// GET /api/nutrition/measurements/latest
+// GET /api/nutrition/calibration/measurements/latest (DEPRECADO -> 410)
 // Obtiene la última medición válida del usuario
 // ============================================================================
 router.get('/measurements/latest', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const result = await pool.query(
-      `SELECT 
-        id, peso_kg, cintura_cm, cuello_cm, cadera_cm, pecho_cm,
-        brazo_cm, pierna_cm, bodyfat_percent, muscle_mass_kg,
-        measurement_date, source, notes, created_at
-       FROM app.user_body_measurements
-       WHERE user_id = $1
-       AND validated = TRUE
-       AND flagged_suspicious = FALSE
-       ORDER BY measurement_date DESC, created_at DESC
-       LIMIT 1`,
-      [userId]
-    );
-
-    if (result.rows.length === 0) {
-      return res.json({
-        success: true,
-        hasMeasurement: false,
-        message: 'No hay mediciones registradas'
-      });
-    }
-
-    res.json({
-      success: true,
-      hasMeasurement: true,
-      measurement: result.rows[0]
-    });
-
-  } catch (error) {
-    console.error('Error obteniendo última medición:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Error obteniendo última medición' 
-    });
-  }
+  return res.status(410).json({
+    error: 'Ruta deprecada. Usa /api/body-measurements/latest',
+    replaced_by: '/api/body-measurements/latest'
+  });
 });
 
 // ============================================================================
-// GET /api/nutrition/measurements/average
+// GET /api/nutrition/calibration/measurements/average (DEPRECADO -> 410)
 // Calcula la media de peso de los últimos N días
 // ============================================================================
 router.get('/measurements/average', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const days = parseInt(req.query.days) || 7;
-    const minMeasurements = parseInt(req.query.min_measurements) || 5;
-
-    const average = await calculateWeightAverage(userId, days, minMeasurements);
-
-    if (!average) {
-      return res.json({
-        success: true,
-        hasAverage: false,
-        message: `Insuficientes mediciones en los últimos ${days} días (requiere al menos ${minMeasurements})`
-      });
-    }
-
-    res.json({
-      success: true,
-      hasAverage: true,
-      average: {
-        mediaPeso: average.mediaPeso,
-        numMeasurements: average.numMeasurements,
-        days,
-        calculatedAt: new Date().toISOString()
-      }
-    });
-
-  } catch (error) {
-    console.error('Error calculando media de peso:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Error calculando media de peso' 
-    });
-  }
+  return res.status(410).json({
+    error: 'Ruta deprecada. Usa /api/body-measurements/trends',
+    replaced_by: '/api/body-measurements/trends'
+  });
 });
 
 // ============================================================================
-// POST /api/nutrition/measurements/validate-waist
+// POST /api/nutrition/calibration/measurements/validate-waist (DEPRECADO -> 410)
 // Valida una medición de cintura sin guardarla
 // ============================================================================
 router.post('/measurements/validate-waist', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { waist_cm, weight_kg } = req.body;
-
-    if (!waist_cm || !weight_kg) {
-      return res.status(400).json({
-        success: false,
-        error: 'Se requiere cintura_cm y peso_kg'
-      });
-    }
-
-    const validation = await validateWaistMeasurement(userId, waist_cm, weight_kg);
-
-    res.json({
-      success: true,
-      validation
-    });
-
-  } catch (error) {
-    console.error('Error validando cintura:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Error validando medición de cintura' 
-    });
-  }
+  return res.status(410).json({
+    error: 'Ruta deprecada. Usa /api/body-measurements con validación automática',
+    replaced_by: '/api/body-measurements'
+  });
 });
 
 // ============================================================================

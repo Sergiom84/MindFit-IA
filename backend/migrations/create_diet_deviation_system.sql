@@ -301,15 +301,15 @@ BEGIN
   ),
   targets AS (
     SELECT
-      COALESCE(wt.daily_target_kcal, np.daily_target_kcal, 2000) AS daily_tgt
+      COALESCE(wt.daily_target_kcal, np.kcal_objetivo, np.tdee, 2000) AS daily_tgt
     FROM app.nutrition_profiles np
     LEFT JOIN app.weekly_calorie_targets wt ON wt.user_id = np.user_id AND wt.week_start_date = v_week_start
     WHERE np.user_id = p_user_id
   )
   SELECT
     v_week_start,
-    t.daily_tgt,
-    t.daily_tgt * 7,
+    t.daily_tgt::INTEGER,
+    (t.daily_tgt * 7)::INTEGER,
     d.total_excess::INTEGER,
     d.total_excess::INTEGER,
     c.total_comp::INTEGER,
@@ -320,7 +320,7 @@ BEGIN
       WHEN c.total_comp >= d.total_excess THEN 'completed'
       WHEN c.total_comp > 0 THEN 'partial'
       ELSE 'pending'
-    END
+    END::VARCHAR(20)
   FROM deviations d, compensations c, targets t;
 END;
 $$ LANGUAGE plpgsql;

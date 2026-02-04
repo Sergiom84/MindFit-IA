@@ -6,6 +6,7 @@
  */
 
 import { pool } from '../db.js';
+import { ensureWeeklySnapshot, logNutritionChange } from './nutritionAuditLogger.js';
 
 // ============================================================================
 // CONSTANTES Y CONFIGURACION
@@ -94,12 +95,51 @@ export async function registerDeviation(userId, deviationData) {
 
   const deviation = deviationResult.rows[0];
 
-  // Calcular plan de compensacion
+  // Resumen semanal para decidir si se compensa
+  const weekStartResult = await pool.query(
+    `SELECT app.get_week_start($1::date) AS week_start`,
+    [date]
+  );
+  const weekStart = weekStartResult.rows[0]?.week_start || null;
+
+  const weeklySummaryResult = await pool.query(
+    `SELECT * FROM app.get_weekly_deviation_summary($1, $2)`,
+    [userId, weekStart]
+  );
+  const weeklySummary = weeklySummaryResult.rows[0] || null;
+  const netDeviation = weeklySummary?.net_deviation ?? excessKcal;
+
+  // Si la desviación semanal no supera el objetivo, no compensar
+  if (netDeviation <= 0) {
+    try {
+      await ensureWeeklySnapshot(userId, { source: 'diet_deviation' });
+    } catch (error) {
+      console.error('Error guardando snapshot semanal (sin compensación):', error);
+    }
+
+    return {
+      deviation,
+      compensationPlan: {
+        days: [],
+        totalCompensation: 0,
+        effectiveExcess: 0,
+        originalExcess: excessKcal,
+        isConservative: false,
+        perDayReduction: 0,
+        remainingUncompensated: 0,
+        message: 'Sin compensación: la carga calórica semanal no supera el objetivo'
+      },
+      weeklySummary,
+      message: 'Salto registrado sin compensación (semana dentro de objetivo)'
+    };
+  }
+
+  // Calcular plan de compensacion sobre la desviación semanal neta
   const compensationPlan = calculateCompensationPlan({
-    excessKcal,
+    excessKcal: netDeviation,
     deviationDate: new Date(date),
     confidenceLevel,
-    dailyTargetKcal: profile.daily_target_kcal || profile.tdee || 2000,
+    dailyTargetKcal: weeklySummary?.daily_target || profile.daily_target_kcal || profile.tdee || 2000,
     weightKg: profile.peso_kg,
     objetivo: profile.objetivo || 'mant',
     config
@@ -114,7 +154,9 @@ export async function registerDeviation(userId, deviationData) {
       ) VALUES ($1, $2, $3, $4, $5, $6, $7)
       ON CONFLICT (user_id, compensation_date, deviation_id) DO UPDATE SET
         kcal_adjustment = EXCLUDED.kcal_adjustment,
-        protein_g_target = EXCLUDED.protein_g_target`,
+        protein_g_target = EXCLUDED.protein_g_target,
+        carbs_g_adjustment = EXCLUDED.carbs_g_adjustment,
+        fat_g_adjustment = EXCLUDED.fat_g_adjustment`,
       [
         userId, deviation.id, day.date,
         day.kcalAdjustment, day.proteinTarget,
@@ -123,9 +165,49 @@ export async function registerDeviation(userId, deviationData) {
     );
   }
 
+  try {
+    await logNutritionChange({
+      userId,
+      changeType: 'kcal_adjust',
+      delta: {
+        weekly_excess_kcal: netDeviation,
+        per_day_reduction: compensationPlan.perDayReduction,
+        days: compensationPlan.days.length
+      },
+      ruleId: 'NUTR-JUMP-010',
+      reason: compensationPlan.message,
+      metrics: {
+        confidence: confidenceLevel,
+        weekly_target: weeklySummary?.weekly_target,
+        daily_target: weeklySummary?.daily_target,
+        total_excess_kcal: weeklySummary?.total_excess_kcal
+      },
+      previousValues: {
+        daily_target_kcal: weeklySummary?.daily_target,
+        weekly_target_kcal: weeklySummary?.weekly_target
+      },
+      newValues: {
+        compensation_plan: {
+          total_compensation: compensationPlan.totalCompensation,
+          remaining_uncompensated: compensationPlan.remainingUncompensated
+        }
+      },
+      source: 'diet_deviation'
+    });
+  } catch (error) {
+    console.error('Error registrando log de compensación semanal:', error);
+  }
+
+  try {
+    await ensureWeeklySnapshot(userId, { source: 'diet_deviation' });
+  } catch (error) {
+    console.error('Error guardando snapshot semanal (compensación):', error);
+  }
+
   return {
     deviation,
     compensationPlan,
+    weeklySummary,
     message: compensationPlan.isConservative
       ? 'Confianza baja: aplicando compensacion conservadora (50%)'
       : 'Plan de compensacion generado'

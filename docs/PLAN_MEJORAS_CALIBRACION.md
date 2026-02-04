@@ -7,6 +7,8 @@
 
 ---
 
+> Nota (04.02.2026): `app.user_body_measurements` queda **deprecada**. La fuente única es `app.body_measurements`.
+
 ## 🎯 OBJETIVO
 
 Implementar el sistema de calibración y ajuste dinámico del GCT según las reglas documentadas en el módulo de metabolismo, manteniendo la regla anti-ruido y los ajustes graduales.
@@ -19,23 +21,7 @@ Implementar el sistema de calibración y ajuste dinámico del GCT según las reg
 
 #### Tarea 1.1: Crear tabla de historial de mediciones
 
-```sql
-CREATE TABLE IF NOT EXISTS app.user_body_measurements (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES app.users(id) ON DELETE CASCADE,
-  peso_kg DECIMAL(5,2) NOT NULL,
-  cintura_cm DECIMAL(5,2),
-  cuello_cm DECIMAL(5,2),
-  cadera_cm DECIMAL(5,2),
-  measurement_date DATE DEFAULT CURRENT_DATE,
-  source VARCHAR(20) DEFAULT 'manual' CHECK (source IN ('manual', 'auto', 'calibration')),
-  flagged_suspicious BOOLEAN DEFAULT FALSE,
-  suspension_reason TEXT,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE INDEX idx_body_measurements_user_date ON app.user_body_measurements(user_id, measurement_date DESC);
-```
+Usar `app.body_measurements` como fuente única (ver `backend/migrations/20260201_body_measurements_complete_system.sql`).
 
 #### Tarea 1.2: Función de validación de cintura sospechosa
 
@@ -54,8 +40,8 @@ export async function validateWaistMeasurement(
 ) {
   // Obtener medición previa de hace 7 días o menos
   const previousMeasurement = await pool.query(
-    `SELECT peso_kg, cintura_cm, measurement_date
-     FROM app.user_body_measurements
+    `SELECT weight_kg, waist_cm, measurement_date
+     FROM app.body_measurements
      WHERE user_id = $1 
      AND measurement_date >= CURRENT_DATE - INTERVAL '7 days'
      ORDER BY measurement_date DESC
@@ -145,7 +131,7 @@ CREATE INDEX idx_nutrition_calibrations_user ON app.nutrition_calibrations(user_
 export async function calculateWeightAverage7Days(userId) {
   const result = await pool.query(
     `SELECT AVG(peso_kg) as media_peso
-     FROM app.user_body_measurements
+     FROM app.body_measurements
      WHERE user_id = $1
      AND measurement_date >= CURRENT_DATE - INTERVAL '7 days'
      HAVING COUNT(*) >= 5`, // Requiere al menos 5 mediciones en 7 días
@@ -184,7 +170,7 @@ export async function evaluateCalibration(userId, objetivo) {
   // 2. Obtener peso medio hace 14 días
   const previousWeightResult = await pool.query(
     `SELECT AVG(peso_kg) as media_peso
-     FROM app.user_body_measurements
+     FROM app.body_measurements
      WHERE user_id = $1
      AND measurement_date BETWEEN CURRENT_DATE - INTERVAL '21 days' AND CURRENT_DATE - INTERVAL '14 days'
      HAVING COUNT(*) >= 5`,

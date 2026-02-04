@@ -20,7 +20,10 @@ CREATE TABLE IF NOT EXISTS app.icg_ipg_state_history (
   
   -- Valor y estado del indicador
   indicator_value DECIMAL(5,2),
-  status VARCHAR(20) NOT NULL CHECK (status IN ('red', 'yellow', 'green', 'green_plus', 'neutral', 'unstable')),
+  status VARCHAR(20) NOT NULL CHECK (status IN (
+    'red', 'yellow', 'green', 'green_plus', 'neutral', 'unstable',
+    'rojo', 'amarillo', 'verde', 'verde_plus'
+  )),
   
   -- Contador de estados consecutivos
   consecutive_count INTEGER DEFAULT 1,

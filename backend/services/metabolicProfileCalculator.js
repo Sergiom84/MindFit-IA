@@ -131,7 +131,7 @@ export const MINIMUM_GUARDRAILS = {
   protein: {
     cut: 2.0,      // >= 2.0 g/kg en definicion
     mant: 1.6,     // >= 1.6 g/kg en mantenimiento
-    bulk: 1.8      // >= 1.8 g/kg en volumen (1.8 avanzados)
+    bulk: 1.6      // >= 1.6 g/kg en volumen (1.8 si avanzado)
   },
   fat: {
     min_per_kg: 0.6,     // >= 0.6 g/kg
@@ -310,11 +310,12 @@ export function calculateMacrosWithMetabolicProfile(
  * @param {number} kcalObjetivo - Calorias objetivo (para % minimo de grasa)
  * @returns {Object} Macros ajustados con guardarrailes aplicados
  */
-export function applyMinimumGuardrails(macros, peso_kg, objetivo, kcalObjetivo) {
+export function applyMinimumGuardrails(macros, peso_kg, objetivo, kcalObjetivo, level = 'intermedio') {
   let { protein_g, carbs_g, fat_g } = macros;
 
   // 1. Minimo de proteina segun objetivo
-  const minProteinPerKg = MINIMUM_GUARDRAILS.protein[objetivo] || MINIMUM_GUARDRAILS.protein.mant;
+  const baseProtein = MINIMUM_GUARDRAILS.protein[objetivo] || MINIMUM_GUARDRAILS.protein.mant;
+  const minProteinPerKg = (objetivo === 'bulk' && level === 'avanzado') ? 1.8 : baseProtein;
   const minProtein_g = Math.round(peso_kg * minProteinPerKg);
 
   // 2. Minimo de grasa: mayor entre g/kg y % del total
@@ -597,7 +598,7 @@ export function processMetabolicEvaluation(answers, userProfile, currentEvaluati
   }
 
   // 7. Calcular macros para el perfil aplicado
-  const { peso_kg, objetivo, training_type } = userProfile;
+  const { peso_kg, objetivo, training_type, level } = userProfile;
   const kcalObjetivo = userProfile.kcal_objetivo || userProfile.tdee || 2000;
 
   const rawMacros = calculateMacrosWithMetabolicProfile(
@@ -609,7 +610,7 @@ export function processMetabolicEvaluation(answers, userProfile, currentEvaluati
   );
 
   // 8. Aplicar guardarrailes de minimos
-  const finalMacros = applyMinimumGuardrails(rawMacros, peso_kg, objetivo, kcalObjetivo);
+  const finalMacros = applyMinimumGuardrails(rawMacros, peso_kg, objetivo, kcalObjetivo, level || 'intermedio');
 
   // 9. Obtener descripcion del perfil
   const profileDescription = getProfileDescription(appliedProfile);

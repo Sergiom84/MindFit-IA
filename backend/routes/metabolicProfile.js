@@ -4,7 +4,7 @@
  */
 
 import express from 'express';
-import pool from '../db.js';
+import { pool } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
 import {
   METABOLIC_QUESTIONS,
@@ -83,7 +83,8 @@ router.post('/evaluate', authenticateToken, async (req, res) => {
       objetivo: nutritionProfile.objetivo || 'mant',
       training_type: nutritionProfile.training_type || 'general',
       kcal_objetivo: nutritionProfile.kcal_objetivo,
-      tdee: nutritionProfile.tdee
+      tdee: nutritionProfile.tdee,
+      level: nutritionProfile.level || nutritionProfile.nivel_entrenamiento
     };
 
     // Obtener evaluacion actual si existe

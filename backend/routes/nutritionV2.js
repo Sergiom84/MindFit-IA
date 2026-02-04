@@ -16,6 +16,7 @@ import {
 } from '../services/nutritionCalculator.js';
 import { nutritionMenuGeneratorPrompt } from '../prompts/nutrition-menu-generator.js';
 import OpenAI from 'openai';
+import { ensureWeeklySnapshot, logNutritionChange } from '../services/nutritionAuditLogger.js';
 
 const router = express.Router();
 
@@ -159,18 +160,18 @@ function evaluateMaintenance(base, latest) {
 
   // IEC según documento
   if (weightDiff >= 1 && waistDiff >= 1) {
-    return { status: 'rojo', indicator: { weightDiff, waistDiff }, interpretation: 'Superávit no deseado', action: 'Reducir kcal 150/día', needsConfirmation: true };
+    return { status: 'rojo', indicator: weightDiff, interpretation: 'Superávit no deseado', action: 'Reducir kcal 150/día', needsConfirmation: true };
   }
   if (absW <= 0.5) {
-    return { status: 'amarillo', indicator: { weightDiff, waistDiff }, interpretation: 'Oscilación normal', action: 'Mantener y observar (confirmación 2.1)', needsConfirmation: true };
+    return { status: 'amarillo', indicator: weightDiff, interpretation: 'Oscilación normal', action: 'Mantener y observar (confirmación 2.1)', needsConfirmation: true };
   }
   if (absW <= 0.3 && waistDiff < 0) {
-    return { status: 'verde', indicator: { weightDiff, waistDiff }, interpretation: 'Recomp positiva', action: 'Mantener', needsConfirmation: false };
+    return { status: 'verde', indicator: weightDiff, interpretation: 'Recomp positiva', action: 'Mantener', needsConfirmation: false };
   }
   if (absW <= 0.2 && waistDiff <= -0.2) {
-    return { status: 'verde_plus', indicator: { weightDiff, waistDiff }, interpretation: 'Recomp ideal', action: 'Mantener o micro superávit', needsConfirmation: false };
+    return { status: 'verde_plus', indicator: weightDiff, interpretation: 'Recomp ideal', action: 'Mantener o micro superávit', needsConfirmation: false };
   }
-  return { status: 'amarillo', indicator: { weightDiff, waistDiff }, interpretation: 'Variación leve', action: 'Observar y repetir medición', needsConfirmation: true };
+  return { status: 'amarillo', indicator: weightDiff, interpretation: 'Variación leve', action: 'Observar y repetir medición', needsConfirmation: true };
 }
 
 // Inicializar OpenAI
@@ -194,6 +195,8 @@ function normalizeActividad(value) {
 
   const mapping = {
     sedentario: 'sedentario',
+    ligeramente_activo: 'ligeramente_activo',
+    'ligeramente activo': 'ligeramente_activo',
     ligero: 'ligero',
     moderado: 'moderado',
     activo: 'activo',
@@ -437,7 +440,7 @@ router.post('/profile', authenticateToken, async (req, res) => {
     const profile = result.rows[0];
     const bmr = calculateBMR(profile);
     const tdee = calculateTDEE(bmr, actividad, training_days || undefined, steps_per_day || undefined);
-    const kcalObjetivo = adjustCaloriesForGoal(tdee, objetivo);
+    const kcalObjetivo = adjustCaloriesForGoal(tdee, objetivo, profile);
 
     res.json({
       profile: profile,
@@ -671,6 +674,44 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/nutrition-v2/audit
+ * Resumen de auditoría (logs de cambios + snapshots)
+ */
+router.get('/audit', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const limit = Number.parseInt(req.query.limit || '20', 10);
+    const snapshotLimit = Number.parseInt(req.query.snapshot_limit || '8', 10);
+
+    const [logsResult, snapshotsResult] = await Promise.all([
+      pool.query(
+        `SELECT * FROM app.nutrition_change_log
+         WHERE user_id = $1
+         ORDER BY created_at DESC
+         LIMIT $2`,
+        [userId, limit]
+      ),
+      pool.query(
+        `SELECT * FROM app.nutrition_weekly_snapshots
+         WHERE user_id = $1
+         ORDER BY snapshot_date DESC
+         LIMIT $2`,
+        [userId, snapshotLimit]
+      )
+    ]);
+
+    res.json({
+      success: true,
+      change_log: logsResult.rows,
+      snapshots: snapshotsResult.rows
+    });
+  } catch (error) {
+    console.error('Error obteniendo auditoría nutricional:', error);
+    res.status(500).json({ error: 'Error al obtener auditoría nutricional' });
+  }
+});
+
 // ================================================
 // CATÁLOGO DE ALIMENTOS
 // ================================================
@@ -848,51 +889,10 @@ router.post('/generate-full-day-menus', authenticateToken, async (req, res) => {
 // ================================================
 
 router.post('/measurements', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const {
-      measurement_date = new Date().toISOString().slice(0, 10),
-      weight,
-      waist,
-      biceps = null,
-      chest = null,
-      calf = null,
-      abdominal_fold = null,
-      performance_trend = null,
-      measurement_conditions = {},
-      notes = null
-    } = req.body;
-
-    if (weight === undefined || waist === undefined) {
-      return res.status(400).json({ error: 'Se requieren peso y cintura' });
-    }
-
-    const insertQuery = `
-      INSERT INTO app.body_measurements
-        (user_id, measurement_date, weight, waist, biceps, chest, calf, abdominal_fold, performance_trend, measurement_conditions, notes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING *;
-    `;
-
-    const result = await pool.query(insertQuery, [
-      userId,
-      measurement_date,
-      weight,
-      waist,
-      biceps,
-      chest,
-      calf,
-      abdominal_fold,
-      performance_trend,
-      JSON.stringify(measurement_conditions),
-      notes
-    ]);
-
-    res.json({ success: true, measurement: result.rows[0] });
-  } catch (error) {
-    console.error('Error guardando medición:', error);
-    res.status(500).json({ error: 'Error al guardar medición' });
-  }
+  return res.status(410).json({
+    error: 'Ruta deprecada. Usa /api/body-measurements',
+    replaced_by: '/api/body-measurements'
+  });
 });
 
 router.post('/evaluate', authenticateToken, async (req, res) => {
@@ -918,6 +918,7 @@ router.post('/evaluate', authenticateToken, async (req, res) => {
       `
         SELECT * FROM app.body_measurements
         WHERE user_id = $1
+        AND is_validated = TRUE
         ORDER BY measurement_date ASC
       `,
       [userId]
@@ -930,19 +931,21 @@ router.post('/evaluate', authenticateToken, async (req, res) => {
     const measurements = measurementsResult.rows;
     const latest = measurements[measurements.length - 1];
     let base = measurements[0];
+    let has14DayWindow = false;
 
     for (let i = measurements.length - 2; i >= 0; i--) {
       const candidate = measurements[i];
       const diff = daysBetween(new Date(candidate.measurement_date), new Date(latest.measurement_date));
-      if (diff >= 7) {
+      if (diff >= 14) {
         base = candidate;
+        has14DayWindow = true;
         break;
       }
     }
 
     const daysDiff = daysBetween(new Date(base.measurement_date), new Date(latest.measurement_date));
-    const evalInput = { weight: Number(base.weight), waist: Number(base.waist) };
-    const evalLatest = { weight: Number(latest.weight), waist: Number(latest.waist) };
+    const evalInput = { weight: Number(base.weight_kg), waist: Number(base.waist_cm) };
+    const evalLatest = { weight: Number(latest.weight_kg), waist: Number(latest.waist_cm) };
 
     let evaluation;
     if (phase === 'volumen') {
@@ -978,9 +981,37 @@ router.post('/evaluate', authenticateToken, async (req, res) => {
 
     const suspicious =
       Math.abs(evalLatest.waist - evalInput.waist) > 2.5 && Math.abs(evalLatest.weight - evalInput.weight) < 0.5;
-    const weightRapidChange = Math.abs(evalLatest.weight - evalInput.weight) / Math.max(evalInput.weight, 1) > 0.02;
+    const weightRapidChange = daysDiff <= 7
+      ? Math.abs(evalLatest.weight - evalInput.weight) / Math.max(evalInput.weight, 1) > 0.02
+      : false;
 
-    const needsConfirmation = evaluation.needsConfirmation || daysDiff < 14 || suspicious || weightRapidChange;
+    let confirmationMeta = null;
+    if (has14DayWindow) {
+      const indicatorType =
+        phase === 'volumen' ? 'icg' : phase === 'definicion' ? 'ipg' : 'iec';
+      const confirmationResult = await pool.query(
+        `SELECT * FROM app.register_icg_ipg_state($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          userId,
+          latest.measurement_date,
+          indicatorType,
+          evalLatest.weight,
+          evalLatest.waist,
+          evalLatest.weight - evalInput.weight,
+          evalLatest.waist - evalInput.waist,
+          evaluation.indicator,
+          evaluation.status
+        ]
+      );
+      confirmationMeta = confirmationResult.rows[0] || null;
+    }
+
+    const needsConfirmation =
+      evaluation.needsConfirmation ||
+      !has14DayWindow ||
+      suspicious ||
+      weightRapidChange ||
+      (confirmationMeta && !confirmationMeta.should_apply_change);
 
     const insertEval = `
       INSERT INTO app.nutrition_evaluations
@@ -1009,7 +1040,7 @@ router.post('/evaluate', authenticateToken, async (req, res) => {
       evaluation.status,
       evaluation.interpretation,
       evaluation.action,
-      JSON.stringify({}),
+      JSON.stringify({ confirmation: confirmationMeta }),
       needsConfirmation,
       JSON.stringify(measurementData)
     ]);
@@ -1027,6 +1058,39 @@ router.post('/evaluate', authenticateToken, async (req, res) => {
           JSON.stringify({ evaluation_id: evalResult.rows[0].id, indicator: evaluation.indicator })
         ]
       );
+
+      try {
+        const ruleId =
+          phase === 'volumen'
+            ? 'NUTR-CTRL-VOL-010'
+            : phase === 'definicion'
+              ? 'NUTR-CTRL-DEF-010'
+              : 'NUTR-CTRL-NORM-010';
+
+        await logNutritionChange({
+          userId,
+          changeType: 'phase_change',
+          delta: { from: phase, recommendation: evaluation.action },
+          ruleId,
+          reason: evaluation.interpretation,
+          metrics: {
+            indicator_type: indicatorType,
+            indicator_value: evaluation.indicator,
+            status: evaluation.status
+          },
+          previousValues: { phase },
+          newValues: { recommended_action: evaluation.action },
+          source: 'evaluation'
+        });
+      } catch (error) {
+        console.error('Error registrando log de cambio de fase:', error);
+      }
+    }
+
+    try {
+      await ensureWeeklySnapshot(userId, { source: 'nutrition_v2_evaluate' });
+    } catch (error) {
+      console.error('Error guardando snapshot semanal en reevaluación:', error);
     }
 
     res.json({

@@ -1,5 +1,24 @@
 # Registro diario de implementaciones
 
+## 04.02.2026
+
+- Se documenta la auditoría de Nutrición vs spec MindFit unificada en `docs/AUDITORIA_NUTRICION_MINDFIT.md` (implementado, parcial, pendientes, bugs y plan de implementación).
+- Se crea el plan de implementación, checkpoints y tests de Nutrición MindFit en `docs/nutricion_mindfit_impl/` (plan, avance por fases y QA final).
+- Se actualiza el plan y QA para deprecación de endpoints legacy de mediciones con respuesta `410 Gone`.
+- Fase 1 (parcial): deprecados endpoints legacy de mediciones (`/api/nutrition/calibration/measurements*`, `/api/nutrition-v2/measurements`), migrada calibración a `app.body_measurements` y aplicada migración `20260204_unify_nutrition_measurements` en Supabase.
+- Fase 2 (backend): `generateNutritionPlan` ahora respeta `training_schedule` real y genera calendario por defecto sin marcar entreno en descansos.
+- Fase 3 (backend): objetivo calórico por fase ahora usa rangos según spec, actividad base alineada a tabla MindFit y guardarraíl de proteína en volumen respeta nivel avanzado.
+- Fase 4 (backend): evaluación nutricional v2 ahora usa ventana validada de 14 días, confirmación doble vía `register_icg_ipg_state` y mediciones validadas.
+- Fase 5 (backend): saltos de dieta ahora compensan solo si la desviación semanal supera el objetivo, con resumen semanal incluido.
+- Fase 6 (backend): bridge aplica reglas de lesión (espera 7 días, ajuste tras 14 y reducción de sesiones), deload reduce superávit en volumen y carb cycling limitado a ±10% en déficit.
+- Fase 7 (backend/SQL): creadas tablas `nutrition_change_log` y `nutrition_weekly_snapshots` (migración `20260204_nutrition_audit_log_snapshots` aplicada en Supabase), logging integrado en calibración/bridge/saltos y endpoint `/api/nutrition-v2/audit` añadido.
+- Fase 8 (UI): dashboard ahora muestra alertas confirmadas/pendientes, compensación semanal y estado del bridge (carb cycling y flags).
+- Fix DB: `nutrition_profiles.actividad` ahora admite valores de la spec (`ligeramente_activo`, `activo`, `muy_activo`) manteniendo compatibilidad legacy; migración aplicada en Supabase.
+- Fix DB: `app.get_weekly_deviation_summary` ahora usa `kcal_objetivo/tdee`, corrige casts y status; migraciones aplicadas en Supabase.
+- Fix DB: `icg_ipg_state_history.status` ahora admite estados en español (rojo/amarillo/verde/verde_plus).
+- Fix backend: IEC en `nutritionV2/evaluate` ahora guarda `indicator` numérico para evitar error al registrar `register_icg_ipg_state` (requiere reinicio del backend para aplicar).
+- QA final: flujo completo de nutrición validado con backend activo (perfil, plan, mediciones 14 días, reevaluación, diet deviation, bridge, auditoría). Tests registrados en `docs/nutricion_mindfit_impl/TESTS.md`.
+
 ## 03.02.2026
 
 - Se documenta comparativa completa entre origin/main y la implementacion local+Supabase v3 en `docs/compraracion_ciclo_menstrual.md` (alcance, puntos en comun, complementariedad y merge).

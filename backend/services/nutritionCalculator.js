@@ -97,8 +97,7 @@ export function calculateBMR(profile) {
  */
 const ACTIVITY_FACTORS = {
   sedentario: { base: 1.2, byTraining: { 4: 1.3, 5: 1.4, 6: 1.5 } },
-  ligero: { base: 1.4, byTraining: { 4: 1.5, 5: 1.6, 6: 1.7 } },
-  moderado: { base: 1.55, byTraining: { 4: 1.7, 5: 1.8, 6: 1.9 } },
+  ligeramente_activo: { base: 1.4, byTraining: { 4: 1.5, 5: 1.6, 6: 1.7 } },
   activo: { base: 1.6, byTraining: { 4: 1.7, 5: 1.8, 6: 1.9 } },
   muy_activo: { base: 1.8, byTraining: { 4: 1.9, 5: 2.0, 6: 2.1 } }
 };
@@ -115,7 +114,11 @@ export function calculateTDEE(bmr, actividad, trainingDays, stepsPerDay) {
     ? 'activo'
     : actividad === 'muy_alto'
       ? 'muy_activo'
-      : actividad;
+      : actividad === 'ligero'
+        ? 'ligeramente_activo'
+        : actividad === 'moderado'
+          ? 'activo'
+          : actividad;
 
   const activityConfig = ACTIVITY_FACTORS[actividadNormalizada] || ACTIVITY_FACTORS.moderado;
   let factor = activityConfig.base;
@@ -148,17 +151,33 @@ export function calculateTDEE(bmr, actividad, trainingDays, stepsPerDay) {
  * @param {string} objetivo - 'cut' | 'mant' | 'bulk'
  * @returns {number} Calorías objetivo ajustadas
  */
-export function adjustCaloriesForGoal(tdee, objetivo) {
-  switch (objetivo) {
-    case 'cut':
-      return Math.round(tdee * 0.85); // -15%
-    case 'bulk':
-      return Math.round(tdee * 1.08); // +8%
-    case 'mant':
-    default:
-      // Mantenimiento
-      return tdee;
+function resolveCalorieFactor(objetivo, profile = {}) {
+  const level = profile.level || profile.nivel_entrenamiento || 'intermedio';
+  const bodyfat = profile.bodyfat_percent;
+  const waist = profile.waist_cm || profile.cintura_cm;
+  const height = profile.altura_cm;
+  const whtr = waist && height ? waist / height : null;
+  const highFat = (bodyfat != null && bodyfat >= 20) || (whtr != null && whtr >= 0.55);
+  const lowFat = (bodyfat != null && bodyfat <= 18) || (whtr != null && whtr < 0.52);
+
+  if (objetivo === 'cut') {
+    if (lowFat || level === 'avanzado') return 0.90;
+    if (highFat) return 0.80;
+    return 0.85;
   }
+
+  if (objetivo === 'bulk') {
+    if (level === 'avanzado') return 1.05;
+    if (level === 'principiante') return 1.10;
+    return 1.08;
+  }
+
+  return 1.0;
+}
+
+export function adjustCaloriesForGoal(tdee, objetivo, profile = {}) {
+  const factor = resolveCalorieFactor(objetivo, profile);
+  return Math.round(tdee * factor);
 }
 
 /**
@@ -322,6 +341,26 @@ export function distributeMacrosAcrossMeals(dayMacros, numMeals = 4, isTrainingD
 }
 
 /**
+ * Genera un calendario de entreno por defecto (7 días) según sesiones/semana
+ * Patrón alineado con presets del frontend para consistencia.
+ */
+function buildDefaultTrainingSchedule(trainingDays = 4) {
+  const days = Math.max(0, Math.min(7, Number(trainingDays) || 0));
+  const patterns = {
+    0: [false, false, false, false, false, false, false],
+    1: [true, false, false, false, false, false, false],
+    2: [true, false, false, true, false, false, false],
+    3: [true, false, true, false, true, false, false],
+    4: [true, true, false, true, true, false, false],
+    5: [true, true, true, false, true, true, false],
+    6: [true, true, true, true, true, true, false],
+    7: [true, true, true, true, true, true, true]
+  };
+
+  return patterns[days] || patterns[4];
+}
+
+/**
  * Genera un plan nutricional completo para N días
  * @param {Object} profile - Perfil nutricional del usuario
  * @param {number} duracionDias - Duración del plan (3-31 días)
@@ -345,13 +384,16 @@ export function generateNutritionPlan(profile, duracionDias, trainingSchedule = 
   } = profile;
 
   const trainingDays = trainingSchedule.length > 0 ? trainingSchedule.filter(Boolean).length : profile.training_days || 4;
+  const effectiveSchedule = (Array.isArray(trainingSchedule) && trainingSchedule.length > 0)
+    ? trainingSchedule
+    : buildDefaultTrainingSchedule(trainingDays);
 
   // 1. Calcular BMR y TDEE
   const bmr = calculateBMR({ ...profile, sexo, peso_kg, altura_cm, edad });
   const tdee = calculateTDEE(bmr, actividad, trainingDays, steps_per_day);
 
   // 2. Ajustar calorías por objetivo
-  const kcalObjetivo = adjustCaloriesForGoal(tdee, objetivo);
+  const kcalObjetivo = adjustCaloriesForGoal(tdee, objetivo, profile);
 
   // 3. Calcular macros base
   const baseMacros = calculateMacros(kcalObjetivo, peso_kg, training_type, objetivo, metabolic_type, metabolic_confidence, level);
@@ -359,7 +401,7 @@ export function generateNutritionPlan(profile, duracionDias, trainingSchedule = 
   // 4. Generar días del plan con carb cycling
   const days = [];
   for (let i = 0; i < duracionDias; i++) {
-    const isTrainingDay = trainingSchedule[i % trainingSchedule.length] || (i % 2 === 0);
+    const isTrainingDay = effectiveSchedule[i % effectiveSchedule.length] || false;
     const dayMacros = applyCarbCycling(baseMacros, isTrainingDay);
     const meals = distributeMacrosAcrossMeals(dayMacros, comidas_dia, isTrainingDay);
 

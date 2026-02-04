@@ -5,7 +5,8 @@
  * Implementa reglas anti-ruido y ajustes graduales (150-250 kcal por iteración)
  */
 
-import pool from '../db.js';
+import { pool } from '../db.js';
+import { logNutritionChange } from './nutritionAuditLogger.js';
 
 /**
  * Calcula la media de peso de los últimos N días
@@ -145,30 +146,38 @@ export async function saveMeasurement(userId, measurement) {
 
     // Insertar medición
     const result = await pool.query(
-      `INSERT INTO app.user_body_measurements (
-        user_id, peso_kg, cintura_cm, cuello_cm, cadera_cm, pecho_cm, 
-        brazo_cm, pierna_cm, bodyfat_percent, muscle_mass_kg,
-        measurement_date, source, flagged_suspicious, suspension_reason,
-        validated, notes
+      `INSERT INTO app.body_measurements (
+        user_id, measurement_date,
+        time_of_day, is_fasted, post_workout, notes,
+        weight_kg, waist_cm, biceps_cm, chest_cm, calf_cm,
+        is_validated, validation_warnings, requires_confirmation, user_confirmed, confirmed_at
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-      RETURNING id, flagged_suspicious, validated`,
+      RETURNING id, is_validated, requires_confirmation`,
       [
-        userId, peso_kg, cintura_cm, cuello_cm, cadera_cm, pecho_cm,
-        brazo_cm, pierna_cm, bodyfat_percent, muscle_mass_kg,
+        userId,
         measurement_date || new Date().toISOString().split('T')[0],
-        source,
+        'morning',
+        true,
+        false,
+        notes || null,
+        peso_kg,
+        cintura_cm,
+        brazo_cm || null,
+        pecho_cm || null,
+        pierna_cm || null,
+        !isSuspicious,
+        JSON.stringify(isSuspicious ? [{ severity: 'high', code: 'SUSPICIOUS', message: combinedReason }] : []),
         isSuspicious,
-        isSuspicious ? combinedReason : null,
-        !isSuspicious, // validated = true si no es sospechosa
-        notes || null
+        !isSuspicious,
+        !isSuspicious ? new Date() : null
       ]
     );
 
     return {
       success: true,
       measurementId: result.rows[0].id,
-      flagged: result.rows[0].flagged_suspicious,
-      validated: result.rows[0].validated,
+      flagged: result.rows[0].requires_confirmation,
+      validated: result.rows[0].is_validated,
       waistValidation,
       weightValidation
     };
@@ -198,12 +207,11 @@ export async function evaluateCalibration(userId, objetivo) {
 
     // 2. Obtener peso medio hace 14 días (periodo de 14-28 días atrás para comparación)
     const previousWeightResult = await pool.query(
-      `SELECT AVG(peso_kg) as media_peso, COUNT(*) as num_measurements
-       FROM app.user_body_measurements
+      `SELECT AVG(weight_kg) as media_peso, COUNT(*) as num_measurements
+       FROM app.body_measurements
        WHERE user_id = $1
        AND measurement_date BETWEEN CURRENT_DATE - INTERVAL '28 days' AND CURRENT_DATE - INTERVAL '14 days'
-       AND validated = TRUE
-       AND flagged_suspicious = FALSE`,
+       AND is_validated = TRUE`,
       [userId]
     );
 
@@ -414,6 +422,34 @@ export async function applyCalibration(userId, calibrationData) {
     }
 
     await client.query('COMMIT');
+
+    if (calibrationData.shouldAdjust) {
+      try {
+        await logNutritionChange({
+          userId,
+          changeType: 'kcal_adjust',
+          delta: { kcal: calibrationData.adjustmentKcal },
+          ruleId: 'NUTR-CAL-RECAL-010',
+          reason: calibrationData.reason,
+          metrics: {
+            weekly_change_pct: calibrationData.weeklyChange_pct,
+            weight_change_pct: calibrationData.weightChange_pct,
+            weight_change_kg: calibrationData.weightChange_kg
+          },
+          previousValues: {
+            kcal_objetivo: calibrationData.currentKcal,
+            tdee: calibrationData.currentTDEE
+          },
+          newValues: {
+            kcal_objetivo: calibrationData.newKcalObjetivo
+          },
+          source: 'calibration',
+          changeDate: new Date()
+        });
+      } catch (error) {
+        console.error('Error registrando log de calibración:', error);
+      }
+    }
 
     return {
       success: true,
