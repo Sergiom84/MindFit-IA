@@ -25,6 +25,10 @@ const TRAINING_TYPES = [
 ];
 
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
+const DIAS_SEMANA_DATE = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+const DURATION_PRESETS = [7, 14, 21, 28];
+const MAX_PLAN_DAYS = 31;
+const MIN_PLAN_DAYS = 3;
 
 const OBJECTIVE_OPTIONS = [
   { value: 'cut', label: 'Definicion', desc: 'Perder grasa' },
@@ -39,6 +43,52 @@ const ACTIVITY_OPTIONS = [
   { value: 'alto', label: 'Activo (5-6 dias)' },
   { value: 'muy_alto', label: 'Muy activo (6+ dias)' }
 ];
+
+const OBJECTIVE_LABELS = {
+  cut: 'Definicion',
+  mant: 'Mantenimiento',
+  bulk: 'Volumen',
+  perder_peso: 'Perder peso',
+  mantenimiento: 'Mantenimiento',
+  mantener: 'Mantenimiento',
+  ganar_musculo: 'Ganar musculo',
+  ganar_peso: 'Ganar peso',
+  tonificar: 'Tonificar',
+  mantener_forma: 'Mantener forma',
+  mejorar_resistencia: 'Mejorar resistencia',
+  fuerza: 'Fuerza',
+  resistencia: 'Resistencia',
+  rehabilitacion: 'Rehabilitacion',
+  flexibilidad: 'Flexibilidad'
+};
+
+const ACTIVITY_HELP = {
+  sedentario: {
+    label: 'Sedentario',
+    short: '0-1 entrenos/semana · <5.000 pasos/dia',
+    detail: 'Trabajo mayormente sentado, baja actividad diaria.'
+  },
+  ligero: {
+    label: 'Ligero (1-3 dias)',
+    short: '1-3 entrenos/semana · 5.000-7.500 pasos/dia',
+    detail: 'Actividad ligera y movimiento diario moderado.'
+  },
+  moderado: {
+    label: 'Moderado (3-5 dias)',
+    short: '3-5 entrenos/semana · 7.500-10.000 pasos/dia',
+    detail: 'Entrenas con regularidad y te mueves casi a diario.'
+  },
+  alto: {
+    label: 'Activo (5-6 dias)',
+    short: '5-6 entrenos/semana · 10.000-12.000 pasos/dia',
+    detail: 'Entrenas casi a diario y tienes un ritmo activo.'
+  },
+  muy_alto: {
+    label: 'Muy activo (6+ dias)',
+    short: '6+ entrenos/semana · >12.000 pasos/dia',
+    detail: 'Alta demanda fisica diaria y entrenos frecuentes.'
+  }
+};
 
 const PREFERENCE_KEYS = [
   { key: 'vegetariano', label: 'Vegetariano' },
@@ -58,7 +108,14 @@ const GOAL_FROM_USER = {
   mantenimiento: 'mant',
   mantener: 'mant',
   ganar_musculo: 'bulk',
-  ganar_peso: 'bulk'
+  ganar_peso: 'bulk',
+  tonificar: 'mant',
+  mantener_forma: 'mant',
+  mejorar_resistencia: 'mant',
+  fuerza: 'mant',
+  resistencia: 'mant',
+  rehabilitacion: 'mant',
+  flexibilidad: 'mant'
 };
 
 const ACTIVITY_TO_USER = {
@@ -72,9 +129,123 @@ const ACTIVITY_TO_USER = {
 const ACTIVITY_FROM_USER = {
   sedentario: 'sedentario',
   ligero: 'ligero',
+  ligeramente_activo: 'ligero',
   moderado: 'moderado',
   activo: 'alto',
-  muy_activo: 'muy_alto'
+  muy_activo: 'muy_alto',
+  alto: 'alto',
+  muy_alto: 'muy_alto'
+};
+
+const normalizeActivityValue = (value) => {
+  if (!value) return null;
+  const normalized = String(value).trim().toLowerCase();
+  const mapping = {
+    sedentario: 'sedentario',
+    ligero: 'ligero',
+    ligeramente_activo: 'ligero',
+    moderado: 'moderado',
+    activo: 'alto',
+    alto: 'alto',
+    muy_activo: 'muy_alto',
+    muy_alto: 'muy_alto'
+  };
+  return mapping[normalized] || null;
+};
+
+const formatLocalDate = (value) => {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parseLocalDate = (value) => {
+  if (!value) return null;
+  const [year, month, day] = String(value).split('-').map((part) => Number(part));
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+};
+
+const getMondayOfWeek = (dateValue) => {
+  const date = new Date(dateValue);
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(date);
+  monday.setDate(date.getDate() + diff);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+};
+
+const buildDailyScheduleFromDates = (dateStrings, totalDays) => {
+  if (!Array.isArray(dateStrings) || dateStrings.length === 0) {
+    return { schedule: null, startDate: null };
+  }
+  const normalizedDates = dateStrings.filter(Boolean).sort();
+  if (normalizedDates.length === 0) {
+    return { schedule: null, startDate: null };
+  }
+  const startDate = new Date();
+  startDate.setHours(0, 0, 0, 0);
+  const dateSet = new Set(normalizedDates);
+  const days = Array.from({ length: totalDays }, (_, index) => {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + index);
+    const dateKey = formatLocalDate(date);
+    return dateSet.has(dateKey);
+  });
+  return { schedule: days, startDate };
+};
+
+const buildWeeklyPreviewFromDates = (dateStrings) => {
+  if (!Array.isArray(dateStrings) || dateStrings.length === 0) {
+    return { schedule: null, weekStart: null };
+  }
+  const normalizedDates = dateStrings.filter(Boolean).sort();
+  if (normalizedDates.length === 0) {
+    return { schedule: null, weekStart: null };
+  }
+  const earliestDate = parseLocalDate(normalizedDates[0]);
+  const lastDate = parseLocalDate(normalizedDates[normalizedDates.length - 1]);
+  if (!earliestDate) {
+    return { schedule: null, weekStart: null };
+  }
+  let weekStart = getMondayOfWeek(earliestDate);
+  const candidate = new Date(weekStart);
+  candidate.setDate(candidate.getDate() + 7);
+  if (lastDate && candidate <= lastDate) {
+    weekStart = candidate;
+  }
+  const dateSet = new Set(normalizedDates);
+  const schedule = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + index);
+    const dateKey = formatLocalDate(date);
+    return dateSet.has(dateKey);
+  });
+  return { schedule, weekStart };
+};
+
+const mapMethodologyToTrainingType = (value) => {
+  if (!value) return null;
+  const normalized = String(value).toLowerCase();
+  if (normalized.includes('hipertrofia')) return 'hipertrofia';
+  if (normalized.includes('fuerza') || normalized.includes('power') || normalized.includes('heavy')) return 'fuerza';
+  if (normalized.includes('resistencia') || normalized.includes('cardio') || normalized.includes('oposicion')) {
+    return 'resistencia';
+  }
+  return 'general';
+};
+
+const formatObjectiveLabel = (value) => OBJECTIVE_LABELS[value] || value || 'N/D';
+const formatActivityLabel = (value) => {
+  const normalized = normalizeActivityValue(value);
+  return ACTIVITY_HELP[normalized]?.label || value || 'N/D';
 };
 
 const DEFAULT_PROFILE = {
@@ -118,6 +289,22 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     training_type: 'hipertrofia',
     training_schedule: [true, false, true, false, true, false, false]
   });
+  const [dismissedMismatch, setDismissedMismatch] = useState(false);
+  const [showActivityHelp, setShowActivityHelp] = useState(false);
+  const [trainingPlanInfo, setTrainingPlanInfo] = useState({
+    loading: true,
+    hasPlan: false,
+    endDate: null,
+    remainingDays: null,
+    cappedDays: null,
+    capApplied: false,
+    minApplied: false,
+    error: null,
+    trainingSchedule: null,
+    scheduleWeekStart: null,
+    trainingType: null,
+    previewSchedule: null
+  });
 
   const userObjective = userData?.objetivo_principal
     ? GOAL_FROM_USER[userData.objetivo_principal] || null
@@ -129,23 +316,38 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     ? Number(userData.comidas_diarias)
     : null;
 
-  const hasProfileDiscrepancy = useMemo(() => {
-    if (!userData || profileLoading) return false;
-    let mismatch = false;
+  const profileDiscrepancies = useMemo(() => {
+    if (!userData || profileLoading) return [];
+    const items = [];
     if (userObjective && profileData.objetivo && userObjective !== profileData.objetivo) {
-      mismatch = true;
+      items.push({
+        field: 'objetivo',
+        label: 'Objetivo principal',
+        general: formatObjectiveLabel(userObjective),
+        nutrition: formatObjectiveLabel(profileData.objetivo)
+      });
     }
     if (userActivity && profileData.actividad && userActivity !== profileData.actividad) {
-      mismatch = true;
+      items.push({
+        field: 'actividad',
+        label: 'Nivel de actividad',
+        general: formatActivityLabel(userActivity),
+        nutrition: formatActivityLabel(profileData.actividad)
+      });
     }
     if (
       userMeals &&
       profileData.comidas_dia &&
       Number(userMeals) !== Number(profileData.comidas_dia)
     ) {
-      mismatch = true;
+      items.push({
+        field: 'comidas',
+        label: 'Comidas por dia',
+        general: `${Number(userMeals)}`,
+        nutrition: `${Number(profileData.comidas_dia)}`
+      });
     }
-    return mismatch;
+    return items;
   }, [userData, userObjective, userActivity, userMeals, profileData, profileLoading]);
 
   const buildProfileFromUser = () => ({
@@ -157,10 +359,274 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     alergias: Array.isArray(profileData.alergias) ? profileData.alergias : []
   });
 
-  const loadProfileFromUserData = () => {
-    setProfileData(buildProfileFromUser());
-    setProfileSuccess('Perfil sincronizado con datos generales');
+  const loadProfileFromUserData = async () => {
+    const nextProfile = buildProfileFromUser();
+    setProfileData(nextProfile);
+    const saved = await handleSaveProfile(nextProfile);
+    if (saved) {
+      setDismissedMismatch(true);
+    }
   };
+
+  useEffect(() => {
+    if (profileDiscrepancies.length === 0 && dismissedMismatch) {
+      setDismissedMismatch(false);
+    }
+  }, [profileDiscrepancies.length, dismissedMismatch]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+    const fetchTrainingPlanInfo = async () => {
+      try {
+        const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+        if (!token) {
+          if (isMounted) {
+            setTrainingPlanInfo({
+              loading: false,
+              hasPlan: false,
+              endDate: null,
+              remainingDays: null,
+              cappedDays: null,
+              capApplied: false,
+              minApplied: false,
+              error: null,
+              trainingSchedule: null,
+              scheduleWeekStart: null,
+              trainingType: null,
+              previewSchedule: null
+            });
+          }
+          return;
+        }
+
+        const activeResponse = await fetch(`${API_URL}/api/routines/active-plan`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!activeResponse.ok) {
+          if (isMounted) {
+            setTrainingPlanInfo({
+              loading: false,
+              hasPlan: false,
+              endDate: null,
+              remainingDays: null,
+              cappedDays: null,
+              capApplied: false,
+              minApplied: false,
+              error: null,
+              trainingSchedule: null,
+              scheduleWeekStart: null,
+              trainingType: null,
+              previewSchedule: null
+            });
+          }
+          return;
+        }
+
+        const activeData = await activeResponse.json();
+        if (!activeData?.hasActivePlan) {
+          if (isMounted) {
+            setTrainingPlanInfo({
+              loading: false,
+              hasPlan: false,
+              endDate: null,
+              remainingDays: null,
+              cappedDays: null,
+              capApplied: false,
+              minApplied: false,
+              error: null,
+              trainingSchedule: null,
+              scheduleWeekStart: null,
+              trainingType: null,
+              previewSchedule: null
+            });
+          }
+          return;
+        }
+
+        const rawMethodologyType =
+          activeData?.planType ||
+          activeData?.methodology_type ||
+          activeData?.methodologyType ||
+          activeData?.routinePlan?.methodology_type ||
+          activeData?.routinePlan?.methodologyType;
+        const mappedTrainingType = mapMethodologyToTrainingType(rawMethodologyType);
+
+        const planId = activeData.planId || activeData.methodology_plan_id;
+        if (!planId) {
+          if (isMounted) {
+            setTrainingPlanInfo({
+              loading: false,
+              hasPlan: true,
+              endDate: null,
+              remainingDays: null,
+              cappedDays: null,
+              capApplied: false,
+              minApplied: false,
+              error: 'No se pudo identificar el plan activo.',
+              trainingSchedule: null,
+              scheduleWeekStart: null,
+              trainingType: mappedTrainingType,
+              previewSchedule: null
+            });
+          }
+          return;
+        }
+
+        const calendarResponse = await fetch(`${API_URL}/api/routines/calendar-schedule/${planId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!calendarResponse.ok) {
+          if (isMounted) {
+            setTrainingPlanInfo({
+              loading: false,
+              hasPlan: true,
+              endDate: null,
+              remainingDays: null,
+              cappedDays: null,
+              capApplied: false,
+              minApplied: false,
+              error: 'No se pudo leer el calendario del plan.',
+              trainingSchedule: null,
+              scheduleWeekStart: null,
+              trainingType: mappedTrainingType,
+              previewSchedule: null
+            });
+          }
+          return;
+        }
+
+        const calendarData = await calendarResponse.json();
+        const weeks = calendarData?.plan?.semanas || [];
+        const dates = [];
+        weeks.forEach((week) => {
+          (week.sesiones || []).forEach((session) => {
+            if (session?.fecha) {
+              const dateValue = String(session.fecha).split('T')[0];
+              if (dateValue) {
+                dates.push(dateValue);
+              }
+            }
+          });
+        });
+
+        if (dates.length === 0) {
+          if (isMounted) {
+            setTrainingPlanInfo({
+              loading: false,
+              hasPlan: true,
+              endDate: null,
+              remainingDays: null,
+              cappedDays: null,
+              capApplied: false,
+              minApplied: false,
+              error: 'No hay fechas programadas en el plan.',
+              trainingSchedule: null,
+              scheduleWeekStart: null,
+              trainingType: mappedTrainingType,
+              previewSchedule: null
+            });
+          }
+          return;
+        }
+
+        dates.sort();
+        const lastDateRaw = dates[dates.length - 1];
+        const endDate = parseLocalDate(lastDateRaw);
+        if (!endDate || Number.isNaN(endDate.getTime())) {
+          if (isMounted) {
+            setTrainingPlanInfo({
+              loading: false,
+              hasPlan: true,
+              endDate: null,
+              remainingDays: null,
+              cappedDays: null,
+              capApplied: false,
+              minApplied: false,
+              error: 'No se pudo interpretar la fecha del calendario.',
+              trainingSchedule: null,
+              scheduleWeekStart: null,
+              trainingType: mappedTrainingType,
+              previewSchedule: null
+            });
+          }
+          return;
+        }
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const diffDays = Math.floor((endDate.getTime() - today.getTime()) / MS_PER_DAY);
+        const remainingDays = diffDays + 1;
+
+        if (!Number.isFinite(remainingDays) || remainingDays <= 0) {
+          if (isMounted) {
+            setTrainingPlanInfo({
+              loading: false,
+              hasPlan: true,
+              endDate,
+              remainingDays,
+              cappedDays: null,
+              capApplied: false,
+              minApplied: false,
+              error: 'El plan activo ya finalizo o no tiene fechas futuras.',
+              trainingSchedule: null,
+              scheduleWeekStart: null,
+              trainingType: mappedTrainingType,
+              previewSchedule: null
+            });
+          }
+          return;
+        }
+
+        const cappedDays = Math.max(MIN_PLAN_DAYS, Math.min(MAX_PLAN_DAYS, remainingDays));
+        const { schedule, startDate } = buildDailyScheduleFromDates(dates, cappedDays);
+        const { schedule: previewSchedule, weekStart } = buildWeeklyPreviewFromDates(dates);
+
+        if (isMounted) {
+          setTrainingPlanInfo({
+            loading: false,
+            hasPlan: true,
+            endDate: Number.isFinite(endDate.getTime()) ? endDate : null,
+            remainingDays,
+            cappedDays,
+            capApplied: remainingDays > MAX_PLAN_DAYS,
+            minApplied: remainingDays < MIN_PLAN_DAYS,
+            error: null,
+            trainingSchedule: schedule,
+            scheduleWeekStart: weekStart || startDate,
+            trainingType: mappedTrainingType,
+            previewSchedule
+          });
+        }
+      } catch (error) {
+        if (isMounted) {
+          setTrainingPlanInfo({
+            loading: false,
+            hasPlan: false,
+            endDate: null,
+            remainingDays: null,
+            cappedDays: null,
+            capApplied: false,
+            minApplied: false,
+            error: error.message,
+            trainingSchedule: null,
+            scheduleWeekStart: null,
+            trainingType: null,
+            previewSchedule: null
+          });
+        }
+      }
+    };
+
+    fetchTrainingPlanInfo();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -272,10 +738,12 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     }));
   };
 
-  const handleSaveProfile = async () => {
+  const handleSaveProfile = async (overrideData) => {
     setProfileSaving(true);
     setProfileSaveError(null);
     setProfileSuccess(null);
+    const dataToSave = overrideData || profileData;
+    let wasSaved = false;
 
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
@@ -289,7 +757,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(profileData)
+        body: JSON.stringify(dataToSave)
       });
 
       if (!response.ok) {
@@ -300,11 +768,12 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
       const data = await response.json();
       setEstimaciones(data.estimaciones || null);
       setProfileSuccess('Perfil nutricional guardado correctamente');
+      wasSaved = true;
 
       const syncUpdates = {};
-      const mappedGoal = GOAL_TO_USER[profileData.objetivo];
-      const mappedActivity = ACTIVITY_TO_USER[profileData.actividad];
-      const mappedMeals = Number(profileData.comidas_dia);
+      const mappedGoal = GOAL_TO_USER[dataToSave.objetivo];
+      const mappedActivity = ACTIVITY_TO_USER[dataToSave.actividad];
+      const mappedMeals = Number(dataToSave.comidas_dia);
 
       if (mappedGoal && mappedGoal !== userData?.objetivo_principal) {
         syncUpdates.objetivo_principal = mappedGoal;
@@ -333,6 +802,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     } finally {
       setProfileSaving(false);
     }
+    return wasSaved;
   };
 
   const handleGeneratePlan = async () => {
@@ -394,8 +864,18 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     }
   };
 
-  const trainingDaysCount = config.training_schedule.filter(Boolean).length;
-  const restDaysCount = config.training_schedule.length - trainingDaysCount;
+  const isDailySchedule = config.training_schedule.length > DIAS_SEMANA.length;
+  const previewSchedule = isDailySchedule && Array.isArray(trainingPlanInfo.previewSchedule)
+    ? trainingPlanInfo.previewSchedule
+    : config.training_schedule;
+  const trainingDaysCount = previewSchedule.filter(Boolean).length;
+  const restDaysCount = previewSchedule.length - trainingDaysCount;
+  const trainingScheduleTitle = isDailySchedule
+    ? 'Dias de entrenamiento (semana habitual)'
+    : 'Dias de entrenamiento (primera semana)';
+  const scheduleHelperText = isDailySchedule
+    ? 'Vista basada en una semana completa del plan.'
+    : 'Usa un preset o ajusta manualmente los dias';
 
   return (
     <div className="w-full max-w-5xl mx-auto p-0 sm:p-6 space-y-6">
@@ -420,16 +900,63 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
             </div>
           </header>
 
-          {hasProfileDiscrepancy && (
-            <div className="p-4 bg-yellow-500/10 border border-yellow-500/40 rounded-lg flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-yellow-400 mt-1" />
-              <div className="text-sm text-yellow-200">
-                <p className="font-semibold">Revisa tus datos</p>
-                <p>
-                  El perfil general y la configuracion de nutricion tienen valores diferentes.
-                  Asegurate de actualizarlos para evitar incoherencias al generar planes o rutinas.
-                </p>
+          {profileDiscrepancies.length > 0 && !dismissedMismatch && (
+            <div className="p-4 bg-yellow-500/10 border border-yellow-500/40 rounded-lg space-y-3">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-yellow-400 mt-1" />
+                <div className="text-sm text-yellow-100">
+                  <p className="font-semibold text-yellow-200">Datos distintos entre perfiles</p>
+                  <p className="text-yellow-100/80">
+                    El plan usa el perfil de nutricion. Si quieres alinear todo, sincroniza con tu perfil general.
+                  </p>
+                </div>
               </div>
+
+              <div className="text-xs text-yellow-100/90">
+                <p className="font-semibold text-yellow-200 mb-2">Diferencias detectadas</p>
+                <div className="space-y-3">
+                  {profileDiscrepancies.map((item) => (
+                    <div key={item.field} className="rounded-lg border border-white/10 bg-white/5 p-3">
+                      <div className="text-[13px] font-semibold text-yellow-200 mb-2">{item.label}</div>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <div className="rounded-md border border-sky-300/40 bg-sky-400/10 px-2.5 py-1.5">
+                          <div className="text-[10px] uppercase tracking-wide text-sky-200/80">Perfil general</div>
+                          <div className="text-[12px] font-semibold text-sky-100">{item.general}</div>
+                        </div>
+                        <div className="rounded-md border border-yellow-300/40 bg-yellow-400/10 px-2.5 py-1.5">
+                          <div className="text-[10px] uppercase tracking-wide text-yellow-200/80">Nutricion</div>
+                          <div className="text-[12px] font-semibold text-yellow-100">{item.nutrition}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    loadProfileFromUserData();
+                  }}
+                  className="px-4 py-2 bg-yellow-400 text-gray-900 rounded-lg font-semibold hover:bg-yellow-500 transition-colors disabled:opacity-60"
+                  disabled={profileLoading || profileSaving}
+                >
+                  Sincronizar con perfil general
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDismissedMismatch(true)}
+                  className="px-4 py-2 bg-white/5 border border-white/10 text-gray-200/80 rounded-lg font-semibold hover:bg-white/10 transition-colors disabled:opacity-60"
+                  disabled={profileLoading || profileSaving}
+                >
+                  Cancelar aviso
+                </button>
+              </div>
+
+              <p className="text-xs text-yellow-100/80">
+                Esto guardara esos valores en tu perfil de nutricion.
+              </p>
             </div>
           )}
 
@@ -485,6 +1012,31 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                   </option>
                 ))}
               </select>
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
+                <span>
+                  {ACTIVITY_HELP[normalizeActivityValue(profileData.actividad)]?.short || 'Selecciona tu nivel de actividad'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowActivityHelp((prev) => !prev)}
+                  className="text-yellow-300/90 hover:text-yellow-200 transition-colors"
+                >
+                  {showActivityHelp ? 'Ocultar guia' : '¿Como elegir?'}
+                </button>
+              </div>
+              {showActivityHelp && (
+                <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3 text-xs text-gray-300 space-y-2">
+                  {Object.entries(ACTIVITY_HELP).map(([key, info]) => (
+                    <div key={key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                      <span className="font-semibold text-yellow-200">{info.label}</span>
+                      <span className="text-gray-300">{info.short}</span>
+                    </div>
+                  ))}
+                  <p className="text-gray-400">
+                    Ajusta tu seleccion si tus pasos o entrenos cambian semana a semana.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div>
@@ -674,8 +1226,56 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                   <Calendar className="w-4 h-4 text-yellow-400" />
                   Duracion del plan
                 </h4>
+                {trainingPlanInfo.loading && (
+                  <p className="text-xs text-gray-400 mb-2">Buscando plan activo...</p>
+                )}
+                {trainingPlanInfo.error && (
+                  <p className="text-xs text-amber-300 mb-2">{trainingPlanInfo.error}</p>
+                )}
+                {trainingPlanInfo.hasPlan && trainingPlanInfo.endDate && (
+                  <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-gray-300">
+                    <span className="px-2 py-1 rounded-full bg-white/10 border border-white/10">
+                      Plan hasta {trainingPlanInfo.endDate.toLocaleDateString('es-ES')}
+                    </span>
+                    <span className="px-2 py-1 rounded-full bg-white/10 border border-white/10">
+                      Revision automatica cada 14 dias
+                    </span>
+                  </div>
+                )}
+                {trainingPlanInfo.hasPlan && trainingPlanInfo.endDate && (
+                  <div className="mb-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setConfig((prev) => ({
+                          ...prev,
+                          duracion_dias: trainingPlanInfo.cappedDays || prev.duracion_dias,
+                          training_type: trainingPlanInfo.trainingType || prev.training_type,
+                          training_schedule: Array.isArray(trainingPlanInfo.trainingSchedule)
+                            ? trainingPlanInfo.trainingSchedule
+                            : prev.training_schedule
+                        }))
+                      }
+                      className="px-4 py-2 rounded-lg border border-yellow-400/60 text-yellow-200/90 hover:bg-yellow-400/10 transition-colors disabled:opacity-60"
+                      disabled={planLoading || !trainingPlanInfo.cappedDays}
+                    >
+                      Sincronizar con mi plan actual ({trainingPlanInfo.cappedDays} dias)
+                    </button>
+                    {(trainingPlanInfo.capApplied || trainingPlanInfo.minApplied) && (
+                      <p className="text-xs text-amber-300 mt-2">
+                        {trainingPlanInfo.capApplied && 'Duracion ajustada a 31 dias (limite del plan nutricional).'}
+                        {trainingPlanInfo.minApplied && 'Duracion ajustada al minimo de 3 dias.'}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {trainingPlanInfo.hasPlan && !trainingPlanInfo.endDate && (
+                  <p className="text-xs text-amber-300 mb-2">
+                    No pudimos calcular la fecha final del plan. Puedes usar los presets.
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-2">
-                  {[7, 14, 21, 28].map((days) => (
+                  {DURATION_PRESETS.map((days) => (
                     <button
                       key={days}
                       type="button"
@@ -694,6 +1294,11 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                 <p className="text-xs text-gray-500 mt-2">
                   Recomendamos planes de 7-14 dias para ajustarlos con frecuencia.
                 </p>
+                {!trainingPlanInfo.hasPlan && !trainingPlanInfo.loading && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Si inicias un plan de entrenamiento, podras rehacer la dieta para ajustar la duracion.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -724,10 +1329,10 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
 
               <div>
                 <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                  <h4 className="text-white font-semibold">Dias de entrenamiento (primera semana)</h4>
+                  <h4 className="text-white font-semibold">{trainingScheduleTitle}</h4>
                   <div className="flex items-center gap-2 text-xs text-gray-400">
                     <Info className="w-4 h-4" />
-                    <span>Usa un preset o ajusta manualmente los dias</span>
+                    <span>{scheduleHelperText}</span>
                   </div>
                 </div>
 
@@ -751,17 +1356,21 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                     <button
                       key={dia}
                       type="button"
-                      onClick={() => toggleTrainingDay(index)}
+                      onClick={() => {
+                        if (!isDailySchedule) {
+                          toggleTrainingDay(index);
+                        }
+                      }}
                       className={`aspect-square rounded-md sm:rounded-lg font-semibold text-[10px] sm:text-sm transition-all ${
-                        config.training_schedule[index]
+                        previewSchedule[index]
                           ? 'bg-green-500 text-white'
                           : 'bg-white/5 text-gray-400 hover:bg-white/10'
                       }`}
-                      disabled={planLoading}
+                      disabled={planLoading || isDailySchedule}
                     >
                       <div>{dia}</div>
                       <div className="text-[9px] sm:text-[10px] mt-0.5 sm:mt-1">
-                        {config.training_schedule[index] ? 'Entreno' : 'Descanso'}
+                        {previewSchedule[index] ? 'Entreno' : 'Descanso'}
                       </div>
                     </button>
                   ))}
@@ -798,7 +1407,8 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                 {TRAINING_TYPES.find((t) => t.value === config.training_type)?.label}
               </li>
               <li>
-                <strong className="text-yellow-300">Frecuencia:</strong> {trainingDaysCount} entrenos por semana
+                <strong className="text-yellow-300">Frecuencia:</strong>{' '}
+                {trainingDaysCount} entrenos/semana{isDailySchedule ? ' (semana habitual)' : ''}
               </li>
               <li>
                 <strong className="text-yellow-300">Carb cycling:</strong> activado

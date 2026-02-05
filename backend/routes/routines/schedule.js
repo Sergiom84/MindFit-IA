@@ -18,6 +18,16 @@ import { ensureWorkoutScheduleV3 } from '../../utils/ensureScheduleV3.js';
 
 const router = express.Router();
 
+const formatLocalDate = (value) => {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // =============================================================================
 // GET /plan-config/:planId - Configuración de redistribución del plan
 // =============================================================================
@@ -121,7 +131,7 @@ router.get('/calendar-schedule/:planId', authenticateToken, async (req, res) => 
       }
       semanasMap.get(weekNum).sesiones.push({
         dia: row.dia,
-        fecha: row.scheduled_date,
+        fecha: formatLocalDate(row.scheduled_date),
         titulo: row.titulo || `Sesión del ${row.dia}`,
         ejercicios: row.ejercicios || []
       });
@@ -165,4 +175,3 @@ router.get('/schedule/:methodology_plan_id', authenticateToken, async (req, res)
 });
 
 export default router;
-

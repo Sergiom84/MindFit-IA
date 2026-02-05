@@ -2431,6 +2431,16 @@ router.get('/calendar-schedule/:planId', authenticateToken, async (req, res) => 
       console.log(`[calendar-schedule] Total registros en workout_schedule: ${anyDataCheck.rows[0].total}`);
     }
 
+    const formatLocalDate = (value) => {
+      if (!value) return null;
+      const date = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(date.getTime())) return null;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     // Reorganizar por semanas
     const semanasMap = new Map();
 
@@ -2450,7 +2460,7 @@ router.get('/calendar-schedule/:planId', authenticateToken, async (req, res) => 
       // Agregar sesión con el día real asignado
       semanasMap.get(weekNum).sesiones.push({
         dia: row.dia,
-        fecha: row.scheduled_date,
+        fecha: formatLocalDate(row.scheduled_date),
         titulo: row.titulo || `Sesión del ${row.dia}`,
         ejercicios: row.ejercicios || []
       });
@@ -2525,6 +2535,8 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
         methodology_plan_id: todayWorkout.methodology_plan_id,
         planId: todayWorkout.methodology_plan_id,
         routinePlan: todayWorkout.plan_data,
+        planType: todayWorkout.methodology_type,
+        methodology_type: todayWorkout.methodology_type,
         confirmedAt: todayWorkout.confirmed_at,
         createdAt: todayWorkout.created_at,
         todaySession: {
@@ -2615,6 +2627,8 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
             methodology_plan_id: todayWorkout.methodology_plan_id,
             planId: todayWorkout.methodology_plan_id,
             routinePlan: todayWorkout.plan_data,
+            planType: todayWorkout.methodology_type,
+            methodology_type: todayWorkout.methodology_type,
             confirmedAt: todayWorkout.confirmed_at,
             createdAt: todayWorkout.created_at,
             todaySession: {

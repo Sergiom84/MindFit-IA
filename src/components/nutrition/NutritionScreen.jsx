@@ -15,6 +15,7 @@ export default function NutritionScreen() {
   const [activeTab, setActiveTab] = useState('generate-plan');
   const [, setNutritionPlan] = useState(null);
   const [, setIsLoading] = useState(false);
+  const [kcalInfo, setKcalInfo] = useState({ value: null, source: null });
 
   useEffect(() => {
     const handleMouseMove = (event) => {
@@ -32,25 +33,41 @@ export default function NutritionScreen() {
   const fetchUserNutritionData = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
 
-      // Perfil nutricional (plan activo + stats 30 días)
-      const profileRes = await fetch('/api/nutrition/profile', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (profileRes.ok) {
-        const data = await profileRes.json();
-        setNutritionPlan(data.currentPlan);
+      const [profileRes, planRes] = await Promise.all([
+        fetch('/api/nutrition-v2/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('/api/nutrition-v2/active-plan', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
 
-        console.log('📊 Plan nutricional cargado desde BD:', {
-          hasPlan: !!data.currentPlan,
-          planId: data.currentPlan?.id,
-          createdAt: data.currentPlan?.created_at,
-          isActive: data.currentPlan?.is_active,
-          hasPlanData: !!data.currentPlan?.plan_data,
-          dailyPlansCount: data.currentPlan?.plan_data?.daily_plans?.length
-        });
+      let kcalValue = null;
+      let source = null;
+
+      const planData = planRes.ok ? await planRes.json().catch(() => null) : null;
+      if (planData?.kcal_objetivo) {
+        kcalValue = planData.kcal_objetivo;
+        source = 'plan';
       }
+      if (planData) {
+        setNutritionPlan(planData);
+      }
+
+      if (!kcalValue && profileRes.ok) {
+        const profileData = await profileRes.json();
+        if (profileData?.kcal_objetivo) {
+          kcalValue = profileData.kcal_objetivo;
+          source = 'profile';
+        } else if (profileData?.tdee) {
+          kcalValue = profileData.tdee;
+          source = 'profile';
+        }
+      }
+
+      setKcalInfo({ value: kcalValue, source });
 
     } catch (error) {
       console.error('Error fetching nutrition data:', error);
@@ -157,6 +174,8 @@ export default function NutritionScreen() {
   };
 
   const basicMacros = calculateBasicMacros();
+  const kcalDisplay = kcalInfo.value || basicMacros?.calories;
+  const showFallbackNote = !kcalInfo.value && !!basicMacros?.calories;
 
   const nutritionTabs = [
     // ===== SISTEMA V2 (DETERMINISTA) =====
@@ -214,14 +233,19 @@ export default function NutritionScreen() {
               </p>
             </div>
             <div className="flex items-center gap-4">
-              {basicMacros && (
+              {kcalDisplay && (
                 <Card className={`${cardBase} border-l-2 border-l-yellow-400/30`}>
                   <CardContent className="p-4">
                     <div className="text-center">
                       <p className="text-2xl font-bold text-yellow-300">
-                        {basicMacros.calories}
+                        {kcalDisplay}
                       </p>
                       <p className="text-sm text-gray-300/80">kcal/día</p>
+                      {showFallbackNote && (
+                        <p className="text-[11px] text-gray-400 mt-1">
+                          Completa tu perfil para una recomendacion precisa.
+                        </p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

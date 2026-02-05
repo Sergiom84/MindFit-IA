@@ -150,11 +150,11 @@ export default function CheatMealManager() {
               <p className="font-semibold text-white">{result.message}</p>
             </Alert>
 
-            {result.compensation_plan && result.compensation_plan.length > 0 && (
+            {result.compensation_plan?.days && result.compensation_plan.days.length > 0 && (
               <div>
                 <h3 className="font-bold mb-2 text-white">Plan de Compensación:</h3>
                 <div className="space-y-2">
-                  {result.compensation_plan.map((comp, i) => (
+                  {result.compensation_plan.days.map((comp, i) => (
                     <div key={i} className="flex items-center justify-between bg-white/5 p-2 rounded border border-white/10">
                       <span className="text-sm text-gray-200">
                         {new Date(comp.date).toLocaleDateString('es-ES')}

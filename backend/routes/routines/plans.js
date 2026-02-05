@@ -170,6 +170,8 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
         methodology_plan_id: todayWorkout.methodology_plan_id,
         planId: todayWorkout.methodology_plan_id,
         routinePlan: todayWorkout.plan_data,
+        planType: todayWorkout.methodology_type,
+        methodology_type: todayWorkout.methodology_type,
         confirmedAt: todayWorkout.confirmed_at,
         createdAt: todayWorkout.created_at,
         todaySession: {
@@ -234,6 +236,8 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
             methodology_plan_id: todayWorkout.methodology_plan_id,
             planId: todayWorkout.methodology_plan_id,
             routinePlan: todayWorkout.plan_data,
+            planType: todayWorkout.methodology_type,
+            methodology_type: todayWorkout.methodology_type,
             confirmedAt: todayWorkout.confirmed_at,
             createdAt: todayWorkout.created_at,
             todaySession: {
@@ -280,4 +284,3 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
 });
 
 export default router;
-

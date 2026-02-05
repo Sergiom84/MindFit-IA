@@ -4,8 +4,49 @@ import MealDetailView from './MealDetailView';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
 
-const DIAS_SEMANA_COMPLETO = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const DIAS_SEMANA_POR_INDICE = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const DIAS_SEMANA_LEGACY = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const cardBase = "bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg";
+
+const formatLocalDate = (value) => {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getPlanStartDate = (plan) => {
+  const raw = plan?.plan_start_date || plan?.start_date || plan?.created_at;
+  if (!raw) return null;
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
+const getMondayOfWeek = (dateValue) => {
+  const date = new Date(dateValue);
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(date);
+  monday.setDate(date.getDate() + diff);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+};
+
+const getCurrentWeekFromPlan = (plan) => {
+  const startDate = getPlanStartDate(plan);
+  if (!startDate) return 0;
+  const startWeek = getMondayOfWeek(startDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((today.getTime() - startWeek.getTime()) / (1000 * 60 * 60 * 24));
+  if (!Number.isFinite(diffDays) || diffDays < 0) return 0;
+  return Math.floor(diffDays / 7);
+};
 
 /**
  * Vista de calendario nutricional
@@ -19,6 +60,7 @@ export default function NutritionCalendarView() {
   const [selectedDay, setSelectedDay] = useState(null);
   const [generatingDay, setGeneratingDay] = useState(null);
   const [infoMessage, setInfoMessage] = useState(null);
+  const menusEnabled = false;
 
   useEffect(() => {
     loadActivePlan();
@@ -84,6 +126,22 @@ export default function NutritionCalendarView() {
     }
   };
 
+  useEffect(() => {
+    if (!plan?.days?.length) return;
+    const initialWeek = getCurrentWeekFromPlan(plan);
+    const startDate = getPlanStartDate(plan);
+    const endDate = startDate
+      ? new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + plan.days.length - 1)
+      : null;
+    const startWeek = startDate ? getMondayOfWeek(startDate) : null;
+    const endWeek = endDate ? getMondayOfWeek(endDate) : null;
+    const totalWeeks = startWeek && endWeek
+      ? Math.floor((endWeek.getTime() - startWeek.getTime()) / (1000 * 60 * 60 * 24 * 7)) + 1
+      : Math.ceil(plan.days.length / 7);
+    const boundedWeek = Math.max(0, Math.min(initialWeek, totalWeeks - 1));
+    setCurrentWeek(boundedWeek);
+  }, [plan]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -124,9 +182,45 @@ export default function NutritionCalendarView() {
     );
   }
 
-  // Calcular semanas
-  const totalWeeks = Math.ceil(plan.days.length / 7);
-  const daysInCurrentWeek = plan.days.slice(currentWeek * 7, (currentWeek + 1) * 7);
+  const planStartDate = getPlanStartDate(plan);
+  const planEndDate = planStartDate
+    ? new Date(planStartDate.getFullYear(), planStartDate.getMonth(), planStartDate.getDate() + plan.days.length - 1)
+    : null;
+  const planStartWeek = planStartDate ? getMondayOfWeek(planStartDate) : null;
+  const planEndWeek = planEndDate ? getMondayOfWeek(planEndDate) : null;
+  const totalWeeks = planStartWeek && planEndWeek
+    ? Math.floor((planEndWeek.getTime() - planStartWeek.getTime()) / (1000 * 60 * 60 * 24 * 7)) + 1
+    : Math.ceil(plan.days.length / 7);
+  const currentWeekStart = planStartWeek
+    ? new Date(planStartWeek.getFullYear(), planStartWeek.getMonth(), planStartWeek.getDate() + currentWeek * 7)
+    : null;
+
+  const dayMap = new Map();
+  if (planStartDate) {
+    plan.days.forEach((day) => {
+      const date = new Date(planStartDate);
+      date.setDate(planStartDate.getDate() + day.day_index);
+      const key = formatLocalDate(date);
+      if (key) {
+        dayMap.set(key, day);
+      }
+    });
+  }
+
+  const weekSlots = Array.from({ length: 7 }, (_, index) => {
+    if (!currentWeekStart || !planStartDate) {
+      const fallbackDay = plan.days[currentWeek * 7 + index] || null;
+      return { date: null, day: fallbackDay, inPlan: Boolean(fallbackDay) };
+    }
+    const date = new Date(currentWeekStart);
+    date.setDate(currentWeekStart.getDate() + index);
+    const key = formatLocalDate(date);
+    const day = key ? dayMap.get(key) : null;
+    const inPlan = planStartDate && planEndDate
+      ? date >= planStartDate && date <= planEndDate
+      : Boolean(day);
+    return { date, day, inPlan };
+  });
 
   const handlePreviousWeek = () => {
     if (currentWeek > 0) {
@@ -203,7 +297,13 @@ export default function NutritionCalendarView() {
         <div className="text-center">
           <div className="text-white font-semibold">Semana {currentWeek + 1} de {totalWeeks}</div>
           <div className="text-gray-300/70 text-sm">
-            Días {currentWeek * 7 + 1} - {Math.min((currentWeek + 1) * 7, plan.days.length)}
+            {(() => {
+              const indices = weekSlots
+                .filter((slot) => slot.day)
+                .map((slot) => slot.day.day_index + 1);
+              if (indices.length === 0) return 'Días —';
+              return `Días ${Math.min(...indices)} - ${Math.max(...indices)}`;
+            })()}
           </div>
         </div>
 
@@ -219,88 +319,109 @@ export default function NutritionCalendarView() {
 
       {/* Grid de Días */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
-        {daysInCurrentWeek.map((day, index) => {
-          const dayNumber = currentWeek * 7 + index;
-          const diaSemana = DIAS_SEMANA_COMPLETO[dayNumber % 7];
-          const isTraining = day.tipo_dia === 'entreno';
+        {weekSlots.map((slot, index) => {
+          const { date, day, inPlan } = slot;
+          const diaSemana = date
+            ? DIAS_SEMANA_POR_INDICE[date.getDay()]
+            : DIAS_SEMANA_LEGACY[index];
+          const isTraining = day?.tipo_dia === 'entreno';
 
           return (
             <div
-              key={day.day_index}
+              key={day?.day_index ?? `${currentWeek}-${index}`}
               className={`bg-neutral-900/70 rounded-xl p-4 border border-white/10 ring-1 ring-white/5 transition-all cursor-pointer hover:border-white/20 ${
                 isTraining ? 'border-l-2 border-l-emerald-400/60' : 'border-l-2 border-l-sky-400/40'
               }`}
-              onClick={() => setSelectedDay(day)}
+              onClick={() => {
+                if (day) setSelectedDay(day);
+              }}
             >
               {/* Header del Día */}
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-white font-semibold text-sm">{diaSemana}</span>
-                  <span className="text-gray-300/70 text-xs">Día {day.day_index + 1}</span>
+                  <span className="text-gray-300/70 text-xs">
+                    {day ? `Día ${day.day_index + 1}` : inPlan ? 'Sin datos' : 'Fuera del plan'}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {isTraining ? (
-                    <>
-                      <Dumbbell className="w-4 h-4 text-emerald-400" />
-                      <span className="text-emerald-300 text-xs font-medium">Entrenamiento</span>
-                    </>
+                  {day ? (
+                    isTraining ? (
+                      <>
+                        <Dumbbell className="w-4 h-4 text-emerald-400" />
+                        <span className="text-emerald-300 text-xs font-medium">Entrenamiento</span>
+                      </>
+                    ) : (
+                      <>
+                        <Moon className="w-4 h-4 text-sky-300" />
+                        <span className="text-sky-300 text-xs font-medium">Descanso</span>
+                      </>
+                    )
                   ) : (
-                    <>
-                      <Moon className="w-4 h-4 text-sky-300" />
-                      <span className="text-sky-300 text-xs font-medium">Descanso</span>
-                    </>
+                    <span className="text-gray-500 text-xs font-medium">Sin plan</span>
                   )}
                 </div>
               </div>
 
               {/* Macros del Día */}
-              <div className="space-y-1 mb-3">
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-300/70">Calorías:</span>
-                  <span className="text-white font-semibold">{day.kcal} kcal</span>
+              {day && (
+                <div className="space-y-1 mb-3">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-300/70">Calorías:</span>
+                    <span className="text-white font-semibold">{day.kcal} kcal</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-300/70">P:</span>
+                    <span className="text-red-300">{day.macros.protein_g}g</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-300/70">C:</span>
+                    <span className="text-yellow-300">{day.macros.carbs_g}g</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-300/70">G:</span>
+                    <span className="text-sky-300">{day.macros.fat_g}g</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-300/70">P:</span>
-                  <span className="text-red-300">{day.macros.protein_g}g</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-300/70">C:</span>
-                  <span className="text-yellow-300">{day.macros.carbs_g}g</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-300/70">G:</span>
-                  <span className="text-sky-300">{day.macros.fat_g}g</span>
-                </div>
-              </div>
+              )}
 
               {/* Comidas del Día */}
-              <div className="border-t border-white/10 pt-2">
-                <div className="text-gray-300/70 text-xs mb-1">
-                  {day.meals?.length || 0} comidas
+              {day && (
+                <div className="border-t border-white/10 pt-2">
+                  <div className="text-gray-300/70 text-xs mb-1">
+                    {day.meals?.length || 0} comidas
+                  </div>
+                  {day.meals?.slice(0, 2).map((meal) => (
+                    <div key={meal.orden} className="text-xs text-gray-400 truncate">
+                      • {meal.nombre}
+                    </div>
+                  ))}
+                  {day.meals?.length > 2 && (
+                    <div className="text-xs text-gray-400">
+                      ... +{day.meals.length - 2} más
+                    </div>
+                  )}
                 </div>
-                {day.meals?.slice(0, 2).map((meal) => (
-                  <div key={meal.orden} className="text-xs text-gray-400 truncate">
-                    • {meal.nombre}
-                  </div>
-                ))}
-                {day.meals?.length > 2 && (
-                  <div className="text-xs text-gray-400">
-                    ... +{day.meals.length - 2} más
-                  </div>
-                )}
-              </div>
+              )}
 
               {/* Acciones */}
-              <div className="mt-3 flex items-center justify-between text-xs text-gray-400">
-                <span>Click para detalles</span>
+              <div className="mt-3 text-xs text-gray-400">
+                <span>{day ? 'Click para detalles' : 'Sin detalles'}</span>
+              </div>
+              <div className="mt-3 flex justify-center">
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); generateMenusForDay(day); }}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-yellow-400/10 border border-yellow-400/40 text-yellow-200 hover:bg-yellow-400/20 disabled:opacity-50"
-                  disabled={generatingDay === day.day_id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (day) {
+                      setSelectedDay(day);
+                    }
+                  }}
+                  className="inline-flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-full bg-white/5 border border-white/15 text-gray-200/80 text-[10px] sm:text-xs uppercase tracking-wide max-w-full hover:bg-white/10 disabled:opacity-60"
+                  disabled={!day}
                 >
-                  <Sparkles className="w-4 h-4" />
-                  {generatingDay === day.day_id ? 'Generando...' : 'Menú del día'}
+                  <span>Menú del día</span>
+                  <span className="text-[9px] sm:text-[10px] text-gray-400/80">Ver detalles</span>
                 </button>
               </div>
             </div>

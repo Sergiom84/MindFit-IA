@@ -519,6 +519,16 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
     try {
       await client.query('BEGIN');
 
+      // Mantener un único plan activo: archivar planes previos del usuario
+      await client.query(
+        `
+        UPDATE app.nutrition_plans_v2
+        SET tipo = 'archivado'
+        WHERE user_id = $1 AND tipo = 'activo';
+        `,
+        [userId]
+      );
+
       // 1. Crear plan maestro
       const planQuery = `
         INSERT INTO app.nutrition_plans_v2 (

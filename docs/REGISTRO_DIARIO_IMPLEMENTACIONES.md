@@ -1,5 +1,33 @@
 # Registro diario de implementaciones
 
+## 05.02.2026
+
+- Se crean las skills globales `impl-pack-open` y `impl-pack-close` en `~/.codex/skills/` para generar y cerrar paquetes de documentación de implementación con puntero activo.
+- Se crea la skill global `impl-pack-clear` en `~/.codex/skills/` para limpiar el puntero `Docs/_active.md` tras confirmación explícita de QA manual.
+- Se crea la skill global `ui-mobile-scout-web` en `~/.codex/skills/` para investigar referencias UI móvil con Playwright y guardar evidencias en el repo.
+- Se actualiza el paquete `Docs/nutricion-ui-coherencia-motor` con la regla de “Plan hasta X fecha” + “Revisión automática cada 14 días” y la fuente de verdad (perfil v2).
+- UI Nutrición: banner de discrepancias con detalle y acciones, ayuda contextual de actividad, sincronización de duración con plan activo (cap 31 días), tarjeta kcal/día alineada a perfil v2 con nota de perfil incompleto, botón de menú IA deshabilitado con “Próximamente” y compensación semanal renderizada desde `compensation_plan.days`.
+- UI Nutrición: sincronización con perfil general ahora guarda en BD (persistente al recargar) y el backend normaliza fechas del calendario para evitar `Invalid Date`/desfase de timezone.
+- Backend: normalización de `scheduled_date` en calendario ahora usa formato local `YYYY-MM-DD` para evitar strings inválidos.
+- UI Nutrición: sincronización con plan activo ahora ajusta tipo de entrenamiento y calendario semanal según el plan real.
+- Backend: `/api/routines/active-plan` ahora devuelve `planType`/`methodology_type` cuando la fuente es `workout_schedule`.
+- UI Nutrición: sincronización con plan activo ahora construye calendario diario real en lugar de repetir patrón semanal.
+- UI Nutrición: vista de días de entrenamiento ahora etiqueta los próximos 7 días cuando el calendario es diario.
+- UI Nutrición: calendario activo ahora calcula el día de la semana desde la fecha real de inicio del plan y abre en la semana actual.
+- UI Nutrición: en cálculo del plan se muestra la semana habitual del plan (no próximos 7 días) y la frecuencia se expresa por semana.
+- UI Nutrición: se corrige el orden de hooks en calendario para evitar “Rendered more hooks than during the previous render”.
+- UI Nutrición: calendario activo ahora se alinea a semanas reales (Lun–Dom) usando fechas del plan y rellena huecos fuera del plan.
+- UI Nutrición: botón “Menú del día” se centra en la parte inferior del card.
+- UI Nutrición: la tarjeta kcal/día ahora prioriza el último plan nutricional activo (fallback a perfil si no hay plan).
+- Backend Nutrición: al generar un plan v2 se archivan planes activos previos para mantener un único plan activo.
+- UI Nutrición: “Menú del día” se renderiza como badge compacto y responsive dentro del card.
+- UI Nutrición: badge “Menú del día · Próximamente” simplificado y alineado visualmente.
+- UI Nutrición: badge de menú ahora muestra “Menú del día” arriba y “Próximamente” debajo.
+- UI Nutrición: botón “Menú del día” activo abre el detalle del día y se muestra como “Ver detalles”.
+- UI Nutrición: banner de discrepancias con copy simplificado para usuarios finales.
+- UI Nutrición: banner ahora muestra “Diferencias detectadas” con valores de perfil general y nutrición.
+- UI Nutrición: rediseño del banner de discrepancias con tarjetas y colores diferenciados (responsive).
+
 ## 04.02.2026
 
 - Se documenta la auditoría de Nutrición vs spec MindFit unificada en `docs/AUDITORIA_NUTRICION_MINDFIT.md` (implementado, parcial, pendientes, bugs y plan de implementación).
