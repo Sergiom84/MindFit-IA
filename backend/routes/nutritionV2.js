@@ -21,35 +21,1219 @@ import { ensureWeeklySnapshot, logNutritionChange } from '../services/nutritionA
 const router = express.Router();
 
 const METABOLIC_ORDER = ['tolerante', 'mixto', 'intolerante'];
+const VALID_ESTADOS_PESADO = ['crudo', 'cocido', 'escurrido', 'seco', 'tal_cual'];
+const VALID_DIET_FILTERS = ['omnivoro', 'vegetariano', 'vegano'];
+const VALID_MENU_GENERATION_MODES = ['deterministic', 'ai'];
+const DETERMINISTIC_MAX_TEMPLATE_TRIES = 12;
+const DETERMINISTIC_COORDINATE_ITERATIONS = 120;
+const DETERMINISTIC_MAX_SLOT_OPTIONS = 8;
+const DETERMINISTIC_MAX_SLOT_COMBINATIONS = 400;
+const SLOT_ROLE_FALLBACKS = {
+  PROTEINA_ANIMAL: ['PROTEINA_ANIMAL_MAGRA', 'PROTEINA_ANIMAL_GRASA', 'PROTEINA_VEGETAL'],
+  PROTEINA_ANIMAL_MAGRA: ['PROTEINA_ANIMAL', 'PROTEINA_VEGETAL'],
+  PROTEINA_VEGETAL: ['LEGUMBRE', 'SUPLEMENTO_PROTEINA'],
+  CARBO_BASE: ['CARBO_COCIDO', 'CARBO_PAN', 'CARBO_AVENA'],
+  GRASA_BASE: ['GRASA_ACEITE', 'GRASA_FRUTOS_SECOS', 'GRASA_CREMAS', 'GRASA_SEMILLAS'],
+  LACTEO_PROTEICO_MAGRO: ['LACTEO_BASE', 'PROTEINA_VEGETAL', 'SUPLEMENTO_PROTEINA'],
+  HUEVO: ['PROTEINA_ANIMAL_MAGRA', 'PROTEINA_VEGETAL'],
+  LEGUMBRE: ['PROTEINA_VEGETAL', 'CARBO_BASE'],
+  SUPLEMENTO_PROTEINA: ['PROTEINA_VEGETAL']
+};
+
+function parseJsonObject(value, fallback = {}) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch {
+      return fallback;
+    }
+  }
+  return fallback;
+}
+
+function normalizeStringArray(value) {
+  if (Array.isArray(value)) {
+    return [...new Set(
+      value
+        .map((item) => String(item || '').trim())
+        .filter(Boolean)
+    )];
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return normalizeStringArray(parsed);
+      }
+    } catch {
+      // fallback a CSV cuando no es JSON.
+    }
+
+    return [...new Set(
+      trimmed
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    )];
+  }
+
+  return [];
+}
+
+function normalizeDietFilter(value) {
+  if (!value) return null;
+
+  const normalized = String(value)
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (VALID_DIET_FILTERS.includes(normalized)) {
+    return normalized;
+  }
+
+  return null;
+}
+
+function normalizeEstadoPesado(value) {
+  if (!value) return null;
+
+  const normalized = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
+
+  const aliases = {
+    talcual: 'tal_cual'
+  };
+
+  const resolved = aliases[normalized] || normalized;
+  return VALID_ESTADOS_PESADO.includes(resolved) ? resolved : null;
+}
+
+function normalizePositiveInt(value, defaultValue, maxValue = null) {
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed <= 0) {
+    return defaultValue;
+  }
+
+  if (maxValue && parsed > maxValue) {
+    return maxValue;
+  }
+
+  return parsed;
+}
+
+function buildFoodCatalogFilters({
+  search,
+  categoria,
+  categoriaDetalle,
+  diet,
+  allergensExclude,
+  estadoBase,
+  grupoFactor,
+  onlyVerified = true
+}) {
+  const whereClauses = ['1=1'];
+  const params = [];
+
+  if (onlyVerified) {
+    whereClauses.push('is_verified = TRUE');
+  }
+
+  if (search) {
+    whereClauses.push(`LOWER(nombre) LIKE LOWER($${params.length + 1})`);
+    params.push(`%${search}%`);
+  }
+
+  if (categoria) {
+    whereClauses.push(`LOWER(categoria) = LOWER($${params.length + 1})`);
+    params.push(categoria);
+  }
+
+  if (categoriaDetalle) {
+    whereClauses.push(`LOWER(categoria_detalle) = LOWER($${params.length + 1})`);
+    params.push(categoriaDetalle);
+  }
+
+  if (estadoBase) {
+    whereClauses.push(`estado_pesado_base = $${params.length + 1}`);
+    params.push(estadoBase);
+  }
+
+  if (grupoFactor) {
+    whereClauses.push(`LOWER(grupo_factor) = LOWER($${params.length + 1})`);
+    params.push(grupoFactor);
+  }
+
+  if (diet === 'vegetariano') {
+    whereClauses.push('COALESCE(is_vegetarian, FALSE) = TRUE');
+  } else if (diet === 'vegano') {
+    whereClauses.push('COALESCE(is_vegan, FALSE) = TRUE');
+  }
+
+  const allergens = normalizeStringArray(allergensExclude).map((allergen) => allergen.toLowerCase());
+  for (const allergen of allergens) {
+    whereClauses.push(`LOWER(COALESCE(tags::text, '')) NOT LIKE $${params.length + 1}`);
+    params.push(`%${allergen}%`);
+  }
+
+  return {
+    whereSql: whereClauses.join(' AND '),
+    params,
+    normalizedAllergens: [...new Set(allergens)]
+  };
+}
+
+function buildFoodFiltersFromUserPreferences(userPreferences = {}) {
+  const preferencias = parseJsonObject(userPreferences.preferencias, {});
+  const alergias = normalizeStringArray(userPreferences.alergias);
+
+  const allergensExclude = [...alergias];
+  if (preferencias.sin_gluten) {
+    allergensExclude.push('gluten');
+  }
+  if (preferencias.sin_lactosa) {
+    allergensExclude.push('lactosa', 'lacteo', 'lacteos', 'lácteo', 'lácteos');
+  }
+
+  const diet = preferencias.vegano ? 'vegano' : (preferencias.vegetariano ? 'vegetariano' : 'omnivoro');
+
+  return {
+    diet,
+    allergensExclude: [...new Set(allergensExclude.map((item) => String(item).trim()).filter(Boolean))],
+    preferencias,
+    alergias
+  };
+}
+
+function normalizeFoodName(value) {
+  if (!value) return '';
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
+function parseNumeric(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value
+      .trim()
+      .replace(',', '.')
+      .replace(/[^\d.-]/g, '');
+    if (!normalized) return null;
+    const parsed = Number.parseFloat(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+function hashString(input) {
+  const value = String(input || '');
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = ((hash << 5) - hash) + value.charCodeAt(index);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function pickDeterministic(items, seed) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return null;
+  }
+  const safeSeed = Number.isFinite(seed) ? Math.abs(seed) : hashString(seed);
+  return items[safeSeed % items.length];
+}
+
+function parseMealMacros(meal) {
+  const rawMacros = parseJsonObject(meal?.macros, {});
+  return {
+    protein_g: parseNumeric(rawMacros.protein_g) ?? 0,
+    carbs_g: parseNumeric(rawMacros.carbs_g) ?? 0,
+    fat_g: parseNumeric(rawMacros.fat_g) ?? 0
+  };
+}
+
+function normalizeTemplateContext(value) {
+  const raw = String(value || '').trim().toUpperCase();
+  if (!raw) return 'AMBOS';
+  if (raw === 'MANTENIMIENTO') return 'NORMO';
+  return raw;
+}
+
+function resolvePhaseContext(profile) {
+  const phaseRaw = String(profile?.current_phase || profile?.objetivo || '').trim().toLowerCase();
+  if (phaseRaw.includes('defin') || phaseRaw === 'cut') return 'DEFINICION';
+  if (phaseRaw.includes('volum') || phaseRaw === 'bulk') return 'VOLUMEN';
+  if (phaseRaw.includes('normo') || phaseRaw.includes('maint')) return 'NORMO';
+  return null;
+}
+
+function resolveMealType(meal) {
+  const mealName = String(meal?.nombre || '').trim().toLowerCase();
+  if (mealName.includes('desay')) return 'DESAYUNO';
+  if (mealName.includes('cena')) return 'CENA';
+  if (mealName.includes('comida') || mealName.includes('almuerzo')) return 'COMIDA';
+  if (mealName.includes('snack') || mealName.includes('merienda')) return 'SNACK';
+
+  switch (Number.parseInt(meal?.orden, 10)) {
+    case 1: return 'DESAYUNO';
+    case 2: return 'SNACK';
+    case 3: return 'COMIDA';
+    case 4: return 'SNACK';
+    case 5: return 'CENA';
+    default: return 'SNACK';
+  }
+}
+
+function extractFoodTagsSet(food) {
+  const tags = Array.isArray(food?.tags) ? food.tags : normalizeStringArray(food?.tags);
+  return new Set(tags.map((tag) => String(tag || '').trim().toLowerCase()).filter(Boolean));
+}
+
+function matchesFoodFilters(food, userFoodFilters) {
+  if (!food) return false;
+  const diet = userFoodFilters?.diet || 'omnivoro';
+  if (diet === 'vegano' && !food.is_vegan) return false;
+  if (diet === 'vegetariano' && !food.is_vegetarian) return false;
+
+  const allergens = normalizeStringArray(userFoodFilters?.allergensExclude).map((value) => value.toLowerCase());
+  if (allergens.length === 0) return true;
+
+  const tagSet = extractFoodTagsSet(food);
+  for (const allergen of allergens) {
+    if (!allergen) continue;
+    for (const tag of tagSet) {
+      if (tag.includes(allergen) || allergen.includes(tag)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+function getRoleMacroWeights(roleValue) {
+  const role = String(roleValue || '').toUpperCase();
+  if (role.includes('PROTEINA') || role === 'HUEVO' || role === 'CLARAS' || role.includes('LACTEO_PROTEICO') || role.includes('SUPLEMENTO_PROTEINA')) {
+    return { protein: 1, carbs: 0.2, fat: 0.25, kcal: 0.35 };
+  }
+  if (role.includes('CARBO') || role === 'FRUTA' || role === 'LEGUMBRE') {
+    return { protein: 0.2, carbs: 1, fat: 0.15, kcal: 0.35 };
+  }
+  if (role.includes('GRASA') || role.includes('QUESO')) {
+    return { protein: 0.05, carbs: 0.05, fat: 1, kcal: 0.2 };
+  }
+  if (role === 'VERDURA') {
+    return { protein: 0.15, carbs: 0.25, fat: 0.05, kcal: 0.08 };
+  }
+  if (role === 'BEBIDA') {
+    return { protein: 0.05, carbs: 0.2, fat: 0.05, kcal: 0.05 };
+  }
+  return { protein: 0.25, carbs: 0.25, fat: 0.25, kcal: 0.1 };
+}
+
+function clampNumber(value, min, max) {
+  if (!Number.isFinite(value)) return min;
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
+}
+
+function calculateMacroTotals(items) {
+  return items.reduce((acc, item) => {
+    acc.kcal += parseNumeric(item.kcal) ?? 0;
+    acc.protein_g += parseNumeric(item.macros?.protein_g) ?? 0;
+    acc.carbs_g += parseNumeric(item.macros?.carbs_g) ?? 0;
+    acc.fat_g += parseNumeric(item.macros?.fat_g) ?? 0;
+    return acc;
+  }, { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 });
+}
+
+function percentError(actual, target) {
+  const safeTarget = parseNumeric(target) ?? 0;
+  if (safeTarget <= 0) return 0;
+  return Number((((Math.abs(actual - safeTarget)) / safeTarget) * 100).toFixed(2));
+}
+
+function extractMenuItemsForPersistence(menuData) {
+  if (!menuData || !Array.isArray(menuData.items)) {
+    return [];
+  }
+
+  return menuData.items
+    .map((rawItem, index) => {
+      const alimentoNombre = String(
+        rawItem.alimento_nombre
+          || rawItem.nombre
+          || rawItem.name
+          || rawItem.food_name
+          || ''
+      ).trim();
+
+      if (!alimentoNombre) {
+        return null;
+      }
+
+      const foodSlug = String(rawItem.food_slug || rawItem.slug || '').trim() || null;
+      const estadoBaseInput = normalizeEstadoPesado(rawItem.estado_pesado_base);
+      const estadoMostradoInput = normalizeEstadoPesado(rawItem.estado_pesado_mostrado);
+
+      const cantidadBase = parseNumeric(
+        rawItem.cantidad_g_base ?? rawItem.cantidad_base_g ?? rawItem.cantidad_g ?? rawItem.gramos
+      );
+      const cantidadMostrada = parseNumeric(
+        rawItem.cantidad_g_mostrada ?? rawItem.cantidad_mostrada_g ?? rawItem.cantidad_g ?? rawItem.gramos ?? rawItem.porcion_g ?? rawItem.portion_g
+      );
+      const finalCantidadMostrada = cantidadMostrada ?? cantidadBase;
+      if (finalCantidadMostrada == null || finalCantidadMostrada <= 0) {
+        return null;
+      }
+      const finalCantidadBase = cantidadBase ?? finalCantidadMostrada;
+
+      const rawMacros = parseJsonObject(rawItem.macros, {});
+      const protein = parseNumeric(rawMacros.protein_g) ?? 0;
+      const carbs = parseNumeric(rawMacros.carbs_g) ?? 0;
+      const fat = parseNumeric(rawMacros.fat_g) ?? 0;
+      const kcalFromMacros = Math.round((protein * 4) + (carbs * 4) + (fat * 9));
+      const kcal = Math.round(parseNumeric(rawItem.kcal) ?? kcalFromMacros ?? 0);
+
+      return {
+        orden: index + 1,
+        alimentoNombre,
+        foodSlug,
+        normalizedName: normalizeFoodName(alimentoNombre),
+        cantidadBase: finalCantidadBase,
+        cantidadMostrada: finalCantidadMostrada,
+        estadoBase: estadoBaseInput,
+        estadoMostrado: estadoMostradoInput || estadoBaseInput,
+        role: String(rawItem.role || '').trim() || null,
+        kcal,
+        macros: {
+          protein_g: Number(protein.toFixed(2)),
+          carbs_g: Number(carbs.toFixed(2)),
+          fat_g: Number(fat.toFixed(2))
+        }
+      };
+    })
+    .filter(Boolean);
+}
+
+async function persistGeneratedMenuItemsForMeal({ mealId, menuData, availableFoods = [] }) {
+  if (!mealId) {
+    return { inserted_items: 0, unmatched_items: [], skipped: true };
+  }
+
+  const itemsToPersist = extractMenuItemsForPersistence(menuData);
+  const availableFoodsMap = new Map();
+  const availableFoodsBySlug = new Map();
+  for (const food of availableFoods) {
+    const normalized = normalizeFoodName(food.nombre);
+    if (normalized && !availableFoodsMap.has(normalized)) {
+      availableFoodsMap.set(normalized, food);
+    }
+    const slug = String(food.slug || '').trim();
+    if (slug && !availableFoodsBySlug.has(slug)) {
+      availableFoodsBySlug.set(slug, food);
+    }
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM app.nutrition_meal_items WHERE meal_id = $1', [mealId]);
+
+    let inserted = 0;
+    const unmatchedItems = [];
+
+    for (const item of itemsToPersist) {
+      const matchedFood = availableFoodsBySlug.get(item.foodSlug) || availableFoodsMap.get(item.normalizedName) || null;
+      const estadoBase = item.estadoBase || matchedFood?.estado_pesado_base || 'tal_cual';
+      const estadoMostrado = item.estadoMostrado || matchedFood?.estado_pesado_mostrado_default || estadoBase;
+      const tags = Array.isArray(matchedFood?.tags)
+        ? matchedFood.tags
+        : normalizeStringArray(matchedFood?.tags);
+
+      await client.query(
+        `
+          INSERT INTO app.nutrition_meal_items (
+            meal_id,
+            alimento_id,
+            descripcion,
+            cantidad_g,
+            kcal,
+            macros,
+            tags,
+            orden,
+            food_id,
+            estado_pesado_base,
+            estado_pesado_mostrado,
+            cantidad_g_base,
+            cantidad_g_mostrada
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10, $11, $12, $13
+          );
+        `,
+        [
+          mealId,
+          matchedFood?.id || null,
+          item.alimentoNombre,
+          item.cantidadMostrada,
+          item.kcal,
+          JSON.stringify(item.macros),
+          JSON.stringify(tags || []),
+          item.orden,
+          matchedFood?.id || null,
+          estadoBase,
+          estadoMostrado,
+          item.cantidadBase,
+          item.cantidadMostrada
+        ]
+      );
+
+      inserted += 1;
+      if (!matchedFood) {
+        unmatchedItems.push(item.alimentoNombre);
+      }
+    }
+
+    await client.query('COMMIT');
+    return {
+      inserted_items: inserted,
+      unmatched_items: [...new Set(unmatchedItems)],
+      skipped: false
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
 
 function daysBetween(a, b) {
   const MS_PER_DAY = 1000 * 60 * 60 * 24;
   return Math.abs(Math.round((b.getTime() - a.getTime()) / MS_PER_DAY));
 }
 
-async function generateMenuForMeal({ userId, meal, dayInfo }) {
+async function getDeterministicTemplateCandidates({ userId, mealType, dayInfo, profile, userFoodFilters }) {
+  const phaseContext = resolvePhaseContext(profile);
+  const dayTypeContext = String(dayInfo?.tipo_dia || '').toLowerCase() === 'entreno' ? 'ENTRENO' : null;
+  const contexts = [
+    normalizeTemplateContext(phaseContext),
+    normalizeTemplateContext(dayTypeContext),
+    'AMBOS'
+  ].filter((value, index, self) => value && self.indexOf(value) === index);
+
+  const diet = userFoodFilters?.diet || 'omnivoro';
+  const templateDietList = diet === 'omnivoro' ? ['AMBOS', 'VEG'] : ['VEG'];
+
+  const candidatesQuery = `
+    SELECT *
+    FROM app.meal_templates
+    WHERE is_active = TRUE
+      AND meal_type = $1
+      AND diet_allowed = ANY($2)
+      AND day_context = ANY($3)
+    ORDER BY template_code;
+  `;
+  let candidates = (await pool.query(candidatesQuery, [mealType, templateDietList, contexts])).rows;
+
+  if (candidates.length === 0) {
+    const fallbackQuery = `
+      SELECT *
+      FROM app.meal_templates
+      WHERE is_active = TRUE
+        AND meal_type = $1
+        AND diet_allowed = ANY($2)
+      ORDER BY template_code;
+    `;
+    candidates = (await pool.query(fallbackQuery, [mealType, templateDietList])).rows;
+  }
+
+  if (candidates.length === 0) {
+    throw new Error(`No hay plantillas disponibles para meal_type=${mealType}`);
+  }
+
+  const seed = hashString(`${userId}|${dayInfo?.day_index || 0}|${mealType}|${profile?.current_phase || profile?.objetivo || 'none'}`);
+  const startIndex = seed % candidates.length;
+  return [
+    ...candidates.slice(startIndex),
+    ...candidates.slice(0, startIndex)
+  ];
+}
+
+function getRoleGramBounds(roleValue) {
+  const role = String(roleValue || '').toUpperCase();
+  if (role.includes('GRASA') || role.includes('ACEITE')) {
+    return { min: 3, max: 45 };
+  }
+  if (role.includes('SUPLEMENTO_PROTEINA')) {
+    return { min: 20, max: 100 };
+  }
+  if (role === 'VERDURA') {
+    return { min: 60, max: 500 };
+  }
+  if (role === 'FRUTA') {
+    return { min: 80, max: 450 };
+  }
+  if (role.includes('CARBO') || role === 'LEGUMBRE') {
+    return { min: 40, max: 380 };
+  }
+  if (role.includes('PROTEINA') || role === 'HUEVO' || role === 'CLARAS' || role.includes('LACTEO')) {
+    return { min: 40, max: 320 };
+  }
+  return { min: 25, max: 420 };
+}
+
+function scoreFoodForRole(food, role) {
+  const weights = getRoleMacroWeights(role);
+  const desiredTotal = weights.protein + weights.carbs + weights.fat;
+  const desired = {
+    protein: desiredTotal > 0 ? weights.protein / desiredTotal : 0.33,
+    carbs: desiredTotal > 0 ? weights.carbs / desiredTotal : 0.33,
+    fat: desiredTotal > 0 ? weights.fat / desiredTotal : 0.33
+  };
+
+  const macros = parseJsonObject(food.macros_100g, {});
+  const protein = Math.max(0, parseNumeric(macros.protein_g) ?? 0);
+  const carbs = Math.max(0, parseNumeric(macros.carbs_g) ?? 0);
+  const fat = Math.max(0, parseNumeric(macros.fat_g) ?? 0);
+  const total = protein + carbs + fat;
+
+  if (total <= 0) {
+    return 999;
+  }
+
+  const actual = {
+    protein: protein / total,
+    carbs: carbs / total,
+    fat: fat / total
+  };
+
+  let score = (
+    Math.abs(actual.protein - desired.protein) * 1.4
+    + Math.abs(actual.carbs - desired.carbs) * 1.2
+    + Math.abs(actual.fat - desired.fat) * 1.2
+  );
+
+  if (desired.protein >= 0.45 && protein < 12) {
+    score += (12 - protein) / 8;
+  }
+  if (desired.carbs >= 0.45 && carbs < 12) {
+    score += (12 - carbs) / 8;
+  }
+  if (desired.fat >= 0.45 && fat < 6) {
+    score += (6 - fat) / 6;
+  }
+
+  return Number(score.toFixed(6));
+}
+
+function orderSlotCandidates({ candidates, role, userId, dayInfo, meal, slotOrder }) {
+  const seedBase = `${userId}|${dayInfo?.day_index || 0}|${meal?.orden || 0}|${slotOrder}|${role}`;
+  return [...candidates].sort((left, right) => {
+    const leftScore = scoreFoodForRole(left, role);
+    const rightScore = scoreFoodForRole(right, role);
+    if (leftScore !== rightScore) {
+      return leftScore - rightScore;
+    }
+
+    const leftSeed = hashString(`${seedBase}|${left.id}`) % 10000;
+    const rightSeed = hashString(`${seedBase}|${right.id}`) % 10000;
+    if (leftSeed !== rightSeed) {
+      return leftSeed - rightSeed;
+    }
+
+    return String(left.nombre || '').localeCompare(String(right.nombre || ''), 'es');
+  });
+}
+
+function buildSlotOptionsForTemplate({ template, slots, roleFoodsMap, userId, dayInfo, meal }) {
+  return slots.map((slot) => {
+    const role = String(slot.slot_role || '').toUpperCase();
+    const roleFallbacks = [role, ...(SLOT_ROLE_FALLBACKS[role] || [])];
+    let orderedCandidates = [];
+
+    for (const roleCandidate of roleFallbacks) {
+      const roleCandidates = roleFoodsMap.get(roleCandidate) || [];
+      if (roleCandidates.length === 0) {
+        continue;
+      }
+
+      orderedCandidates = orderSlotCandidates({
+        candidates: roleCandidates,
+        role,
+        userId,
+        dayInfo,
+        meal,
+        slotOrder: slot.slot_order
+      }).slice(0, DETERMINISTIC_MAX_SLOT_OPTIONS);
+
+      if (orderedCandidates.length > 0) {
+        break;
+      }
+    }
+
+    if (orderedCandidates.length === 0) {
+      throw new Error(`No hay alimentos para slot_role=${role} en plantilla ${template.template_code}`);
+    }
+
+    return {
+      slot,
+      role,
+      candidates: orderedCandidates
+    };
+  });
+}
+
+function buildSlotCombinations(slotOptions) {
+  const combinations = [];
+  const current = [];
+  const usedIds = new Set();
+
+  function backtrack(index) {
+    if (combinations.length >= DETERMINISTIC_MAX_SLOT_COMBINATIONS) {
+      return;
+    }
+
+    if (index >= slotOptions.length) {
+      combinations.push([...current]);
+      return;
+    }
+
+    const slotOption = slotOptions[index];
+    const preferred = slotOption.candidates.filter((candidate) => !usedIds.has(candidate.id));
+    const listToUse = preferred.length > 0 ? preferred : slotOption.candidates;
+
+    for (const candidate of listToUse) {
+      const wasUsed = usedIds.has(candidate.id);
+      current.push({
+        slot: slotOption.slot,
+        role: slotOption.role,
+        food: candidate
+      });
+
+      if (!wasUsed) {
+        usedIds.add(candidate.id);
+      }
+
+      backtrack(index + 1);
+
+      if (!wasUsed) {
+        usedIds.delete(candidate.id);
+      }
+      current.pop();
+
+      if (combinations.length >= DETERMINISTIC_MAX_SLOT_COMBINATIONS) {
+        break;
+      }
+    }
+  }
+
+  backtrack(0);
+  return combinations;
+}
+
+function buildDraftItemsForTemplate({ selectedItems, mealMacros, mealKcalTarget }) {
+  return selectedItems.map((entry) => {
+    const roleWeights = getRoleMacroWeights(entry.role);
+    const bounds = getRoleGramBounds(entry.role);
+    const macros100 = parseJsonObject(entry.food.macros_100g, {});
+    const proteinPerG = (parseNumeric(macros100.protein_g) ?? 0) / 100;
+    const carbsPerG = (parseNumeric(macros100.carbs_g) ?? 0) / 100;
+    const fatPerG = (parseNumeric(macros100.fat_g) ?? 0) / 100;
+    const kcalPerG = (parseNumeric(macros100.kcal) ?? ((proteinPerG * 4) + (carbsPerG * 4) + (fatPerG * 9)) * 100) / 100;
+
+    const estimations = [];
+    if (proteinPerG > 0 && roleWeights.protein > 0) {
+      estimations.push((mealMacros.protein_g * roleWeights.protein) / proteinPerG);
+    }
+    if (carbsPerG > 0 && roleWeights.carbs > 0) {
+      estimations.push((mealMacros.carbs_g * roleWeights.carbs) / carbsPerG);
+    }
+    if (fatPerG > 0 && roleWeights.fat > 0) {
+      estimations.push((mealMacros.fat_g * roleWeights.fat) / fatPerG);
+    }
+
+    let gramosBase = null;
+    if (estimations.length > 0) {
+      const estimationAverage = estimations.reduce((acc, value) => acc + value, 0) / estimations.length;
+      gramosBase = clampNumber(estimationAverage, bounds.min, bounds.max);
+    } else if (kcalPerG > 0) {
+      gramosBase = clampNumber((mealKcalTarget * roleWeights.kcal) / kcalPerG, bounds.min, bounds.max);
+    } else {
+      gramosBase = clampNumber(30, bounds.min, bounds.max);
+    }
+
+    return {
+      role: entry.role,
+      food: entry.food,
+      macros100,
+      proteinPerG,
+      carbsPerG,
+      fatPerG,
+      kcalPerG,
+      bounds,
+      gramosBase
+    };
+  });
+}
+
+function optimizeDraftItemGrams({ draftItems, mealMacros, mealKcalTarget }) {
+  const goals = [];
+  if (mealMacros.protein_g > 0) {
+    goals.push({ key: 'protein', target: mealMacros.protein_g, weight: 2.3, scale: Math.max(15, mealMacros.protein_g) });
+  }
+  if (mealMacros.carbs_g > 0) {
+    goals.push({ key: 'carbs', target: mealMacros.carbs_g, weight: 1.9, scale: Math.max(20, mealMacros.carbs_g) });
+  }
+  if (mealMacros.fat_g > 0) {
+    goals.push({ key: 'fat', target: mealMacros.fat_g, weight: 1.7, scale: Math.max(8, mealMacros.fat_g) });
+  }
+  if (mealKcalTarget > 0) {
+    goals.push({ key: 'kcal', target: mealKcalTarget, weight: 0.35, scale: Math.max(120, mealKcalTarget) });
+  }
+
+  if (goals.length === 0) {
+    return draftItems.map((item) => Number(item.gramosBase.toFixed(2)));
+  }
+
+  const grams = draftItems.map((item) => clampNumber(item.gramosBase, item.bounds.min, item.bounds.max));
+  const totals = { protein: 0, carbs: 0, fat: 0, kcal: 0 };
+  draftItems.forEach((item, index) => {
+    const value = grams[index];
+    totals.protein += item.proteinPerG * value;
+    totals.carbs += item.carbsPerG * value;
+    totals.fat += item.fatPerG * value;
+    totals.kcal += item.kcalPerG * value;
+  });
+
+  for (let iteration = 0; iteration < DETERMINISTIC_COORDINATE_ITERATIONS; iteration += 1) {
+    let changed = false;
+
+    for (let index = 0; index < draftItems.length; index += 1) {
+      const item = draftItems[index];
+      const oldValue = grams[index];
+      const without = {
+        protein: totals.protein - (item.proteinPerG * oldValue),
+        carbs: totals.carbs - (item.carbsPerG * oldValue),
+        fat: totals.fat - (item.fatPerG * oldValue),
+        kcal: totals.kcal - (item.kcalPerG * oldValue)
+      };
+
+      let alpha = 0;
+      let beta = 0;
+
+      for (const goal of goals) {
+        const a = goal.key === 'protein'
+          ? item.proteinPerG
+          : goal.key === 'carbs'
+            ? item.carbsPerG
+            : goal.key === 'fat'
+              ? item.fatPerG
+              : item.kcalPerG;
+
+        if (!Number.isFinite(a) || a === 0) {
+          continue;
+        }
+
+        const coeff = goal.weight / (goal.scale * goal.scale);
+        const delta = without[goal.key] - goal.target;
+        alpha += coeff * a * a;
+        beta += 2 * coeff * a * delta;
+      }
+
+      let optimized = oldValue;
+      if (alpha > 0) {
+        optimized = -beta / (2 * alpha);
+      }
+
+      optimized = clampNumber(optimized, item.bounds.min, item.bounds.max);
+      if (!Number.isFinite(optimized)) {
+        optimized = oldValue;
+      }
+
+      if (Math.abs(optimized - oldValue) > 0.01) {
+        changed = true;
+      }
+
+      grams[index] = optimized;
+      totals.protein = without.protein + (item.proteinPerG * optimized);
+      totals.carbs = without.carbs + (item.carbsPerG * optimized);
+      totals.fat = without.fat + (item.fatPerG * optimized);
+      totals.kcal = without.kcal + (item.kcalPerG * optimized);
+    }
+
+    if (!changed) {
+      break;
+    }
+  }
+
+  return grams.map((value, index) => {
+    const bounds = draftItems[index].bounds;
+    return Number(clampNumber(value, bounds.min, bounds.max).toFixed(2));
+  });
+}
+
+function buildDeterministicMenuItems({ draftItems, optimizedGrams, conversionMap }) {
+  return draftItems.map((item, index) => {
+    const gramosBase = optimizedGrams[index];
+    const estadoBase = normalizeEstadoPesado(item.food.estado_pesado_base) || 'tal_cual';
+    const estadoMostrado = normalizeEstadoPesado(item.food.estado_pesado_mostrado_default) || estadoBase;
+    const grupoFactor = item.food.grupo_factor ? String(item.food.grupo_factor).toLowerCase() : null;
+
+    let gramosMostrados = gramosBase;
+    if (grupoFactor && estadoMostrado !== estadoBase) {
+      const factorKey = `${grupoFactor}|${estadoBase}|${estadoMostrado}`;
+      const factor = conversionMap.get(factorKey);
+      if (factor && factor > 0) {
+        gramosMostrados = gramosBase * factor;
+      }
+    }
+
+    const protein = Number((item.proteinPerG * gramosBase).toFixed(2));
+    const carbs = Number((item.carbsPerG * gramosBase).toFixed(2));
+    const fat = Number((item.fatPerG * gramosBase).toFixed(2));
+    const kcal = Math.round((protein * 4) + (carbs * 4) + (fat * 9));
+
+    return {
+      alimento_nombre: item.food.nombre,
+      food_slug: item.food.slug,
+      role: item.role,
+      cantidad_g: Number(gramosMostrados.toFixed(1)),
+      cantidad_g_base: Number(gramosBase.toFixed(1)),
+      cantidad_g_mostrada: Number(gramosMostrados.toFixed(1)),
+      estado_pesado_base: estadoBase,
+      estado_pesado_mostrado: estadoMostrado,
+      kcal,
+      macros: {
+        protein_g: protein,
+        carbs_g: carbs,
+        fat_g: fat
+      }
+    };
+  });
+}
+
+async function generateDeterministicMenuForMeal({ userId, meal, dayInfo }) {
+  const profileResult = await pool.query(
+    `
+      SELECT preferencias, alergias, objetivo, current_phase
+      FROM app.nutrition_profiles
+      WHERE user_id = $1;
+    `,
+    [userId]
+  );
+
+  const userProfile = profileResult.rows[0] || {
+    preferencias: {},
+    alergias: [],
+    objetivo: null,
+    current_phase: null
+  };
+  const userFoodFilters = buildFoodFiltersFromUserPreferences(userProfile);
+  const mealType = resolveMealType(meal);
+  const templateCandidates = await getDeterministicTemplateCandidates({
+    userId,
+    mealType,
+    dayInfo,
+    profile: userProfile,
+    userFoodFilters
+  });
+  const templatesToEvaluate = templateCandidates.slice(0, DETERMINISTIC_MAX_TEMPLATE_TRIES);
+
+  const slotsResult = await pool.query(
+    `
+      SELECT *
+      FROM app.meal_template_slots
+      WHERE template_id = ANY($1)
+      ORDER BY template_id, slot_order;
+    `,
+    [templatesToEvaluate.map((template) => template.id)]
+  );
+  const slotsByTemplateId = new Map();
+  for (const slot of slotsResult.rows) {
+    if (!slotsByTemplateId.has(slot.template_id)) {
+      slotsByTemplateId.set(slot.template_id, []);
+    }
+    slotsByTemplateId.get(slot.template_id).push(slot);
+  }
+
+  const allRoles = [...new Set(
+    slotsResult.rows
+      .map((slot) => String(slot.slot_role || '').toUpperCase())
+      .filter(Boolean)
+  )];
+  if (allRoles.length === 0) {
+    throw new Error(`No hay slots configurados para meal_type=${mealType}`);
+  }
+
+  const foodsByRoleResult = await pool.query(
+    `
+      SELECT
+        fr.role,
+        f.id,
+        f.slug,
+        f.nombre,
+        f.categoria,
+        f.categoria_detalle,
+        f.macros_100g,
+        f.tags,
+        f.estado_pesado_base,
+        f.estado_pesado_mostrado_default,
+        f.grupo_factor,
+        f.is_vegetarian,
+        f.is_vegan
+      FROM app.food_roles fr
+      JOIN app.foods f ON f.id = fr.food_id
+      WHERE fr.role = ANY($1::text[])
+        AND f.is_verified = TRUE
+      ORDER BY fr.role, f.nombre;
+    `,
+    [allRoles]
+  );
+
+  const roleFoodsMap = new Map();
+  for (const row of foodsByRoleResult.rows) {
+    const role = String(row.role || '').toUpperCase();
+    if (!matchesFoodFilters(row, userFoodFilters)) {
+      continue;
+    }
+    if (!roleFoodsMap.has(role)) {
+      roleFoodsMap.set(role, []);
+    }
+    roleFoodsMap.get(role).push(row);
+  }
+
+  const mealMacros = parseMealMacros(meal);
+  const mealKcalTarget = parseNumeric(meal?.kcal) ?? Math.round(
+    (mealMacros.protein_g * 4) + (mealMacros.carbs_g * 4) + (mealMacros.fat_g * 9)
+  );
+  const fallbackMealKcalTarget = mealKcalTarget > 0
+    ? mealKcalTarget
+    : Math.round((mealMacros.protein_g * 4) + (mealMacros.carbs_g * 4) + (mealMacros.fat_g * 9));
+
+  const allAvailableFoods = [...roleFoodsMap.values()].flat();
+  const groupFactors = [...new Set(
+    allAvailableFoods
+      .map((food) => food.grupo_factor)
+      .filter(Boolean)
+      .map((value) => String(value).toLowerCase())
+  )];
+  let conversionRows = [];
+  if (groupFactors.length > 0) {
+    const conversionResult = await pool.query(
+      `
+        SELECT grupo_factor, estado_base, estado_objetivo, factor_base_objetivo
+        FROM app.food_conversion_factors
+        WHERE grupo_factor = ANY($1);
+      `,
+      [groupFactors]
+    );
+    conversionRows = conversionResult.rows;
+  }
+
+  const conversionMap = new Map();
+  conversionRows.forEach((row) => {
+    const key = `${String(row.grupo_factor).toLowerCase()}|${normalizeEstadoPesado(row.estado_base)}|${normalizeEstadoPesado(row.estado_objetivo)}`;
+    conversionMap.set(key, parseNumeric(row.factor_base_objetivo) ?? 0);
+  });
+
+  let bestResult = null;
+
+  for (let index = 0; index < templatesToEvaluate.length; index += 1) {
+    const template = templatesToEvaluate[index];
+    const slots = slotsByTemplateId.get(template.id) || [];
+    if (slots.length === 0) {
+      continue;
+    }
+
+    let slotOptions;
+    try {
+      slotOptions = buildSlotOptionsForTemplate({
+        template,
+        slots,
+        roleFoodsMap,
+        userId,
+        dayInfo,
+        meal
+      });
+    } catch {
+      continue;
+    }
+
+    if (!slotOptions || slotOptions.length === 0) {
+      continue;
+    }
+
+    const combinations = buildSlotCombinations(slotOptions);
+    let bestTemplateResult = null;
+
+    for (const selectedItems of combinations) {
+      const draftItems = buildDraftItemsForTemplate({
+        selectedItems,
+        mealMacros,
+        mealKcalTarget: fallbackMealKcalTarget
+      });
+      const optimizedGrams = optimizeDraftItemGrams({
+        draftItems,
+        mealMacros,
+        mealKcalTarget: fallbackMealKcalTarget
+      });
+      const menuItems = buildDeterministicMenuItems({
+        draftItems,
+        optimizedGrams,
+        conversionMap
+      });
+
+      const totals = calculateMacroTotals(menuItems);
+      const validation = {
+        kcal_total: Math.round(totals.kcal),
+        macros_totales: {
+          protein_g: Number(totals.protein_g.toFixed(2)),
+          carbs_g: Number(totals.carbs_g.toFixed(2)),
+          fat_g: Number(totals.fat_g.toFixed(2))
+        },
+        error_kcal_porcentaje: percentError(totals.kcal, fallbackMealKcalTarget),
+        error_protein_porcentaje: percentError(totals.protein_g, mealMacros.protein_g),
+        error_carbs_porcentaje: percentError(totals.carbs_g, mealMacros.carbs_g),
+        error_fat_porcentaje: percentError(totals.fat_g, mealMacros.fat_g)
+      };
+      const maxError = Math.max(
+        validation.error_kcal_porcentaje,
+        validation.error_protein_porcentaje,
+        validation.error_carbs_porcentaje,
+        validation.error_fat_porcentaje
+      );
+      const avgMacroError = (
+        validation.error_protein_porcentaje
+        + validation.error_carbs_porcentaje
+        + validation.error_fat_porcentaje
+      ) / 3;
+      const score = Number(((maxError * 0.75) + (avgMacroError * 0.25)).toFixed(6));
+
+      const candidateResult = {
+        menu: {
+          items: menuItems,
+          instrucciones: `Menú determinista generado con plantilla ${template.template_name}.`,
+          notas: `Plantilla ${template.template_code} (${template.day_context}/${template.diet_allowed}).`,
+          validacion: validation
+        },
+        metadata: {
+          mode: 'deterministic',
+          template_code: template.template_code,
+          template_name: template.template_name,
+          total_slots: slots.length,
+          max_error: maxError,
+          target_within_tolerance: maxError <= 2,
+          evaluated_templates: templatesToEvaluate.length,
+          selected_template_rank: index + 1,
+          evaluated_combinations: combinations.length
+        },
+        availableFoods: draftItems.map((item) => item.food),
+        score
+      };
+
+      if (!bestTemplateResult || candidateResult.score < bestTemplateResult.score) {
+        bestTemplateResult = candidateResult;
+      }
+      if (maxError <= 2) {
+        break;
+      }
+    }
+
+    if (!bestTemplateResult) {
+      continue;
+    }
+
+    if (!bestResult || bestTemplateResult.score < bestResult.score) {
+      bestResult = bestTemplateResult;
+    }
+
+    if (bestTemplateResult.metadata.max_error <= 2) {
+      break;
+    }
+  }
+
+  if (!bestResult) {
+    throw new Error(`No se pudo construir menú determinista para meal_type=${mealType}`);
+  }
+
+  return {
+    menu: bestResult.menu,
+    metadata: bestResult.metadata,
+    availableFoods: bestResult.availableFoods
+  };
+}
+
+async function generateAiMenuForMeal({ userId, meal, dayInfo }) {
   // Obtener perfil del usuario
   const profileResult = await pool.query(
     'SELECT preferencias, alergias FROM app.nutrition_profiles WHERE user_id = $1',
     [userId]
   );
 
-  const userPreferences = profileResult.rows[0] || {
+  const userPreferencesRaw = profileResult.rows[0] || {
     preferencias: {},
     alergias: []
   };
+  const userFoodFilters = buildFoodFiltersFromUserPreferences(userPreferencesRaw);
+  const userPreferences = {
+    preferencias: userFoodFilters.preferencias,
+    alergias: userFoodFilters.alergias
+  };
 
   // Obtener catálogo de alimentos (filtrado por preferencias)
+  const { whereSql, params } = buildFoodCatalogFilters({
+    diet: userFoodFilters.diet,
+    allergensExclude: userFoodFilters.allergensExclude,
+    onlyVerified: true
+  });
   const foodsQuery = `
-      SELECT id, nombre, categoria, macros_100g, tags
+      SELECT
+        id,
+        slug,
+        nombre,
+        categoria,
+        categoria_detalle,
+        macros_100g,
+        tags,
+        estado_pesado_base,
+        estado_pesado_mostrado_default,
+        grupo_factor
       FROM app.foods
-      WHERE is_verified = true
+      WHERE ${whereSql}
       ORDER BY nombre
-      LIMIT 50;
+      LIMIT $${params.length + 1};
     `;
 
-  const foodsResult = await pool.query(foodsQuery);
+  const foodsResult = await pool.query(foodsQuery, [...params, 80]);
   const availableFoods = foodsResult.rows;
+  if (availableFoods.length === 0) {
+    throw new Error('No hay alimentos disponibles para las preferencias/alergias del perfil');
+  }
 
   // Generar prompt
   const prompt = nutritionMenuGeneratorPrompt({
@@ -108,10 +1292,22 @@ async function generateMenuForMeal({ userId, meal, dayInfo }) {
     menu: menuData,
     metadata: {
       model: completion.model,
+      mode: 'ai',
       tokens_used: completion.usage.total_tokens,
       max_error: maxError
-    }
+    },
+    availableFoods
   };
+}
+
+async function generateMenuForMeal({ userId, meal, dayInfo, mode = 'deterministic' }) {
+  if (mode === 'ai') {
+    return generateAiMenuForMeal({ userId, meal, dayInfo });
+  }
+  if (mode === 'deterministic') {
+    return generateDeterministicMenuForMeal({ userId, meal, dayInfo });
+  }
+  throw new Error(`Modo de generación no soportado: ${mode}`);
 }
 
 function evaluateVolume(base, latest) {
@@ -654,7 +1850,32 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
                     'nombre', m.nombre,
                     'kcal', m.kcal,
                     'macros', m.macros,
-                    'timing_note', m.timing_note
+                    'timing_note', m.timing_note,
+                    'items', COALESCE((
+                      SELECT json_agg(
+                        json_build_object(
+                          'id', mi.id,
+                          'orden', mi.orden,
+                          'food_id', COALESCE(mi.food_id, mi.alimento_id),
+                          'food_slug', f.slug,
+                          'food_nombre', f.nombre,
+                          'food_categoria', f.categoria,
+                          'food_grupo_factor', f.grupo_factor,
+                          'descripcion', mi.descripcion,
+                          'cantidad_g', mi.cantidad_g,
+                          'cantidad_g_base', mi.cantidad_g_base,
+                          'cantidad_g_mostrada', mi.cantidad_g_mostrada,
+                          'estado_pesado_base', mi.estado_pesado_base,
+                          'estado_pesado_mostrado', mi.estado_pesado_mostrado,
+                          'kcal', mi.kcal,
+                          'macros', mi.macros,
+                          'tags', mi.tags
+                        ) ORDER BY mi.orden
+                      )
+                      FROM app.nutrition_meal_items mi
+                      LEFT JOIN app.foods f ON f.id = COALESCE(mi.food_id, mi.alimento_id)
+                      WHERE mi.meal_id = m.id
+                    ), '[]'::json)
                   ) ORDER BY m.orden
                 )
                 FROM app.nutrition_meals m
@@ -732,30 +1953,109 @@ router.get('/audit', authenticateToken, async (req, res) => {
  */
 router.get('/foods', authenticateToken, async (req, res) => {
   try {
-    const { search, categoria, limit = 50 } = req.query;
+    const search = typeof req.query.search === 'string' ? req.query.search.trim() : null;
+    const categoria = typeof req.query.categoria === 'string' ? req.query.categoria.trim() : null;
+    const categoriaDetalle = typeof req.query.categoria_detalle === 'string'
+      ? req.query.categoria_detalle.trim()
+      : null;
+    const grupoFactorRaw = req.query.grupo_factor ?? req.query.group_factor;
+    const grupoFactor = typeof grupoFactorRaw === 'string' ? grupoFactorRaw.trim() : null;
 
-    let query = 'SELECT * FROM app.foods WHERE 1=1';
-    const params = [];
-    let paramCount = 1;
-
-    if (search) {
-      query += ` AND LOWER(nombre) LIKE LOWER($${paramCount})`;
-      params.push(`%${search}%`);
-      paramCount++;
+    const dietRaw = req.query.diet;
+    const diet = normalizeDietFilter(dietRaw);
+    if (dietRaw && !diet) {
+      return res.status(400).json({
+        error: 'Parámetro diet inválido',
+        allowed: VALID_DIET_FILTERS
+      });
     }
 
-    if (categoria) {
-      query += ` AND categoria = $${paramCount}`;
-      params.push(categoria);
-      paramCount++;
+    const estadoBaseRaw = req.query.estado_base ?? req.query.estado_pesado_base;
+    const estadoBase = normalizeEstadoPesado(estadoBaseRaw);
+    if (estadoBaseRaw && !estadoBase) {
+      return res.status(400).json({
+        error: 'Parámetro estado_base inválido',
+        allowed: VALID_ESTADOS_PESADO
+      });
     }
 
-    query += ` ORDER BY nombre LIMIT $${paramCount}`;
-    params.push(limit);
+    const allergensExcludeRaw = req.query.allergens_exclude ?? req.query.alergias_exclude;
+    const allergensExclude = normalizeStringArray(allergensExcludeRaw);
+    const onlyVerified = req.query.only_verified !== 'false';
 
-    const result = await pool.query(query, params);
+    const page = normalizePositiveInt(req.query.page, 1);
+    const pageSize = normalizePositiveInt(req.query.page_size ?? req.query.limit, 50, 200);
+    const offset = (page - 1) * pageSize;
 
-    res.json(result.rows);
+    const { whereSql, params, normalizedAllergens } = buildFoodCatalogFilters({
+      search,
+      categoria,
+      categoriaDetalle,
+      diet,
+      allergensExclude,
+      estadoBase,
+      grupoFactor,
+      onlyVerified
+    });
+
+    const countQuery = `SELECT COUNT(*)::int AS total FROM app.foods WHERE ${whereSql};`;
+    const countResult = await pool.query(countQuery, params);
+    const total = countResult.rows[0]?.total || 0;
+    const totalPages = total > 0 ? Math.ceil(total / pageSize) : 0;
+
+    const dataQuery = `
+      SELECT
+        id,
+        slug,
+        nombre,
+        categoria,
+        categoria_detalle,
+        macros_100g,
+        fibra_100g,
+        porcion_tipica_g,
+        estado_pesado_base,
+        estado_pesado_mostrado_default,
+        metodo_preparacion,
+        grupo_factor,
+        medida_casera,
+        tipo_dieta,
+        is_vegetarian,
+        is_vegan,
+        tags,
+        equivalencias,
+        is_verified,
+        source,
+        created_at,
+        updated_at
+      FROM app.foods
+      WHERE ${whereSql}
+      ORDER BY nombre
+      LIMIT $${params.length + 1}
+      OFFSET $${params.length + 2};
+    `;
+    const dataResult = await pool.query(dataQuery, [...params, pageSize, offset]);
+
+    res.json({
+      foods: dataResult.rows,
+      pagination: {
+        page,
+        page_size: pageSize,
+        total,
+        total_pages: totalPages,
+        has_next: totalPages > 0 && page < totalPages,
+        has_prev: page > 1
+      },
+      filters: {
+        search,
+        categoria,
+        categoria_detalle: categoriaDetalle,
+        diet,
+        allergens_exclude: normalizedAllergens,
+        estado_base: estadoBase,
+        grupo_factor: grupoFactor,
+        only_verified: onlyVerified
+      }
+    });
   } catch (error) {
     console.error('Error al buscar alimentos:', error);
     res.status(500).json({ error: 'Error al buscar alimentos' });
@@ -783,6 +2083,78 @@ router.get('/foods/categories', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/nutrition-v2/food-conversion-factors
+ * Obtener factores de conversión de estados de pesado.
+ */
+router.get('/food-conversion-factors', authenticateToken, async (req, res) => {
+  try {
+    const groupFactorRaw = req.query.grupo_factor ?? req.query.group_factor;
+    const groupFactor = typeof groupFactorRaw === 'string' ? groupFactorRaw.trim() : null;
+
+    const estadoBaseRaw = req.query.estado_base;
+    const estadoBase = normalizeEstadoPesado(estadoBaseRaw);
+    if (estadoBaseRaw && !estadoBase) {
+      return res.status(400).json({
+        error: 'Parámetro estado_base inválido',
+        allowed: VALID_ESTADOS_PESADO
+      });
+    }
+
+    const estadoObjetivoRaw = req.query.estado_objetivo;
+    const estadoObjetivo = normalizeEstadoPesado(estadoObjetivoRaw);
+    if (estadoObjetivoRaw && !estadoObjetivo) {
+      return res.status(400).json({
+        error: 'Parámetro estado_objetivo inválido',
+        allowed: VALID_ESTADOS_PESADO
+      });
+    }
+
+    let query = `
+      SELECT
+        id,
+        grupo_factor,
+        estado_base,
+        estado_objetivo,
+        factor_base_objetivo,
+        nota
+      FROM app.food_conversion_factors
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (groupFactor) {
+      query += ` AND LOWER(grupo_factor) = LOWER($${params.length + 1})`;
+      params.push(groupFactor);
+    }
+
+    if (estadoBase) {
+      query += ` AND estado_base = $${params.length + 1}`;
+      params.push(estadoBase);
+    }
+
+    if (estadoObjetivo) {
+      query += ` AND estado_objetivo = $${params.length + 1}`;
+      params.push(estadoObjetivo);
+    }
+
+    query += ' ORDER BY grupo_factor, estado_base, estado_objetivo';
+    const result = await pool.query(query, params);
+
+    res.json({
+      factors: result.rows,
+      filters: {
+        grupo_factor: groupFactor,
+        estado_base: estadoBase,
+        estado_objetivo: estadoObjetivo
+      }
+    });
+  } catch (error) {
+    console.error('Error al obtener factores de conversión:', error);
+    res.status(500).json({ error: 'Error al obtener factores de conversión' });
+  }
+});
+
 // ================================================
 // GENERACIÓN DE MENÚS CON IA
 // ================================================
@@ -794,23 +2166,41 @@ router.get('/foods/categories', authenticateToken, async (req, res) => {
 router.post('/generate-menu', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { meal, dayInfo } = req.body;
+    const { meal, dayInfo, persist = true } = req.body;
+    const modeRaw = String(req.body.mode || 'deterministic').toLowerCase();
+    if (!VALID_MENU_GENERATION_MODES.includes(modeRaw)) {
+      return res.status(400).json({
+        error: 'Modo de generación inválido',
+        allowed: VALID_MENU_GENERATION_MODES
+      });
+    }
 
     // Validar datos requeridos
     if (!meal || !dayInfo) {
       return res.status(400).json({ error: 'Faltan datos de comida o día' });
     }
 
-    console.log('🤖 Generando menú con IA para:', meal.nombre);
-    const result = await generateMenuForMeal({ userId, meal, dayInfo });
+    console.log(`🧠 Generando menú (${modeRaw}) para:`, meal.nombre);
+    const result = await generateMenuForMeal({ userId, meal, dayInfo, mode: modeRaw });
+    let persistedItems = null;
+
+    if (persist && meal?.id) {
+      persistedItems = await persistGeneratedMenuItemsForMeal({
+        mealId: meal.id,
+        menuData: result.menu,
+        availableFoods: result.availableFoods
+      });
+    }
 
     res.json({
       success: true,
+      mode: modeRaw,
       menu: result.menu,
-      metadata: result.metadata
+      metadata: result.metadata,
+      persistence: persistedItems
     });
   } catch (error) {
-    console.error('Error generando menú con IA:', error);
+    console.error('Error generando menú:', error);
     res.status(500).json({
       error: 'Error al generar menú',
       details: error.message
@@ -825,7 +2215,14 @@ router.post('/generate-menu', authenticateToken, async (req, res) => {
 router.post('/generate-full-day-menus', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { dayId } = req.body;
+    const { dayId, persist = true } = req.body;
+    const modeRaw = String(req.body.mode || 'deterministic').toLowerCase();
+    if (!VALID_MENU_GENERATION_MODES.includes(modeRaw)) {
+      return res.status(400).json({
+        error: 'Modo de generación inválido',
+        allowed: VALID_MENU_GENERATION_MODES
+      });
+    }
 
     if (!dayId) {
       return res.status(400).json({ error: 'Falta ID del día' });
@@ -862,7 +2259,8 @@ router.post('/generate-full-day-menus', authenticateToken, async (req, res) => {
           dayInfo: {
             tipo_dia: day.tipo_dia,
             day_index: day.day_index
-          }
+          },
+          mode: modeRaw
         });
 
         generatedMenus.push({
@@ -870,6 +2268,16 @@ router.post('/generate-full-day-menus', authenticateToken, async (req, res) => {
           menu: menuResponse.menu,
           metadata: menuResponse.metadata
         });
+
+        if (persist) {
+          const persistence = await persistGeneratedMenuItemsForMeal({
+            mealId: meal.id,
+            menuData: menuResponse.menu,
+            availableFoods: menuResponse.availableFoods
+          });
+
+          generatedMenus[generatedMenus.length - 1].persistence = persistence;
+        }
 
         await new Promise(resolve => setTimeout(resolve, 600));
       } catch (error) {
@@ -883,9 +2291,11 @@ router.post('/generate-full-day-menus', authenticateToken, async (req, res) => {
 
     res.json({
       success: true,
+      mode: modeRaw,
       day_id: dayId,
       menus_generated: generatedMenus.filter(m => !m.error).length,
       total_meals: day.meals.length,
+      items_persisted: generatedMenus.reduce((acc, menu) => acc + (menu.persistence?.inserted_items || 0), 0),
       menus: generatedMenus
     });
   } catch (error) {

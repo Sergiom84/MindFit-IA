@@ -1,5 +1,15 @@
 # Registro diario de implementaciones
 
+## 06.02.2026
+
+- Se crea la rama `alimentos` y se añade `roadmap.md` con el plan de integración del módulo Nutrición (base de alimentos, estados de pesado/conversión y biblioteca de platos), sin implementar cambios funcionales.
+- Se corrigen migraciones MindFeed (`00002` canónica, eliminación de duplicado), se refuerzan `backend/scripts/run-migrations.js` y `backend/scripts/verify-migrations.js` para detectar deriva/archivos no versionados, y se completa `scripts/import_mindfeed_data.py` (mapeos de categoría, flags de dieta por `tipo_dieta`, normalización robusta, `--dry-run`, fallback por `ux_foods_nombre`); carga ejecutada con resultado final `app.foods`: 241 filas `mindfeed_excel` con `slug`.
+- Fase 3 del roadmap implementada en backend: `GET /api/nutrition-v2/foods` ahora soporta filtros (`diet`, `allergens_exclude`, `estado_base`, `grupo_factor`, `categoria_detalle`) y paginación real con metadatos; `generateMenuForMeal` filtra catálogo por `preferencias`/`alergias` del perfil antes de construir el prompt y el prompt incluye estados de pesado (`estado_base`/`estado_mostrado_default`).
+- Fase 4 del roadmap implementada en backend: persistencia de menús IA en `app.nutrition_meal_items` (rutas `POST /api/nutrition-v2/generate-menu` y `POST /api/nutrition-v2/generate-full-day-menus` con `persist=true` por defecto), y `GET /api/nutrition-v2/active-plan` ahora devuelve `items` por comida con join a `app.foods` (incluye `food_slug`, estados de pesado y cantidades base/mostrada).
+- Fase 5 del roadmap implementada en frontend+backend: `MealDetailView` muestra `meal.items` reales, permite seleccionar estado de pesado por item y convertir gramos con factores (`/api/nutrition-v2/food-conversion-factors`), bloqueando con “Sin conversión” cuando no hay factor/grupo o el alimento es `tal_cual`; `NutritionCalendarView` habilita generación de menús IA del día y refresca el detalle mostrando items persistidos.
+- Fase 6 del roadmap implementada: nueva biblioteca determinista en BD (`app.meal_templates`, `app.meal_template_slots`, `app.food_roles`) con migración `20260206000004_create_meal_template_library.sql`, importador `scripts/import_meal_templates.py` (64 plantillas, 199 slots, 387 roles), generación de menús con modo `deterministic|ai` en `nutritionV2` (deterministic por defecto) y envío explícito `mode: "deterministic"` desde la UI de calendario.
+- Ajuste de precisión en Fase 6: el motor determinista de `nutritionV2` ahora evalúa varias plantillas candidatas, explora combinaciones deterministas por slot (roles/alimentos) y optimiza gramos con descenso por coordenadas para minimizar error de macros; validación real en `generate-full-day-menus` deja las 3 comidas del día de prueba dentro de tolerancia (max_error: 0.04, 0.37 y 0.12).
+
 ## 05.02.2026
 
 - Se crean las skills globales `impl-pack-open` y `impl-pack-close` en `~/.codex/skills/` para generar y cerrar paquetes de documentación de implementación con puntero activo.

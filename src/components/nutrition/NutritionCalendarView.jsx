@@ -60,7 +60,7 @@ export default function NutritionCalendarView() {
   const [selectedDay, setSelectedDay] = useState(null);
   const [generatingDay, setGeneratingDay] = useState(null);
   const [infoMessage, setInfoMessage] = useState(null);
-  const menusEnabled = false;
+  const menusEnabled = true;
 
   useEffect(() => {
     loadActivePlan();
@@ -88,15 +88,17 @@ export default function NutritionCalendarView() {
       const data = await response.json();
       setPlan(data);
       console.log('✅ Plan cargado:', data);
+      return data;
     } catch (err) {
       setError(err.message);
       console.error('Error cargando plan:', err);
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
-  const generateMenusForDay = async (day) => {
+const generateMenusForDay = async (day) => {
     if (!day?.day_id) return;
     setGeneratingDay(day.day_id);
     setInfoMessage(null);
@@ -108,17 +110,27 @@ export default function NutritionCalendarView() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ dayId: day.day_id })
+        body: JSON.stringify({ dayId: day.day_id, mode: 'deterministic' })
       });
 
       if (!response.ok) {
-        throw new Error('Error al generar menús del día');
+        throw new Error('Error al generar menus del dia');
       }
 
       const data = await response.json();
-      setInfoMessage(`Menús generados para ${data.menus_generated}/${data.total_meals} comidas`);
-      // Recargar plan para reflejar menús si se persistieran a futuro
-      await loadActivePlan();
+      const persistedItems = Number(data.items_persisted || 0);
+      setInfoMessage(
+        `Menus generados para ${data.menus_generated}/${data.total_meals} comidas` +
+        (persistedItems > 0 ? ` · ${persistedItems} items guardados` : '')
+      );
+
+      const refreshedPlan = await loadActivePlan();
+      if (refreshedPlan?.days?.length) {
+        const updatedDay = refreshedPlan.days.find((entry) => entry.day_id === day.day_id);
+        if (updatedDay) {
+          setSelectedDay(updatedDay);
+        }
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -437,6 +449,9 @@ export default function NutritionCalendarView() {
             plan_name: plan.plan_name,
             training_type: plan.training_type
           }}
+          menusEnabled={menusEnabled}
+          isGeneratingMenus={generatingDay === selectedDay.day_id}
+          onGenerateDayMenus={menusEnabled ? () => generateMenusForDay(selectedDay) : null}
           onClose={() => setSelectedDay(null)}
         />
       )}
