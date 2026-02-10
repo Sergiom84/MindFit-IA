@@ -27,7 +27,7 @@ const TRAINING_TYPES = [
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
 const DIAS_SEMANA_DATE = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
 const DURATION_PRESETS = [7, 14, 21, 28];
-const MAX_PLAN_DAYS = 31;
+const MAX_PLAN_DAYS = 28;
 const MIN_PLAN_DAYS = 3;
 
 const OBJECTIVE_OPTIONS = [
@@ -240,6 +240,16 @@ const mapMethodologyToTrainingType = (value) => {
     return 'resistencia';
   }
   return 'general';
+};
+
+const areBooleanArraysEqual = (a, b) => {
+  if (a === b) return true;
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (Boolean(a[i]) !== Boolean(b[i])) return false;
+  }
+  return true;
 };
 
 const formatObjectiveLabel = (value) => OBJECTIVE_LABELS[value] || value || 'N/D';
@@ -629,6 +639,43 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
   }, []);
 
   useEffect(() => {
+    const shouldAutoSync =
+      !trainingPlanInfo.loading &&
+      trainingPlanInfo.hasPlan &&
+      !trainingPlanInfo.error &&
+      Number.isFinite(trainingPlanInfo.cappedDays) &&
+      Array.isArray(trainingPlanInfo.trainingSchedule);
+
+    if (!shouldAutoSync) return;
+
+    setConfig((prev) => {
+      const next = {
+        ...prev,
+        duracion_dias: trainingPlanInfo.cappedDays,
+        training_type: trainingPlanInfo.trainingType || prev.training_type,
+        training_schedule: trainingPlanInfo.trainingSchedule
+      };
+
+      if (
+        prev.duracion_dias === next.duracion_dias &&
+        prev.training_type === next.training_type &&
+        areBooleanArraysEqual(prev.training_schedule, next.training_schedule)
+      ) {
+        return prev;
+      }
+
+      return next;
+    });
+  }, [
+    trainingPlanInfo.loading,
+    trainingPlanInfo.hasPlan,
+    trainingPlanInfo.error,
+    trainingPlanInfo.cappedDays,
+    trainingPlanInfo.trainingType,
+    trainingPlanInfo.trainingSchedule
+  ]);
+
+  useEffect(() => {
     const controller = new AbortController();
     const token = localStorage.getItem('token') || localStorage.getItem('authToken');
 
@@ -816,6 +863,18 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
         throw new Error('No se encontro un token de autenticacion');
       }
 
+      const isTrainingLinked = trainingPlanInfo.hasPlan && !trainingPlanInfo.loading;
+      const payloadConfig = isTrainingLinked
+        ? {
+            ...config,
+            duracion_dias: trainingPlanInfo.cappedDays || config.duracion_dias,
+            training_type: trainingPlanInfo.trainingType || config.training_type,
+            training_schedule: Array.isArray(trainingPlanInfo.trainingSchedule)
+              ? trainingPlanInfo.trainingSchedule
+              : config.training_schedule
+          }
+        : config;
+
       // Asegurar que exista un perfil antes de generar (upsert)
       const profileUpsert = await fetch(`${API_URL}/api/nutrition-v2/profile`, {
         method: 'POST',
@@ -842,7 +901,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(config)
+        body: JSON.stringify(payloadConfig)
       });
 
       if (!response.ok) {
@@ -865,6 +924,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
   };
 
   const isDailySchedule = config.training_schedule.length > DIAS_SEMANA.length;
+  const isTrainingLinked = trainingPlanInfo.hasPlan && !trainingPlanInfo.loading;
   const previewSchedule = isDailySchedule && Array.isArray(trainingPlanInfo.previewSchedule)
     ? trainingPlanInfo.previewSchedule
     : config.training_schedule;
@@ -873,9 +933,11 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
   const trainingScheduleTitle = isDailySchedule
     ? 'Dias de entrenamiento (semana habitual)'
     : 'Dias de entrenamiento (primera semana)';
-  const scheduleHelperText = isDailySchedule
-    ? 'Vista basada en una semana completa del plan.'
-    : 'Usa un preset o ajusta manualmente los dias';
+  const scheduleHelperText = isTrainingLinked
+    ? 'Sincronizado con tu plan de entrenamiento.'
+    : isDailySchedule
+      ? 'Vista basada en una semana completa del plan.'
+      : 'Usa un preset o ajusta manualmente los dias';
 
   return (
     <div className="w-full max-w-5xl mx-auto p-0 sm:p-6 space-y-6">
@@ -1242,37 +1304,24 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                     </span>
                   </div>
                 )}
-                {trainingPlanInfo.hasPlan && trainingPlanInfo.endDate && (
-                  <div className="mb-3">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setConfig((prev) => ({
-                          ...prev,
-                          duracion_dias: trainingPlanInfo.cappedDays || prev.duracion_dias,
-                          training_type: trainingPlanInfo.trainingType || prev.training_type,
-                          training_schedule: Array.isArray(trainingPlanInfo.trainingSchedule)
-                            ? trainingPlanInfo.trainingSchedule
-                            : prev.training_schedule
-                        }))
-                      }
-                      className="px-4 py-2 rounded-lg border border-yellow-400/60 text-yellow-200/90 hover:bg-yellow-400/10 transition-colors disabled:opacity-60"
-                      disabled={planLoading || !trainingPlanInfo.cappedDays}
-                    >
-                      Sincronizar con mi plan actual ({trainingPlanInfo.cappedDays} dias)
-                    </button>
+                {trainingPlanInfo.hasPlan && (
+                  <div className="mb-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-200">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-300" />
+                      <div className="space-y-1">
+                        <p className="font-semibold text-emerald-100">Nutricion enlazada a tu plan de entrenamiento</p>
+                        <p className="text-emerald-100/80">
+                          La duracion, el tipo de entrenamiento y el calendario se sincronizan automaticamente.
+                        </p>
+                      </div>
+                    </div>
                     {(trainingPlanInfo.capApplied || trainingPlanInfo.minApplied) && (
-                      <p className="text-xs text-amber-300 mt-2">
-                        {trainingPlanInfo.capApplied && 'Duracion ajustada a 31 dias (limite del plan nutricional).'}
+                      <p className="text-xs text-amber-200/90 mt-2">
+                        {trainingPlanInfo.capApplied && 'Duracion ajustada a 28 dias (limite del plan nutricional).'}
                         {trainingPlanInfo.minApplied && 'Duracion ajustada al minimo de 3 dias.'}
                       </p>
                     )}
                   </div>
-                )}
-                {trainingPlanInfo.hasPlan && !trainingPlanInfo.endDate && (
-                  <p className="text-xs text-amber-300 mb-2">
-                    No pudimos calcular la fecha final del plan. Puedes usar los presets.
-                  </p>
                 )}
                 <div className="flex flex-wrap gap-2">
                   {DURATION_PRESETS.map((days) => (
@@ -1285,15 +1334,22 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                           ? 'bg-yellow-400 text-gray-900'
                           : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
                       }`}
-                      disabled={planLoading}
+                      disabled={planLoading || isTrainingLinked}
                     >
                       {days} dias
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Recomendamos planes de 7-14 dias para ajustarlos con frecuencia.
-                </p>
+                {!isTrainingLinked && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Recomendamos planes de 7-14 dias para ajustarlos con frecuencia.
+                  </p>
+                )}
+                {isTrainingLinked && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Duracion sincronizada con tu plan de entrenamiento actual.
+                  </p>
+                )}
                 {!trainingPlanInfo.hasPlan && !trainingPlanInfo.loading && (
                   <p className="text-xs text-gray-500 mt-1">
                     Si inicias un plan de entrenamiento, podras rehacer la dieta para ajustar la duracion.
@@ -1317,7 +1373,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                           ? 'border-yellow-400 bg-yellow-500/10 text-white'
                           : 'border-white/10 bg-white/5 text-gray-300/80 hover:border-white/20'
                       }`}
-                      disabled={planLoading}
+                      disabled={planLoading || isTrainingLinked}
                     >
                       <Icon className="w-5 h-5 mb-2 text-yellow-400" />
                       <div className="text-sm font-semibold">{label}</div>
@@ -1336,20 +1392,22 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 mb-4 flex-wrap">
-                  <span className="text-sm text-gray-400">Presets rapidos:</span>
-                  {['3dias', '4dias', '5dias', '6dias'].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setPreset(preset)}
-                      className="px-2.5 py-1 bg-white/5 text-gray-200/80 rounded text-xs hover:bg-white/10 transition-colors disabled:opacity-60"
-                      disabled={planLoading}
-                    >
-                      {preset.replace('dias', ' dias')}
-                    </button>
-                  ))}
-                </div>
+                {!isTrainingLinked && (
+                  <div className="flex items-center gap-2 mb-4 flex-wrap">
+                    <span className="text-sm text-gray-400">Presets rapidos:</span>
+                    {['3dias', '4dias', '5dias', '6dias'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setPreset(preset)}
+                        className="px-2.5 py-1 bg-white/5 text-gray-200/80 rounded text-xs hover:bg-white/10 transition-colors disabled:opacity-60"
+                        disabled={planLoading}
+                      >
+                        {preset.replace('dias', ' dias')}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-4 sm:grid-cols-7 gap-1 sm:gap-2">
                   {DIAS_SEMANA.map((dia, index) => (
@@ -1357,7 +1415,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                       key={dia}
                       type="button"
                       onClick={() => {
-                        if (!isDailySchedule) {
+                        if (!isDailySchedule && !isTrainingLinked) {
                           toggleTrainingDay(index);
                         }
                       }}
@@ -1366,7 +1424,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                           ? 'bg-green-500 text-white'
                           : 'bg-white/5 text-gray-400 hover:bg-white/10'
                       }`}
-                      disabled={planLoading || isDailySchedule}
+                      disabled={planLoading || isDailySchedule || isTrainingLinked}
                     >
                       <div>{dia}</div>
                       <div className="text-[9px] sm:text-[10px] mt-0.5 sm:mt-1">

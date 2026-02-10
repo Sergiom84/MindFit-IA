@@ -360,10 +360,28 @@ function buildDefaultTrainingSchedule(trainingDays = 4) {
   return patterns[days] || patterns[4];
 }
 
+function resolveTrainingDaysPerWeek(trainingSchedule, fallbackTrainingDays = 4) {
+  const fallback = Number(fallbackTrainingDays) || 0;
+  if (!Array.isArray(trainingSchedule) || trainingSchedule.length === 0) {
+    return fallback;
+  }
+
+  const totalDays = trainingSchedule.length;
+  const trainingCount = trainingSchedule.filter(Boolean).length;
+
+  if (totalDays <= 7) {
+    return trainingCount;
+  }
+
+  // Si el calendario es diario (p.ej. 14-28 dias), estimar entrenos/semana por promedio.
+  const estimatedPerWeek = Math.round((trainingCount / totalDays) * 7);
+  return Math.max(0, Math.min(7, estimatedPerWeek));
+}
+
 /**
  * Genera un plan nutricional completo para N días
  * @param {Object} profile - Perfil nutricional del usuario
- * @param {number} duracionDias - Duración del plan (3-31 días)
+ * @param {number} duracionDias - Duración del plan (3-28 días)
  * @param {Array} trainingSchedule - Días de entrenamiento [true, false, true, ...]
  * @returns {Object} Plan nutricional completo
  */
@@ -383,7 +401,7 @@ export function generateNutritionPlan(profile, duracionDias, trainingSchedule = 
     steps_per_day
   } = profile;
 
-  const trainingDays = trainingSchedule.length > 0 ? trainingSchedule.filter(Boolean).length : profile.training_days || 4;
+  const trainingDays = resolveTrainingDaysPerWeek(trainingSchedule, profile.training_days || 4);
   const effectiveSchedule = (Array.isArray(trainingSchedule) && trainingSchedule.length > 0)
     ? trainingSchedule
     : buildDefaultTrainingSchedule(trainingDays);
@@ -399,6 +417,87 @@ export function generateNutritionPlan(profile, duracionDias, trainingSchedule = 
   const baseMacros = calculateMacros(kcalObjetivo, peso_kg, training_type, objetivo, metabolic_type, metabolic_confidence, level);
 
   // 4. Generar días del plan con carb cycling
+  const days = [];
+  for (let i = 0; i < duracionDias; i++) {
+    const isTrainingDay = effectiveSchedule[i % effectiveSchedule.length] || false;
+    const dayMacros = applyCarbCycling(baseMacros, isTrainingDay);
+    const meals = distributeMacrosAcrossMeals(dayMacros, comidas_dia, isTrainingDay);
+
+    days.push({
+      day_index: i,
+      tipo_dia: isTrainingDay ? 'entreno' : 'descanso',
+      kcal: dayMacros.kcal,
+      macros: {
+        protein_g: dayMacros.protein_g,
+        carbs_g: dayMacros.carbs_g,
+        fat_g: dayMacros.fat_g
+      },
+      meals
+    });
+  }
+
+  return {
+    bmr,
+    tdee,
+    kcal_objetivo: kcalObjetivo,
+    macros_objetivo: baseMacros,
+    meta: objetivo,
+    duracion_dias: duracionDias,
+    training_type,
+    comidas_por_dia: comidas_dia,
+    fuente: 'determinista',
+    version_reglas: 'v1',
+    days
+  };
+}
+
+/**
+ * Variante para regeneración de plan cuando se aplica un ajuste (kcal override).
+ * Mantiene la misma lógica del motor determinista, pero fuerza `kcal_objetivo`.
+ */
+export function generateNutritionPlanWithKcalOverride(
+  profile,
+  duracionDias,
+  trainingSchedule = [],
+  kcalObjetivoOverride = null
+) {
+  const {
+    sexo,
+    edad,
+    altura_cm,
+    peso_kg,
+    objetivo,
+    actividad,
+    comidas_dia,
+    training_type = 'general',
+    metabolic_type,
+    metabolic_confidence = 'media',
+    level = 'intermedio',
+    steps_per_day
+  } = profile;
+
+  const trainingDays = resolveTrainingDaysPerWeek(trainingSchedule, profile.training_days || 4);
+  const effectiveSchedule = (Array.isArray(trainingSchedule) && trainingSchedule.length > 0)
+    ? trainingSchedule
+    : buildDefaultTrainingSchedule(trainingDays);
+
+  const bmr = calculateBMR({ ...profile, sexo, peso_kg, altura_cm, edad });
+  const tdee = calculateTDEE(bmr, actividad, trainingDays, steps_per_day);
+
+  const kcalObjetivo = Number.isFinite(Number(kcalObjetivoOverride))
+    ? Math.round(Number(kcalObjetivoOverride))
+    : adjustCaloriesForGoal(tdee, objetivo, profile);
+
+  const baseMacros = calculateMacros(
+    kcalObjetivo,
+    peso_kg,
+    training_type,
+    objetivo,
+    metabolic_type,
+    metabolic_confidence,
+    level
+  );
+
   const days = [];
   for (let i = 0; i < duracionDias; i++) {
     const isTrainingDay = effectiveSchedule[i % effectiveSchedule.length] || false;

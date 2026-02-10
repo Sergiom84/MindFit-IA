@@ -7,6 +7,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon --watch . server.js",
+    "test": "node --test tests/**/*.test.js",
+    "migrate:nutrition-review": "node scripts/run-nutrition-review-migration.js",
+    "migrate:nutrition-adjustments": "node scripts/run-nutrition-adjustments-migration.js",
     "postinstall": "echo \"(backend) postinstall ok\""
   },
   "engines": {

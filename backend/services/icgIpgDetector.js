@@ -64,6 +64,63 @@ export const IEC_STATUS = {
   RED: 'red'                   // +1 kg y +1 cm (superávit no deseado)
 };
 
+function normalizePhaseFromNutrition(value) {
+  const v = String(value || '').trim().toLowerCase();
+  if (!v) return null;
+
+  // Meta típica de planes v2 / perfiles
+  if (v === 'cut') return 'definicion';
+  if (v === 'bulk') return 'volumen';
+  if (v === 'mant' || v === 'maintenance' || v === 'mantenimiento') return 'normocalorica';
+
+  // Valores ya normalizados
+  if (v === 'definicion' || v === 'volumen' || v === 'normocalorica') return v;
+
+  return null;
+}
+
+async function resolvePhaseFallbackFromNutrition(userId) {
+  // Queremos coherencia visual con Nutrición v2 aunque el bridge no tenga fase.
+  // Fuente preferida: plan activo (tipo=activo). Fallback: nutrition_profiles.
+
+  try {
+    const planResult = await pool.query(
+      `SELECT meta
+       FROM app.nutrition_plans_v2
+       WHERE user_id = $1 AND tipo = 'activo'
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [userId]
+    );
+
+    const meta = planResult.rows[0]?.meta;
+    const mapped = normalizePhaseFromNutrition(meta);
+    if (mapped) return mapped;
+  } catch {
+    // No bloquea progression-check si nutrición no está disponible.
+  }
+
+  try {
+    const profileResult = await pool.query(
+      `SELECT current_phase, objetivo
+       FROM app.nutrition_profiles
+       WHERE user_id = $1
+       LIMIT 1`,
+      [userId]
+    );
+
+    const profile = profileResult.rows[0] || null;
+    const mapped =
+      normalizePhaseFromNutrition(profile?.current_phase) ||
+      normalizePhaseFromNutrition(profile?.objetivo);
+    if (mapped) return mapped;
+  } catch {
+    // No bloquea progression-check.
+  }
+
+  return null;
+}
+
 /**
  * Calcula el ICG entre dos mediciones
  * ICG = (cintura_nueva - cintura_vieja) / (peso_nuevo - peso_viejo)
@@ -356,7 +413,11 @@ export async function detectProgressionIssues(userId) {
       [userId]
     );
 
-    const currentPhase = phaseResult.rows[0]?.current_phase || 'unknown';
+    let currentPhase = phaseResult.rows[0]?.current_phase || null;
+    if (!currentPhase) {
+      currentPhase = await resolvePhaseFallbackFromNutrition(userId);
+    }
+    if (!currentPhase) currentPhase = 'unknown';
 
     // 4. Calcular ICG, IPG según la fase
     const weightChange = current.weight_kg - previous.weight_kg;

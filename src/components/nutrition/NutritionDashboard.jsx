@@ -15,6 +15,7 @@ import ICGIPGDashboard from './ICGIPGDashboard';
 import BodyMeasurementsHistory from './BodyMeasurementsHistory';
 import CheatMealManager from './CheatMealManager';
 import CarbTimingGuide from './CarbTimingGuide';
+import NutritionReviewPanel from './NutritionReviewPanel';
 
 const TABS = {
   OVERVIEW: 'overview',
@@ -44,7 +45,12 @@ export default function NutritionDashboard() {
   const renderTabContent = () => {
     switch (activeTab) {
       case TABS.OVERVIEW:
-        return <ICGIPGDashboard />;
+        return (
+          <>
+            <NutritionReviewPanel />
+            <ICGIPGDashboard />
+          </>
+        );
 
       case TABS.MEASUREMENTS:
         return (

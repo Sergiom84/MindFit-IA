@@ -181,12 +181,54 @@ export default function ICGIPGDashboard({ userId }) {
 
   const getStatusLabel = (status) => {
     const labels = {
+      neutral: 'Sin señal',
       green_plus: 'Óptimo',
       green: 'Bueno',
       yellow: 'Revisar',
       red: 'Ajustar Urgente'
     };
     return labels[status] || 'Desconocido';
+  };
+
+  const getIndicatorMessage = (key) => {
+    const indicator = progression?.indicators?.[key];
+    if (!indicator) return null;
+
+    // Si hay valor o estado no neutral, el mensaje actual es suficiente.
+    if (indicator.value !== null && indicator.value !== undefined) return indicator.message;
+    if (indicator.status !== 'neutral') return indicator.message;
+
+    const weightChange = Number(progression?.weight_change_kg);
+
+    if (key === 'ipg') {
+      if (Number.isFinite(weightChange)) {
+        if (weightChange > 0.2) {
+          return `Has subido ${weightChange.toFixed(2)} kg entre mediciones. El IPG solo se calcula cuando hay pérdida de peso (>0.2 kg), para que no sea ruido.`;
+        }
+        if (weightChange >= -0.2) {
+          return `Aún no hay pérdida de peso suficiente para calcular IPG. Necesitamos una bajada >0.2 kg entre dos mediciones validadas para que la señal sea fiable.`;
+        }
+        return indicator.message;
+      }
+
+      return `Para calcular IPG necesitamos una bajada >0.2 kg entre dos mediciones validadas (si no, es ruido).`;
+    }
+
+    if (key === 'icg') {
+      if (Number.isFinite(weightChange)) {
+        if (weightChange < -0.2) {
+          return `Has bajado ${Math.abs(weightChange).toFixed(2)} kg entre mediciones. El ICG se usa sobre todo cuando hay ganancia de peso (>0.2 kg), para evaluar si sube la cintura proporcionalmente.`;
+        }
+        if (weightChange <= 0.2) {
+          return `Aún no hay ganancia de peso suficiente para calcular ICG. Necesitamos una subida >0.2 kg entre dos mediciones validadas para que la señal sea fiable.`;
+        }
+        return indicator.message;
+      }
+
+      return `Para calcular ICG necesitamos una subida >0.2 kg entre dos mediciones validadas (si no, es ruido).`;
+    }
+
+    return indicator.message;
   };
 
   return (
@@ -252,7 +294,7 @@ export default function ICGIPGDashboard({ userId }) {
 
                   {/* Mensaje */}
                   <p className="text-sm text-gray-200 font-medium">
-                    {progression.indicators.icg.message}
+                    {getIndicatorMessage('icg')}
                   </p>
                 </div>
               </CardContent>
@@ -284,7 +326,7 @@ export default function ICGIPGDashboard({ userId }) {
 
                   {/* Mensaje */}
                   <p className="text-sm text-gray-200 font-medium">
-                    {progression.indicators.ipg.message}
+                    {getIndicatorMessage('ipg')}
                   </p>
                 </div>
               </CardContent>

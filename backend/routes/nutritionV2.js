@@ -17,6 +17,17 @@ import {
 import { nutritionMenuGeneratorPrompt } from '../prompts/nutrition-menu-generator.js';
 import OpenAI from 'openai';
 import { ensureWeeklySnapshot, logNutritionChange } from '../services/nutritionAuditLogger.js';
+import { ensureWorkoutScheduleV3 } from '../utils/ensureScheduleV3.js';
+import {
+  getDailyNutritionLogV2,
+  isNutritionDayRegistered,
+  upsertDailyNutritionLogV2
+} from '../services/nutritionDailyLogV2.js';
+import { getNutritionReview } from '../services/nutritionReviewService.js';
+import {
+  applyNutritionKcalAdjustment
+} from '../services/nutritionAdjustmentService.js';
+import { undoLastNutritionKcalAdjustment } from '../services/nutritionAdjustmentService.js';
 
 const router = express.Router();
 
@@ -25,6 +36,27 @@ const METABOLIC_ORDER = ['tolerante', 'mixto', 'intolerante'];
 function daysBetween(a, b) {
   const MS_PER_DAY = 1000 * 60 * 60 * 24;
   return Math.abs(Math.round((b.getTime() - a.getTime()) / MS_PER_DAY));
+}
+
+function formatLocalDate(value) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function mapMethodologyToTrainingType(value) {
+  if (!value) return null;
+  const normalized = String(value).toLowerCase();
+  if (normalized.includes('hipertrofia')) return 'hipertrofia';
+  if (normalized.includes('fuerza') || normalized.includes('power') || normalized.includes('heavy')) return 'fuerza';
+  if (normalized.includes('resistencia') || normalized.includes('cardio') || normalized.includes('oposicion')) {
+    return 'resistencia';
+  }
+  return 'general';
 }
 
 async function generateMenuForMeal({ userId, meal, dayInfo }) {
@@ -474,8 +506,108 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
     } = req.body;
 
     // Validar duración
-    if (duracion_dias < 3 || duracion_dias > 31) {
-      return res.status(400).json({ error: 'La duración debe estar entre 3 y 31 días' });
+    if (duracion_dias < 3 || duracion_dias > 28) {
+      return res.status(400).json({ error: 'La duración debe estar entre 3 y 28 días' });
+    }
+
+    const requestedTrainingType = training_type;
+    const requestedTrainingSchedule = Array.isArray(training_schedule) ? training_schedule : [];
+
+    let resolvedTrainingType = requestedTrainingType;
+    let resolvedTrainingSchedule = requestedTrainingSchedule;
+
+    // Si existe plan de entrenamiento activo, Nutrición debe enlazarse siempre al plan (spec: puente Entrenamiento<->Nutrición).
+    const activePlanResult = await pool.query(
+      `
+        SELECT
+          id as methodology_plan_id,
+          methodology_type,
+          plan_data,
+          plan_start_date,
+          confirmed_at,
+          created_at,
+          status
+        FROM app.methodology_plans
+        WHERE user_id = $1
+          AND status IN ('active', 'confirmed')
+          AND cancelled_at IS NULL
+        ORDER BY is_current DESC NULLS LAST, confirmed_at DESC NULLS LAST, created_at DESC
+        LIMIT 1
+      `,
+      [userId]
+    );
+
+    if (activePlanResult.rowCount > 0) {
+      const activePlan = activePlanResult.rows[0];
+      const methodologyPlanId = activePlan.methodology_plan_id;
+
+      resolvedTrainingType = mapMethodologyToTrainingType(activePlan.methodology_type) || 'general';
+
+      // Asegurar que exista programación real en workout_schedule (on-demand).
+      const hasScheduleResult = await pool.query(
+        `
+          SELECT 1
+          FROM app.workout_schedule
+          WHERE methodology_plan_id = $1 AND user_id = $2
+          LIMIT 1
+        `,
+        [methodologyPlanId, userId]
+      );
+
+      if (hasScheduleResult.rowCount === 0) {
+        const startConfigQuery = await pool.query(
+          `SELECT * FROM app.plan_start_config WHERE methodology_plan_id = $1`,
+          [methodologyPlanId]
+        );
+        const startConfig = startConfigQuery.rowCount > 0 ? startConfigQuery.rows[0] : null;
+        const startDateFromPlan =
+          activePlan.plan_start_date || activePlan.confirmed_at || activePlan.created_at || new Date();
+
+        const scheduleClient = await pool.connect();
+        try {
+          await ensureWorkoutScheduleV3(
+            scheduleClient,
+            userId,
+            methodologyPlanId,
+            activePlan.plan_data,
+            startDateFromPlan,
+            startConfig
+          );
+        } finally {
+          scheduleClient.release();
+        }
+      }
+
+      // Construir calendario diario para los próximos N días desde hoy (local) usando scheduled_date.
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const endDate = new Date(today);
+      endDate.setDate(today.getDate() + (duracion_dias - 1));
+
+      const scheduleRangeResult = await pool.query(
+        `
+          SELECT scheduled_date
+          FROM app.workout_schedule
+          WHERE methodology_plan_id = $1
+            AND user_id = $2
+            AND scheduled_date BETWEEN $3 AND $4
+          ORDER BY scheduled_date ASC
+        `,
+        [methodologyPlanId, userId, formatLocalDate(today), formatLocalDate(endDate)]
+      );
+
+      const scheduledDates = new Set(
+        scheduleRangeResult.rows
+          .map((row) => formatLocalDate(row.scheduled_date))
+          .filter(Boolean)
+      );
+
+      resolvedTrainingSchedule = Array.from({ length: duracion_dias }, (_, index) => {
+        const date = new Date(today);
+        date.setDate(today.getDate() + index);
+        const key = formatLocalDate(date);
+        return scheduledDates.has(key);
+      });
     }
 
     // Obtener perfil del usuario
@@ -497,13 +629,13 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
     const planData = generateNutritionPlan(
       {
         ...profile,
-        training_type,
-        training_days: profile.training_days || (training_schedule.length > 0 ? training_schedule.filter(Boolean).length : undefined),
+        training_type: resolvedTrainingType,
+        training_days: profile.training_days || (resolvedTrainingSchedule.length > 0 ? resolvedTrainingSchedule.filter(Boolean).length : undefined),
         metabolic_type: profile.metabolic_type,
         steps_per_day: profile.steps_per_day
       },
       duracion_dias,
-      training_schedule
+      resolvedTrainingSchedule
     );
 
     console.log('✅ Plan determinista generado:', {
@@ -1324,6 +1456,127 @@ router.post('/metabolic-evaluate', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error en evaluación metabólica:', error);
     res.status(500).json({ error: 'Error al evaluar perfil metabólico' });
+  }
+});
+
+// ================================================
+// REGISTRO DIARIO (V2) — kcal + day_type + noise_flags
+// ================================================
+
+router.get('/daily/:date', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { date } = req.params;
+
+    const result = await getDailyNutritionLogV2(userId, date);
+
+    res.json({
+      success: true,
+      exists: result.exists,
+      daily: result.daily,
+      registered: isNutritionDayRegistered(result.daily)
+    });
+  } catch (error) {
+    const msg = error?.message || 'Error al obtener registro diario';
+    if (msg.includes('Fecha inválida')) {
+      return res.status(400).json({ success: false, error: msg });
+    }
+    console.error('Error obteniendo registro diario v2:', error);
+    res.status(500).json({ success: false, error: 'Error al obtener registro diario' });
+  }
+});
+
+router.post('/daily', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const saved = await upsertDailyNutritionLogV2(userId, req.body || {});
+
+    res.json({
+      success: true,
+      daily: saved,
+      registered: isNutritionDayRegistered(saved)
+    });
+  } catch (error) {
+    const msg = error?.message || 'Error al guardar registro diario';
+    if (
+      msg.includes('Fecha inválida') ||
+      msg.includes('day_type inválido') ||
+      msg.includes('no puede ser negativo')
+    ) {
+      return res.status(400).json({ success: false, error: msg });
+    }
+    console.error('Error guardando registro diario v2:', error);
+    res.status(500).json({ success: false, error: 'Error al guardar registro diario' });
+  }
+});
+
+// ================================================
+// REVISIÓN (V2) — semanal (feedback) + quincenal (recomendación)
+// ================================================
+
+router.get('/review', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const today = req.query.today || null; // opcional: YYYY-MM-DD (tests)
+
+    const review = await getNutritionReview(userId, today ? { today } : {});
+    if (!review.success) {
+      return res.status(404).json(review);
+    }
+
+    res.json(review);
+  } catch (error) {
+    const msg = error?.message || 'Error al obtener revisión nutricional';
+    if (msg.includes('today inválido')) {
+      return res.status(400).json({ success: false, error: msg });
+    }
+    console.error('Error obteniendo revisión nutricional:', error);
+    res.status(500).json({ success: false, error: 'Error al obtener revisión nutricional' });
+  }
+});
+
+// ================================================
+// AJUSTES (V2) — aplicar / deshacer
+// ================================================
+
+router.post('/adjustments/apply', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await applyNutritionKcalAdjustment(userId, req.body || {});
+    res.json(result);
+  } catch (error) {
+    const msg = error?.message || 'Error al aplicar ajuste';
+    if (
+      msg.includes('mode inválido') ||
+      msg.includes('source inválido') ||
+      msg.includes('delta_kcal inválido') ||
+      msg.includes('Perfil nutricional no encontrado')
+    ) {
+      return res.status(400).json({ success: false, error: msg });
+    }
+    if (msg.includes('No tienes un plan nutricional activo')) {
+      return res.status(404).json({ success: false, error: msg });
+    }
+    console.error('Error aplicando ajuste nutricional:', error);
+    res.status(500).json({ success: false, error: 'Error al aplicar ajuste nutricional' });
+  }
+});
+
+router.post('/adjustments/undo-last', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await undoLastNutritionKcalAdjustment(userId, {});
+    res.json(result);
+  } catch (error) {
+    const msg = error?.message || 'Error al deshacer ajuste';
+    if (
+      msg.includes('No hay ajustes recientes') ||
+      msg.includes('Ventana de deshacer expirada')
+    ) {
+      return res.status(400).json({ success: false, error: msg });
+    }
+    console.error('Error deshaciendo ajuste nutricional:', error);
+    res.status(500).json({ success: false, error: 'Error al deshacer ajuste nutricional' });
   }
 });
 

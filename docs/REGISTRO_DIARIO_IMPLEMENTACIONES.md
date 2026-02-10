@@ -1,5 +1,31 @@
 # Registro diario de implementaciones
 
+## 09.02.2026
+
+- Docs/Nutrición: se añade `docs/ANALISIS_REVISION_SEMANAL_QUINCENAL_NUTRICION.md` con el análisis de necesidades (revisión semanal/quincenal, anti-ruido y adherencia) vs estado actual y gaps.
+
+## 10.02.2026
+
+- Docs/Nutrición: se abre el pack de implementación `Docs/nutricion-revision-7d-14d/` y se actualiza `Docs/_active.md` (day_type/noise_flags como columnas, modos SIMPLE/FINO, revisión 7d/14d, autoajustes + deshacer).
+- Nutrición (SQL/tests): se añade y aplica la migración `20260210_daily_nutrition_log_day_type_noise_flags.sql` (columnas `day_type` + `noise_flags` + check), script `backend/scripts/run-nutrition-review-migration.js` y test `backend/tests/nutritionReviewMigration.test.js` (OK).
+- Nutrición (API/tests): se añaden endpoints v2 de registro diario `GET/POST /api/nutrition-v2/daily` (kcal + day_type + noise_flags + daily_log opcional) con servicio `backend/services/nutritionDailyLogV2.js` y tests `backend/tests/nutritionDailyV2.test.js` (OK).
+- Nutrición (Review/tests): se añade servicio `backend/services/nutritionReviewService.js` y endpoint `GET /api/nutrition-v2/review` (modo SIMPLE/FINO, rolling 7d vs 7d previa, adherencia>=80%, pesajes, compliance ±10%, ruido y bloqueo 7d) con tests `backend/tests/nutritionReviewV2.test.js` (OK).
+- Nutrición (Adjust/undo infra): se añade migración `20260210_nutrition_adjustment_actions.sql` (tabla `app.nutrition_adjustment_actions`), servicio `backend/services/nutritionAdjustmentService.js` y endpoint `POST /api/nutrition-v2/adjustments/apply` (regenera plan activo, clamp <=10%, auditoría) con test `backend/tests/nutritionAdjustmentsV2.test.js` (OK).
+- Nutrición (Undo/tests): se añade endpoint `POST /api/nutrition-v2/adjustments/undo-last` (ventana 24h, restaura plan anterior, archiva el nuevo, registra log revertido) con tests `backend/tests/nutritionUndoV2.test.js` (OK).
+- Nutrición (UI/review): se añade panel `NutritionReviewPanel` (bloque fijo de revisión semanal/quincenal + registro rápido kcal/day_type/noise_flags + aplicar ajuste recomendado + deshacer) y se integra en `NutritionDashboard` (overview). El review backend ahora expone `last_adjustment_action` para renderizar “Deshacer” de forma persistente; test añadido en `backend/tests/nutritionReviewV2.test.js` (OK).
+- Nutrición (QA/tests): QA UI headless cubriendo SIMPLE->FINO, ruido, recommend_adjustment, apply y undo. Tests añadidos para edge cases: sin pesajes, `day_type=cheat` como ruido y outlier de peso como ruido (`backend/tests/nutritionReviewV2.test.js`) (OK).
+- Nutrición (UX coherencia): el copy del objetivo semanal ahora indica dirección (pérdida/ganancia) y el ritmo muestra signo + “subiendo/bajando”; además, el panel de progresión (ICG/IPG) deriva la fase desde el plan nutricional activo si el bridge no la tiene (evita mostrar `unknown`).
+- Nutrición (UX): cuando IPG/ICG no se pueden calcular (sin pérdida/ganancia significativa), el badge ahora dice “Sin señal” y el mensaje explica por qué y qué falta, usando el cambio real de peso entre mediciones.
+- Docs: se añade `docs/RESUMEN_IMPLEMENTACION_NUTRICION_REVISION_7D_14D.md` con un resumen en lenguaje natural de lo implementado en el módulo de nutrición.
+
+## 06.02.2026
+
+- Nutrición: se elimina el cap de 31 días en generación de plan y sincronización UI; el límite queda en 28 días para alinearlo con la cadencia semanal/quincenal del spec.
+- Nutrición (spec punto 2): si hay plan de entrenamiento activo, la generación del plan v2 queda siempre enlazada (backend deriva tipo + calendario desde `workout_schedule`; UI auto-sincroniza y bloquea presets/edición manual).
+- Nutrición: `generateNutritionPlan` ahora calcula entrenos/semana de forma correcta cuando recibe un calendario diario (14-28 días) para no sobreestimar el TDEE al sincronizar con el plan activo.
+- Docs: se añade `docs/RESUMEN_DESALINEACION_NUTRICION_SPEC.md` con el resumen "como antes" de los puntos parcialmente alineados con el spec de nutrición.
+- Docs: se añade `docs/PLAN_ALINEACION_TOTAL_NUTRICION_SPEC.md` con plan integral por fases (backend/UI/SQL/QA) para cerrar brechas y alinear 100% con el spec.
+
 ## 05.02.2026
 
 - Se crean las skills globales `impl-pack-open` y `impl-pack-close` en `~/.codex/skills/` para generar y cerrar paquetes de documentación de implementación con puntero activo.
