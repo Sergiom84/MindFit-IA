@@ -17,6 +17,7 @@
 - Nutrición (UX coherencia): el copy del objetivo semanal ahora indica dirección (pérdida/ganancia) y el ritmo muestra signo + “subiendo/bajando”; además, el panel de progresión (ICG/IPG) deriva la fase desde el plan nutricional activo si el bridge no la tiene (evita mostrar `unknown`).
 - Nutrición (UX): cuando IPG/ICG no se pueden calcular (sin pérdida/ganancia significativa), el badge ahora dice “Sin señal” y el mensaje explica por qué y qué falta, usando el cambio real de peso entre mediciones.
 - Docs: se añade `docs/RESUMEN_IMPLEMENTACION_NUTRICION_REVISION_7D_14D.md` con un resumen en lenguaje natural de lo implementado en el módulo de nutrición.
+- Nutrición (fix): se corrige `Guardar configuración` en `NutritionPlanGenerator` para no serializar el evento de click (error `Converting circular structure to JSON`); además se añade guardarraíl en `handleSaveProfile` para ignorar payloads tipo evento.
 
 ## 06.02.2026
 

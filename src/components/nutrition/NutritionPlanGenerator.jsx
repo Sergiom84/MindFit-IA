@@ -785,11 +785,17 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     }));
   };
 
+  const isEventLikePayload = (value) => {
+    if (!value || typeof value !== "object") return false;
+    return typeof value.preventDefault === "function" || Object.prototype.hasOwnProperty.call(value, "nativeEvent");
+  };
+
   const handleSaveProfile = async (overrideData) => {
     setProfileSaving(true);
     setProfileSaveError(null);
     setProfileSuccess(null);
-    const dataToSave = overrideData || profileData;
+    const safeOverride = isEventLikePayload(overrideData) ? null : overrideData;
+    const dataToSave = safeOverride || profileData;
     let wasSaved = false;
 
     try {
@@ -1198,7 +1204,9 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
           <div className="flex flex-wrap gap-3">
             <button
               type="button"
-              onClick={handleSaveProfile}
+              onClick={() => {
+                handleSaveProfile();
+              }}
               className="flex items-center gap-2 px-5 py-3 bg-yellow-400 text-gray-900 font-semibold rounded-lg hover:bg-yellow-500 transition-colors disabled:opacity-60"
               disabled={profileLoading || profileSaving}
             >
