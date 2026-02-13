@@ -125,3 +125,9 @@ Escenario validado:
 - Fase 4: ajuste aplica y UI queda consistente (plan activo).
 - Fase 5: undo 24h estable.
 - Fase 6: UX clara y sin incoherencias.
+
+## Resultados de cierre del pack
+
+- Tests automatizados backend: ejecutados y en verde para las fases implementadas.
+- QA UI headless: ejecutada y en verde para flujo SIMPLE -> FINO -> apply -> undo.
+- Pendiente para cierre definitivo: QA manual del usuario (entorno real/sin seed) antes de limpiar el puntero activo.

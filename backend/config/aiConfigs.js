@@ -66,8 +66,9 @@ export const AI_MODULES = {
   },
   NUTRITION: {
     key: 'NUTRITION',
-    envKey: 'OPENAI_API_KEY',
-    model: 'gpt-4o-mini',
+    envKey: 'OPENAI_API_KEY_NUTRITION',
+    strictEnvKey: true,
+    model: process.env.NUTRITION_HYBRID_MODEL || 'gpt-5.2',
     temperature: 0.7,
     max_output_tokens: 8000,
     top_p: 1.0,

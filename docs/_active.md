@@ -1,27 +1,26 @@
 # Active implementation
 
-- slug: nutricion-revision-7d-14d
-- path: docs/nutricion-revision-7d-14d
+- slug: motor-hibrido-nutricion-ia
+- path: docs/motor-hibrido-nutricion-ia
 
 ## Orden de lectura
 
-1. `docs/nutricion-revision-7d-14d/status.md`
-2. `docs/nutricion-revision-7d-14d/checklist.md`
-3. `docs/nutricion-revision-7d-14d/implementation.md`
-4. `docs/nutricion-revision-7d-14d/tests.md`
+1. `docs/motor-hibrido-nutricion-ia/status.md`
+2. `docs/motor-hibrido-nutricion-ia/checklist.md`
+3. `docs/motor-hibrido-nutricion-ia/implementation.md`
+4. `docs/motor-hibrido-nutricion-ia/tests.md`
 
 ## Current phase
 
-Ready for QA (Fase 7 completada)
+Fase 0 (Contrato técnico y flags) - validación residual
 
 ## Next task
 
-QA manual con usuario real (sin seeds) para validar copy/UX final y, si OK, cerrar el pack.
+Validar test de rechazo con `NUTRITION_HYBRID_ENABLED=false` en backend levantado con esa env.
 
 ## Last update
 
-2026-02-10 13:56 CET
+2026-02-13 23:33 CET
 
-- last_closed_slug: nutricion-ui-coherencia-motor
-- last_closed_path: docs/nutricion-ui-coherencia-motor
-- cleared_at: 2026-02-05 19:19 Europe/Zurich
+- previous_context_slug: integracion-alimentos-nutricion
+- previous_context_path: docs/integracion-alimentos-nutricion

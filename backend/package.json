@@ -10,6 +10,10 @@
     "test": "node --test tests/**/*.test.js",
     "migrate:nutrition-review": "node scripts/run-nutrition-review-migration.js",
     "migrate:nutrition-adjustments": "node scripts/run-nutrition-adjustments-migration.js",
+    "migrate:nutrition-recipes": "node scripts/run-nutrition-recipes-migration.js",
+    "import:nutrition-recipe-examples": "node scripts/import-recipe-examples-from-excel.js",
+    "normalize:nutrition-recipe-names": "node scripts/normalize-recipe-names.js",
+    "curate:nutrition-recipe-names": "node scripts/curate-recipe-names.js",
     "postinstall": "echo \"(backend) postinstall ok\""
   },
   "engines": {

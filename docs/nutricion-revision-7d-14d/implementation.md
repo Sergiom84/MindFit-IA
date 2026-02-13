@@ -252,3 +252,29 @@ Criterios de aceptación:
 - Ajuste aplica regenerando plan activo (UI consistente).
 - Deshacer 24h operativo.
 - Auditoría completa (aplicado + revertido).
+
+## Outcome summary
+
+### Qué se implementó
+
+- Se implementó el sistema completo de revisión semanal/quincenal con lógica rolling 7d/14d.
+- Se activó el modelo SIMPLE/FINO con gate de completitud de datos (80% en 14 días) y pesajes suficientes.
+- Se añadieron endpoints v2 para registro diario (`kcal`, `day_type`, `noise_flags`), revisión, aplicación de ajuste y deshacer.
+- Se implementó el flujo de ajuste con regeneración del plan activo y reversión del último ajuste en ventana de 24h.
+- Se integró la UX de revisión en dashboard con explicaciones de estado, motivos y acciones.
+
+### Qué se cambió vs plan original
+
+- Se mantuvo compatibilidad con endpoints legacy y se construyó la nueva capa en rutas v2.
+- La separación entre “completitud de datos” y “compliance real” quedó implementada en la lógica de decisión para evitar ajustes por mala adherencia al objetivo.
+- Se reforzó el copy UX de estado/progresión para casos sin señal (IPG/ICG), evitando etiquetas ambiguas.
+
+### Pendientes
+
+- QA manual final con usuario real (sin seeds), validando copy/UX final y consistencia percibida.
+- Verificación manual explícita de rutas legacy de diario en entorno con backend activo.
+
+### Riesgos conocidos post-release
+
+- Si no se ejecuta QA manual en entorno real, pueden quedar matices de copy/flujo no cubiertos por tests automatizados.
+- La convivencia de rutas legacy y v2 requiere disciplina para evitar que nuevas pantallas llamen endpoints antiguos por error.

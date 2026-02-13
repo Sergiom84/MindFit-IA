@@ -7,6 +7,41 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
 const DIAS_SEMANA_POR_INDICE = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const DIAS_SEMANA_LEGACY = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const cardBase = "bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg";
+const MENU_GENERATION_MODES = [
+  { value: "hybrid_ai", label: "IA híbrida (recomendado)" },
+  { value: "recipe_examples", label: "Recetas (Ejemplos)" },
+  { value: "deterministic", label: "Determinista" },
+  { value: "ai", label: "IA clásico" }
+];
+
+const decorateDayWithGenerationMetadata = (day, dayMetadata = null) => {
+  if (!day || !Array.isArray(day.meals) || !dayMetadata) {
+    return day;
+  }
+
+  let hasDecoratedMeals = false;
+  const meals = day.meals.map((meal) => {
+    const mealId = meal?.id ? String(meal.id) : null;
+    const metadata = mealId ? dayMetadata[mealId] : null;
+    if (!metadata) {
+      return meal;
+    }
+    hasDecoratedMeals = true;
+    return {
+      ...meal,
+      generation_metadata: metadata
+    };
+  });
+
+  if (!hasDecoratedMeals) {
+    return day;
+  }
+
+  return {
+    ...day,
+    meals
+  };
+};
 
 const formatLocalDate = (value) => {
   if (!value) return null;
@@ -60,15 +95,19 @@ export default function NutritionCalendarView() {
   const [selectedDay, setSelectedDay] = useState(null);
   const [generatingDay, setGeneratingDay] = useState(null);
   const [infoMessage, setInfoMessage] = useState(null);
-  const menusEnabled = false;
+  const [menuGenerationMode, setMenuGenerationMode] = useState("hybrid_ai");
+  const [generationMetadataByDay, setGenerationMetadataByDay] = useState({});
+  const menusEnabled = true;
 
   useEffect(() => {
     loadActivePlan();
   }, []);
 
-  const loadActivePlan = async () => {
-    setLoading(true);
-    setError(null);
+  const loadActivePlan = async ({ silent = false } = {}) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
 
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
@@ -88,15 +127,39 @@ export default function NutritionCalendarView() {
       const data = await response.json();
       setPlan(data);
       console.log('✅ Plan cargado:', data);
+      return data;
     } catch (err) {
-      setError(err.message);
+      if (!silent) {
+        setError(err.message);
+      }
       console.error('Error cargando plan:', err);
+      return null;
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
-  const generateMenusForDay = async (day) => {
+  const refreshSelectedDayFromPlan = async (dayId) => {
+    if (!dayId) return null;
+    const refreshedPlan = await loadActivePlan({ silent: true });
+    if (!refreshedPlan?.days?.length) {
+      return null;
+    }
+
+    const dayMetadata = generationMetadataByDay[String(dayId)] || null;
+    const updatedDay = refreshedPlan.days.find((entry) => String(entry.day_id) === String(dayId));
+    if (!updatedDay) {
+      return null;
+    }
+
+    const decoratedDay = decorateDayWithGenerationMetadata(updatedDay, dayMetadata);
+    setSelectedDay(decoratedDay);
+    return decoratedDay;
+  };
+
+const generateMenusForDay = async (day) => {
     if (!day?.day_id) return;
     setGeneratingDay(day.day_id);
     setInfoMessage(null);
@@ -108,17 +171,48 @@ export default function NutritionCalendarView() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ dayId: day.day_id })
+        body: JSON.stringify({ dayId: day.day_id, mode: menuGenerationMode })
       });
 
       if (!response.ok) {
-        throw new Error('Error al generar menús del día');
+        throw new Error('Error al generar menus del dia');
       }
 
       const data = await response.json();
-      setInfoMessage(`Menús generados para ${data.menus_generated}/${data.total_meals} comidas`);
-      // Recargar plan para reflejar menús si se persistieran a futuro
-      await loadActivePlan();
+      const persistedItems = Number(data.items_persisted || 0);
+      const fallbackCount = Number(data.fallback_count || 0);
+      const modeUsed = data.mode || menuGenerationMode;
+      const dayKey = String(day.day_id);
+      const metadataByMealId = {};
+      (Array.isArray(data.menus) ? data.menus : []).forEach((menuEntry) => {
+        const mealId = menuEntry?.meal_id ? String(menuEntry.meal_id) : null;
+        if (!mealId || !menuEntry?.metadata) return;
+        metadataByMealId[mealId] = menuEntry.metadata;
+      });
+      const mergedDayMetadata = {
+        ...(generationMetadataByDay[dayKey] || {}),
+        ...metadataByMealId
+      };
+      if (Object.keys(metadataByMealId).length > 0) {
+        setGenerationMetadataByDay((previous) => ({
+          ...previous,
+          [dayKey]: mergedDayMetadata
+        }));
+      }
+
+      setInfoMessage(
+        `Menús generados (${modeUsed}) para ${data.menus_generated}/${data.total_meals} comidas` +
+        (persistedItems > 0 ? ` · ${persistedItems} items guardados` : '') +
+        (fallbackCount > 0 ? ` · ${fallbackCount} fallback(s) a determinista` : '')
+      );
+
+      const refreshedPlan = await loadActivePlan();
+      if (refreshedPlan?.days?.length) {
+        const updatedDay = refreshedPlan.days.find((entry) => entry.day_id === day.day_id);
+        if (updatedDay) {
+          setSelectedDay(decorateDayWithGenerationMetadata(updatedDay, mergedDayMetadata));
+        }
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -262,6 +356,21 @@ export default function NutritionCalendarView() {
           <div className="mt-2 text-sm text-emerald-300">{infoMessage}</div>
         )}
 
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <label className="text-xs text-gray-300/80">Modo de generación de menús</label>
+          <select
+            value={menuGenerationMode}
+            onChange={(event) => setMenuGenerationMode(event.target.value)}
+            className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-yellow-400/30"
+          >
+            {MENU_GENERATION_MODES.map((modeOption) => (
+              <option key={modeOption.value} value={modeOption.value} className="bg-neutral-900 text-white">
+                {modeOption.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Resumen de Macros */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white/5 border border-white/10 rounded-lg p-3 border-l-2 border-l-emerald-400/40">
@@ -333,7 +442,10 @@ export default function NutritionCalendarView() {
                 isTraining ? 'border-l-2 border-l-emerald-400/60' : 'border-l-2 border-l-sky-400/40'
               }`}
               onClick={() => {
-                if (day) setSelectedDay(day);
+                if (day) {
+                  const dayMetadata = generationMetadataByDay[String(day.day_id)] || null;
+                  setSelectedDay(decorateDayWithGenerationMetadata(day, dayMetadata));
+                }
               }}
             >
               {/* Header del Día */}
@@ -414,7 +526,8 @@ export default function NutritionCalendarView() {
                   onClick={(e) => {
                     e.stopPropagation();
                     if (day) {
-                      setSelectedDay(day);
+                      const dayMetadata = generationMetadataByDay[String(day.day_id)] || null;
+                      setSelectedDay(decorateDayWithGenerationMetadata(day, dayMetadata));
                     }
                   }}
                   className="inline-flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-full bg-white/5 border border-white/15 text-gray-200/80 text-[10px] sm:text-xs uppercase tracking-wide max-w-full hover:bg-white/10 disabled:opacity-60"
@@ -437,6 +550,11 @@ export default function NutritionCalendarView() {
             plan_name: plan.plan_name,
             training_type: plan.training_type
           }}
+          menuGenerationMode={menuGenerationMode}
+          menusEnabled={menusEnabled}
+          isGeneratingMenus={generatingDay === selectedDay.day_id}
+          onGenerateDayMenus={menusEnabled ? () => generateMenusForDay(selectedDay) : null}
+          onRefreshDay={refreshSelectedDayFromPlan}
           onClose={() => setSelectedDay(null)}
         />
       )}

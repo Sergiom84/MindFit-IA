@@ -13,6 +13,16 @@ export const nutritionMenuGeneratorPrompt = ({
   const { nombre, kcal, macros, orden, timing_note } = meal;
   const { tipo_dia } = dayInfo;
   const { preferencias = {}, alergias = [] } = userPreferences;
+  const foodCatalogLines = availableFoods.map((food) => {
+    const rawMacros = food.macros_100g;
+    const parsedMacros = typeof rawMacros === 'string' ? JSON.parse(rawMacros) : (rawMacros || {});
+    const estadoBase = food.estado_pesado_base || 'tal_cual';
+    const estadoMostrado = food.estado_pesado_mostrado_default || estadoBase;
+    const grupoFactor = food.grupo_factor ? `, grupo_factor: ${food.grupo_factor}` : '';
+    const categoriaDetalle = food.categoria_detalle ? `/${food.categoria_detalle}` : '';
+
+    return `- ${food.nombre} (${food.categoria}${categoriaDetalle}) [estado_base: ${estadoBase}, estado_mostrado_default: ${estadoMostrado}${grupoFactor}]: ${parsedMacros.protein_g ?? 0}g P, ${parsedMacros.carbs_g ?? 0}g C, ${parsedMacros.fat_g ?? 0}g G, ${parsedMacros.kcal ?? 0} kcal/100g`;
+  }).join('\n');
 
   return `Eres un nutricionista deportivo experto. Tu tarea es generar un menú específico para una comida PRE-CALCULADA.
 
@@ -34,10 +44,7 @@ ${preferencias.sin_lactosa ? '- SIN LACTOSA' : ''}
 ${alergias.length > 0 ? `- ALERGIAS: ${alergias.join(', ')}` : ''}
 
 ## CATÁLOGO DE ALIMENTOS DISPONIBLES:
-${availableFoods.map(food => {
-  const macros = JSON.parse(food.macros_100g);
-  return `- ${food.nombre} (${food.categoria}): ${macros.protein_g}g P, ${macros.carbs_g}g C, ${macros.fat_g}g G, ${macros.kcal} kcal/100g`;
-}).join('\n')}
+${foodCatalogLines}
 
 ## INSTRUCCIONES CRÍTICAS:
 1. **VALIDACIÓN DE MACROS**: Los macros del menú generado DEBEN coincidir con los objetivos con ±2% de margen
@@ -45,6 +52,7 @@ ${availableFoods.map(food => {
 3. **RESPETA RESTRICCIONES**: Filtra alimentos según preferencias y alergias
 4. **CANTIDADES EXACTAS**: Calcula gramos exactos de cada alimento para cumplir macros
 5. **TIMING ADECUADO**: Si es post-entreno, prioriza proteína + carbohidratos de rápida absorción
+6. **ESTADO DE PESADO**: Respeta \`estado_mostrado_default\` del catálogo y no inventes estados
 
 ## FORMATO DE RESPUESTA (JSON):
 Debes responder ÚNICAMENTE con un JSON válido en este formato:

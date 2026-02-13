@@ -152,12 +152,12 @@ const Navigation = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.2 }}
-        className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)]"
+        className="fixed bottom-0 left-0 right-0 z-50 sm:px-4 sm:pb-[calc(env(safe-area-inset-bottom)+12px)]"
       >
-        <div className="mx-auto max-w-3xl">
-          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-neutral-900/80 ring-1 ring-white/5 shadow-[0_25px_70px_-50px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+        <div className="w-full sm:mx-auto sm:max-w-3xl">
+          <div className="relative overflow-hidden border-t border-white/10 bg-neutral-900/95 shadow-none backdrop-blur-xl sm:rounded-2xl sm:border sm:bg-neutral-900/80 sm:ring-1 sm:ring-white/5 sm:shadow-[0_25px_70px_-50px_rgba(0,0,0,0.9)]">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-yellow-400/10 via-transparent to-yellow-400/10" />
-            <div className="flex items-center justify-between gap-1 px-2 py-2 font-body">
+            <div className="flex items-center justify-between gap-1 px-2 py-2 pb-[calc(env(safe-area-inset-bottom)+8px)] font-body sm:pb-2">
               <button
                 onClick={() => navigate('/')}
                 className={`group flex flex-shrink-0 flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-all sm:px-3 sm:py-2 ${

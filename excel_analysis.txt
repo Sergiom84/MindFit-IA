@@ -1,0 +1,644 @@
+================================================================================
+ANALISIS DE ARCHIVOS EXCEL - MODULO NUTRICION
+================================================================================
+
+================================================================================
+ARCHIVO: actualizado.Base_Alimentos.xlsx
+================================================================================
+
+Hojas encontradas: 3
+   Constructor, Guía, Factores_Coccion
+
+--------------------------------------------------------------------------------
+HOJA: Constructor
+--------------------------------------------------------------------------------
+
+Dimensiones: 24 filas x 9 columnas
+
+Columnas (9):
+    1. CONSTRUCTOR DE COMIDAS — macros + fibra (referencia Base)
+    2. Unnamed: 1
+    3. Unnamed: 2
+    4. Unnamed: 3
+    5. Unnamed: 4
+    6. Unnamed: 5
+    7. Unnamed: 6
+    8. Unnamed: 7
+    9. Unnamed: 8
+
+Primeras 5 filas:
+                                   CONSTRUCTOR DE COMIDAS — macros + fibra (referencia Base) Unnamed: 1 Unnamed: 2 Unnamed: 3     Unnamed: 4  Unnamed: 5         Unnamed: 6 Unnamed: 7       Unnamed: 8
+0  Elige alimento y gramos. Calcula automáticamente Kcal/P/G/C y Fibra desde la hoja 'Base'.        NaN        NaN        NaN            NaN         NaN                NaN        NaN              NaN
+1                                                                                        NaN        NaN        NaN        NaN            NaN         NaN                NaN        NaN              NaN
+2                                                                                     Comida   Alimento     Gramos       Kcal  Proteínas (g)  Grasas (g)  Carbohidratos (g)  Fibra (g)  Sustituible por
+3                                                                                        NaN        NaN        NaN        NaN            NaN         NaN                NaN        NaN              NaN
+4                                                                                        NaN        NaN        NaN        NaN            NaN         NaN                NaN        NaN              NaN
+
+Tipos de datos:
+CONSTRUCTOR DE COMIDAS — macros + fibra (referencia Base)       str
+Unnamed: 1                                                      str
+Unnamed: 2                                                      str
+Unnamed: 3                                                   object
+Unnamed: 4                                                   object
+Unnamed: 5                                                   object
+Unnamed: 6                                                   object
+Unnamed: 7                                                   object
+Unnamed: 8                                                      str
+
+[!] Valores nulos por columna:
+CONSTRUCTOR DE COMIDAS — macros + fibra (referencia Base)    22
+Unnamed: 1                                                   22
+Unnamed: 2                                                   23
+Unnamed: 3                                                   22
+Unnamed: 4                                                   22
+Unnamed: 5                                                   22
+Unnamed: 6                                                   22
+Unnamed: 7                                                   22
+Unnamed: 8                                                   23
+
+--------------------------------------------------------------------------------
+HOJA: Guía
+--------------------------------------------------------------------------------
+
+Dimensiones: 22 filas x 5 columnas
+
+Columnas (5):
+    1. GUÍA DE USO — BASE DE ALIMENTOS (MindFeed)
+    2. Unnamed: 1
+    3. Unnamed: 2
+    4. Unnamed: 3
+    5. Unnamed: 4
+
+Primeras 5 filas:
+                                                                                                              GUÍA DE USO — BASE DE ALIMENTOS (MindFeed)                                Unnamed: 1             Unnamed: 2                                 Unnamed: 3                                Unnamed: 4
+0  Objetivo: convertir macros → comidas. La hoja 'Base' es la fuente maestra. Omnívoro y Vegetariano son vistas. Incluye campo de fibra y sustituciones.                                       NaN                    NaN                                        NaN                                       NaN
+1                                                                                                                                                  Campo                             Qué significa               Ejemplos                        Uso en el generador                                     Notas
+2                                                                                                                                               Alimento  Nombre del alimento tal cual se muestra.  Arroz integral cocido  Mostrar al usuario y usar para búsquedas.            Mantener nombres consistentes.
+3                                                                                                                                               Peso (g)             Base de referencia de macros.                    100                 Base de cálculo por 100 g.  Si se cambian unidades, actualizar todo.
+4                                                                                                                                       Kcal / P / G / C          Valores nutricionales por 100 g.  Pechuga de pollo: 24P    Cálculo de raciones y ajuste de gramos.   Aproximados; dependen de marca/cocción.
+
+Tipos de datos:
+GUÍA DE USO — BASE DE ALIMENTOS (MindFeed)    str
+Unnamed: 1                                    str
+Unnamed: 2                                    str
+Unnamed: 3                                    str
+Unnamed: 4                                    str
+
+[!] Valores nulos por columna:
+GUÍA DE USO — BASE DE ALIMENTOS (MindFeed)    1
+Unnamed: 1                                    3
+Unnamed: 2                                    8
+Unnamed: 3                                    8
+Unnamed: 4                                    8
+
+--------------------------------------------------------------------------------
+HOJA: Factores_Coccion
+--------------------------------------------------------------------------------
+
+Dimensiones: 8 filas x 5 columnas
+
+Columnas (5):
+    1. Grupo_factor
+    2. Estado_base
+    3. Estado_objetivo
+    4. Factor_base_objetivo
+    5. Nota
+
+Primeras 5 filas:
+    Grupo_factor Estado_base Estado_objetivo  Factor_base_objetivo                            Nota
+0          arroz       crudo          cocido              2.500000        Aprox. absorción de agua
+1          pasta       crudo          cocido              2.300000        Aprox. absorción de agua
+2  legumbre_seca        seco          cocido              2.200000      Aprox. hidratación/cocción
+3          carne       crudo          cocido              0.750000        Aprox. merma por cocción
+4          pasta      cocido           crudo              0.434783  Inverso de 2.3 (crudo->cocido)
+
+Tipos de datos:
+Grupo_factor                str
+Estado_base                 str
+Estado_objetivo             str
+Factor_base_objetivo    float64
+Nota                        str
+
+Estadisticas de columnas numericas:
+       Factor_base_objetivo
+count              8.000000
+mean               1.296583
+std                0.912368
+min                0.400000
+25%                0.449604
+50%                1.041667
+75%                2.225000
+max                2.500000
+
+================================================================================
+ARCHIVO: Base alimentos.xlsx
+================================================================================
+
+Hojas encontradas: 1
+   Base
+
+--------------------------------------------------------------------------------
+HOJA: Base
+--------------------------------------------------------------------------------
+
+Dimensiones: 243 filas x 21 columnas
+
+Columnas (21):
+    1. BASE MAESTRA DE ALIMENTOS — MindFeed (Omnívoro + Vegetariano)
+    2. Unnamed: 1
+    3. Unnamed: 2
+    4. Unnamed: 3
+    5. Unnamed: 4
+    6. Unnamed: 5
+    7. Unnamed: 6
+    8. Unnamed: 7
+    9. Unnamed: 8
+   10. Unnamed: 9
+   11. Unnamed: 10
+   12. Unnamed: 11
+   13. Unnamed: 12
+   14. Unnamed: 13
+   15. Unnamed: 14
+   16. Unnamed: 15
+   17. Unnamed: 16
+   18. Unnamed: 17
+   19. Unnamed: 18
+   20. Unnamed: 19
+   21. Unnamed: 20
+
+Primeras 5 filas:
+                                                               BASE MAESTRA DE ALIMENTOS — MindFeed (Omnívoro + Vegetariano) Unnamed: 1 Unnamed: 2     Unnamed: 3  Unnamed: 4         Unnamed: 5 Unnamed: 6 Unnamed: 7  Unnamed: 8          Unnamed: 9                         Unnamed: 10    Unnamed: 11         Unnamed: 12 Unnamed: 13    Unnamed: 14                                                                                 Unnamed: 15         Unnamed: 16         Unnamed: 17                     Unnamed: 18   Unnamed: 19                                                                                 Unnamed: 20
+0  Valores por 100 g. Incluye: categoría, estado, tipo de dieta, porción típica y tags/alérgenos (para generador de dietas).        NaN        NaN            NaN         NaN                NaN        NaN        NaN         NaN                 NaN                                 NaN            NaN                 NaN         NaN            NaN                                                                                         NaN                 NaN                 NaN                             NaN           NaN                                                                                         NaN
+1                                                                                                                   Alimento   Peso (g)       Kcal  Proteínas (g)  Grasas (g)  Carbohidratos (g)     Estado  Categoría  Tipo dieta  Porción típica (g)                      Tags/Alérgenos          Notas         ID_alimento   Fibra (g)  Medida casera                                                                             Sustituible por  Estado_pesado_base  Metodo_preparacion  Estado_pesado_mostrado_default  Grupo_factor                                                                          Sustituible_por_ID
+2                                                                                                         Aceite de aguacate        100        900              0         100                  0   Estándar      Grasa       Ambos                  10  vegetariano, vegano, alto en grasa  1 cda ≈ 10 g.  aceite_de_aguacate           0          1 cda      Aceite de coco; Aceite de girasol; Aceite de linaza; Aceite de oliva; Aceite de sésamo            tal_cual                 NaN                        tal_cual           NaN      aceite_de_coco; aceite_de_girasol; aceite_de_linaza; aceite_de_oliva; aceite_de_sesamo
+3                                                                                                             Aceite de coco        100        900              0         100                  0   Estándar      Grasa       Ambos                  10  vegetariano, vegano, alto en grasa  1 cda ≈ 10 g.      aceite_de_coco           0          1 cda  Aceite de aguacate; Aceite de girasol; Aceite de linaza; Aceite de oliva; Aceite de sésamo            tal_cual                 NaN                        tal_cual           NaN  aceite_de_aguacate; aceite_de_girasol; aceite_de_linaza; aceite_de_oliva; aceite_de_sesamo
+4                                                                                                          Aceite de girasol        100        900              0         100                  0   Estándar      Grasa       Ambos                  10  vegetariano, vegano, alto en grasa  1 cda ≈ 10 g.   aceite_de_girasol           0          1 cda     Aceite de aguacate; Aceite de coco; Aceite de linaza; Aceite de oliva; Aceite de sésamo            tal_cual                 NaN                        tal_cual           NaN     aceite_de_aguacate; aceite_de_coco; aceite_de_linaza; aceite_de_oliva; aceite_de_sesamo
+
+Tipos de datos:
+BASE MAESTRA DE ALIMENTOS — MindFeed (Omnívoro + Vegetariano)       str
+Unnamed: 1                                                       object
+Unnamed: 2                                                       object
+Unnamed: 3                                                       object
+Unnamed: 4                                                       object
+Unnamed: 5                                                       object
+Unnamed: 6                                                          str
+Unnamed: 7                                                          str
+Unnamed: 8                                                          str
+Unnamed: 9                                                       object
+Unnamed: 10                                                         str
+Unnamed: 11                                                         str
+Unnamed: 12                                                         str
+Unnamed: 13                                                      object
+Unnamed: 14                                                         str
+Unnamed: 15                                                         str
+Unnamed: 16                                                         str
+Unnamed: 17                                                         str
+Unnamed: 18                                                         str
+Unnamed: 19                                                         str
+Unnamed: 20                                                         str
+
+[!] Valores nulos por columna:
+Unnamed: 1       1
+Unnamed: 2       1
+Unnamed: 3       1
+Unnamed: 4       1
+Unnamed: 5       1
+Unnamed: 6       1
+Unnamed: 7       1
+Unnamed: 8       1
+Unnamed: 9       1
+Unnamed: 10      1
+Unnamed: 11    209
+Unnamed: 12      1
+Unnamed: 13    147
+Unnamed: 14    231
+Unnamed: 15      1
+Unnamed: 16      1
+Unnamed: 17    227
+Unnamed: 18      1
+Unnamed: 19    184
+Unnamed: 20      1
+
+================================================================================
+ARCHIVO: Biblioteca_Platos_Plantillas_.xlsx
+================================================================================
+
+Hojas encontradas: 7
+   Guía, Reglas_Sesgo, Plantillas, Slots, Banco_Roles, Ejemplos, Roles
+
+--------------------------------------------------------------------------------
+HOJA: Guía
+--------------------------------------------------------------------------------
+
+Dimensiones: 5 filas x 2 columnas
+
+Columnas (2):
+    1. Campo
+    2. Detalle
+
+Primeras 5 filas:
+                Campo                                                                                                                                                                                   Detalle
+0            Objetivo                                                                                         Transformar macros diarios en platos coherentes mediante plantillas + Base de Alimentos (por ID).
+1    Fuente de verdad                                                                                       Los macros se calculan siempre desde Base (por 100 g en estado_base). Plantillas no guardan macros.
+2  Cómo genera la app  1) Selección de plantilla por meal_type + fase + día (entreno/descanso). 2) Relleno por roles (IDs). 3) Ajuste de gramos. 4) Mostrar estado crudo/cocido/escurrido según especificación.
+3       Sustituciones                                                                                                      Siempre por IDs. Recalcular gramos para mantener el aporte macro principal del slot.
+4             Estados                                                                               La dieta siempre indica estado (crudo/cocido/escurrido/tal_cual). Conversión solo afecta gramos, no macros.
+
+Tipos de datos:
+Campo      str
+Detalle    str
+
+--------------------------------------------------------------------------------
+HOJA: Reglas_Sesgo
+--------------------------------------------------------------------------------
+
+Dimensiones: 5 filas x 4 columnas
+
+Columnas (4):
+    1. Fase/Día
+    2. Sesgo (selección)
+    3. Guías de plantillas
+    4. Guías de cantidades/extras
+
+Primeras 5 filas:
+         Fase/Día                       Sesgo (selección)                                                                                Guías de plantillas                                                                                 Guías de cantidades/extras
+0      Definición  Preferir saciedad alta y baja densidad   Plantillas con 2x VERDURA, LEGUMBRE, ensaladas, cenas ligeras; evitar grasas altas salvo control  Proteína estable; subir verduras; grasa controlada; carb cycling: más carbo en entreno, menos en descanso
+1   Normocalórica                              Equilibrio                         Rotación equilibrada; 1 carbo + 1 proteína + 1–2 verduras + grasa moderada                                         Ajustes mínimos; rendimiento estable; fibra objetivo cuando exista
+2         Volumen  Preferir densidad calórica con control                       Plantillas con carb doble, aceite y snacks densos; mantener verduras mínimas                Añadir extras (aceite, cremas, frutos secos) antes que ultraprocesados; controlar digestión
+3   Entreno (día)       Carbo alto alrededor de la sesión  Usar plantillas post-entreno y comidas con CARBO_COCIDO; pre-entreno con CARBO_RAPIDO si conviene                                Grasa baja pre/post; proteína estable; hidratos suben en ventana de entreno
+4  Descanso (día)          Carbo moderado/bajo según fase                                            Plantillas más saciantes y bajas en carb; cenas ligeras                                          Mantener proteína; redistribuir carb a verduras/grasas según fase
+
+Tipos de datos:
+Fase/Día                      str
+Sesgo (selección)             str
+Guías de plantillas           str
+Guías de cantidades/extras    str
+
+--------------------------------------------------------------------------------
+HOJA: Plantillas
+--------------------------------------------------------------------------------
+
+Dimensiones: 64 filas x 8 columnas
+
+Columnas (8):
+    1. template_id
+    2. template_name
+    3. meal_type
+    4. diet_allowed
+    5. day_context
+    6. phase_bias
+    7. satiety_bias
+    8. slot_roles
+
+Primeras 5 filas:
+  template_id                                          template_name meal_type diet_allowed day_context     phase_bias       satiety_bias                                                  slot_roles
+0         B01       Desayuno lácteo: lácteo proteico + avena + fruta  DESAYUNO        AMBOS       AMBOS    Equilibrado      Alta saciedad  LACTEO_PROTEICO_MAGRO|CARBO_AVENA|FRUTA|GRASA_FRUTOS_SECOS
+1         B02  Desayuno lácteo: lácteo proteico + pan/cereal + fruta  DESAYUNO        AMBOS       AMBOS    Equilibrado     Media saciedad                       LACTEO_PROTEICO_MAGRO|CARBO_PAN|FRUTA
+2         B03                                 Tortilla + pan + fruta  DESAYUNO        AMBOS       AMBOS    Equilibrado      Alta saciedad                               HUEVO|CARBO_PAN|FRUTA|VERDURA
+3         B04            Tortilla + verdura + aceite (baja densidad)  DESAYUNO        AMBOS  DEFINICION  Baja densidad  Muy alta saciedad                                  HUEVO|VERDURA|GRASA_ACEITE
+4         B05                          Avena proteica (whey) + fruta  DESAYUNO        AMBOS     ENTRENO     Carbo alto     Media saciedad                       SUPLEMENTO_PROTEINA|CARBO_AVENA|FRUTA
+
+Tipos de datos:
+template_id      str
+template_name    str
+meal_type        str
+diet_allowed     str
+day_context      str
+phase_bias       str
+satiety_bias     str
+slot_roles       str
+
+--------------------------------------------------------------------------------
+HOJA: Slots
+--------------------------------------------------------------------------------
+
+Dimensiones: 199 filas x 5 columnas
+
+Columnas (5):
+    1. template_id
+    2. slot_order
+    3. slot_role
+    4. slot_note
+    5. quantity_hint
+
+Primeras 5 filas:
+  template_id  slot_order              slot_role  slot_note                                                                        quantity_hint
+0         B01           1  LACTEO_PROTEICO_MAGRO        NaN  Ajustar gramos (estado_base) para cuadrar macros. Mostrar estado según preferencia.
+1         B01           2            CARBO_AVENA        NaN  Ajustar gramos (estado_base) para cuadrar macros. Mostrar estado según preferencia.
+2         B01           3                  FRUTA        NaN  Ajustar gramos (estado_base) para cuadrar macros. Mostrar estado según preferencia.
+3         B01           4     GRASA_FRUTOS_SECOS        NaN  Ajustar gramos (estado_base) para cuadrar macros. Mostrar estado según preferencia.
+4         B02           1  LACTEO_PROTEICO_MAGRO        NaN  Ajustar gramos (estado_base) para cuadrar macros. Mostrar estado según preferencia.
+
+Tipos de datos:
+template_id          str
+slot_order         int64
+slot_role            str
+slot_note        float64
+quantity_hint        str
+
+[!] Valores nulos por columna:
+slot_note    199
+
+Estadisticas de columnas numericas:
+       slot_order  slot_note
+count  199.000000        0.0
+mean     2.125628        NaN
+std      0.968857        NaN
+min      1.000000        NaN
+25%      1.000000        NaN
+50%      2.000000        NaN
+75%      3.000000        NaN
+max      4.000000        NaN
+
+--------------------------------------------------------------------------------
+HOJA: Banco_Roles
+--------------------------------------------------------------------------------
+
+Dimensiones: 387 filas x 6 columnas
+
+Columnas (6):
+    1. food_id
+    2. food_name
+    3. diet_type
+    4. category
+    5. role
+    6. notes
+
+Primeras 5 filas:
+                      food_id                   food_name diet_type      category         role  notes
+0  bebida_de_arroz_sin_azucar  Bebida de arroz sin azúcar     Ambos        Bebida       BEBIDA    NaN
+1  bebida_de_avena_sin_azucar  Bebida de avena sin azúcar     Ambos        Bebida       BEBIDA    NaN
+2      bebida_deportiva_lista      Bebida deportiva lista     Ambos        Bebida       BEBIDA    NaN
+3                 avena_copos               Avena (copos)     Ambos  Carbohidrato  CARBO_AVENA    NaN
+4           avena_instantanea           Avena instantánea     Ambos  Carbohidrato  CARBO_AVENA    NaN
+
+Tipos de datos:
+food_id          str
+food_name        str
+diet_type        str
+category         str
+role             str
+notes        float64
+
+[!] Valores nulos por columna:
+notes    387
+
+Estadisticas de columnas numericas:
+       notes
+count    0.0
+mean     NaN
+std      NaN
+min      NaN
+25%      NaN
+50%      NaN
+75%      NaN
+max      NaN
+
+--------------------------------------------------------------------------------
+HOJA: Ejemplos
+--------------------------------------------------------------------------------
+
+Dimensiones: 192 filas x 7 columnas
+
+Columnas (7):
+    1. template_id
+    2. example_n
+    3. meal_type
+    4. day_context
+    5. diet_allowed
+    6. ingredients_example
+    7. notes
+
+Primeras 5 filas:
+  template_id  example_n meal_type day_context diet_allowed                                                                                                                             ingredients_example                                                                     notes
+0         B01          1  DESAYUNO       AMBOS        AMBOS                                     Queso cottage (queso_cottage) + Avena (copos) (avena_copos) + Arándanos (arandanos) + Almendras (almendras)  Motor ajusta gramos por macros. Respetar estados crudo/cocido/escurrido.
+1         B01          2  DESAYUNO       AMBOS        AMBOS                         Queso crema light (queso_crema_light) + Avena instantánea (avena_instantanea) + Cereza (cereza) + Anacardos (anacardos)  Motor ajusta gramos por macros. Respetar estados crudo/cocido/escurrido.
+2         B01          3  DESAYUNO       AMBOS        AMBOS  Queso fresco batido 0% (queso_fresco_batido_0) + Harina de avena instant (harina_de_avena_instant) + Ciruela (ciruela) + Avellanas (avellanas)  Motor ajusta gramos por macros. Respetar estados crudo/cocido/escurrido.
+3         B02          1  DESAYUNO       AMBOS        AMBOS                                                                           Queso cottage (queso_cottage) + Arepa (arepa) + Arándanos (arandanos)  Motor ajusta gramos por macros. Respetar estados crudo/cocido/escurrido.
+4         B02          2  DESAYUNO       AMBOS        AMBOS                                                                         Queso crema light (queso_crema_light) + Bagel (bagel) + Cereza (cereza)  Motor ajusta gramos por macros. Respetar estados crudo/cocido/escurrido.
+
+Tipos de datos:
+template_id              str
+example_n              int64
+meal_type                str
+day_context              str
+diet_allowed             str
+ingredients_example      str
+notes                    str
+
+Estadisticas de columnas numericas:
+        example_n
+count  192.000000
+mean     2.000000
+std      0.818631
+min      1.000000
+25%      1.000000
+50%      2.000000
+75%      3.000000
+max      3.000000
+
+--------------------------------------------------------------------------------
+HOJA: Roles
+--------------------------------------------------------------------------------
+
+Dimensiones: 30 filas x 3 columnas
+
+Columnas (3):
+    1. role
+    2. uso
+    3. criterio
+
+Primeras 5 filas:
+                    role                                uso                                         criterio
+0        PROTEINA_ANIMAL      Proteína principal (omnívoro)                             Proteínas ≥ 12g/100g
+1  PROTEINA_ANIMAL_MAGRA      Proteína animal baja en grasa                                 Grasas ≤ 8g/100g
+2  PROTEINA_ANIMAL_GRASA      Proteína animal alta en grasa                                 Grasas > 8g/100g
+3                  HUEVO  Huevos y preparaciones sin harina  Categoría Huevo o nombre contiene 'huevo/clara'
+4                 CLARAS               Claras/pasteurizadas                          Nombre contiene 'clara'
+
+Tipos de datos:
+role        str
+uso         str
+criterio    str
+
+================================================================================
+ARCHIVO: Omnivoros.xlsx
+================================================================================
+
+Hojas encontradas: 1
+   Omnívoro
+
+--------------------------------------------------------------------------------
+HOJA: Omnívoro
+--------------------------------------------------------------------------------
+
+Dimensiones: 243 filas x 21 columnas
+
+Columnas (21):
+    1. OMNÍVORO — Todo tipo de alimentos
+    2. Unnamed: 1
+    3. Unnamed: 2
+    4. Unnamed: 3
+    5. Unnamed: 4
+    6. Unnamed: 5
+    7. Unnamed: 6
+    8. Unnamed: 7
+    9. Unnamed: 8
+   10. Unnamed: 9
+   11. Unnamed: 10
+   12. Unnamed: 11
+   13. Unnamed: 12
+   14. Unnamed: 13
+   15. Unnamed: 14
+   16. Unnamed: 15
+   17. Unnamed: 16
+   18. Unnamed: 17
+   19. Unnamed: 18
+   20. Unnamed: 19
+   21. Unnamed: 20
+
+Primeras 5 filas:
+                                            OMNÍVORO — Todo tipo de alimentos Unnamed: 1 Unnamed: 2     Unnamed: 3  Unnamed: 4         Unnamed: 5 Unnamed: 6 Unnamed: 7  Unnamed: 8          Unnamed: 9                         Unnamed: 10    Unnamed: 11         Unnamed: 12 Unnamed: 13    Unnamed: 14                                                                                 Unnamed: 15         Unnamed: 16         Unnamed: 17                     Unnamed: 18   Unnamed: 19                                                                                 Unnamed: 20
+0  Valores por 100 g • Nota: aproximados y dependientes de marca/preparación.        NaN        NaN            NaN         NaN                NaN        NaN        NaN         NaN                 NaN                                 NaN            NaN                 NaN         NaN            NaN                                                                                         NaN                 NaN                 NaN                             NaN           NaN                                                                                         NaN
+1                                                                    Alimento   Peso (g)       Kcal  Proteínas (g)  Grasas (g)  Carbohidratos (g)     Estado  Categoría  Tipo dieta  Porción típica (g)                      Tags/Alérgenos          Notas         ID_alimento   Fibra (g)  Medida casera                                                                             Sustituible por  Estado_pesado_base  Metodo_preparacion  Estado_pesado_mostrado_default  Grupo_factor                                                                          Sustituible_por_ID
+2                                                          Aceite de aguacate        100        900              0         100                  0   Estándar      Grasa       Ambos                  10  vegetariano, vegano, alto en grasa  1 cda ≈ 10 g.  aceite_de_aguacate           0          1 cda      Aceite de coco; Aceite de girasol; Aceite de linaza; Aceite de oliva; Aceite de sésamo            tal_cual                 NaN                        tal_cual           NaN      aceite_de_coco; aceite_de_girasol; aceite_de_linaza; aceite_de_oliva; aceite_de_sesamo
+3                                                              Aceite de coco        100        900              0         100                  0   Estándar      Grasa       Ambos                  10  vegetariano, vegano, alto en grasa  1 cda ≈ 10 g.      aceite_de_coco           0          1 cda  Aceite de aguacate; Aceite de girasol; Aceite de linaza; Aceite de oliva; Aceite de sésamo            tal_cual                 NaN                        tal_cual           NaN  aceite_de_aguacate; aceite_de_girasol; aceite_de_linaza; aceite_de_oliva; aceite_de_sesamo
+4                                                           Aceite de girasol        100        900              0         100                  0   Estándar      Grasa       Ambos                  10  vegetariano, vegano, alto en grasa  1 cda ≈ 10 g.   aceite_de_girasol           0          1 cda     Aceite de aguacate; Aceite de coco; Aceite de linaza; Aceite de oliva; Aceite de sésamo            tal_cual                 NaN                        tal_cual           NaN     aceite_de_aguacate; aceite_de_coco; aceite_de_linaza; aceite_de_oliva; aceite_de_sesamo
+
+Tipos de datos:
+OMNÍVORO — Todo tipo de alimentos       str
+Unnamed: 1                           object
+Unnamed: 2                           object
+Unnamed: 3                           object
+Unnamed: 4                           object
+Unnamed: 5                           object
+Unnamed: 6                              str
+Unnamed: 7                              str
+Unnamed: 8                              str
+Unnamed: 9                           object
+Unnamed: 10                             str
+Unnamed: 11                             str
+Unnamed: 12                             str
+Unnamed: 13                          object
+Unnamed: 14                             str
+Unnamed: 15                             str
+Unnamed: 16                             str
+Unnamed: 17                             str
+Unnamed: 18                             str
+Unnamed: 19                             str
+Unnamed: 20                             str
+
+[!] Valores nulos por columna:
+Unnamed: 1       1
+Unnamed: 2       1
+Unnamed: 3       1
+Unnamed: 4       1
+Unnamed: 5       1
+Unnamed: 6       1
+Unnamed: 7       1
+Unnamed: 8       1
+Unnamed: 9       1
+Unnamed: 10      1
+Unnamed: 11    209
+Unnamed: 12      1
+Unnamed: 13    147
+Unnamed: 14    231
+Unnamed: 15      1
+Unnamed: 16      1
+Unnamed: 17    227
+Unnamed: 18      1
+Unnamed: 19    184
+Unnamed: 20      1
+
+================================================================================
+ARCHIVO: Vegetariano.xlsx
+================================================================================
+
+Hojas encontradas: 1
+   Vegetariano
+
+--------------------------------------------------------------------------------
+HOJA: Vegetariano
+--------------------------------------------------------------------------------
+
+Dimensiones: 195 filas x 21 columnas
+
+Columnas (21):
+    1. VEGETARIANO — Incluye lácteos y huevo (ovo-lacto)
+    2. Unnamed: 1
+    3. Unnamed: 2
+    4. Unnamed: 3
+    5. Unnamed: 4
+    6. Unnamed: 5
+    7. Unnamed: 6
+    8. Unnamed: 7
+    9. Unnamed: 8
+   10. Unnamed: 9
+   11. Unnamed: 10
+   12. Unnamed: 11
+   13. Unnamed: 12
+   14. Unnamed: 13
+   15. Unnamed: 14
+   16. Unnamed: 15
+   17. Unnamed: 16
+   18. Unnamed: 17
+   19. Unnamed: 18
+   20. Unnamed: 19
+   21. Unnamed: 20
+
+Primeras 5 filas:
+                            VEGETARIANO — Incluye lácteos y huevo (ovo-lacto) Unnamed: 1 Unnamed: 2     Unnamed: 3  Unnamed: 4         Unnamed: 5 Unnamed: 6 Unnamed: 7  Unnamed: 8          Unnamed: 9                         Unnamed: 10    Unnamed: 11         Unnamed: 12 Unnamed: 13    Unnamed: 14                                                                                 Unnamed: 15         Unnamed: 16         Unnamed: 17                     Unnamed: 18   Unnamed: 19                                                                                 Unnamed: 20
+0  Valores por 100 g • Nota: aproximados y dependientes de marca/preparación.        NaN        NaN            NaN         NaN                NaN        NaN        NaN         NaN                 NaN                                 NaN            NaN                 NaN         NaN            NaN                                                                                         NaN                 NaN                 NaN                             NaN           NaN                                                                                         NaN
+1                                                                    Alimento   Peso (g)       Kcal  Proteínas (g)  Grasas (g)  Carbohidratos (g)     Estado  Categoría  Tipo dieta  Porción típica (g)                      Tags/Alérgenos          Notas         ID_alimento   Fibra (g)  Medida casera                                                                             Sustituible por  Estado_pesado_base  Metodo_preparacion  Estado_pesado_mostrado_default  Grupo_factor                                                                          Sustituible_por_ID
+2                                                          Aceite de aguacate        100        900              0         100                  0   Estándar      Grasa       Ambos                  10  vegetariano, vegano, alto en grasa  1 cda ≈ 10 g.  aceite_de_aguacate           0          1 cda      Aceite de coco; Aceite de girasol; Aceite de linaza; Aceite de oliva; Aceite de sésamo            tal_cual                 NaN                        tal_cual           NaN      aceite_de_coco; aceite_de_girasol; aceite_de_linaza; aceite_de_oliva; aceite_de_sesamo
+3                                                              Aceite de coco        100        900              0         100                  0   Estándar      Grasa       Ambos                  10  vegetariano, vegano, alto en grasa  1 cda ≈ 10 g.      aceite_de_coco           0          1 cda  Aceite de aguacate; Aceite de girasol; Aceite de linaza; Aceite de oliva; Aceite de sésamo            tal_cual                 NaN                        tal_cual           NaN  aceite_de_aguacate; aceite_de_girasol; aceite_de_linaza; aceite_de_oliva; aceite_de_sesamo
+4                                                           Aceite de girasol        100        900              0         100                  0   Estándar      Grasa       Ambos                  10  vegetariano, vegano, alto en grasa  1 cda ≈ 10 g.   aceite_de_girasol           0          1 cda     Aceite de aguacate; Aceite de coco; Aceite de linaza; Aceite de oliva; Aceite de sésamo            tal_cual                 NaN                        tal_cual           NaN     aceite_de_aguacate; aceite_de_coco; aceite_de_linaza; aceite_de_oliva; aceite_de_sesamo
+
+Tipos de datos:
+VEGETARIANO — Incluye lácteos y huevo (ovo-lacto)       str
+Unnamed: 1                                           object
+Unnamed: 2                                           object
+Unnamed: 3                                           object
+Unnamed: 4                                           object
+Unnamed: 5                                           object
+Unnamed: 6                                              str
+Unnamed: 7                                              str
+Unnamed: 8                                              str
+Unnamed: 9                                           object
+Unnamed: 10                                             str
+Unnamed: 11                                             str
+Unnamed: 12                                             str
+Unnamed: 13                                          object
+Unnamed: 14                                             str
+Unnamed: 15                                             str
+Unnamed: 16                                             str
+Unnamed: 17                                             str
+Unnamed: 18                                             str
+Unnamed: 19                                             str
+Unnamed: 20                                             str
+
+[!] Valores nulos por columna:
+Unnamed: 1       1
+Unnamed: 2       1
+Unnamed: 3       1
+Unnamed: 4       1
+Unnamed: 5       1
+Unnamed: 6       1
+Unnamed: 7       1
+Unnamed: 8       1
+Unnamed: 9       1
+Unnamed: 10      1
+Unnamed: 11    164
+Unnamed: 12      1
+Unnamed: 13    146
+Unnamed: 14    185
+Unnamed: 15      1
+Unnamed: 16      1
+Unnamed: 17    180
+Unnamed: 18      1
+Unnamed: 19    181
+Unnamed: 20      1
+
+================================================================================
+[OK] Analisis completado
+================================================================================

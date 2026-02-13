@@ -26,6 +26,55 @@ import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import App from './App.jsx';
 
+function installDevApiHostRewrite() {
+  if (!import.meta.env.DEV || typeof window === 'undefined' || typeof window.fetch !== 'function') {
+    return;
+  }
+
+  const currentHost = window.location.hostname;
+  const isLocalBrowser = ['localhost', '127.0.0.1'].includes(currentHost);
+  if (isLocalBrowser) {
+    return;
+  }
+
+  const originalFetch = window.fetch.bind(window);
+  const localApiPrefixes = ['http://localhost:3010', 'http://127.0.0.1:3010'];
+  let logged = false;
+
+  window.fetch = (input, init) => {
+    const rewrite = (rawUrl) => {
+      if (typeof rawUrl !== 'string') {
+        return rawUrl;
+      }
+      for (const prefix of localApiPrefixes) {
+        if (rawUrl.startsWith(prefix)) {
+          const rewritten = rawUrl.replace(prefix, `http://${currentHost}:3010`);
+          if (!logged) {
+            console.warn(`[DEV API Rewrite] ${prefix} -> http://${currentHost}:3010`);
+            logged = true;
+          }
+          return rewritten;
+        }
+      }
+      return rawUrl;
+    };
+
+    if (typeof input === 'string') {
+      return originalFetch(rewrite(input), init);
+    }
+
+    if (input instanceof Request) {
+      const nextUrl = rewrite(input.url);
+      if (nextUrl !== input.url) {
+        const nextRequest = new Request(nextUrl, input);
+        return originalFetch(nextRequest, init);
+      }
+    }
+
+    return originalFetch(input, init);
+  };
+}
+
 // =============================================================================
 // 🛡️ GLOBAL ERROR BOUNDARY
 // =============================================================================
@@ -45,7 +94,7 @@ class GlobalErrorBoundary extends Component {
     this.state = { hasError: false, error: null, errorInfo: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError() {
     // Actualiza el state para mostrar la UI de error
     return { hasError: true };
   }
@@ -157,6 +206,8 @@ function initializeApp() {
 // =============================================================================
 // 🎯 BOOTSTRAP DE LA APLICACIÓN
 // =============================================================================
+
+installDevApiHostRewrite();
 
 // Inicializar la aplicación
 initializeApp();
