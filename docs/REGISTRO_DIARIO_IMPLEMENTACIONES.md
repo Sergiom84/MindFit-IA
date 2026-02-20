@@ -3,6 +3,10 @@
 ## 20.02.2026
 
 - Nutrición (restauración visual modal): en `src/components/nutrition/MealDetailView.jsx` se recuperan estilos premium perdidos por revert accidental en overlay y safe-areas (`meal-detail-scroll`, `z-[80]`, `pt/pb` móvil+desktop), botón de cierre superior (borde/sombra/hover premium) y CTA inferior amarillo degradado; además se restituye la etiqueta legible del modo en `Generar menús`.
+- Nutrición (rediseño modal estilo mock): `src/components/nutrition/MealDetailView.jsx` pasa a layout con tokens visuales (`--bg/--panel/--surface/...`), jerarquía de 3 zonas (header, contenido scrolleable, footer CTA), card única de resumen de macros con barra segmentada fina, cards de comidas colapsables con filas de alimentos más limpias y menú contextual por ítem con una única acción activa (`Reemplazar alimento`) conservando la lógica de swap existente.
+- Nutrición (afinado visual gris/negro + ancho): en `src/components/nutrition/MealDetailView.jsx` se ajusta la paleta de tokens para eliminar dominante azul y llevar el modal a tonos carbón/gris oscuro (fondos, superficies y acentos suavizados), se refina el degradado/sombra del contenedor y se amplía el ancho máximo del modal en desktop de `720px` a `860px`.
+- Nutrición (CTA final): en `src/components/nutrition/MealDetailView.jsx` el botón sticky inferior queda fijo como `Cerrar` (texto y acción), eliminando el comportamiento de `Generar menú` en ese CTA para mantener coherencia funcional con el flujo actual.
+- Nutrición (limpieza desglose comidas): se elimina el botón `Añadir alimento` del bloque de detalle de cada comida en `src/components/nutrition/MealDetailView.jsx`, dejando solo la lista de alimentos y el flujo contextual de `Reemplazar alimento`.
 
 ## 13.02.2026
 
