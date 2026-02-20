@@ -8,8 +8,8 @@ const DIAS_SEMANA_POR_INDICE = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jue
 const DIAS_SEMANA_LEGACY = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const cardBase = "bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg";
 const MENU_GENERATION_MODES = [
-  { value: "hybrid_ai", label: "IA híbrida (recomendado)" },
-  { value: "recipe_examples", label: "Recetas (Ejemplos)" },
+  { value: "hybrid_ai", label: "IA híbrida" },
+  { value: "recipe_examples", label: "Recetas" },
   { value: "deterministic", label: "Determinista" },
   { value: "ai", label: "IA clásico" }
 ];
@@ -95,7 +95,7 @@ export default function NutritionCalendarView() {
   const [selectedDay, setSelectedDay] = useState(null);
   const [generatingDay, setGeneratingDay] = useState(null);
   const [infoMessage, setInfoMessage] = useState(null);
-  const [menuGenerationMode, setMenuGenerationMode] = useState("hybrid_ai");
+  const [menuGenerationMode, setMenuGenerationMode] = useState("recipe_examples");
   const [generationMetadataByDay, setGenerationMetadataByDay] = useState({});
   const menusEnabled = true;
 
@@ -356,7 +356,7 @@ const generateMenusForDay = async (day) => {
           <div className="mt-2 text-sm text-emerald-300">{infoMessage}</div>
         )}
 
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-3 mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <label className="text-xs text-gray-300/80">Modo de generación de menús</label>
           <select
             value={menuGenerationMode}

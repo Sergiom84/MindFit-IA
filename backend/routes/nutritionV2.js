@@ -32,6 +32,11 @@ import {
   generateHybridMenuForMeal,
   HybridMenuGenerationError
 } from '../services/nutritionHybridOrchestrator.js';
+import {
+  evaluateRecipeHardRules,
+  computePairingPenaltyForRecipe,
+  isProcessedFood
+} from '../services/menuHardRulesEngine.js';
 
 const router = express.Router();
 
@@ -40,11 +45,12 @@ const VALID_ESTADOS_PESADO = ['crudo', 'cocido', 'escurrido', 'seco', 'tal_cual'
 const VALID_DIET_FILTERS = ['omnivoro', 'vegetariano', 'vegano'];
 const VALID_MENU_GENERATION_MODES = ['deterministic', 'ai', 'hybrid_ai', 'recipe_examples'];
 const DETERMINISTIC_MAX_TEMPLATE_TRIES = 12;
-const DETERMINISTIC_MAX_RECIPE_TRIES = 16;
+const DETERMINISTIC_MAX_RECIPE_TRIES = 40;
 const DETERMINISTIC_COORDINATE_ITERATIONS = 120;
 const DETERMINISTIC_MAX_SLOT_OPTIONS = 8;
 const DETERMINISTIC_MAX_SLOT_COMBINATIONS = 400;
 const DETERMINISTIC_RECENT_FOOD_WINDOW_DAYS = 7;
+const SWAP_MEAL_RECALC_MAX_ERROR = 35;
 const HYBRID_FALLBACK_MODE = 'deterministic';
 const DEFAULT_HYBRID_MODEL = process.env.NUTRITION_HYBRID_MODEL || 'gpt-5.2';
 const SLOT_ROLE_FALLBACKS = {
@@ -632,11 +638,88 @@ function computeSwapBaseGrams({
   return Number(clampNumber(grams, 5, 1200).toFixed(1));
 }
 
+function getConversionBlockedReasonMessage(code) {
+  const normalized = String(code || '').trim().toLowerCase();
+  if (normalized === 'tal_cual_no_convertible') {
+    return 'Este alimento se mide tal como se consume.';
+  }
+  if (normalized === 'missing_group_factor') {
+    return 'Este alimento no tiene regla de conversión configurada.';
+  }
+  if (normalized === 'missing_conversion_factor') {
+    return 'No existe conversión para ese estado de pesado.';
+  }
+  return 'No se pudo aplicar ese estado de pesado.';
+}
+
+function resolveShownStateWithFallback({
+  grupoFactor,
+  estadoBase,
+  estadoMostrado,
+  conversionMap
+}) {
+  const base = normalizeEstadoPesado(estadoBase) || 'tal_cual';
+  const requested = normalizeEstadoPesado(estadoMostrado) || base;
+  const conversionState = resolveShownStateConversion({
+    grupoFactor,
+    estadoBase: base,
+    estadoMostrado: requested,
+    conversionMap
+  });
+
+  if (!conversionState.blockedReason) {
+    return {
+      estadoBase: base,
+      estadoMostradoFinal: conversionState.estadoMostradoFinal,
+      factor: conversionState.factor,
+      blockedReason: null,
+      requestedEstado: requested,
+      fallbackApplied: false,
+      fallbackMessage: null
+    };
+  }
+
+  return {
+    estadoBase: base,
+    estadoMostradoFinal: base,
+    factor: 1,
+    blockedReason: conversionState.blockedReason,
+    requestedEstado: requested,
+    fallbackApplied: requested !== base,
+    fallbackMessage: getConversionBlockedReasonMessage(conversionState.blockedReason)
+  };
+}
+
+function resolveBaseGramsFromMealItem(item, conversionMap) {
+  const cantidadBase = parseNumeric(item?.cantidad_g_base);
+  if (cantidadBase && cantidadBase > 0) {
+    return cantidadBase;
+  }
+
+  const cantidadMostrada = parseNumeric(item?.cantidad_g_mostrada ?? item?.cantidad_g);
+  if (!(cantidadMostrada > 0)) {
+    return null;
+  }
+
+  const estadoBase = normalizeEstadoPesado(item?.estado_pesado_base) || 'tal_cual';
+  const estadoMostrado = normalizeEstadoPesado(item?.estado_pesado_mostrado) || estadoBase;
+  const conversionState = resolveShownStateConversion({
+    grupoFactor: item?.grupo_factor,
+    estadoBase,
+    estadoMostrado,
+    conversionMap
+  });
+  const factor = conversionState.factor > 0 ? conversionState.factor : 1;
+  return Number((cantidadMostrada / factor).toFixed(2));
+}
+
 function createVarietyContext() {
   return {
     sameDayUsedFoodIds: new Set(),
     recentFoodUsage: new Map(),
-    sameDayUsedRecipeCodes: new Set()
+    sameDayUsedRecipeCodes: new Set(),
+    sameDayProcessedFoodIds: new Set(),
+    sameDayMainFamilyUsage: new Map()
   };
 }
 
@@ -693,6 +776,179 @@ function getFoodVarietyPenalty(food, varietyContext) {
   return Number((sameDayPenalty + recentPenalty).toFixed(6));
 }
 
+function normalizeFamilyValue(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function isMainRecipeRole(roleValue) {
+  const role = String(roleValue || '').toUpperCase();
+  if (!role) return false;
+  if (
+    role.includes('GRASA')
+    || role === 'VERDURA'
+    || role === 'FRUTA'
+    || role === 'BEBIDA'
+    || role.includes('CONDIMENTO')
+    || role.includes('SALSA')
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function resolveFoodFamilyForScoring(food = {}) {
+  const explicit = normalizeFamilyValue(food.culinary_family);
+  if (explicit) return explicit;
+
+  const categoria = normalizeFamilyValue(food.categoria);
+  const detalle = normalizeFamilyValue(food.categoria_detalle);
+  const nombre = normalizeFamilyValue(food.nombre);
+
+  if (detalle.includes('proteina vegetal')) return 'proteina_vegetal';
+  if (detalle.includes('proteina animal')) return 'proteina_animal';
+  if (detalle.includes('huevo')) return 'huevo';
+  if (detalle.includes('legumbre')) return 'legumbre';
+  if (detalle.includes('lacteo') || detalle.includes('lacteo')) return 'lacteo';
+
+  if (categoria === 'proteina') {
+    if (food.is_vegan === true || detalle.includes('vegetal')) return 'proteina_vegetal';
+    return 'proteina_animal';
+  }
+  if (categoria === 'lacteo') return 'lacteo';
+  if (categoria === 'fruta') return 'fruta';
+  if (categoria === 'vegetal') return 'verdura';
+  if (categoria === 'grasa') return 'aceite';
+
+  if (nombre.includes('pan') || nombre.includes('bagel')) return 'pan';
+  if (nombre.includes('arroz') || nombre.includes('pasta') || nombre.includes('avena')) return 'cereal';
+  if (nombre.includes('margarina') || nombre.includes('untable')) return 'untable_industrial';
+  if (nombre.includes('galleta') || nombre.includes('barrita')) return 'snack_dulce';
+
+  return 'general';
+}
+
+function estimateFoodPalatability(food = {}) {
+  const explicit = parseNumeric(food.palatability_score);
+  if (Number.isFinite(explicit)) {
+    return clampNumber(explicit, 0, 100);
+  }
+
+  const family = resolveFoodFamilyForScoring(food);
+  const processing = String(food.processing_level || '').trim().toLowerCase();
+  const baseByFamily = {
+    proteina_animal: 70,
+    proteina_vegetal: 62,
+    huevo: 76,
+    lacteo: 78,
+    cereal: 74,
+    pan: 74,
+    legumbre: 68,
+    fruta: 82,
+    verdura: 66,
+    aceite: 60,
+    snack_dulce: 58,
+    untable_industrial: 52,
+    general: 64
+  };
+
+  let score = baseByFamily[family] ?? 64;
+  if (processing === 'procesado') score -= 2;
+  if (processing === 'ultraprocesado') score -= 4;
+  return clampNumber(score, 0, 100);
+}
+
+function computeMealPalatabilityPenalty({ mealType, recipeItems = [], varietyContext = null }) {
+  if (!Array.isArray(recipeItems) || recipeItems.length === 0) {
+    return {
+      totalPenalty: 0,
+      avgMainPalatability: null,
+      avgAllPalatability: null,
+      basePenalty: 0,
+      contextualPenalty: 0,
+      repeatFamilyPenalty: 0,
+      repeatedMainFamilies: []
+    };
+  }
+
+  const enriched = recipeItems
+    .map((entry) => {
+      const food = entry?.food || null;
+      if (!food) return null;
+      return {
+        role: entry?.role || '',
+        family: resolveFoodFamilyForScoring(food),
+        palatability: estimateFoodPalatability(food),
+        isMainRole: isMainRecipeRole(entry?.role || '')
+      };
+    })
+    .filter(Boolean);
+
+  if (enriched.length === 0) {
+    return {
+      totalPenalty: 0,
+      avgMainPalatability: null,
+      avgAllPalatability: null,
+      basePenalty: 0,
+      contextualPenalty: 0,
+      repeatFamilyPenalty: 0,
+      repeatedMainFamilies: []
+    };
+  }
+
+  const mainItems = enriched.filter((item) => item.isMainRole);
+  const mainForAverage = mainItems.length > 0 ? mainItems : enriched;
+  const avgMainPalatability = mainForAverage.reduce((acc, item) => acc + item.palatability, 0) / mainForAverage.length;
+  const avgAllPalatability = enriched.reduce((acc, item) => acc + item.palatability, 0) / enriched.length;
+
+  const basePenalty = Math.max(0, 72 - avgMainPalatability) / 20;
+  let contextualPenalty = 0;
+
+  if (mealType === 'DESAYUNO' || mealType === 'SNACK') {
+    const hasAnimalMain = mainItems.some((item) => item.family === 'proteina_animal');
+    const hasBreakfastFriendlyProtein = enriched.some((item) => item.family === 'huevo' || item.family === 'lacteo');
+    if (hasAnimalMain && !hasBreakfastFriendlyProtein) {
+      contextualPenalty += 1.2;
+    }
+  }
+
+  if (mealType === 'COMIDA' || mealType === 'CENA') {
+    const hasSnackMain = mainItems.some(
+      (item) => item.family === 'snack_dulce' || item.family === 'untable_industrial'
+    );
+    if (hasSnackMain) {
+      contextualPenalty += 1.2;
+    }
+  }
+
+  let repeatFamilyPenalty = 0;
+  const repeatedMainFamilies = [];
+  if (varietyContext?.sameDayMainFamilyUsage instanceof Map && mainItems.length > 0) {
+    const uniqueMainFamilies = [...new Set(mainItems.map((item) => item.family).filter(Boolean))];
+    for (const family of uniqueMainFamilies) {
+      const previousUses = varietyContext.sameDayMainFamilyUsage.get(family) || 0;
+      if (previousUses > 0) {
+        repeatedMainFamilies.push(family);
+        repeatFamilyPenalty += Math.min(previousUses * 0.45, 1.35);
+      }
+    }
+  }
+
+  const totalPenalty = Number((basePenalty + contextualPenalty + repeatFamilyPenalty).toFixed(6));
+  return {
+    totalPenalty,
+    avgMainPalatability: Number(avgMainPalatability.toFixed(2)),
+    avgAllPalatability: Number(avgAllPalatability.toFixed(2)),
+    basePenalty: Number(basePenalty.toFixed(6)),
+    contextualPenalty: Number(contextualPenalty.toFixed(6)),
+    repeatFamilyPenalty: Number(repeatFamilyPenalty.toFixed(6)),
+    repeatedMainFamilies
+  };
+}
+
 function registerMenuFoodsInVarietyContext(varietyContext, menu, availableFoods = []) {
   if (!varietyContext || !Array.isArray(menu?.items) || menu.items.length === 0) {
     return;
@@ -700,11 +956,13 @@ function registerMenuFoodsInVarietyContext(varietyContext, menu, availableFoods 
 
   const bySlug = new Map();
   const byName = new Map();
+  const byId = new Map();
   for (const food of availableFoods) {
     if (!food?.id) continue;
     const foodId = String(food.id);
     const slug = String(food.slug || '').trim();
     const normalizedName = normalizeFoodName(food.nombre);
+    byId.set(foodId, food);
     if (slug && !bySlug.has(slug)) bySlug.set(slug, foodId);
     if (normalizedName && !byName.has(normalizedName)) byName.set(normalizedName, foodId);
   }
@@ -724,6 +982,19 @@ function registerMenuFoodsInVarietyContext(varietyContext, menu, availableFoods 
     varietyContext.sameDayUsedFoodIds.add(foodId);
     const previous = varietyContext.recentFoodUsage.get(foodId) || 0;
     varietyContext.recentFoodUsage.set(foodId, previous + 1);
+
+    const selectedFood = byId.get(foodId);
+    if (selectedFood && isProcessedFood(selectedFood)) {
+      varietyContext.sameDayProcessedFoodIds.add(foodId);
+    }
+
+    if (selectedFood && isMainRecipeRole(rawItem?.role || '')) {
+      const family = resolveFoodFamilyForScoring(selectedFood);
+      if (family) {
+        const previous = varietyContext.sameDayMainFamilyUsage.get(family) || 0;
+        varietyContext.sameDayMainFamilyUsage.set(family, previous + 1);
+      }
+    }
   }
 }
 
@@ -1120,6 +1391,85 @@ async function getRecipeExampleCandidates({ userId, mealType, meal, dayInfo, pro
   }
 
   return orderCandidates(candidates);
+}
+
+function resolveRulesDietType(userFoodFilters) {
+  const diet = String(userFoodFilters?.diet || 'omnivoro').toLowerCase();
+  return diet === 'omnivoro' ? 'AMBOS' : 'VEG';
+}
+
+async function loadMealAcceptabilityRule({ mealType, dietType }) {
+  try {
+    const result = await pool.query(
+      `
+        SELECT
+          id,
+          meal_type,
+          diet_type,
+          max_processed_items,
+          forbidden_families,
+          required_families,
+          notes
+        FROM app.meal_acceptability_rules
+        WHERE is_active = TRUE
+          AND meal_type = $1
+          AND diet_type IN ($2, 'AMBOS')
+        ORDER BY CASE WHEN diet_type = $2 THEN 0 ELSE 1 END, updated_at DESC
+        LIMIT 1;
+      `,
+      [mealType, dietType]
+    );
+
+    return result.rows[0] || null;
+  } catch (error) {
+    if (error?.code === '42P01') {
+      return null;
+    }
+    throw error;
+  }
+}
+
+async function loadPairingRules({ mealType, candidateSlugs = [] }) {
+  const normalizedSlugs = [...new Set(
+    candidateSlugs
+      .map((value) => String(value || '').trim().toLowerCase())
+      .filter(Boolean)
+  )];
+
+  if (normalizedSlugs.length === 0) {
+    return [];
+  }
+
+  try {
+    const result = await pool.query(
+      `
+        SELECT
+          id,
+          food_slug_a,
+          food_slug_b,
+          rule_type,
+          penalty,
+          contexts,
+          reason
+        FROM app.food_pairing_rules
+        WHERE is_active = TRUE
+          AND rule_type IN ('forbidden', 'penalty')
+          AND ($1 = ANY(contexts))
+          AND (
+            LOWER(food_slug_a) = ANY($2)
+            OR LOWER(food_slug_b) = ANY($2)
+          );
+      `,
+      [mealType, normalizedSlugs]
+    );
+
+    return result.rows;
+  } catch (error) {
+    if (error?.code === '42P01') {
+      return [];
+    }
+    throw error;
+  }
 }
 
 function getRoleGramBounds(roleValue) {
@@ -1568,7 +1918,13 @@ async function generateDeterministicMenuForMeal({
         f.estado_pesado_mostrado_default,
         f.grupo_factor,
         f.is_vegetarian,
-        f.is_vegan
+        f.is_vegan,
+        f.meal_suitability,
+        f.processing_level,
+        f.culinary_family,
+        f.is_snack_only,
+        f.is_main_dish_allowed,
+        f.palatability_score
       FROM app.food_roles fr
       JOIN app.foods f ON f.id = fr.food_id
       WHERE fr.role = ANY($1::text[])
@@ -1807,7 +2163,13 @@ async function generateRecipeExamplesMenuForMeal({
         f.estado_pesado_mostrado_default,
         f.grupo_factor,
         f.is_vegetarian,
-        f.is_vegan
+        f.is_vegan,
+        f.meal_suitability,
+        f.processing_level,
+        f.culinary_family,
+        f.is_snack_only,
+        f.is_main_dish_allowed,
+        f.palatability_score
       FROM app.recipe_items ri
       JOIN app.recipes r ON r.id = ri.recipe_id
       JOIN app.foods f ON f.id = ri.food_id
@@ -1838,7 +2200,13 @@ async function generateRecipeExamplesMenuForMeal({
         estado_pesado_mostrado_default: row.estado_pesado_mostrado_default,
         grupo_factor: row.grupo_factor,
         is_vegetarian: row.is_vegetarian,
-        is_vegan: row.is_vegan
+        is_vegan: row.is_vegan,
+        meal_suitability: row.meal_suitability,
+        processing_level: row.processing_level,
+        culinary_family: row.culinary_family,
+        is_snack_only: row.is_snack_only,
+        is_main_dish_allowed: row.is_main_dish_allowed,
+        palatability_score: row.palatability_score
       }
     });
   }
@@ -1871,13 +2239,47 @@ async function generateRecipeExamplesMenuForMeal({
   const fallbackMealKcalTarget = mealKcalTarget > 0
     ? mealKcalTarget
     : Math.round((mealMacros.protein_g * 4) + (mealMacros.carbs_g * 4) + (mealMacros.fat_g * 9));
+  const rulesDietType = resolveRulesDietType(userFoodFilters);
+  const mealAcceptabilityRule = await loadMealAcceptabilityRule({
+    mealType,
+    dietType: rulesDietType
+  });
+  const pairingRules = await loadPairingRules({
+    mealType,
+    candidateSlugs: allRecipeFoods.map((food) => food.slug)
+  });
 
   let bestResult = null;
+  let hardRuleBlockedCount = 0;
+  let hardRuleBlockedExample = null;
 
   for (let index = 0; index < recipesToEvaluate.length; index += 1) {
     const recipe = recipesToEvaluate[index];
     const recipeItems = recipeItemsMap.get(recipe.id) || [];
     if (recipeItems.length === 0) {
+      continue;
+    }
+
+    const hardRuleResult = evaluateRecipeHardRules({
+      mealType,
+      recipeCode: recipe.recipe_code,
+      recipeItems,
+      // En recipe_examples evitamos bloquear por acumulado diario de procesados
+      // para no quedarnos sin candidatas; el límite se evalúa por receta.
+      varietyContext: null,
+      maxProcessedItemsPerDay: 1,
+      mealAcceptabilityRule,
+      pairingRules
+    });
+
+    if (!hardRuleResult.isAllowed) {
+      hardRuleBlockedCount += 1;
+      if (!hardRuleBlockedExample) {
+        hardRuleBlockedExample = {
+          recipe_code: recipe.recipe_code,
+          blocked_rules: hardRuleResult.blockedRules.slice(0, 3)
+        };
+      }
       continue;
     }
 
@@ -1945,7 +2347,27 @@ async function generateRecipeExamplesMenuForMeal({
       + validation.error_carbs_porcentaje
       + validation.error_fat_porcentaje
     ) / 3;
-    const score = Number((((maxError * 0.75) + (avgMacroError * 0.25) + (varietyPenalty * 0.05))).toFixed(6));
+    const pairingPenaltyResult = computePairingPenaltyForRecipe({
+      mealType,
+      recipeItems: selectedItems,
+      pairingRules
+    });
+    const palatabilityPenaltyResult = computeMealPalatabilityPenalty({
+      mealType,
+      recipeItems: selectedItems,
+      varietyContext
+    });
+    const pairingPenaltyTotal = pairingPenaltyResult.totalPenalty;
+    const pairingPenaltyScore = pairingPenaltyTotal * 0.05;
+    const palatabilityPenaltyTotal = palatabilityPenaltyResult.totalPenalty;
+    const palatabilityPenaltyScore = palatabilityPenaltyTotal * 0.7;
+    const score = Number((
+      (maxError * 0.75)
+      + (avgMacroError * 0.25)
+      + (varietyPenalty * 0.05)
+      + pairingPenaltyScore
+      + palatabilityPenaltyScore
+    ).toFixed(6));
 
     const candidateResult = {
       menu: {
@@ -1962,7 +2384,28 @@ async function generateRecipeExamplesMenuForMeal({
         target_within_tolerance: maxError <= 2,
         evaluated_recipes: recipesToEvaluate.length,
         selected_recipe_rank: index + 1,
-        recipe_items: selectedItems.length
+        recipe_items: selectedItems.length,
+        pairing_penalty: {
+          total: pairingPenaltyTotal,
+          matched_rules: pairingPenaltyResult.appliedPenaltyRules.length
+        },
+        palatability: {
+          total_penalty: palatabilityPenaltyTotal,
+          avg_main: palatabilityPenaltyResult.avgMainPalatability,
+          avg_all: palatabilityPenaltyResult.avgAllPalatability,
+          base_penalty: palatabilityPenaltyResult.basePenalty,
+          contextual_penalty: palatabilityPenaltyResult.contextualPenalty,
+          repeat_family_penalty: palatabilityPenaltyResult.repeatFamilyPenalty,
+          repeated_main_families: palatabilityPenaltyResult.repeatedMainFamilies
+        },
+        hard_rules: {
+          blocked_candidates: hardRuleBlockedCount,
+          processed_items_in_selected_recipe: hardRuleResult.processedItemsInRecipe,
+          applied_rule_source: mealAcceptabilityRule ? 'db' : 'default',
+          meal_acceptability_rule_id: mealAcceptabilityRule?.id || null,
+          forbidden_pairing_rules_loaded: pairingRules.filter((rule) => String(rule.rule_type).toLowerCase() === 'forbidden').length,
+          penalty_pairing_rules_loaded: pairingRules.filter((rule) => String(rule.rule_type).toLowerCase() === 'penalty').length
+        }
       },
       availableFoods: selectedItems.map((item) => item.food),
       score
@@ -1978,6 +2421,16 @@ async function generateRecipeExamplesMenuForMeal({
   }
 
   if (!bestResult) {
+    if (hardRuleBlockedCount > 0) {
+      const exampleCode = hardRuleBlockedExample?.recipe_code || 'N/A';
+      const exampleRuleCodes = (hardRuleBlockedExample?.blocked_rules || [])
+        .map((rule) => rule?.code)
+        .filter(Boolean)
+        .join(',');
+      throw new Error(
+        `No se pudo construir menú recipe_examples para meal_type=${mealType}: reglas hard bloquearon ${hardRuleBlockedCount} recetas (ejemplo: ${exampleCode}${exampleRuleCodes ? `; rules=${exampleRuleCodes}` : ''})`
+      );
+    }
     throw new Error(`No se pudo construir menú recipe_examples para meal_type=${mealType}`);
   }
 
@@ -2278,28 +2731,75 @@ async function generateMenuForMeal({
   }
 
   if (modeNormalized === 'recipe_examples') {
-    const recipeResult = await generateRecipeExamplesMenuForMeal({ userId, meal, dayInfo, varietyContext });
-    registerSelectedRecipeInVarietyContext(varietyContext, recipeResult.metadata);
-    await safeLogMenuGeneration({
-      userId,
-      planId,
-      dayId,
-      mealId,
-      modeRequested: 'recipe_examples',
-      modeUsed: 'recipe_examples',
-      modelUsed: null,
-      fallbackUsed: false,
-      fallbackReason: null,
-      tokensUsed: null,
-      latencyMs: Date.now() - startTime,
-      requestPayload: { meal_name: meal?.nombre || null, day_type: dayInfo?.tipo_dia || null },
-      resultSummary: {
-        max_error: recipeResult.metadata?.max_error ?? null,
-        items: recipeResult.menu?.items?.length || 0,
-        recipe_code: recipeResult.metadata?.recipe_code || null
-      }
-    });
-    return recipeResult;
+    try {
+      const recipeResult = await generateRecipeExamplesMenuForMeal({ userId, meal, dayInfo, varietyContext });
+      registerSelectedRecipeInVarietyContext(varietyContext, recipeResult.metadata);
+      await safeLogMenuGeneration({
+        userId,
+        planId,
+        dayId,
+        mealId,
+        modeRequested: 'recipe_examples',
+        modeUsed: 'recipe_examples',
+        modelUsed: null,
+        fallbackUsed: false,
+        fallbackReason: null,
+        tokensUsed: null,
+        latencyMs: Date.now() - startTime,
+        requestPayload: { meal_name: meal?.nombre || null, day_type: dayInfo?.tipo_dia || null },
+        resultSummary: {
+          max_error: recipeResult.metadata?.max_error ?? null,
+          items: recipeResult.menu?.items?.length || 0,
+          recipe_code: recipeResult.metadata?.recipe_code || null
+        }
+      });
+      return recipeResult;
+    } catch (error) {
+      const fallbackReason = `recipe_examples_error: ${error.message}`;
+      console.warn(`⚠️ Fallback recipe_examples -> deterministic:`, fallbackReason);
+
+      const fallbackResult = await generateDeterministicMenuForMeal({ userId, meal, dayInfo, varietyContext });
+      fallbackResult.metadata = {
+        ...fallbackResult.metadata,
+        requested_mode: 'recipe_examples',
+        fallback_used: true,
+        fallback_reason: fallbackReason,
+        pairing_penalty: fallbackResult.metadata?.pairing_penalty || {
+          total: 0,
+          matched_rules: 0
+        },
+        hard_rules: fallbackResult.metadata?.hard_rules || {
+          blocked_candidates: null,
+          processed_items_in_selected_recipe: null,
+          applied_rule_source: 'fallback_deterministic',
+          meal_acceptability_rule_id: null,
+          forbidden_pairing_rules_loaded: null,
+          penalty_pairing_rules_loaded: null
+        }
+      };
+
+      await safeLogMenuGeneration({
+        userId,
+        planId,
+        dayId,
+        mealId,
+        modeRequested: 'recipe_examples',
+        modeUsed: 'deterministic',
+        modelUsed: null,
+        fallbackUsed: true,
+        fallbackReason,
+        tokensUsed: null,
+        latencyMs: Date.now() - startTime,
+        requestPayload: { meal_name: meal?.nombre || null, day_type: dayInfo?.tipo_dia || null },
+        resultSummary: {
+          max_error: fallbackResult.metadata?.max_error ?? null,
+          items: fallbackResult.menu?.items?.length || 0,
+          template_code: fallbackResult.metadata?.template_code || null
+        }
+      });
+
+      return fallbackResult;
+    }
   }
 
   if (modeNormalized === 'deterministic') {
@@ -3183,6 +3683,12 @@ router.get('/foods', authenticateToken, async (req, res) => {
         estado_pesado_mostrado_default,
         metodo_preparacion,
         grupo_factor,
+        meal_suitability,
+        processing_level,
+        culinary_family,
+        is_snack_only,
+        is_main_dish_allowed,
+        palatability_score,
         medida_casera,
         tipo_dieta,
         is_vegetarian,
@@ -3454,7 +3960,7 @@ router.post('/generate-menu', authenticateToken, async (req, res) => {
 
 /**
  * POST /api/nutrition-v2/meals/:mealId/items/:itemId/swap-food
- * Sustituir un alimento de una comida y recalcular macros/kcal del ítem.
+ * Sustituir un alimento de una comida y recalcular macros/kcal de toda la comida.
  */
 router.post('/meals/:mealId/items/:itemId/swap-food', authenticateToken, async (req, res) => {
   const client = await pool.connect();
@@ -3485,6 +3991,8 @@ router.post('/meals/:mealId/items/:itemId/swap-food', authenticateToken, async (
         SELECT
           mi.*,
           m.nombre AS meal_name,
+          m.kcal AS meal_kcal,
+          m.macros AS meal_macros,
           d.id AS day_id,
           d.plan_id,
           d.day_index,
@@ -3535,12 +4043,78 @@ router.post('/meals/:mealId/items/:itemId/swap-food', authenticateToken, async (
     }
     const replacementFood = replacementFoodResult.rows[0];
 
-    const currentRolesResult = currentItem.current_food_id
-      ? await client.query(`SELECT role FROM app.food_roles WHERE food_id = $1`, [currentItem.current_food_id])
-      : { rows: [] };
-    const replacementRolesResult = await client.query(`SELECT role FROM app.food_roles WHERE food_id = $1`, [replacementFood.id]);
-    const currentRoles = currentRolesResult.rows.map((row) => String(row.role || '').toUpperCase()).filter(Boolean);
-    const replacementRoles = replacementRolesResult.rows.map((row) => String(row.role || '').toUpperCase()).filter(Boolean);
+    const mealItemsResult = await client.query(
+      `
+        SELECT
+          mi.id,
+          mi.meal_id,
+          mi.orden,
+          mi.descripcion,
+          mi.kcal AS item_kcal,
+          mi.macros AS item_macros,
+          mi.tags AS item_tags,
+          mi.cantidad_g,
+          mi.cantidad_g_base,
+          mi.cantidad_g_mostrada,
+          mi.estado_pesado_base,
+          mi.estado_pesado_mostrado,
+          COALESCE(mi.food_id, mi.alimento_id) AS current_food_id,
+          f.id AS db_food_id,
+          f.slug AS db_food_slug,
+          f.nombre AS db_food_nombre,
+          f.macros_100g AS db_food_macros_100g,
+          f.tags AS db_food_tags,
+          f.estado_pesado_base AS db_food_estado_base,
+          f.estado_pesado_mostrado_default AS db_food_estado_mostrado_default,
+          f.grupo_factor AS db_food_grupo_factor,
+          f.is_verified AS db_food_verified
+        FROM app.nutrition_meal_items mi
+        LEFT JOIN app.foods f ON f.id = COALESCE(mi.food_id, mi.alimento_id)
+        WHERE mi.meal_id = $1
+        ORDER BY mi.orden, mi.id;
+      `,
+      [mealId]
+    );
+
+    if (mealItemsResult.rowCount === 0) {
+      return res.status(404).json({ success: false, error: 'No hay items en la comida para recalcular' });
+    }
+
+    const targetMealItem = mealItemsResult.rows.find((row) => String(row.id) === String(itemId));
+    if (!targetMealItem) {
+      return res.status(404).json({ success: false, error: 'Ítem objetivo no encontrado en la comida' });
+    }
+
+    const foodIdsForRoleLookup = [
+      ...new Set(
+        mealItemsResult.rows
+          .map((row) => row.current_food_id)
+          .concat([replacementFood.id, currentItem.current_food_id])
+          .filter(Boolean)
+      )
+    ];
+
+    let rolesByFoodId = new Map();
+    if (foodIdsForRoleLookup.length > 0) {
+      const rolesResult = await client.query(
+        `
+          SELECT food_id, role
+          FROM app.food_roles
+          WHERE food_id = ANY($1::uuid[]);
+        `,
+        [foodIdsForRoleLookup]
+      );
+      rolesByFoodId = rolesResult.rows.reduce((acc, row) => {
+        const key = String(row.food_id || '');
+        if (!key) return acc;
+        if (!acc.has(key)) acc.set(key, []);
+        acc.get(key).push(String(row.role || '').toUpperCase());
+        return acc;
+      }, new Map());
+    }
+
+    const currentRoles = rolesByFoodId.get(String(currentItem.current_food_id || '')) || [];
+    const replacementRoles = rolesByFoodId.get(String(replacementFood.id || '')) || [];
 
     if (!areRoleSetsCompatible(currentRoles, replacementRoles)) {
       return res.status(400).json({
@@ -3551,93 +4125,288 @@ router.post('/meals/:mealId/items/:itemId/swap-food', authenticateToken, async (
       });
     }
 
-    const oldMacros = parseJsonObject(currentItem.macros, {});
-    const oldKcal = parseNumeric(currentItem.kcal) ?? 0;
-    const primaryRole = getPrimaryRoleFromRoles(currentRoles, oldMacros);
-    const computedBaseGrams = computeSwapBaseGrams({
-      oldItemMacros: oldMacros,
-      oldItemKcal: oldKcal,
-      newFood: replacementFood,
-      primaryRole
-    });
-
-    const estadoBase = normalizeEstadoPesado(replacementFood.estado_pesado_base) || 'tal_cual';
-    const estadoMostradoRequested = normalizeEstadoPesado(estadoPesadoMostradoRaw)
-      || normalizeEstadoPesado(replacementFood.estado_pesado_mostrado_default)
-      || estadoBase;
-
-    let conversionMap = new Map();
-    const normalizedGroup = String(replacementFood.grupo_factor || '').trim().toLowerCase();
-    if (normalizedGroup) {
-      const conversionRows = (
+    const foodGroupFactors = [
+      ...new Set(
+        mealItemsResult.rows
+          .map((row) => String(
+            String(row.id) === String(itemId)
+              ? replacementFood.grupo_factor
+              : row.db_food_grupo_factor
+          ).trim().toLowerCase())
+          .filter(Boolean)
+      )
+    ];
+    const conversionRows = foodGroupFactors.length > 0
+      ? (
         await client.query(
           `
             SELECT grupo_factor, estado_base, estado_objetivo, factor_base_objetivo
             FROM app.food_conversion_factors
-            WHERE LOWER(grupo_factor) = $1;
+            WHERE LOWER(grupo_factor) = ANY($1);
           `,
-          [normalizedGroup]
+          [foodGroupFactors]
         )
-      ).rows;
-      conversionMap = buildConversionMapFromRows(conversionRows);
-    }
+      ).rows
+      : [];
+    const conversionMap = buildConversionMapFromRows(conversionRows);
 
-    const conversionState = resolveShownStateConversion({
-      grupoFactor: replacementFood.grupo_factor,
-      estadoBase,
-      estadoMostrado: estadoMostradoRequested,
-      conversionMap
+    let mealMacrosTarget = parseMealMacros({
+      macros: currentItem.meal_macros
     });
-    const requestedDifferentState = estadoMostradoRequested !== estadoBase;
-    if (requestedDifferentState && conversionState.blockedReason) {
-      return res.status(400).json({
-        success: false,
-        error: `Conversión bloqueada (${conversionState.blockedReason}) para el estado solicitado`,
-        blocked_reason: conversionState.blockedReason
-      });
+    let mealKcalTarget = parseNumeric(currentItem.meal_kcal) ?? 0;
+    if (!(mealMacrosTarget.protein_g > 0) && !(mealMacrosTarget.carbs_g > 0) && !(mealMacrosTarget.fat_g > 0)) {
+      mealMacrosTarget = mealItemsResult.rows.reduce((acc, row) => {
+        const macros = parseJsonObject(row.item_macros, {});
+        acc.protein_g += parseNumeric(macros.protein_g) ?? 0;
+        acc.carbs_g += parseNumeric(macros.carbs_g) ?? 0;
+        acc.fat_g += parseNumeric(macros.fat_g) ?? 0;
+        return acc;
+      }, { protein_g: 0, carbs_g: 0, fat_g: 0 });
+    }
+    if (!(mealKcalTarget > 0)) {
+      mealKcalTarget = Math.round(
+        (mealMacrosTarget.protein_g * 4)
+        + (mealMacrosTarget.carbs_g * 4)
+        + (mealMacrosTarget.fat_g * 9)
+      );
     }
 
-    const cantidadBase = computedBaseGrams;
-    const cantidadMostrada = Number((cantidadBase * conversionState.factor).toFixed(1));
-    const computed = computeMacrosAndKcalFromFood(replacementFood, cantidadBase);
+    const draftEntries = mealItemsResult.rows.map((row) => {
+      const isTarget = String(row.id) === String(itemId);
+      const selectedFood = isTarget
+        ? replacementFood
+        : {
+          id: row.db_food_id,
+          slug: row.db_food_slug,
+          nombre: row.db_food_nombre,
+          macros_100g: row.db_food_macros_100g,
+          tags: row.db_food_tags,
+          estado_pesado_base: row.db_food_estado_base,
+          estado_pesado_mostrado_default: row.db_food_estado_mostrado_default,
+          grupo_factor: row.db_food_grupo_factor
+        };
 
-    await client.query('BEGIN');
-    await client.query(
-      `
-        UPDATE app.nutrition_meal_items
-        SET
-          alimento_id = $1,
-          food_id = $1,
-          descripcion = $2,
-          cantidad_g = $3,
-          kcal = $4,
-          macros = $5::jsonb,
-          tags = $6::jsonb,
-          estado_pesado_base = $7,
-          estado_pesado_mostrado = $8,
-          cantidad_g_base = $9,
-          cantidad_g_mostrada = $10
-        WHERE id = $11;
-      `,
-      [
-        replacementFood.id,
-        replacementFood.nombre,
-        cantidadMostrada,
-        computed.kcal,
-        JSON.stringify({
+      if (!selectedFood?.id || !selectedFood?.macros_100g) {
+        throw new Error(`No se encontraron datos nutricionales válidos para el item ${row.id}`);
+      }
+
+      const itemMacros = parseJsonObject(row.item_macros, {});
+      const roleSet = isTarget
+        ? currentRoles
+        : (rolesByFoodId.get(String(selectedFood.id)) || []);
+      const role = getPrimaryRoleFromRoles(roleSet, itemMacros);
+      const bounds = getRoleGramBounds(role);
+      const macros100 = parseJsonObject(selectedFood.macros_100g, {});
+      const proteinPerG = (parseNumeric(macros100.protein_g) ?? 0) / 100;
+      const carbsPerG = (parseNumeric(macros100.carbs_g) ?? 0) / 100;
+      const fatPerG = (parseNumeric(macros100.fat_g) ?? 0) / 100;
+      const kcalPerG = (parseNumeric(macros100.kcal) ?? ((proteinPerG * 4) + (carbsPerG * 4) + (fatPerG * 9)) * 100) / 100;
+
+      if (!(proteinPerG > 0) && !(carbsPerG > 0) && !(fatPerG > 0)) {
+        throw new Error(`El alimento ${selectedFood.nombre} no tiene macros válidos`);
+      }
+
+      let initialBase = isTarget
+        ? computeSwapBaseGrams({
+          oldItemMacros: itemMacros,
+          oldItemKcal: parseNumeric(row.item_kcal),
+          newFood: selectedFood,
+          primaryRole: role
+        })
+        : resolveBaseGramsFromMealItem(
+          {
+            ...row,
+            grupo_factor: selectedFood.grupo_factor
+          },
+          conversionMap
+        );
+      if (!(initialBase > 0)) {
+        initialBase = computeSwapBaseGrams({
+          oldItemMacros: itemMacros,
+          oldItemKcal: parseNumeric(row.item_kcal),
+          newFood: selectedFood,
+          primaryRole: role
+        });
+      }
+
+      const requestedShownState = isTarget
+        ? (
+          normalizeEstadoPesado(estadoPesadoMostradoRaw)
+          || normalizeEstadoPesado(row.estado_pesado_mostrado)
+          || normalizeEstadoPesado(selectedFood.estado_pesado_mostrado_default)
+          || normalizeEstadoPesado(selectedFood.estado_pesado_base)
+          || 'tal_cual'
+        )
+        : (
+          normalizeEstadoPesado(row.estado_pesado_mostrado)
+          || normalizeEstadoPesado(selectedFood.estado_pesado_mostrado_default)
+          || normalizeEstadoPesado(selectedFood.estado_pesado_base)
+          || 'tal_cual'
+        );
+
+      return {
+        row,
+        isTarget,
+        role,
+        selectedFood,
+        bounds,
+        macros100,
+        proteinPerG,
+        carbsPerG,
+        fatPerG,
+        kcalPerG,
+        requestedShownState,
+        initialBase: clampNumber(initialBase, bounds.min, bounds.max)
+      };
+    });
+
+    const optimizedBaseGrams = optimizeDraftItemGrams({
+      draftItems: draftEntries.map((entry) => ({
+        role: entry.role,
+        food: entry.selectedFood,
+        macros100: entry.macros100,
+        proteinPerG: entry.proteinPerG,
+        carbsPerG: entry.carbsPerG,
+        fatPerG: entry.fatPerG,
+        kcalPerG: entry.kcalPerG,
+        bounds: entry.bounds,
+        gramosBase: entry.initialBase
+      })),
+      mealMacros: mealMacrosTarget,
+      mealKcalTarget
+    });
+
+    const recalculatedItems = draftEntries.map((entry, index) => {
+      const cantidadBase = Number(optimizedBaseGrams[index].toFixed(1));
+      const conversionState = resolveShownStateWithFallback({
+        grupoFactor: entry.selectedFood.grupo_factor,
+        estadoBase: normalizeEstadoPesado(entry.selectedFood.estado_pesado_base) || 'tal_cual',
+        estadoMostrado: entry.requestedShownState,
+        conversionMap
+      });
+      const cantidadMostrada = Number((cantidadBase * conversionState.factor).toFixed(1));
+      const computed = computeMacrosAndKcalFromFood(entry.selectedFood, cantidadBase);
+      const tags = Array.isArray(entry.selectedFood.tags)
+        ? entry.selectedFood.tags
+        : normalizeStringArray(entry.selectedFood.tags);
+
+      return {
+        itemId: entry.row.id,
+        orden: entry.row.orden,
+        isTarget: entry.isTarget,
+        role: entry.role,
+        food: entry.selectedFood,
+        estado_pesado_base: conversionState.estadoBase,
+        estado_pesado_mostrado: conversionState.estadoMostradoFinal,
+        estado_fallback_aplicado: conversionState.fallbackApplied,
+        estado_fallback_motivo: conversionState.blockedReason,
+        estado_fallback_mensaje: conversionState.fallbackMessage,
+        cantidad_g_base: cantidadBase,
+        cantidad_g_mostrada: cantidadMostrada,
+        cantidad_g: cantidadMostrada,
+        kcal: computed.kcal,
+        macros: {
           protein_g: computed.protein_g,
           carbs_g: computed.carbs_g,
           fat_g: computed.fat_g
-        }),
-        JSON.stringify(Array.isArray(replacementFood.tags) ? replacementFood.tags : normalizeStringArray(replacementFood.tags)),
-        estadoBase,
-        conversionState.estadoMostradoFinal,
-        cantidadBase,
-        cantidadMostrada,
-        itemId
+        },
+        tags
+      };
+    });
+
+    const totals = calculateMacroTotals(recalculatedItems);
+    const mealValidation = {
+      kcal_total: Math.round(totals.kcal),
+      macros_totales: {
+        protein_g: Number(totals.protein_g.toFixed(2)),
+        carbs_g: Number(totals.carbs_g.toFixed(2)),
+        fat_g: Number(totals.fat_g.toFixed(2))
+      },
+      error_kcal_porcentaje: percentError(totals.kcal, mealKcalTarget),
+      error_protein_porcentaje: percentError(totals.protein_g, mealMacrosTarget.protein_g),
+      error_carbs_porcentaje: percentError(totals.carbs_g, mealMacrosTarget.carbs_g),
+      error_fat_porcentaje: percentError(totals.fat_g, mealMacrosTarget.fat_g)
+    };
+    const mealMaxError = Math.max(
+      mealValidation.error_kcal_porcentaje,
+      mealValidation.error_protein_porcentaje,
+      mealValidation.error_carbs_porcentaje,
+      mealValidation.error_fat_porcentaje
+    );
+
+    if (mealMaxError > SWAP_MEAL_RECALC_MAX_ERROR) {
+      return res.status(409).json({
+        success: false,
+        code: 'swap_not_feasible',
+        error: 'No hemos podido ajustar esta comida de forma coherente con ese cambio. Prueba otro alimento.',
+        validation: mealValidation,
+        max_error: mealMaxError
+      });
+    }
+
+    await client.query('BEGIN');
+    for (const item of recalculatedItems) {
+      await client.query(
+        `
+          UPDATE app.nutrition_meal_items
+          SET
+            alimento_id = $1,
+            food_id = $1,
+            descripcion = $2,
+            cantidad_g = $3,
+            kcal = $4,
+            macros = $5::jsonb,
+            tags = $6::jsonb,
+            estado_pesado_base = $7,
+            estado_pesado_mostrado = $8,
+            cantidad_g_base = $9,
+            cantidad_g_mostrada = $10
+          WHERE id = $11
+            AND meal_id = $12;
+        `,
+        [
+          item.food.id,
+          item.food.nombre,
+          item.cantidad_g,
+          item.kcal,
+          JSON.stringify(item.macros),
+          JSON.stringify(item.tags),
+          item.estado_pesado_base,
+          item.estado_pesado_mostrado,
+          item.cantidad_g_base,
+          item.cantidad_g_mostrada,
+          item.itemId,
+          mealId
+        ]
+      );
+    }
+
+    await client.query(
+      `
+        UPDATE app.nutrition_meals
+        SET
+          kcal = $1,
+          macros = $2::jsonb
+        WHERE id = $3;
+      `,
+      [
+        mealValidation.kcal_total,
+        JSON.stringify(mealValidation.macros_totales),
+        mealId
       ]
     );
     await client.query('COMMIT');
+
+    const updatedTargetItem = recalculatedItems.find((item) => item.isTarget);
+    const stateWarnings = recalculatedItems
+      .filter((item) => item.estado_fallback_aplicado && item.estado_fallback_mensaje)
+      .map((item) => ({
+        item_id: item.itemId,
+        food_id: item.food.id,
+        food_name: item.food.nombre,
+        reason_code: item.estado_fallback_motivo,
+        message: item.estado_fallback_mensaje
+      }));
 
     res.json({
       success: true,
@@ -3649,25 +4418,34 @@ router.post('/meals/:mealId/items/:itemId/swap-food', authenticateToken, async (
         cantidad_g_base: currentItem.cantidad_g_base ?? currentItem.cantidad_g ?? null,
         cantidad_g_mostrada: currentItem.cantidad_g_mostrada ?? currentItem.cantidad_g ?? null,
         kcal: currentItem.kcal,
-        macros: oldMacros
+        macros: parseJsonObject(currentItem.macros, {})
       },
       updated_item: {
-        food_id: replacementFood.id,
-        food_slug: replacementFood.slug,
-        descripcion: replacementFood.nombre,
-        primary_role: primaryRole,
+        food_id: updatedTargetItem.food.id,
+        food_slug: updatedTargetItem.food.slug,
+        descripcion: updatedTargetItem.food.nombre,
+        primary_role: updatedTargetItem.role,
         roles: replacementRoles,
-        cantidad_g_base: cantidadBase,
-        cantidad_g_mostrada: cantidadMostrada,
-        estado_pesado_base: estadoBase,
-        estado_pesado_mostrado: conversionState.estadoMostradoFinal,
-        kcal: computed.kcal,
-        macros: {
-          protein_g: computed.protein_g,
-          carbs_g: computed.carbs_g,
-          fat_g: computed.fat_g
+        cantidad_g_base: updatedTargetItem.cantidad_g_base,
+        cantidad_g_mostrada: updatedTargetItem.cantidad_g_mostrada,
+        estado_pesado_base: updatedTargetItem.estado_pesado_base,
+        estado_pesado_mostrado: updatedTargetItem.estado_pesado_mostrado,
+        kcal: updatedTargetItem.kcal,
+        macros: updatedTargetItem.macros,
+        state_adjustment: {
+          applied: Boolean(updatedTargetItem.estado_fallback_aplicado),
+          reason_code: updatedTargetItem.estado_fallback_motivo,
+          message: updatedTargetItem.estado_fallback_mensaje
         }
-      }
+      },
+      meal_summary: {
+        items_recalculated: recalculatedItems.length,
+        kcal: mealValidation.kcal_total,
+        macros: mealValidation.macros_totales,
+        validation: mealValidation,
+        max_error: mealMaxError
+      },
+      swap_warnings: stateWarnings
     });
   } catch (error) {
     try {

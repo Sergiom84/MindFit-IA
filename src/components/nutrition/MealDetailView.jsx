@@ -3,6 +3,12 @@ import { X, Utensils, Clock, Dumbbell, Moon, TrendingUp, Sparkles, Loader2 } fro
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3010";
 const ESTADOS_PESADO = ["crudo", "cocido", "escurrido", "seco", "tal_cual"];
+const MENU_GENERATION_MODE_LABELS = {
+  hybrid_ai: "IA híbrida",
+  recipe_examples: "Recetas",
+  deterministic: "Determinista",
+  ai: "IA clásico"
+};
 
 const MEAL_ICONS = {
   1: "🌅",
@@ -84,7 +90,8 @@ async function fetchJsonWithAuth(url, options = {}) {
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(payload?.error || payload?.message || "Error en la solicitud");
+    const codePrefix = payload?.code ? `${payload.code}: ` : "";
+    throw new Error(`${codePrefix}${payload?.error || payload?.message || "Error en la solicitud"}`);
   }
 
   return payload;
@@ -181,12 +188,35 @@ function calculateDisplayedItemData({ item, selectedEstado, factorByKey }) {
   };
 }
 
+function toUserFriendlySwapError(message) {
+  const raw = String(message || "").trim();
+  const normalized = raw.toLowerCase();
+
+  if (normalized.includes("swap_not_feasible")) {
+    return "No hemos podido ajustar esta comida de forma coherente con ese cambio. Prueba otro alimento.";
+  }
+  if (normalized.includes("tal_cual_no_convertible")) {
+    return "Este alimento se mide tal como se consume. Se debe usar ese formato de cantidad.";
+  }
+  if (normalized.includes("missing_group_factor")) {
+    return "No hay regla de conversión para este alimento. Prueba con otro reemplazo.";
+  }
+  if (normalized.includes("missing_conversion_factor")) {
+    return "No existe una conversión para ese estado en este alimento.";
+  }
+  if (normalized.includes("conversión bloqueada")) {
+    return "No se puede aplicar ese estado de pesado para este alimento.";
+  }
+
+  return raw;
+}
+
 export default function MealDetailView({
   day,
   planInfo,
   onClose,
   menusEnabled = false,
-  menuGenerationMode = "deterministic",
+  menuGenerationMode = "recipe_examples",
   isGeneratingMenus = false,
   onGenerateDayMenus = null,
   onRefreshDay = null
@@ -226,6 +256,7 @@ export default function MealDetailView({
   const proteinPercent = totalKcal > 0 ? ((proteinKcal / totalKcal) * 100).toFixed(0) : "0";
   const carbsPercent = totalKcal > 0 ? ((carbsKcal / totalKcal) * 100).toFixed(0) : "0";
   const fatPercent = totalKcal > 0 ? ((fatKcal / totalKcal) * 100).toFixed(0) : "0";
+  const menuGenerationModeLabel = MENU_GENERATION_MODE_LABELS[menuGenerationMode] || menuGenerationMode;
 
   useEffect(() => {
     const initialStateMap = {};
@@ -339,7 +370,7 @@ export default function MealDetailView({
         [itemKey]: filtered.length > 0 ? `${filtered.length} opción(es) compatibles` : "Sin opciones compatibles"
       }));
     } catch (error) {
-      setSwapErrorByItem((previous) => ({ ...previous, [itemKey]: error.message }));
+      setSwapErrorByItem((previous) => ({ ...previous, [itemKey]: toUserFriendlySwapError(error.message) }));
     } finally {
       setSwapLoadingByItem((previous) => ({ ...previous, [itemKey]: false }));
     }
@@ -365,7 +396,7 @@ export default function MealDetailView({
     setSwapMessageByItem((previous) => ({ ...previous, [itemKey]: null }));
 
     try {
-      await fetchJsonWithAuth(
+      const payload = await fetchJsonWithAuth(
         `${API_URL}/api/nutrition-v2/meals/${meal.id}/items/${item.id}/swap-food`,
         {
           method: "POST",
@@ -391,12 +422,19 @@ export default function MealDetailView({
         setDayState(refreshedDay);
       }
 
-      setSwapMessageByItem((previous) => ({ ...previous, [itemKey]: "Sustitución aplicada y macros recalculados" }));
+      const warnings = Array.isArray(payload?.swap_warnings) ? payload.swap_warnings : [];
+      const targetAdjustmentMessage = payload?.updated_item?.state_adjustment?.message || null;
+      const warningMessage = targetAdjustmentMessage || warnings[0]?.message || null;
+      const successMessage = warningMessage
+        ? `Sustitución aplicada. ${warningMessage}`
+        : "Sustitución aplicada y comida recalculada";
+
+      setSwapMessageByItem((previous) => ({ ...previous, [itemKey]: successMessage }));
       setSwapOpenByItem((previous) => ({ ...previous, [itemKey]: false }));
       setSwapCandidatesByItem((previous) => ({ ...previous, [itemKey]: [] }));
       setSwapSelectedFoodIdByItem((previous) => ({ ...previous, [itemKey]: "" }));
     } catch (error) {
-      setSwapErrorByItem((previous) => ({ ...previous, [itemKey]: error.message }));
+      setSwapErrorByItem((previous) => ({ ...previous, [itemKey]: toUserFriendlySwapError(error.message) }));
     } finally {
       setRefreshingDay(false);
       setSwapApplyingByItem((previous) => ({ ...previous, [itemKey]: false }));
@@ -406,23 +444,23 @@ export default function MealDetailView({
   if (!dayState) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/90 z-50 flex items-start sm:items-center justify-center px-3 sm:p-4 pt-[calc(env(safe-area-inset-top)+5.5rem)] sm:pt-4 pb-[calc(env(safe-area-inset-bottom)+3rem)] sm:pb-4 overflow-y-auto">
-      <div className="bg-neutral-900/80 border border-white/10 ring-1 ring-white/5 backdrop-blur-lg rounded-2xl max-w-5xl w-full max-h-[calc(100vh-11rem)] sm:max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-neutral-900/80 border-b border-white/10 p-6 flex items-center justify-between">
+    <div className="meal-detail-scroll fixed inset-0 bg-black/95 z-[80] flex items-start justify-center px-3 sm:px-4 pt-[calc(env(safe-area-inset-top)+5.75rem)] sm:pt-[calc(env(safe-area-inset-top)+6.25rem)] pb-[calc(env(safe-area-inset-bottom)+5.5rem)] sm:pb-[calc(env(safe-area-inset-bottom)+5.75rem)] overflow-y-auto">
+      <div className="meal-detail-scroll bg-gradient-to-b from-[#1b2130]/95 via-[#141b2a]/95 to-[#0d121d]/95 border border-white/10 ring-1 ring-white/5 shadow-[0_45px_120px_-60px_rgba(0,0,0,0.95)] backdrop-blur-xl rounded-2xl max-w-5xl w-full max-h-[calc(100vh-12rem)] sm:max-h-[calc(100vh-12rem)] overflow-y-auto">
+        <div className="sticky top-0 z-20 bg-gradient-to-r from-[#1b202c]/95 to-[#141925]/95 backdrop-blur-xl border-b border-white/10 p-5 sm:p-6 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-semibold font-urbanist text-white mb-1">
+            <h2 className="text-2xl font-semibold font-urbanist text-white tracking-tight mb-1">
               Día {dayState.day_index + 1} - {isTraining ? "Entrenamiento" : "Descanso"}
             </h2>
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-300/80 text-sm">
               {planInfo.plan_name} • {planInfo.training_type}
             </p>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+            className="group inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/80 hover:text-white hover:border-yellow-300/45 hover:bg-yellow-400/10 transition-all duration-200 shadow-[0_16px_30px_-22px_rgba(0,0,0,0.9)]"
           >
-            <X className="w-6 h-6 text-white" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -523,14 +561,14 @@ export default function MealDetailView({
                 type="button"
                 onClick={onGenerateDayMenus}
                 disabled={!onGenerateDayMenus || isGeneratingMenus}
-                className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-sm text-white hover:bg-white/10 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-yellow-300/35 bg-gradient-to-r from-yellow-400/15 to-amber-400/10 text-sm font-medium text-yellow-100 hover:from-yellow-400/20 hover:to-amber-400/15 hover:border-yellow-300/55 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200"
               >
                 {isGeneratingMenus ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Sparkles className="w-4 h-4 text-yellow-300" />
                 )}
-                {isGeneratingMenus ? "Generando menus..." : `Generar menús (${menuGenerationMode})`}
+                {isGeneratingMenus ? "Generando menus..." : `Generar menús (${menuGenerationModeLabel})`}
               </button>
             )}
           </div>
@@ -795,10 +833,10 @@ export default function MealDetailView({
           )}
         </div>
 
-        <div className="sticky bottom-0 bg-neutral-900/80 border-t border-white/10 p-6">
+        <div className="sticky bottom-0 bg-gradient-to-r from-[#1a1f2a]/95 to-[#141925]/95 backdrop-blur-xl border-t border-white/8 p-5 sm:p-6">
           <button
             onClick={onClose}
-            className="w-full bg-yellow-400 text-gray-900 py-3 rounded-lg font-bold hover:bg-yellow-500 transition-colors"
+            className="w-full py-3 rounded-xl border border-transparent text-black font-semibold bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)] hover:brightness-105 transition-all duration-200"
           >
             Cerrar
           </button>

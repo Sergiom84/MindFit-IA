@@ -1,5 +1,9 @@
 # Registro diario de implementaciones
 
+## 20.02.2026
+
+- Nutrición (restauración visual modal): en `src/components/nutrition/MealDetailView.jsx` se recuperan estilos premium perdidos por revert accidental en overlay y safe-areas (`meal-detail-scroll`, `z-[80]`, `pt/pb` móvil+desktop), botón de cierre superior (borde/sombra/hover premium) y CTA inferior amarillo degradado; además se restituye la etiqueta legible del modo en `Generar menús`.
+
 ## 13.02.2026
 
 - UI (bottom tab bar móvil): `src/components/Navigation.jsx` ajustada para que en móvil la barra inferior sea fija y de ancho completo (sin estilo flotante), manteniendo el diseño flotante actual en `sm+`.

@@ -1,0 +1,60 @@
+{
+  "generated_at": "2026-02-20T13:58:25.850Z",
+  "totals": {
+    "active_recipes": 222,
+    "hard_rules_pass": 220,
+    "hard_rules_fail": 2,
+    "hard_rules_pass_rate_pct": 99.1
+  },
+  "by_meal_type": {
+    "CENA": {
+      "total": 50,
+      "hard_rules_pass": 50,
+      "hard_rules_fail": 0
+    },
+    "COMIDA": {
+      "total": 72,
+      "hard_rules_pass": 70,
+      "hard_rules_fail": 2
+    },
+    "DESAYUNO": {
+      "total": 50,
+      "hard_rules_pass": 50,
+      "hard_rules_fail": 0
+    },
+    "SNACK": {
+      "total": 50,
+      "hard_rules_pass": 50,
+      "hard_rules_fail": 0
+    }
+  },
+  "blocked_rule_counts": {
+    "meal_suitability_blocked": 3,
+    "snack_only_in_main_meal": 3,
+    "main_dish_not_allowed": 3,
+    "ultraprocessed_main_role": 1,
+    "snack_family_in_main_meal": 1
+  },
+  "blocked_samples": [
+    {
+      "recipe_code": "EX_C24_2",
+      "meal_type": "COMIDA",
+      "blocked_codes": [
+        "meal_suitability_blocked",
+        "snack_only_in_main_meal",
+        "main_dish_not_allowed"
+      ]
+    },
+    {
+      "recipe_code": "EX_C24_3",
+      "meal_type": "COMIDA",
+      "blocked_codes": [
+        "meal_suitability_blocked",
+        "snack_only_in_main_meal",
+        "main_dish_not_allowed",
+        "ultraprocessed_main_role",
+        "snack_family_in_main_meal"
+      ]
+    }
+  ]
+}
