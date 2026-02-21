@@ -3,6 +3,10 @@
 ## 21.02.2026
 
 - Nutrición (acción de generación reubicada): en `src/components/nutrition/MealDetailView.jsx` se mueve `Generar menú` desde el footer al header del modal, alineado a la derecha de `Día X · Entrenamiento/Descanso`, reutilizando `menusEnabled`, `isGeneratingMenus` y `onGenerateDayMenus`; el CTA inferior se mantiene como `Cerrar`.
+- Nutrición (afinado visual final modal): en `src/components/nutrition/MealDetailView.jsx` se neutraliza la paleta del modal a negro/gris (eliminando tinte azul en tokens y gradiente principal) y se aplica estilo premium al botón `Generar menú` en cabecera (gradiente dorado, borde/acabado brillante, sombra y microinteracción hover/active).
+- Nutrición (ajuste de acabado CTA): en `src/components/nutrition/MealDetailView.jsx` se reduce el halo del botón `Generar menú` bajando intensidad de borde y sombra/brillo interno para un look premium más sobrio.
+- Nutrición (paridad visual CTA): en `src/components/nutrition/MealDetailView.jsx` el botón `Generar menú` adopta exactamente el estilo activo de `Calendario V2` (mismas clases de gradiente/sombra/borde/tipografía de `NutritionScreen`) y muestra icono `Calendar` en reposo.
+- Nutrición (paridad visual cierre): en `src/components/nutrition/MealDetailView.jsx` el botón `Cerrar` del footer adopta el mismo estilo visual del botón activo `Calendario V2` (mismo gradiente, sombra y acabado) manteniendo dimensiones del CTA inferior.
 
 ## 20.02.2026
 

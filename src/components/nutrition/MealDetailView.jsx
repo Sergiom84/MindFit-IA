@@ -3,6 +3,7 @@ import {
   X,
   Utensils,
   Clock,
+  Calendar,
   TrendingUp,
   Loader2,
   Info,
@@ -30,10 +31,10 @@ const MEAL_ICONS = {
 };
 
 const MODAL_TOKENS = {
-  "--bg": "8 9 12",
-  "--panel": "17 18 22",
-  "--surface": "24 25 30",
-  "--surface-2": "30 31 37",
+  "--bg": "7 7 9",
+  "--panel": "14 14 17",
+  "--surface": "20 20 24",
+  "--surface-2": "24 24 28",
   "--border": "255 255 255",
   "--text": "228 230 236",
   "--text-2": "170 175 188",
@@ -509,7 +510,7 @@ export default function MealDetailView({
         className="meal-detail-scroll relative flex w-full max-w-[860px] max-h-[92vh] flex-col overflow-hidden rounded-[30px] border"
         style={{
           background:
-            "linear-gradient(180deg, rgba(23,24,30,0.97) 0%, rgba(16,17,22,0.97) 52%, rgba(12,13,18,0.98) 100%)",
+            "linear-gradient(180deg, rgba(20,20,24,0.98) 0%, rgba(14,14,18,0.98) 52%, rgba(10,10,13,0.99) 100%)",
           borderColor: "rgb(var(--border) / 0.08)",
           boxShadow: "0 26px 74px rgba(0,0,0,0.58)"
         }}
@@ -548,14 +549,9 @@ export default function MealDetailView({
                 type="button"
                 onClick={onGenerateDayMenus}
                 disabled={isGeneratingMenus || refreshingDay}
-                className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60"
-                style={{
-                  backgroundColor: "rgb(var(--border) / 0.06)",
-                  borderColor: "rgb(var(--border) / 0.12)",
-                  color: "rgb(var(--text) / 0.95)"
-                }}
+                className="flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-medium transition-all duration-200 bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black border-transparent shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isGeneratingMenus && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isGeneratingMenus ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <Calendar size={18} />}
                 <span>{isGeneratingMenus ? "Generando..." : "Generar menú"}</span>
               </button>
             )}
@@ -963,11 +959,7 @@ export default function MealDetailView({
           <button
             type="button"
             onClick={onClose}
-            className="mx-auto flex min-h-[54px] w-full max-w-[460px] items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[17px] font-semibold text-[#111522] transition-all hover:brightness-105 active:translate-y-[1px]"
-            style={{
-              background: "linear-gradient(180deg, rgb(var(--brand-2) / 1) 0%, rgb(var(--brand) / 1) 100%)",
-              boxShadow: "0 12px 30px rgba(242,194,0,0.28)"
-            }}
+            className="mx-auto flex min-h-[54px] w-full max-w-[460px] items-center justify-center gap-2 rounded-2xl px-4 py-3 border text-[17px] font-semibold transition-all duration-200 bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black border-transparent shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)] hover:brightness-105 active:translate-y-[1px]"
           >
             Cerrar
           </button>
