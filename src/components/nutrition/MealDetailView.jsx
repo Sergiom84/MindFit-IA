@@ -242,6 +242,9 @@ export default function MealDetailView({
   planInfo,
   onClose,
   menuGenerationMode = "recipe_examples",
+  menusEnabled = false,
+  isGeneratingMenus = false,
+  onGenerateDayMenus = null,
   onRefreshDay = null
 }) {
   const [dayState, setDayState] = useState(day);
@@ -532,10 +535,31 @@ export default function MealDetailView({
             </button>
           </div>
 
-          <h2 className="text-[30px] leading-tight font-semibold font-urbanist tracking-tight text-[rgb(var(--text)/0.98)]">
-            Día {dayLabel} · {dayTypeLabel}
-          </h2>
-          <p className="mt-1 text-sm text-[rgb(var(--text-2)/0.9)]">{subtitle}</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h2 className="text-[30px] leading-tight font-semibold font-urbanist tracking-tight text-[rgb(var(--text)/0.98)]">
+                Día {dayLabel} · {dayTypeLabel}
+              </h2>
+              <p className="mt-1 text-sm text-[rgb(var(--text-2)/0.9)]">{subtitle}</p>
+            </div>
+
+            {menusEnabled && typeof onGenerateDayMenus === "function" && (
+              <button
+                type="button"
+                onClick={onGenerateDayMenus}
+                disabled={isGeneratingMenus || refreshingDay}
+                className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60"
+                style={{
+                  backgroundColor: "rgb(var(--border) / 0.06)",
+                  borderColor: "rgb(var(--border) / 0.12)",
+                  color: "rgb(var(--text) / 0.95)"
+                }}
+              >
+                {isGeneratingMenus && <Loader2 className="h-4 w-4 animate-spin" />}
+                <span>{isGeneratingMenus ? "Generando..." : "Generar menú"}</span>
+              </button>
+            )}
+          </div>
         </div>
 
         <div
@@ -593,7 +617,7 @@ export default function MealDetailView({
           <div className="mt-4 flex items-center justify-between">
             <h3 className="flex items-center gap-2 text-[20px] font-semibold text-[rgb(var(--text)/0.98)]">
               <Utensils className="h-5 w-5" style={{ color: "rgb(var(--brand) / 0.9)" }} />
-              Comidas del día
+              Comidas del día ({dayMeals.length})
             </h3>
             <span className="text-[12px] text-[rgb(var(--text-2)/0.75)]">{menuGenerationModeLabel}</span>
           </div>
@@ -685,7 +709,14 @@ export default function MealDetailView({
                             Menú específico pendiente de generación.
                           </p>
                         ) : (
-                          <div className="divide-y" style={{ borderColor: "rgb(var(--border) / 0.06)" }}>
+                          <div>
+                            <div
+                              className="px-4 py-2 text-[12px] font-semibold tracking-wide"
+                              style={{ color: "rgb(var(--text-2) / 0.82)" }}
+                            >
+                              Alimentos ({mealItems.length})
+                            </div>
+                            <div className="divide-y" style={{ borderColor: "rgb(var(--border) / 0.06)" }}>
                             {mealItems.map((item, itemIndex) => {
                               const itemKey = item.id || `${mealKey}-${itemIndex}`;
                               const availableEstados = getAvailableEstadosForItem(item, targetStatesByGroupAndBase);
@@ -913,7 +944,7 @@ export default function MealDetailView({
                                 </div>
                               );
                             })}
-
+                            </div>
                           </div>
                         )}
                       </div>
