@@ -44,21 +44,10 @@ VEGAN_BLOCKER_TAGS = {
   "cerdo"
 }
 
-CATEGORIA_MAPPING = {
-  "Grasa": "grasa",
-  "Proteina": "proteina",
-  "Proteina animal": "proteina",
-  "Proteina vegetal": "proteina",
-  "Carbohidrato": "carbohidrato",
-  "Legumbre": "carbohidrato",
-  "Verdura": "vegetal",
-  "Fruta": "fruta",
-  "Lacteo": "lacteo",
-  "Huevo": "proteina",
-  "Suplemento": "otro",
-  "Condimento": "condimento",
-  "Bebida": "otro",
-  "Otros": "otro"
+VALID_CATEGORIAS = {
+  "Proteína animal", "Huevo", "Proteína vegetal", "Legumbre",
+  "Carbohidrato", "Verdura", "Fruta", "Lácteo", "Grasa",
+  "Suplemento", "Bebida", "Otros"
 }
 
 
@@ -260,14 +249,14 @@ def procesar_alimentos(excel_path):
     tags = normalizar_tags(row["tags_alergenos"])
     tipo_dieta = normalizar_tipo_dieta(row["tipo_dieta"])
 
-    categoria_detalle_raw = (
+    categoria_raw = (
       str(row["categoria_excel"]).strip()
       if not pd.isna(row["categoria_excel"])
       else None
     )
-    categoria_detalle_key = strip_accents(categoria_detalle_raw) if categoria_detalle_raw else None
-    categoria_generica = CATEGORIA_MAPPING.get(categoria_detalle_key, "otro")
-    if categoria_detalle_raw and categoria_detalle_key not in CATEGORIA_MAPPING:
+    # Usar la categoría tal cual del Excel (fuente de verdad)
+    categoria = categoria_raw if categoria_raw in VALID_CATEGORIAS else None
+    if categoria_raw and categoria is None:
       stats["unknown_categoria"] += 1
 
     estado_base = normalizar_estado(row["estado_pesado_base"])
@@ -290,8 +279,8 @@ def procesar_alimentos(excel_path):
     alimento = {
       "slug": slug,
       "nombre": str(row["nombre"]).strip(),
-      "categoria": categoria_generica,
-      "categoria_detalle": categoria_detalle_raw,
+      "categoria": categoria,
+      "categoria_detalle": categoria,
       "macros_100g": macros_100g,
       "fibra_100g": limpiar_valor_numerico(row["fibra"]),
       "porcion_tipica_g": limpiar_valor_entero(row["porcion_tipica"]),

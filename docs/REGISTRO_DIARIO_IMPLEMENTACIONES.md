@@ -1,5 +1,9 @@
 # Registro diario de implementaciones
 
+## 24.02.2026
+
+- Módulo de alimentos: ajuste del motor de menús para acotar gramajes con `porcion_tipica_g` (evitando porciones absurdas en verduras), actualización del importador para respetar categorías del Excel como fuente de verdad y nueva migración de corrección de categorías/datos legacy en `app.foods`.
+
 ## 06.02.2026
 
 - Se crea la rama `alimentos` y se añade `roadmap.md` con el plan de integración del módulo Nutrición (base de alimentos, estados de pesado/conversión y biblioteca de platos), sin implementar cambios funcionales.

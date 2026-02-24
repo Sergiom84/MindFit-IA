@@ -584,27 +584,36 @@ async function getDeterministicTemplateCandidates({ userId, mealType, dayInfo, p
   ];
 }
 
-function getRoleGramBounds(roleValue) {
+function getRoleGramBounds(roleValue, porcionTipica) {
   const role = String(roleValue || '').toUpperCase();
+  let base;
   if (role.includes('GRASA') || role.includes('ACEITE')) {
-    return { min: 3, max: 45 };
+    base = { min: 3, max: 45 };
+  } else if (role.includes('SUPLEMENTO_PROTEINA')) {
+    base = { min: 20, max: 100 };
+  } else if (role === 'VERDURA') {
+    base = { min: 60, max: 500 };
+  } else if (role === 'FRUTA') {
+    base = { min: 80, max: 450 };
+  } else if (role.includes('CARBO') || role === 'LEGUMBRE') {
+    base = { min: 40, max: 380 };
+  } else if (role.includes('PROTEINA') || role === 'HUEVO' || role === 'CLARAS' || role.includes('LACTEO')) {
+    base = { min: 40, max: 320 };
+  } else {
+    base = { min: 25, max: 420 };
   }
-  if (role.includes('SUPLEMENTO_PROTEINA')) {
-    return { min: 20, max: 100 };
+
+  // Si el alimento tiene porción típica, ajustar los bounds alrededor de ella.
+  // Max = 1.5x la porción (ej: pollo 150g -> max 225g, aceite 10g -> max 15g)
+  // Min = 0.5x la porción (ej: pollo 150g -> min 75g)
+  const pt = parseNumeric(porcionTipica);
+  if (pt && pt > 0) {
+    return {
+      min: Math.max(base.min, Math.round(pt * 0.5)),
+      max: Math.min(base.max, Math.round(pt * 1.5))
+    };
   }
-  if (role === 'VERDURA') {
-    return { min: 60, max: 500 };
-  }
-  if (role === 'FRUTA') {
-    return { min: 80, max: 450 };
-  }
-  if (role.includes('CARBO') || role === 'LEGUMBRE') {
-    return { min: 40, max: 380 };
-  }
-  if (role.includes('PROTEINA') || role === 'HUEVO' || role === 'CLARAS' || role.includes('LACTEO')) {
-    return { min: 40, max: 320 };
-  }
-  return { min: 25, max: 420 };
+  return base;
 }
 
 function scoreFoodForRole(food, role) {
@@ -759,7 +768,7 @@ function buildSlotCombinations(slotOptions) {
 function buildDraftItemsForTemplate({ selectedItems, mealMacros, mealKcalTarget }) {
   return selectedItems.map((entry) => {
     const roleWeights = getRoleMacroWeights(entry.role);
-    const bounds = getRoleGramBounds(entry.role);
+    const bounds = getRoleGramBounds(entry.role, entry.food.porcion_tipica_g);
     const macros100 = parseJsonObject(entry.food.macros_100g, {});
     const proteinPerG = (parseNumeric(macros100.protein_g) ?? 0) / 100;
     const carbsPerG = (parseNumeric(macros100.carbs_g) ?? 0) / 100;
@@ -1004,6 +1013,7 @@ async function generateDeterministicMenuForMeal({ userId, meal, dayInfo }) {
         f.estado_pesado_base,
         f.estado_pesado_mostrado_default,
         f.grupo_factor,
+        f.porcion_tipica_g,
         f.is_vegetarian,
         f.is_vegan
       FROM app.food_roles fr
