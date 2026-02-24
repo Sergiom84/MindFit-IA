@@ -495,7 +495,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
               </div>
             </div>
 
-            <MetabolicQuestionnaire onResult={handleMetabolicResult} />
+            <MetabolicQuestionnaire onResult={handleMetabolicResult} objective={formData.objetivo} />
           </div>
 
           {/* Sección: Preferencias Alimentarias */}

@@ -73,6 +73,77 @@ export const METABOLIC_QUESTIONS = [
   }
 ];
 
+const LEGACY_TO_CANONICAL_QUESTION_ID = {
+  sleepy_carbs: 'somnolencia_carbs',
+  stable_energy: 'energia_estable_carbs',
+  night_hunger: 'hambre_nocturna',
+  sleep_better_with_carbs: 'dormir_mejor_fruta',
+  prefer_fat_salty: 'preferencia_graso_salado',
+  prefer_sweets: 'preferencia_dulces',
+  central_fat_gain: 'acumula_grasa_abdominal',
+  long_hours_no_food: 'sin_comer_sin_sintomas',
+  morning_fatigue: 'cansancio_matutino',
+  good_carbs_response: 'responde_bien_hidratos'
+};
+
+const METABOLIC_QUESTION_IDS = new Set(METABOLIC_QUESTIONS.map((question) => question.id));
+
+function normalizeAnswerChoice(value) {
+  if (value === null || value === undefined) {
+    return 'no_se';
+  }
+
+  if (value === true || value === 1) {
+    return 'si';
+  }
+
+  if (value === false || value === 0) {
+    return 'no';
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+
+  if (['si', 'sí', 'yes', 'true', 'y'].includes(normalized)) {
+    return 'si';
+  }
+
+  if (['no', 'false', 'n'].includes(normalized)) {
+    return 'no';
+  }
+
+  if (['no_se', 'nose', 'no se', 'ns', 'unknown'].includes(normalized)) {
+    return 'no_se';
+  }
+
+  return 'no_se';
+}
+
+/**
+ * Normaliza respuestas del cuestionario aceptando IDs canónicos y legacy.
+ * Devuelve siempre un objeto con todos los IDs canónicos presentes.
+ * @param {Object} answers - Respuestas raw recibidas por API
+ * @returns {Object} Respuestas normalizadas { canonical_id: 'si'|'no'|'no_se' }
+ */
+export function normalizeMetabolicAnswers(answers = {}) {
+  const normalizedAnswers = Object.fromEntries(
+    METABOLIC_QUESTIONS.map((question) => [question.id, 'no_se'])
+  );
+
+  if (!answers || typeof answers !== 'object' || Array.isArray(answers)) {
+    return normalizedAnswers;
+  }
+
+  for (const [rawQuestionId, rawAnswer] of Object.entries(answers)) {
+    const canonicalQuestionId = LEGACY_TO_CANONICAL_QUESTION_ID[rawQuestionId] || rawQuestionId;
+    if (!METABOLIC_QUESTION_IDS.has(canonicalQuestionId)) {
+      continue;
+    }
+    normalizedAnswers[canonicalQuestionId] = normalizeAnswerChoice(rawAnswer);
+  }
+
+  return normalizedAnswers;
+}
+
 /**
  * Umbrales de clasificacion del perfil metabolico
  */
@@ -381,9 +452,10 @@ export function applyMinimumGuardrails(macros, peso_kg, objetivo, kcalObjetivo, 
  * @param {string} newProfile - Nuevo perfil propuesto
  * @param {number} consecutiveCount - Evaluaciones consecutivas hacia el nuevo perfil
  * @param {string} confidence - Nivel de confianza de la nueva evaluacion
+ * @param {string|null} pendingProfile - Perfil pendiente actual (si existe)
  * @returns {Object} { canChange, appliedProfile, reason, needsConfirmation }
  */
-export function validateProfileChange(currentProfile, newProfile, consecutiveCount, confidence) {
+export function validateProfileChange(currentProfile, newProfile, consecutiveCount, confidence, pendingProfile = null) {
   // Si no hay perfil actual, aceptar el nuevo
   if (!currentProfile) {
     return {
@@ -428,7 +500,7 @@ export function validateProfileChange(currentProfile, newProfile, consecutiveCou
   }
 
   // Regla 3: Requiere 2 evaluaciones consecutivas
-  if (consecutiveCount >= 1) {
+  if (pendingProfile === newProfile && consecutiveCount >= 1) {
     return {
       canChange: true,
       appliedProfile: newProfile,
@@ -442,6 +514,38 @@ export function validateProfileChange(currentProfile, newProfile, consecutiveCou
     appliedProfile: currentProfile,
     reason: `Cambio pendiente hacia ${newProfile}: requiere segunda evaluacion consecutiva`,
     needsConfirmation: true
+  };
+}
+
+/**
+ * Calcula el estado pendiente anti-ruido para persistir en perfiles.
+ * @param {Object|null} currentEvaluation - Perfil/evaluación actual
+ * @param {Object} evaluationResult - Resultado de processMetabolicEvaluation
+ * @returns {{pendingType: string|null, pendingCount: number}}
+ */
+export function calculatePendingProfileState(currentEvaluation, evaluationResult) {
+  const needsConfirmation = Boolean(evaluationResult?.changeValidation?.needsConfirmation);
+  if (!needsConfirmation) {
+    return { pendingType: null, pendingCount: 0 };
+  }
+
+  const pendingType = evaluationResult.calculatedProfile;
+  const currentPendingType =
+    currentEvaluation?.pending_profile_change
+    || currentEvaluation?.metabolic_pending_type
+    || null;
+  const currentPendingCount =
+    currentEvaluation?.consecutive_change_count
+    ?? currentEvaluation?.metabolic_pending_count
+    ?? 0;
+
+  const pendingCount = currentPendingType === pendingType
+    ? currentPendingCount + 1
+    : 1;
+
+  return {
+    pendingType,
+    pendingCount
   };
 }
 
@@ -557,15 +661,23 @@ export function getProfileDescription(profile) {
  * @returns {Object} Resultado completo de la evaluacion
  */
 export function processMetabolicEvaluation(answers, userProfile, currentEvaluation = null, objectiveData = null) {
+  const normalizedAnswers = normalizeMetabolicAnswers(answers);
+
   // 1. Calcular puntuacion
-  const { rawScore, itemsAnswered, itemsNoSe, breakdown } = calculateMetabolicScore(answers);
+  const { rawScore, itemsAnswered, itemsNoSe, breakdown } = calculateMetabolicScore(normalizedAnswers);
 
   // 2. Ajustar con senales objetivas si estan disponibles
   let finalScore = rawScore;
   let objectiveAdjustments = null;
+  const objectiveDataMerged = objectiveData
+    ? {
+      ...objectiveData,
+      objetivo: objectiveData.objetivo || userProfile?.objetivo || null
+    }
+    : null;
 
-  if (objectiveData) {
-    const { adjustedScore, adjustments, hasAdjustments } = adjustScoreWithObjectiveSignals(rawScore, objectiveData);
+  if (objectiveDataMerged) {
+    const { adjustedScore, adjustments, hasAdjustments } = adjustScoreWithObjectiveSignals(rawScore, objectiveDataMerged);
     if (hasAdjustments) {
       finalScore = adjustedScore;
       objectiveAdjustments = adjustments;
@@ -592,7 +704,8 @@ export function processMetabolicEvaluation(answers, userProfile, currentEvaluati
       currentEvaluation.metabolic_profile,
       metabolicProfile,
       currentEvaluation.consecutive_change_count || 0,
-      confidence.level
+      confidence.level,
+      currentEvaluation.pending_profile_change || currentEvaluation.metabolic_pending_type || null
     );
     appliedProfile = changeValidation.appliedProfile;
   }
@@ -617,6 +730,7 @@ export function processMetabolicEvaluation(answers, userProfile, currentEvaluati
 
   return {
     // Datos de la evaluacion
+    normalizedAnswers,
     rawScore,
     adjustedScore: finalScore,
     itemsAnswered,

@@ -9,6 +9,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import {
   METABOLIC_QUESTIONS,
   processMetabolicEvaluation,
+  calculatePendingProfileState,
   getProfileDescription,
   MACRO_DISTRIBUTIONS
 } from '../services/metabolicProfileCalculator.js';
@@ -121,7 +122,7 @@ router.post('/evaluate', authenticateToken, async (req, res) => {
       RETURNING id`,
       [
         userId,
-        JSON.stringify(answers),
+        JSON.stringify(evaluationResult.normalizedAnswers),
         evaluationResult.rawScore,
         evaluationResult.appliedProfile,
         evaluationResult.confidence,
@@ -136,13 +137,7 @@ router.post('/evaluate', authenticateToken, async (req, res) => {
     const evaluationId = insertResult.rows[0].id;
 
     // Actualizar o crear configuracion del usuario
-    const pendingChange = evaluationResult.changeValidation?.needsConfirmation
-      ? evaluationResult.calculatedProfile
-      : null;
-
-    const consecutiveCount = evaluationResult.changeValidation?.needsConfirmation
-      ? (currentEvaluation?.consecutive_change_count || 0) + 1
-      : 0;
+    const { pendingType, pendingCount } = calculatePendingProfileState(currentEvaluation, evaluationResult);
 
     await client.query(
       `INSERT INTO app.user_metabolic_config (
@@ -155,11 +150,36 @@ router.post('/evaluate', authenticateToken, async (req, res) => {
         updated_at = NOW()`,
       [
         userId,
-        pendingChange,
-        consecutiveCount,
+        pendingType,
+        pendingCount,
         evaluationResult.appliedProfile
       ]
     );
+
+    const syncProfileResult = await client.query(
+      `UPDATE app.nutrition_profiles
+       SET
+         metabolic_type = $1,
+         metabolic_score = $2,
+         metabolic_confidence = $3,
+         metabolic_pending_type = $4,
+         metabolic_pending_count = $5,
+         metabolic_last_evaluated_at = NOW(),
+         updated_at = NOW()
+       WHERE user_id = $6`,
+      [
+        evaluationResult.appliedProfile,
+        evaluationResult.adjustedScore,
+        evaluationResult.confidence,
+        pendingType,
+        pendingCount,
+        userId
+      ]
+    );
+
+    if (syncProfileResult.rowCount === 0) {
+      throw new Error('No se pudo sincronizar nutrition_profiles con la evaluación metabólica');
+    }
 
     // Registrar en historial si hubo cambio de perfil
     if (evaluationResult.profileChanged) {
@@ -185,7 +205,9 @@ router.post('/evaluate', authenticateToken, async (req, res) => {
       success: true,
       evaluation: {
         id: evaluationId,
-        ...evaluationResult
+        ...evaluationResult,
+        pendingType,
+        pendingCount
       },
       message: evaluationResult.changeValidation?.reason || 'Perfil metabolico evaluado correctamente'
     });

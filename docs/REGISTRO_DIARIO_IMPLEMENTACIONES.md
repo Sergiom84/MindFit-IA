@@ -3,6 +3,7 @@
 ## 24.02.2026
 
 - Módulo de alimentos: ajuste del motor de menús para acotar gramajes con `porcion_tipica_g` (evitando porciones absurdas en verduras), actualización del importador para respetar categorías del Excel como fuente de verdad y nueva migración de corrección de categorías/datos legacy en `app.foods`.
+- Nutrición/metabolismo: se unifica la evaluación metabólica con normalización backend de IDs canónicos/legacy, sincronización automática de `metabolic_*` en `nutrition_profiles` al evaluar cuestionario, endpoint `/api/nutrition-v2/metabolic-evaluate` delegado a la lógica central, envío de `objectiveData.objetivo` desde frontend y trazabilidad del perfil metabólico aplicado al generar plan.
 
 ## 21.02.2026
 

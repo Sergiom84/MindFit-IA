@@ -4,23 +4,23 @@ import { Brain, CheckCircle2, AlertCircle, Activity } from "lucide-react";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3010";
 
 const QUESTIONS = [
-  { id: "sleepy_carbs", label: "Somnolencia o bajada de energía tras comidas altas en carbohidratos", scoreIfYes: 2 },
-  { id: "stable_energy", label: "Energía estable tras comidas con carbohidratos (sin somnolencia)", scoreIfYes: -2 },
-  { id: "night_hunger", label: "Despertarse por la noche con hambre tras cena con carbohidratos simples", scoreIfYes: 1 },
-  { id: "sleep_better_with_carbs", label: "Duerme mejor si consume fruta o carbohidratos antes de dormir", scoreIfYes: -1 },
-  { id: "prefer_fat_salty", label: "Preferencia marcada por alimentos grasos y salados frente a dulces", scoreIfYes: 1 },
-  { id: "prefer_sweets", label: "Preferencia marcada por alimentos dulces frente a salados", scoreIfYes: -1 },
-  { id: "central_fat_gain", label: "Acumulación de grasa abdominal con facilidad (patrón central)", scoreIfYes: 2 },
-  { id: "long_hours_no_food", label: "Puede estar varias horas sin comer sin síntomas negativos", scoreIfYes: -1 },
-  { id: "morning_fatigue", label: "Cansancio matutino frecuente o sensación de sueño prolongado", scoreIfYes: 1 },
-  { id: "good_carbs_response", label: "Responde bien a hidratos (no acumula grasa con facilidad en fases previas)", scoreIfYes: -1 }
+  { id: "somnolencia_carbs", label: "Somnolencia o bajada de energía tras comidas altas en carbohidratos", scoreIfYes: 2 },
+  { id: "energia_estable_carbs", label: "Energía estable tras comidas con carbohidratos (sin somnolencia)", scoreIfYes: -2 },
+  { id: "hambre_nocturna", label: "Despertarse por la noche con hambre tras cena con carbohidratos simples", scoreIfYes: 1 },
+  { id: "dormir_mejor_fruta", label: "Duerme mejor si consume fruta o carbohidratos antes de dormir", scoreIfYes: -1 },
+  { id: "preferencia_graso_salado", label: "Preferencia marcada por alimentos grasos y salados frente a dulces", scoreIfYes: 1 },
+  { id: "preferencia_dulces", label: "Preferencia marcada por alimentos dulces frente a salados", scoreIfYes: -1 },
+  { id: "acumula_grasa_abdominal", label: "Acumulación de grasa abdominal con facilidad (patrón central)", scoreIfYes: 2 },
+  { id: "sin_comer_sin_sintomas", label: "Puede estar varias horas sin comer sin síntomas negativos", scoreIfYes: -1 },
+  { id: "cansancio_matutino", label: "Cansancio matutino frecuente o sensación de sueño prolongado", scoreIfYes: 1 },
+  { id: "responde_bien_hidratos", label: "Responde bien a hidratos (no acumula grasa con facilidad en fases previas)", scoreIfYes: -1 }
 ];
 
 function initialAnswers() {
   return QUESTIONS.map((q) => ({ id: q.id, value: null }));
 }
 
-export default function MetabolicQuestionnaire({ onResult }) {
+export default function MetabolicQuestionnaire({ onResult, objective = null }) {
   const [answers, setAnswers] = useState(initialAnswers);
   const [signals, setSignals] = useState({
     icgFlag: "none",
@@ -70,6 +70,7 @@ export default function MetabolicQuestionnaire({ onResult }) {
             return acc;
           }, {}),
           objectiveData: {
+            objetivo: objective,
             waistIncreasing: signals.icgFlag === "high",
             performanceLoss: signals.performanceLossCut,
             frequentNightHunger: signals.performanceLossCut,
@@ -92,7 +93,7 @@ export default function MetabolicQuestionnaire({ onResult }) {
           confidence: evaluation.confidence,
           score: evaluation.rawScore,
           pending_type: evaluation.changeValidation?.needsConfirmation ? evaluation.calculatedProfile : null,
-          pending_count: evaluation.changeValidation?.needsConfirmation ? 1 : 0,
+          pending_count: evaluation.pendingCount ?? (evaluation.changeValidation?.needsConfirmation ? 1 : 0),
           macros: evaluation.macros
         }
       });
@@ -101,8 +102,8 @@ export default function MetabolicQuestionnaire({ onResult }) {
           metabolic_type: evaluation.appliedProfile,
           metabolic_confidence: evaluation.confidence,
           metabolic_score: evaluation.rawScore,
-          metabolic_pending_type: evaluation.changeValidation?.needsConfirmation ? evaluation.calculatedProfile : null,
-          metabolic_pending_count: evaluation.changeValidation?.needsConfirmation ? 1 : 0,
+          metabolic_pending_type: evaluation.pendingType ?? (evaluation.changeValidation?.needsConfirmation ? evaluation.calculatedProfile : null),
+          metabolic_pending_count: evaluation.pendingCount ?? (evaluation.changeValidation?.needsConfirmation ? 1 : 0),
           macros: evaluation.macros
         });
       }

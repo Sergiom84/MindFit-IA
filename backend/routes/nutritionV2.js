@@ -37,10 +37,14 @@ import {
   computePairingPenaltyForRecipe,
   isProcessedFood
 } from '../services/menuHardRulesEngine.js';
+import {
+  METABOLIC_QUESTIONS,
+  calculatePendingProfileState,
+  processMetabolicEvaluation
+} from '../services/metabolicProfileCalculator.js';
 
 const router = express.Router();
 
-const METABOLIC_ORDER = ['tolerante', 'mixto', 'intolerante'];
 const VALID_ESTADOS_PESADO = ['crudo', 'cocido', 'escurrido', 'seco', 'tal_cual'];
 const VALID_DIET_FILTERS = ['omnivoro', 'vegetariano', 'vegano'];
 const VALID_MENU_GENERATION_MODES = ['deterministic', 'ai', 'hybrid_ai', 'recipe_examples'];
@@ -3330,6 +3334,7 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
         training_type: resolvedTrainingType,
         training_days: profile.training_days || (resolvedTrainingSchedule.length > 0 ? resolvedTrainingSchedule.filter(Boolean).length : undefined),
         metabolic_type: profile.metabolic_type,
+        metabolic_confidence: profile.metabolic_confidence,
         steps_per_day: profile.steps_per_day
       },
       duracion_dias,
@@ -3340,6 +3345,9 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
       bmr: planData.bmr,
       tdee: planData.tdee,
       kcal_objetivo: planData.kcal_objetivo,
+      metabolic_type: profile.metabolic_type || 'mixto',
+      metabolic_confidence: profile.metabolic_confidence || 'media',
+      macros_objetivo: planData.macros_objetivo,
       dias: planData.days.length
     });
 
@@ -4922,79 +4930,117 @@ router.get('/diet-breaks/week', authenticateToken, async (req, res) => {
 // PERFIL METABÓLICO (score cuantificado)
 // ================================================
 
-function clampMetabolicChange(current, target) {
-  const idxCurrent = METABOLIC_ORDER.indexOf(current);
-  const idxTarget = METABOLIC_ORDER.indexOf(target);
-  if (idxCurrent === -1 || idxTarget === -1) return target;
-  if (Math.abs(idxTarget - idxCurrent) <= 1) return target;
-  return METABOLIC_ORDER[idxTarget > idxCurrent ? idxCurrent + 1 : idxCurrent - 1];
-}
+function normalizeLegacyMetabolicEvaluateAnswers(rawAnswers = []) {
+  if (!Array.isArray(rawAnswers)) {
+    return rawAnswers;
+  }
 
-function classifyMetabolicScore(score) {
-  if (score >= 4) return 'intolerante';
-  if (score <= -4) return 'tolerante';
-  return 'mixto';
-}
+  const answerObject = {};
 
-function confidenceFromAnswers(answered, unknown) {
-  if (answered >= 8 && unknown <= 2) return 'alta';
-  if (answered >= 6 && unknown <= 4) return 'media';
-  return 'baja';
+  rawAnswers.forEach((item, index) => {
+    const questionByIndex = METABOLIC_QUESTIONS[index];
+    const questionId = item?.id || questionByIndex?.id;
+    if (!questionId) {
+      return;
+    }
+
+    if (item?.unknown === true) {
+      answerObject[questionId] = 'no_se';
+      return;
+    }
+
+    const value = item && typeof item === 'object' && 'value' in item
+      ? item.value
+      : item;
+
+    if (value === null || value === undefined) {
+      answerObject[questionId] = 'no_se';
+      return;
+    }
+
+    if (value === true || String(value).toLowerCase() === 'si') {
+      answerObject[questionId] = 'si';
+      return;
+    }
+
+    if (value === false || String(value).toLowerCase() === 'no') {
+      answerObject[questionId] = 'no';
+      return;
+    }
+
+    const numericValue = Number(value);
+    const questionScore = Number(questionByIndex?.score);
+    if (Number.isFinite(numericValue) && Number.isFinite(questionScore)) {
+      answerObject[questionId] = numericValue === questionScore ? 'si' : 'no';
+      return;
+    }
+
+    answerObject[questionId] = String(value).toLowerCase() === 'no_se' ? 'no_se' : 'no';
+  });
+
+  return answerObject;
 }
 
 router.post('/metabolic-evaluate', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { answers = [], signals = {} } = req.body; // answers: [{value, unknown:boolean}]
+    const { answers = [], signals = {} } = req.body;
 
-    const answered = answers.filter(a => a.value !== null && a.value !== undefined).length;
-    const unknown = answers.filter(a => a.value === null || a.value === undefined).length;
-    const baseScore = answers.reduce((sum, a) => sum + (Number(a.value) || 0), 0);
-
-    // Ajustes por señales objetivas
-    let score = baseScore;
-    if (signals.icgFlag === 'high') score += 1; // volumen con ICG amarillo/rojo sin mejoras
-    if (signals.performanceLossCut) score += 1; // definición con hambre/rendimiento bajo
-    if (signals.stableEnergyWithCarbs && signals.waistStableOrDown) score -= 1;
-
-    const confidence = confidenceFromAnswers(answered, unknown);
-    let proposed = classifyMetabolicScore(score);
-    if (confidence === 'baja') {
-      proposed = 'mixto';
-    }
-
-    // Obtener perfil actual
-    const profileResult = await pool.query('SELECT metabolic_type, metabolic_pending_type, metabolic_pending_count, metabolic_confidence FROM app.nutrition_profiles WHERE user_id = $1', [userId]);
+    const profileResult = await pool.query(
+      `SELECT
+        user_id,
+        peso_kg,
+        objetivo,
+        training_type,
+        kcal_objetivo,
+        tdee,
+        level,
+        nivel_entrenamiento,
+        metabolic_type,
+        metabolic_pending_type,
+        metabolic_pending_count,
+        metabolic_confidence
+      FROM app.nutrition_profiles
+      WHERE user_id = $1`,
+      [userId]
+    );
     if (profileResult.rows.length === 0) {
       return res.status(404).json({ error: 'Perfil nutricional no encontrado' });
     }
-    const currentProfile = profileResult.rows[0];
-    const currentType = currentProfile.metabolic_type || 'mixto';
+    const profile = profileResult.rows[0];
 
-    // Regla: máximo 1 categoría por ciclo
-    proposed = clampMetabolicChange(currentType, proposed);
+    const userProfile = {
+      peso_kg: profile.peso_kg || 70,
+      objetivo: profile.objetivo || 'mant',
+      training_type: profile.training_type || 'general',
+      kcal_objetivo: profile.kcal_objetivo,
+      tdee: profile.tdee,
+      level: profile.level || profile.nivel_entrenamiento
+    };
 
-    let newType = currentType;
-    let pendingType = currentProfile.metabolic_pending_type;
-    let pendingCount = currentProfile.metabolic_pending_count || 0;
+    const currentEvaluation = {
+      metabolic_profile: profile.metabolic_type || 'mixto',
+      pending_profile_change: profile.metabolic_pending_type || null,
+      consecutive_change_count: profile.metabolic_pending_count || 0
+    };
 
-    if (proposed !== currentType) {
-      if (pendingType === proposed) {
-        pendingCount += 1;
-        if (pendingCount >= 2) {
-          newType = proposed;
-          pendingType = null;
-          pendingCount = 0;
-        }
-      } else {
-        pendingType = proposed;
-        pendingCount = 1;
-      }
-    } else {
-      // Si coincide, limpiar pendientes
-      pendingType = null;
-      pendingCount = 0;
-    }
+    const normalizedAnswers = normalizeLegacyMetabolicEvaluateAnswers(answers);
+    const objectiveData = {
+      objetivo: userProfile.objetivo,
+      waistIncreasing: signals.icgFlag === 'high',
+      performanceLoss: Boolean(signals.performanceLossCut),
+      frequentNightHunger: Boolean(signals.performanceLossCut),
+      stableEnergyWithCarbs: Boolean(signals.stableEnergyWithCarbs),
+      waistMaintained: Boolean(signals.waistStableOrDown)
+    };
+
+    const evaluationResult = processMetabolicEvaluation(
+      normalizedAnswers,
+      userProfile,
+      currentEvaluation,
+      objectiveData
+    );
+    const { pendingType, pendingCount } = calculatePendingProfileState(currentEvaluation, evaluationResult);
 
     const updateQuery = `
       UPDATE app.nutrition_profiles
@@ -5003,15 +5049,16 @@ router.post('/metabolic-evaluate', authenticateToken, async (req, res) => {
           metabolic_type = $3,
           metabolic_pending_type = $4,
           metabolic_pending_count = $5,
-          metabolic_last_evaluated_at = NOW()
+          metabolic_last_evaluated_at = NOW(),
+          updated_at = NOW()
       WHERE user_id = $6
       RETURNING *;
     `;
 
-    const updateResult = await pool.query(updateQuery, [
-      score,
-      confidence,
-      newType,
+    await pool.query(updateQuery, [
+      evaluationResult.adjustedScore,
+      evaluationResult.confidence,
+      evaluationResult.appliedProfile,
       pendingType,
       pendingCount,
       userId
@@ -5019,11 +5066,14 @@ router.post('/metabolic-evaluate', authenticateToken, async (req, res) => {
 
     res.json({
       success: true,
-      score,
-      confidence,
-      applied_type: newType,
+      score: evaluationResult.adjustedScore,
+      raw_score: evaluationResult.rawScore,
+      confidence: evaluationResult.confidence,
+      applied_type: evaluationResult.appliedProfile,
+      calculated_type: evaluationResult.calculatedProfile,
       pending_type: pendingType,
-      pending_count: pendingCount
+      pending_count: pendingCount,
+      macros: evaluationResult.macros
     });
   } catch (error) {
     console.error('Error en evaluación metabólica:', error);
