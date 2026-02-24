@@ -463,7 +463,8 @@ function getRoleMacroWeights(roleValue) {
     return { protein: 0.05, carbs: 0.05, fat: 1, kcal: 0.2 };
   }
   if (role === 'VERDURA') {
-    return { protein: 0.15, carbs: 0.25, fat: 0.05, kcal: 0.08 };
+    // VERDURA debe actuar como complemento/fibra, no como base para cuadrar macros.
+    return { protein: 0.03, carbs: 0.03, fat: 0.01, kcal: 0.05 };
   }
   if (role === 'BEBIDA') {
     return { protein: 0.05, carbs: 0.2, fat: 0.05, kcal: 0.05 };
@@ -1484,7 +1485,8 @@ function getRoleGramBounds(roleValue, porcionTipica) {
   } else if (role.includes('SUPLEMENTO_PROTEINA')) {
     base = { min: 20, max: 100 };
   } else if (role === 'VERDURA') {
-    base = { min: 60, max: 500 };
+    // Evitar porciones absurdas de vegetales (p.ej. 300-500g por slot).
+    base = { min: 50, max: 220 };
   } else if (role === 'FRUTA') {
     base = { min: 80, max: 450 };
   } else if (role.includes('CARBO') || role === 'LEGUMBRE') {
@@ -1497,6 +1499,12 @@ function getRoleGramBounds(roleValue, porcionTipica) {
 
   const pt = parseNumeric(porcionTipica);
   if (pt && pt > 0) {
+    if (role === 'VERDURA') {
+      const min = Math.max(base.min, Math.round(pt * 0.35));
+      const max = Math.min(base.max, Math.round(pt * 1.0));
+      return { min, max: Math.max(max, min) };
+    }
+
     return {
       min: Math.max(base.min, Math.round(pt * 0.5)),
       max: Math.min(base.max, Math.round(pt * 1.5))
@@ -1545,6 +1553,17 @@ function scoreFoodForRole(food, role, varietyContext = null) {
   }
   if (desired.fat >= 0.45 && fat < 6) {
     score += (6 - fat) / 6;
+  }
+
+  if (String(role || '').toUpperCase() === 'VERDURA') {
+    // Penaliza verduras excesivamente densas en carbo/kcal para que no "sustituyan" al rol CARBO.
+    const kcal = Math.max(0, parseNumeric(macros.kcal) ?? ((protein * 4) + (carbs * 4) + (fat * 9)));
+    if (carbs > 12) {
+      score += (carbs - 12) / 6;
+    }
+    if (kcal > 70) {
+      score += (kcal - 70) / 35;
+    }
   }
 
   score += getFoodVarietyPenalty(food, varietyContext);
@@ -2484,9 +2503,10 @@ async function getUserMenuGenerationContext({ userId, foodsLimit = 100 }) {
         categoria_detalle,
         macros_100g,
         tags,
-        estado_pesado_base,
-        estado_pesado_mostrado_default,
-        grupo_factor
+      estado_pesado_base,
+      estado_pesado_mostrado_default,
+      grupo_factor,
+      porcion_tipica_g
       FROM app.foods
       WHERE ${whereSql}
       ORDER BY nombre

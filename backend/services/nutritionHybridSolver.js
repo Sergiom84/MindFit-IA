@@ -44,6 +44,7 @@ function inferRoleAndBounds(food) {
   const protein = Math.max(0, parseNumeric(macros100.protein_g));
   const carbs = Math.max(0, parseNumeric(macros100.carbs_g));
   const fat = Math.max(0, parseNumeric(macros100.fat_g));
+  const porcionTipica = parseNumeric(food?.porcion_tipica_g);
 
   if (fat >= protein && fat >= carbs && fat >= 12) {
     return { role: "GRASA_BASE", min: 3, max: 40 };
@@ -54,7 +55,13 @@ function inferRoleAndBounds(food) {
   if (carbs >= protein && carbs >= fat && carbs >= 12) {
     return { role: "CARBO_BASE", min: 40, max: 330 };
   }
-  return { role: "VERDURA_BASE", min: 60, max: 420 };
+  const verduraBase = { min: 50, max: 220 };
+  if (porcionTipica > 0) {
+    const min = Math.max(verduraBase.min, Math.round(porcionTipica * 0.35));
+    const max = Math.min(verduraBase.max, Math.round(porcionTipica * 1.0));
+    return { role: "VERDURA_BASE", min, max: Math.max(max, min) };
+  }
+  return { role: "VERDURA_BASE", ...verduraBase };
 }
 
 function buildConversionMap(conversionFactors = []) {
