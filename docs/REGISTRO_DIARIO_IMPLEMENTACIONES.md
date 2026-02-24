@@ -1,5 +1,9 @@
 # Registro diario de implementaciones
 
+## 24.02.2026
+
+- Módulo de alimentos: ajuste del motor de menús para acotar gramajes con `porcion_tipica_g` (evitando porciones absurdas en verduras), actualización del importador para respetar categorías del Excel como fuente de verdad y nueva migración de corrección de categorías/datos legacy en `app.foods`.
+
 ## 21.02.2026
 
 - Nutrición (acción de generación reubicada): en `src/components/nutrition/MealDetailView.jsx` se mueve `Generar menú` desde el footer al header del modal, alineado a la derecha de `Día X · Entrenamiento/Descanso`, reutilizando `menusEnabled`, `isGeneratingMenus` y `onGenerateDayMenus`; el CTA inferior se mantiene como `Cerrar`.
