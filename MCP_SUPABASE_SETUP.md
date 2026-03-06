@@ -1,74 +1,19 @@
-# 🔧 Troubleshooting - MCP Supabase
+# MCP Supabase - referencia vigente
 
-## Estado Actual
+Fecha de revisión: 2026-03-06
 
-- ✅ `.mcp.json` configurado en `/mnt/c/Users/Sergio/Desktop/Entrenaconia/.mcp.json`
-- ✅ Access Token: `sbp_TU_TOKEN_AQUI`
-- ✅ Servidor MCP: `@supabase/mcp-server-supabase@latest`
-- ⚠️ Conexión: Fallando
+## Proyecto obligatorio
 
-## Pasos para Resolver
+- Para este repositorio se usa siempre el proyecto Supabase `lhsnmjgdtjalfcsurxvg`.
+- Si tienes varios proyectos conectados, no cambies este identificador salvo decisión explícita.
 
-### 1️⃣ Deshabilita y Rehabilita
+## Configuración recomendada
 
-```bash
-/mcp disable supabase
-/mcp enable supabase
-```
+- Mantén la configuración del servidor MCP en `.mcp.json`.
+- Guarda el token de acceso solo en configuración local; no lo copies en Markdown ni lo subas al repositorio.
+- Si cambias la configuración MCP, reinicia el cliente/herramienta que carga los servidores, porque se leen al arranque.
 
-### 2️⃣ Si Aún Falla, Usa Debug Mode
-
-```bash
-claude --debug
-```
-
-Esto mostrará los logs en tiempo real. Busca líneas como:
-
-```
-[supabase] Connecting...
-[supabase] Connection established
-```
-
-### 3️⃣ Limpia la Caché de NPM
-
-```bash
-npm cache clean --force
-npx -y @supabase/mcp-server-supabase@latest --access-token "sbp_TU_TOKEN_AQUI"
-```
-
-### 4️⃣ Verifica el Token de Acceso
-
-El token actual es: `sbp_TU_TOKEN_AQUI`
-
-Puedes verificarlo en: https://supabase.com/dashboard/account/tokens
-
-### 5️⃣ Si el Token Expiró
-
-1. Ve a https://supabase.com/dashboard/account/tokens
-2. Genera un nuevo token
-3. Actualiza `.mcp.json` con el nuevo token
-
-## Configuración Actual (.mcp.json)
-
-```json
-{
-  "mcpServers": {
-    "supabase": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@supabase/mcp-server-supabase@latest",
-        "--access-token",
-        "sbp_TU_TOKEN_AQUI"
-      ]
-    }
-  }
-}
-```
-
-## Alternativa: Usar URL de Proyecto
-
-Si el token no funciona, puedes usar la URL del proyecto:
+Ejemplo mínimo de configuración segura:
 
 ```json
 {
@@ -80,52 +25,23 @@ Si el token no funciona, puedes usar la URL del proyecto:
         "@supabase/mcp-server-supabase@latest",
         "--project-ref",
         "lhsnmjgdtjalfcsurxvg"
-      ]
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "<configurar-localmente>"
+      }
     }
   }
 }
 ```
 
-**Nota**: Con esta configuración, Claude Code usará el proyecto de forma más limitada.
+## Comprobaciones rápidas
 
-## Verificar Credenciales en .env
+1. Verifica que `.mcp.json` existe en la raíz.
+2. Confirma que el `project-ref` es `lhsnmjgdtjalfcsurxvg`.
+3. Reinicia el host MCP si acabas de tocar la configuración.
+4. Si sigue fallando, revisa el token en tu cuenta de Supabase y vuelve a probar.
 
-Tus credenciales actuales son:
+## Notas
 
-- **Project ID**: `lhsnmjgdtjalfcsurxvg`
-- **DB Host**: `aws-1-eu-north-1.pooler.supabase.com`
-- **DB User**: `postgres.lhsnmjgdtjalfcsurxvg`
-- **Anon Key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
-
-## Logs a Buscar
-
-Cuando ejecutes `claude --debug`, busca estos mensajes:
-
-✅ **Éxito**:
-
-```
-[supabase] MCP server started
-[supabase] Connection pool established
-```
-
-❌ **Errores Comunes**:
-
-```
-[supabase] Authentication failed - invalid token
-[supabase] Timeout connecting to database
-[supabase] Invalid project reference
-```
-
-## Siguiente Paso
-
-Una vez que el MCP esté funcionando, podrás:
-
-1. Consultar la base de datos directamente
-2. Ejecutar queries SQL
-3. Ver el esquema de tablas
-4. Inspeccionar datos
-
----
-
-**Última actualización**: 2025-01-19
-**Estado**: En troubleshooting
+- Este documento sustituye a las notas antiguas con tokens ficticios, paths de otra máquina y estados de troubleshooting cerrados.
+- Las credenciales reales deben vivir en archivos locales ignorados por Git, no en la documentación.

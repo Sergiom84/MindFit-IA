@@ -1,29 +1,36 @@
 # Implementación activa: sistema-menus-profesional-omni-veg
 
+## Estado vigente
+
+La base funcional ya está integrada en el código:
+
+- semántica de alimentos y campos de catálogo en `app.foods`,
+- reglas hard y penalties en el motor de `recipe_examples`,
+- baseline y QA versionados en `backend/tests/fixtures/`,
+- generación de menús diaria con smoke validado en la tanda activa,
+- metadata de `hard_rules`, `pairing_penalty` y `palatability` en la respuesta del motor.
+
 ## Fuente de verdad funcional
 
 - Plan maestro: `docs/PLAN_IMPLEMENTACION_SISTEMA_MENUS_PROFESIONAL_OMNI_VEG.md`
-- Matriz de cobertura fase 1: `docs/MATRIZ_COBERTURA_MENUS_FASE1.md`
-- Plan temporal swap/conversiones: `docs/TEMP_PLAN_IMPLEMENTACION_SWAP_CONVERSIONES.md`
+- Matriz de cobertura: `docs/MATRIZ_COBERTURA_MENUS_FASE1.md`
+- Estado operativo: `docs/sistema-menus-profesional-omni-veg/status.md`
+- Evidencias de test: `docs/sistema-menus-profesional-omni-veg/tests.md`
 
 ## Objetivo operativo actual
 
-Ejecutar Fase 0 + Fase 1 del plan profesional:
+No hay una fase técnica abierta de implementación base. El foco actual es decidir si hace falta otra iteración sobre calidad culinaria y UX a partir de menús reales generados.
 
-1. Baseline medible de calidad de menús.
-2. Semántica de catálogo para filtrar por coherencia culinaria.
-3. Reglas hard mínimas para bloquear combinaciones absurdas en generación `recipe_examples`.
+## Qué ya no describe este documento
 
-## Alcance de esta ejecución
+- Ya no es correcto usar este documento para hablar de "fase 0 + fase 1" como trabajo pendiente.
+- El motor profesional no está en arranque; está en una fase de afinado y validación funcional.
 
-- Añadir campos semánticos a `app.foods`.
-- Añadir tablas de reglas (`food_pairing_rules`, `meal_acceptability_rules`).
-- Backfill inicial de semántica para alimentos activos.
-- Integración backend de hard rules en generación de recetas.
-- Baseline reproducible en fixture versionado + documentación KPI.
+## Próximo criterio de avance
 
-## Fuera de alcance en esta pasada
+Abrir una nueva fase solo si la revisión manual detecta problemas repetidos de:
 
-- Reranker culinario avanzado (fase 5).
-- Solver multiobjetivo V2 completo (fase 4).
-- Orquestador V2 completo de extremo a extremo (fase 6).
+- coherencia culinaria,
+- repetición no deseada,
+- aceptación visual/UX del menú,
+- o edge cases que no aparecieron en QA automatizado.

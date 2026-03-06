@@ -11,40 +11,38 @@
 
 ## Project Structure & Module Organization
 
-- `src/` React SPA agrupada por feature: UI en `components/`, estado en `contexts/`, llamadas en `services/`, helpers en `utils/`.
-- `backend/` API Express: entrypoints en `routes/`, lógica de dominio en `services/`, guardias en `middleware/`, SQL versionado en `migrations/` y `sql/`.
-- Assets en `public/`; Vite compila a `dist/` (no versionar).
-- Revisa `docs/` y playbooks raíz antes de tocar entrenamientos, nutrición o rutinas.
-- Scripts operativos (`scripts/`, `check_*.mjs`, `apply_db_*.mjs`) gestionan puertos y parches; ejecútalos desde la raíz.
+- `src/` contiene la SPA React agrupada por feature; las rutas principales están en `src/App.jsx` y los providers compartidos en `src/providers/`.
+- `backend/` contiene la API Express: entrypoints en `routes/`, lógica de dominio en `services/`, guardias en `middleware/`, jobs en `jobs/` y SQL versionado en `migrations/`.
+- `docs/_active.md` marca la línea de trabajo activa; si una feature tiene carpeta propia en `docs/`, esa documentación pesa más que resúmenes antiguos de la raíz.
+- Assets estáticos en `public/`; Vite compila a `dist/` (no versionar).
+- Scripts operativos (`scripts/`) gestionan puertos, monitorización y utilidades; ejecútalos desde la raíz.
 
 ## Build, Test, and Development Commands
 
-- `npm run install:all` instala dependencias frontend + backend en una sola pasada.
-- `npm run dev` inicia Vite en 5173; `npm run dev:backend` (o `npm --prefix backend run dev`) levanta la API en 3010.
-- Usa `npm run dev:all` para levantar ambos servicios; `npm run dev:auto` es el arranque recomendado con sincronización de puertos.
-- `npm run dev:sync` verifica puertos antes de levantar frontend; `npm run check-ports` solo valida/sincroniza.
+- `npm run install:all` instala dependencias frontend + backend.
+- `npm run dev` inicia Vite en `5173`; `npm run dev:backend` levanta la API en `3010`.
+- `npm run dev:auto` y `npm run dev:sync` son las opciones recomendadas cuando necesitas sincronizar puertos.
 - `npm run build` genera el bundle productivo y `npm run preview` permite validarlo localmente.
-- Calidad: `npm run lint` (ESLint), `npm run monitor` (salud servicios).
-- Backend en 3010 es fijo (hardcodeado); no cambiar el puerto.
+- Calidad y verificación: `npm run lint`, `npm run monitor`, `npm run test:backend`.
+- El backend en `3010` es fijo; no cambiar ese puerto.
 
 ## Coding Style & Naming Conventions
 
-- JavaScript/JSX con indentación de 2 espacios, comillas dobles y punto y coma; ESLint (`eslint.config.js`) es la fuente de verdad.
-- Componentes en PascalCase (`components/ProfileSection.jsx`), hooks/utilidades en camelCase, context providers en `contexts/` con sufijo `Provider`.
-- Backend: controladores en `routes/`, dominio en `services/`, utilidades compartidas en `utils/`.
+- JavaScript/JSX con indentación de 2 espacios, comillas dobles y punto y coma; `.eslint.config.mjs` es la fuente de verdad.
+- Componentes en PascalCase, hooks y utilidades en camelCase, providers/contextos con nombres explícitos.
+- Backend: controladores en `routes/`, dominio en `services/`, utilidades compartidas en `utils/` o `lib/`.
 - Prettier corre vía lint-staged; no omitas el hook salvo casos documentados.
 
 ## Testing Guidelines
 
-- `npm test` retorna placeholder; registra pruebas manuales o scripts específicos en tu PR.
-- Playwright E2E está en `tests/`: `npx playwright test` y `npx playwright show-report`.
-- `node test_refactorization.mjs` valida el flujo completo de entrenamiento (requiere `DATABASE_URL` y `JWT_SECRET`).
-- `node test-routine-fixes.js` verifica endpoints críticos; define `AUTH_TOKEN` con un JWT válido antes de correrlo.
-- Añade pruebas automatizadas en cambios críticos y describe la cobertura lograda.
+- `npm test` sigue siendo un placeholder y no valida comportamiento real.
+- La suite automatizada actual está en `backend/tests/` y se ejecuta con `npm run test:backend`.
+- Playwright E2E está en `tests/`; usa `npx playwright test` y `npx playwright show-report` cuando el entorno ya esté levantado.
+- Añade pruebas automatizadas en cambios críticos y documenta la validación manual cuando no haya cobertura.
 
 ## Commit & Pull Request Guidelines
 
-- Usa Conventional Commits en español como en `feat(ui): feedback ejercicios en pestaña hoy`.
+- Usa Conventional Commits en español como `feat(ui): feedback ejercicios en pestaña hoy`.
 - Los PRs deben incluir resumen, instrucciones de validación local, issues vinculadas y capturas o gifs para cambios visuales.
 - Documenta migraciones o scripts requeridos e indica impactos front-back.
 - Si hay cambios arquitectónicos mayores, actualiza `WARP.md`.
@@ -57,11 +55,11 @@
 
 ## Environment & Configuration Tips
 
-- Crea `.env` para frontend y backend con `VITE_*`, `DATABASE_URL`, `JWT_SECRET`, `DB_SEARCH_PATH`; dotenv se carga fuera de producción.
+- Frontend: `.env.local` con `VITE_*`. Backend: `backend/.env` con `DATABASE_URL`, `JWT_SECRET`, `DB_SEARCH_PATH` y `PORT=3010`.
 - Mantén `logs.txt` y `backend/logs.txt` fuera de commits, pero utilízalos para diagnósticos y comparte fragmentos relevantes.
-- Nunca publiques ni commitees credenciales; `.env` y `.mcp.json` deben estar en `.gitignore`.
+- Nunca publiques ni commitees credenciales; `.env`, `.mcp.json` y ajustes locales de herramientas deben permanecer fuera del repositorio.
 
 ## MCP & Supabase
 
 - Cuando trabajemos con MCP, usar siempre el proyecto `lhsnmjgdtjalfcsurxvg` en Supabase.
-- Los servidores MCP solo cargan al inicio; reinicia Claude Code si cambias la configuración.
+- Los servidores MCP solo cargan al inicio; reinicia el host de la herramienta si cambias la configuración.

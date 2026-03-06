@@ -439,7 +439,6 @@ export function startNutritionCalibrationCron() {
 
 - **Documentación base:** `docs/PLAN_MEJORAS_CALIBRACION.md`
 - **Análisis TMB/GCT:** `docs/ANALISIS_TMB_GCT.md`
-- **Resumen revisión:** `docs/RESUMEN_REVISION_TMB_GCT.md`
 
 ---
 

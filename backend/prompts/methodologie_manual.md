@@ -160,7 +160,7 @@ Jumping jacks, high knees, butt kickers, squat jumps
     "edad": <num>, "peso": <kg>, "estatura": <cm>, "sexo": "<M|F|Otro>",
     "nivel_actividad": "<bajo|medio|alto>",
     "suplementacion": "<texto|vacío>", "grasa_corporal": "<%|vacío>",
-    "masa_muscular": "<kg|vacío>", "pecho": "<cm|vacío>", "brazos": "<cm|vacío>",
+    "masa_magra": "<kg|vacío>", "pecho": "<cm|vacío>", "brazos": "<cm|vacío>",
     "nivel_actual_entreno": "<principiante|intermedio|avanzado>",
     "anos_entrenando": <num|0>, "objetivo_principal": "<texto>",
     "medicamentos": "<texto|ninguno>",

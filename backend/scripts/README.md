@@ -1,96 +1,60 @@
-# 📁 Scripts del Backend - Estado Final
+# Scripts del backend
 
-## 🎯 Resultado
+Fecha de revisión: 2026-03-06
 
-**Este directorio ya NO contiene scripts.** Todo el sistema opera con mantenimiento automático integrado.
+## Estado real
 
-## 📂 Estructura Final
+Este directorio sí contiene scripts activos y utilidades puntuales. No debe leerse como un directorio vacío ni como un sistema "100% sin scripts manuales".
 
-```
-backend/scripts/
-└── README.md           # Esta documentación (única)
-```
+## Grupos principales
 
-## ✅ **Sistema Completamente Automatizado**
+### Migraciones y verificación
 
-**No se requieren scripts manuales** porque:
+- `run-migration.js`
+- `run-migrations.js`
+- `run-adaptation-migration.js`
+- `run-nutrition-review-migration.js`
+- `run-nutrition-adjustments-migration.js`
+- `run-nutrition-recipes-migration.js`
+- `verify-migrations.js`
 
-- ✅ **Mantenimiento automático**: `backend/utils/sessionMaintenance.js` ejecuta limpieza automática cada 4 horas
-- ✅ **Pruebas integradas**: Los tests del sistema están en la suite de pruebas unitarias
-- ✅ **Migraciones completadas**: Todas las tablas y datos necesarios ya están en la BD
-- ✅ **Sistema auto-gestionado**: El backend gestiona su propio ciclo de vida
+### Diagnóstico y comprobaciones
 
-## 🚀 Mantenimiento del Sistema
+- `check-hipertrofia-v2-tables.js`
+- `check-methodology-plans.js`
+- `check-progress-tables.js`
+- `check-session-structure.js`
+- `check-session-tables.js`
+- `check-videos.js`
+- `read-sql-functions.js`
+- `test-db-minimal.js`
 
-### Automático (Sin intervención requerida)
+### Nutrición y calidad de menús
 
-El backend gestiona automáticamente:
+- `backfill-food-semantics.mjs`
+- `generate-menu-quality-baseline.mjs`
+- `run-menu-hard-rules-qa.mjs`
+- `import-recipe-examples-from-excel.js`
+- `normalize-recipe-names.js`
+- `curate-recipe-names.js`
+- `import-phase1-gap-recipes-v1.js`
 
-```javascript
-// backend/utils/sessionMaintenance.js
-// - Limpieza de sesiones cada 4 horas
-// - Estadísticas diarias a las 2 AM
-// - Mantenimiento de logs antiguos
-```
+### Hipertrofia y adaptación
 
-### Manual (Solo si es necesario)
+- `test-adaptation-generation.js`
+- `test-d1d5-mapping.js`
+- `test-hipertrofia-sabados.js`
+- `test-sabados-local.js`
+- `validate-volume-distribution.js`
+- `regenerate-schedule.js`
 
-```bash
-# Si necesitas verificar el estado del sistema manualmente:
-# Ver logs del backend para estadísticas de mantenimiento
-# O usar endpoints de administración: /api/admin/sessions/status
-```
+### Carga de datos
 
-## 📋 Criterios de Organización
+- `load-bomberos-exercises.js`
+- `upload-excel.js`
 
-| Categoría         | Criterio                             | Acción                     |
-| ----------------- | ------------------------------------ | -------------------------- |
-| **Mantenimiento** | Scripts que se ejecutan regularmente | Mantener en `/maintenance` |
-| **Archivo**       | Scripts de setup/migración únicos    | Mover a `/archive`         |
-| **Eliminación**   | Scripts obsoletos o temporales       | Eliminar completamente     |
+## Uso recomendado
 
-## 🗑️ **Scripts Eliminados**
-
-**Todos los scripts fueron eliminados** por las siguientes razones:
-
-### **Scripts obsoletos (4 archivos):**
-
-- ~~`diagnose_data_inconsistency.js`~~ - Diagnóstico temporal ya resuelto
-- ~~`implementUnifiedSystem.js`~~ - Implementación ya completada
-
-### **Scripts redundantes (2 archivos):**
-
-- ~~`maintenance/session-cleanup.js`~~ - Redundante con `sessionMaintenance.js` automático
-- ~~`maintenance/test-session-system.js`~~ - Debugging temporal, usar tests unitarios
-
-### **Scripts de migración (4 archivos):**
-
-- ~~`initHomeTrainingTables.js`~~ - Tablas ya creadas, re-ejecutar sería peligroso
-- ~~`create_and_populate_calistenia.js`~~ - Datos ya cargados en BD
-- ~~`create_principiantes_calistenia.js`~~ - Setup ya completado
-- ~~`insert_calistenia_exercises.js`~~ - 65 ejercicios ya están en la BD
-
-### **💡 Razón principal: Todo ya está funcionando**
-
-## 📝 Mantenimiento Futuro
-
-### Principio fundamental:
-
-**NO agregar scripts manuales** - el sistema es 100% automatizado.
-
-### Si surge alguna necesidad:
-
-1. **Operaciones de mantenimiento** → Integrar en `utils/sessionMaintenance.js`
-2. **Migraciones de BD** → Usar herramientas de migración estándar (Prisma, TypeORM, etc.)
-3. **Tests del sistema** → Escribir tests unitarios en suite de pruebas
-4. **Debugging** → Usar endpoints de administración: `/api/admin/*`
-
-### Estado actual verificado:
-
-- ✅ **Todas las tablas existen** y están pobladas correctamente
-- ✅ **Mantenimiento automático funcionando** (cada 4 horas)
-- ✅ **Sistema completamente operacional** sin scripts manuales
-
----
-
-**Última actualización**: Scripts reorganizados como parte de la refactorización arquitectural del backend.
+- Consulta primero `backend/package.json` para ver qué scripts npm están soportados oficialmente.
+- Usa estos archivos como utilidades operativas o de diagnóstico, no como documentación contractual del sistema.
+- Si un script toca base de datos o datos reales, léelo antes de ejecutarlo.
