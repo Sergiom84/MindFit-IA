@@ -25,7 +25,7 @@ export function normalizeUserProfile(profile) {
     objetivo_principal: profile.objetivo_principal || DEFAULT_VALUES.OBJETIVO_PRINCIPAL,
     nivel_actividad: profile.nivel_actividad || DEFAULT_VALUES.NIVEL_ACTIVIDAD,
     grasa_corporal: parseFloat(profile.grasa_corporal) || null,
-    masa_muscular: parseFloat(profile.masa_muscular) || null,
+    masa_magra: parseFloat(profile.masa_magra) || null,
     pecho: parseFloat(profile.pecho) || null,
     brazos: parseFloat(profile.brazos) || null,
     alergias: profile.alergias || [],

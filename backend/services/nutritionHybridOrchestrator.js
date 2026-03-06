@@ -4,6 +4,7 @@ import {
   validateHybridSolvedMenu
 } from "./nutritionHybridValidator.js";
 import { solveHybridMenu } from "./nutritionHybridSolver.js";
+import { evaluateMealNutrientBalance } from "./menuHardRulesEngine.js";
 
 export class HybridMenuGenerationError extends Error {
   constructor(code, message, details = null) {
@@ -108,6 +109,23 @@ export async function generateHybridMenuForMeal({
       continue;
     }
 
+    // Evaluar balance nutricional por roles (proteina/carbo/grasa/verdura)
+    const mealMacros = meal?.macros || {};
+    const balanceEval = evaluateMealNutrientBalance(solved.menu.items, {
+      protein_g: mealMacros.protein_g,
+      carbs_g: mealMacros.carbs_g,
+      fat_g: mealMacros.fat_g,
+      kcal: meal?.kcal
+    });
+
+    // Si hay warnings criticos en el primer intento, reintentar con feedback al planner
+    if (balanceEval.hasWarnings && attempt === 1) {
+      const warnCodes = balanceEval.warnings.map((w) => w.code).join(", ");
+      solverFeedback = `Balance de roles desbalanceado: ${warnCodes}. Prioriza fuentes de proteina principal y carbohidrato base, limita verduras a acompanamiento.`;
+      attempt += 1;
+      continue;
+    }
+
     return {
       menu: solved.menu,
       metadata: {
@@ -119,7 +137,8 @@ export async function generateHybridMenuForMeal({
         fallback_used: false,
         attempts_used: attempt,
         planner_mode: attemptConfig.plannerMode,
-        candidate_foods: plannerResult.metadata?.candidate_foods || null
+        candidate_foods: plannerResult.metadata?.candidate_foods || null,
+        nutrient_balance_warnings: balanceEval.hasWarnings ? balanceEval.warnings : null
       },
       planner: plannerResult.planner,
       availableFoods: selectionValidation.selectedFoods

@@ -39,6 +39,19 @@ function percentError(actual, target) {
   return Number((((Math.abs(actual - safeTarget)) / safeTarget) * 100).toFixed(2));
 }
 
+// Hojas verdes: gramajes bajos (30-80g). El solver no debe inflarlas.
+const LEAFY_KEYWORDS = [
+  "rucula", "rúcula", "lechuga", "espinaca", "canonigo", "canónigo",
+  "berro", "endivia", "escarola", "acelga", "kale", "col rizada",
+  "mezcla de hojas", "mix de hojas", "mesclun", "brote"
+];
+
+function isLeafyGreen(food) {
+  const nombre = String(food?.nombre || "").toLowerCase();
+  const detalle = String(food?.categoria_detalle || "").toLowerCase();
+  return LEAFY_KEYWORDS.some((kw) => nombre.includes(kw) || detalle.includes(kw));
+}
+
 function inferRoleAndBounds(food) {
   const macros100 = parseJsonObject(food?.macros_100g, {});
   const protein = Math.max(0, parseNumeric(macros100.protein_g));
@@ -50,18 +63,28 @@ function inferRoleAndBounds(food) {
     return { role: "GRASA_BASE", min: 3, max: 40 };
   }
   if (protein >= carbs && protein >= fat && protein >= 12) {
-    return { role: "PROTEINA_BASE", min: 40, max: 280 };
+    return { role: "PROTEINA_BASE", min: 80, max: 280 };
   }
   if (carbs >= protein && carbs >= fat && carbs >= 12) {
     return { role: "CARBO_BASE", min: 40, max: 330 };
   }
-  const verduraBase = { min: 50, max: 220 };
+
+  // Verduras: distinguir hojas (30-80g) de densas (80-150g) de genericas (50-220g)
+  if (isLeafyGreen(food)) {
+    return { role: "VERDURA_HOJA", min: 30, max: 80 };
+  }
+
+  const verduraDensa = { min: 80, max: 150 };
+  const verduraGenerica = { min: 50, max: 220 };
+
+  // Usar porcion tipica para refinar, pero con topes por subcategoria
   if (porcionTipica > 0) {
-    const min = Math.max(verduraBase.min, Math.round(porcionTipica * 0.35));
-    const max = Math.min(verduraBase.max, Math.round(porcionTipica * 1.0));
+    const base = porcionTipica <= 100 ? verduraDensa : verduraGenerica;
+    const min = Math.max(base.min, Math.round(porcionTipica * 0.35));
+    const max = Math.min(base.max, Math.round(porcionTipica * 1.0));
     return { role: "VERDURA_BASE", min, max: Math.max(max, min) };
   }
-  return { role: "VERDURA_BASE", ...verduraBase };
+  return { role: "VERDURA_BASE", ...verduraGenerica };
 }
 
 function buildConversionMap(conversionFactors = []) {
@@ -213,7 +236,7 @@ function buildGoals(meal) {
 
   const goals = [];
   if (targetProtein > 0) {
-    goals.push({ key: "protein", target: targetProtein, weight: 2.5, scale: Math.max(15, targetProtein) });
+    goals.push({ key: "protein", target: targetProtein, weight: 3.5, scale: Math.max(15, targetProtein) });
   }
   if (targetCarbs > 0) {
     goals.push({ key: "carbs", target: targetCarbs, weight: 2.0, scale: Math.max(20, targetCarbs) });

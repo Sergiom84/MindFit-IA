@@ -3,6 +3,16 @@ import { Brain, CheckCircle2, AlertCircle, Activity } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3010";
 
+const PROFILE_LABELS = {
+  tolerante: "Mas carbo",
+  mixto: "Equilibrado",
+  intolerante: "Mas grasas"
+};
+
+function getProfileLabel(profile) {
+  return PROFILE_LABELS[profile] || PROFILE_LABELS.mixto;
+}
+
 const QUESTIONS = [
   { id: "somnolencia_carbs", label: "Somnolencia o bajada de energía tras comidas altas en carbohidratos", scoreIfYes: 2 },
   { id: "energia_estable_carbs", label: "Energía estable tras comidas con carbohidratos (sin somnolencia)", scoreIfYes: -2 },
@@ -21,6 +31,7 @@ function initialAnswers() {
 }
 
 export default function MetabolicQuestionnaire({ onResult, objective = null }) {
+  const [mode, setMode] = useState(null); // null = choosing, 'basic', 'precise'
   const [answers, setAnswers] = useState(initialAnswers);
   const [signals, setSignals] = useState({
     icgFlag: "none",
@@ -114,6 +125,85 @@ export default function MetabolicQuestionnaire({ onResult, objective = null }) {
     }
   };
 
+  const handleBasicMode = () => {
+    setMode("basic");
+    if (onResult) {
+      onResult({
+        metabolic_type: "mixto",
+        metabolic_confidence: "baja",
+        metabolic_score: 0,
+        metabolic_pending_type: null,
+        metabolic_pending_count: 0,
+        macros: null
+      });
+    }
+    setStatus({
+      type: "success",
+      data: {
+        applied_type: "mixto",
+        confidence: "baja",
+        score: 0,
+        pending_type: null,
+        pending_count: 0
+      }
+    });
+  };
+
+  if (mode === null) {
+    return (
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-yellow-400/10 border border-yellow-400/30">
+            <Brain className="w-5 h-5 text-yellow-400" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">Reparto de macros</p>
+            <p className="text-xs text-gray-400">
+              Esto ajusta como repartimos proteinas/carbos/grasas, no tus calorias totales.
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={handleBasicMode}
+            className="flex flex-col items-start gap-2 p-4 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-left"
+          >
+            <p className="text-sm font-semibold text-white">Basico (sin cuestionario)</p>
+            <p className="text-xs text-gray-400">Distribucion equilibrada de macros. Puedes personalizar luego.</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("precise")}
+            className="flex flex-col items-start gap-2 p-4 rounded-lg border border-yellow-400/30 bg-yellow-400/5 hover:bg-yellow-400/10 transition-colors text-left"
+          >
+            <p className="text-sm font-semibold text-yellow-300">Preciso (con cuestionario)</p>
+            <p className="text-xs text-gray-400">10 preguntas para personalizar la distribucion de macros.</p>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === "basic") {
+    return (
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <p className="text-sm font-semibold text-white">Reparto actual: {getProfileLabel("mixto")} (basico)</p>
+        </div>
+        <p className="text-xs text-gray-400">Distribucion equilibrada de macros aplicada. Puedes cambiar a modo preciso en cualquier momento.</p>
+        <button
+          type="button"
+          onClick={() => setMode("precise")}
+          className="text-xs text-yellow-300/80 hover:text-yellow-200 underline"
+        >
+          Cambiar a modo preciso
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
       <div className="flex items-center gap-3">
@@ -121,10 +211,10 @@ export default function MetabolicQuestionnaire({ onResult, objective = null }) {
           <Brain className="w-5 h-5 text-yellow-400" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-white">Cuestionario metabólico</p>
+          <p className="text-sm font-semibold text-white">Cuestionario metabolico</p>
           <p className="text-xs text-gray-400">
-            Calcula el score (S) para tolerancia/intolerancia a carbohidratos. Dos reevaluaciones consecutivas son
-            necesarias para cambiar de categoría (anti-ruido).
+            Esto ajusta como repartimos proteinas/carbos/grasas, no tus calorias totales.
+            Dos reevaluaciones consecutivas son necesarias para cambiar de categoria (anti-ruido).
           </p>
         </div>
       </div>
@@ -250,10 +340,10 @@ export default function MetabolicQuestionnaire({ onResult, objective = null }) {
         <div className="p-3 rounded-lg border border-green-500/40 bg-green-500/10 text-sm text-white flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-green-400" />
           <div>
-            <p className="font-semibold">Perfil aplicado: {status.data.applied_type}</p>
+            <p className="font-semibold">Perfil aplicado: {getProfileLabel(status.data.applied_type)}</p>
             <p className="text-gray-200">
               Score S: {status.data.score} · Confianza: {status.data.confidence}. Pendiente:{" "}
-              {status.data.pending_type ? `${status.data.pending_type} (${status.data.pending_count}/2)` : "ninguno"}.
+              {status.data.pending_type ? `${getProfileLabel(status.data.pending_type)} (${status.data.pending_count}/2)` : "ninguno"}.
             </p>
           </div>
         </div>

@@ -182,7 +182,7 @@ export default function ImageCorrection() {
         objetivo_principal: userProfile?.objetivo_principal || null,
         objetivos_secundarios: [], // Se puede expandir si hay una tabla separada
         grasa_corporal: userProfile?.grasa_corporal || null,
-        masa_muscular: userProfile?.masa_muscular || null,
+        masa_magra: userProfile?.masa_magra ?? userProfile?.masa_muscular ?? null,
         
         // Limitaciones y salud
         lesiones: userProfile?.limitaciones_fisicas ? userProfile.limitaciones_fisicas.split(',').map(l => l.trim()) : [],
@@ -194,7 +194,7 @@ export default function ImageCorrection() {
         cintura: userProfile?.cintura || null,
         pecho: userProfile?.pecho || null,  
         brazos: userProfile?.brazos || null,
-        muslos: userProfile?.muslos || null,
+        muslo: userProfile?.muslo ?? userProfile?.muslos ?? null,
         cuello: userProfile?.cuello || null,
         cadera: userProfile?.cadera || null,
         

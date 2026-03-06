@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Activity,
   AlertCircle,
-  AlertTriangle,
+  Brain,
   Calendar,
   CheckCircle2,
   Dumbbell,
@@ -14,6 +14,7 @@ import {
   Utensils
 } from 'lucide-react';
 import { useUserContext } from '@/contexts/UserContext';
+import MetabolicQuestionnaire from './MetabolicQuestionnaire';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
 
@@ -37,56 +38,38 @@ const OBJECTIVE_OPTIONS = [
 ];
 
 const ACTIVITY_OPTIONS = [
-  { value: 'sedentario', label: 'Sedentario' },
-  { value: 'ligero', label: 'Ligero (1-3 dias)' },
-  { value: 'moderado', label: 'Moderado (3-5 dias)' },
-  { value: 'alto', label: 'Activo (5-6 dias)' },
-  { value: 'muy_alto', label: 'Muy activo (6+ dias)' }
+  { value: 'sedentario', label: 'Trabajo sentado, sin entrenos' },
+  { value: 'ligero', label: 'Trabajo sentado + 1-3 entrenos' },
+  { value: 'moderado', label: 'Trabajo sentado/de pie + 3-5 entrenos' },
+  { value: 'alto', label: 'Trabajo de pie/fisico + 5-6 entrenos' },
+  { value: 'muy_alto', label: 'Trabajo fisico duro + 6+ entrenos' }
 ];
-
-const OBJECTIVE_LABELS = {
-  cut: 'Definicion',
-  mant: 'Mantenimiento',
-  bulk: 'Volumen',
-  perder_peso: 'Perder peso',
-  mantenimiento: 'Mantenimiento',
-  mantener: 'Mantenimiento',
-  ganar_musculo: 'Ganar musculo',
-  ganar_peso: 'Ganar peso',
-  tonificar: 'Tonificar',
-  mantener_forma: 'Mantener forma',
-  mejorar_resistencia: 'Mejorar resistencia',
-  fuerza: 'Fuerza',
-  resistencia: 'Resistencia',
-  rehabilitacion: 'Rehabilitacion',
-  flexibilidad: 'Flexibilidad'
-};
 
 const ACTIVITY_HELP = {
   sedentario: {
     label: 'Sedentario',
-    short: '0-1 entrenos/semana · <5.000 pasos/dia',
-    detail: 'Trabajo mayormente sentado, baja actividad diaria.'
+    short: 'Trabajo sentado · 0-1 entrenos · <5.000 pasos/dia',
+    detail: 'Si entrenas poco y el resto del dia estas sentado, esta suele ser la opcion correcta.'
   },
   ligero: {
-    label: 'Ligero (1-3 dias)',
-    short: '1-3 entrenos/semana · 5.000-7.500 pasos/dia',
-    detail: 'Actividad ligera y movimiento diario moderado.'
+    label: 'Ligero',
+    short: 'Trabajo sentado · 1-3 entrenos · 5.000-7.500 pasos/dia',
+    detail: 'Oficina o teletrabajo con algo de movimiento y algunos entrenos a la semana.'
   },
   moderado: {
-    label: 'Moderado (3-5 dias)',
-    short: '3-5 entrenos/semana · 7.500-10.000 pasos/dia',
-    detail: 'Entrenas con regularidad y te mueves casi a diario.'
+    label: 'Moderado',
+    short: 'Trabajo sentado o mixto · 3-5 entrenos · 7.500-10.000 pasos/dia',
+    detail: 'Lo normal si entrenas regular, caminas bastante y no tienes un trabajo fisico duro.'
   },
   alto: {
-    label: 'Activo (5-6 dias)',
-    short: '5-6 entrenos/semana · 10.000-12.000 pasos/dia',
-    detail: 'Entrenas casi a diario y tienes un ritmo activo.'
+    label: 'Alto',
+    short: 'Trabajo de pie o fisico ligero · 5-6 entrenos · 10.000-12.000 pasos/dia',
+    detail: 'No lo elijas solo por entrenar fuerte una hora si luego pasas casi todo el dia sentado.'
   },
   muy_alto: {
-    label: 'Muy activo (6+ dias)',
-    short: '6+ entrenos/semana · >12.000 pasos/dia',
-    detail: 'Alta demanda fisica diaria y entrenos frecuentes.'
+    label: 'Muy alto',
+    short: 'Trabajo fisico duro · 6+ entrenos · >12.000 pasos/dia',
+    detail: 'Reservado para trabajos fisicos exigentes o muchisimo movimiento diario.'
   }
 };
 
@@ -97,10 +80,25 @@ const PREFERENCE_KEYS = [
   { key: 'sin_lactosa', label: 'Sin lactosa' }
 ];
 
+const METABOLIC_PROFILE_META = {
+  tolerante: {
+    label: 'Mas carbo',
+    description: 'Priorizamos mas carbohidratos y menos grasas.'
+  },
+  mixto: {
+    label: 'Equilibrado',
+    description: 'Reparto estable entre proteinas, carbos y grasas.'
+  },
+  intolerante: {
+    label: 'Mas grasas',
+    description: 'Priorizamos mas grasas y menos carbohidratos.'
+  }
+};
+
 const GOAL_TO_USER = {
   cut: 'perder_peso',
   mant: 'mantenimiento',
-  bulk: 'ganar_musculo'
+  bulk: 'ganar_masa_muscular'
 };
 
 const GOAL_FROM_USER = {
@@ -108,6 +106,7 @@ const GOAL_FROM_USER = {
   mantenimiento: 'mant',
   mantener: 'mant',
   ganar_musculo: 'bulk',
+  ganar_masa_muscular: 'bulk',
   ganar_peso: 'bulk',
   tonificar: 'mant',
   mantener_forma: 'mant',
@@ -252,16 +251,17 @@ const areBooleanArraysEqual = (a, b) => {
   return true;
 };
 
-const formatObjectiveLabel = (value) => OBJECTIVE_LABELS[value] || value || 'N/D';
-const formatActivityLabel = (value) => {
-  const normalized = normalizeActivityValue(value);
-  return ACTIVITY_HELP[normalized]?.label || value || 'N/D';
-};
+const getMetabolicProfileMeta = (value) => METABOLIC_PROFILE_META[value] || METABOLIC_PROFILE_META.mixto;
 
 const DEFAULT_PROFILE = {
   objetivo: 'mant',
   actividad: 'moderado',
   comidas_dia: 4,
+  metabolic_type: 'mixto',
+  metabolic_score: null,
+  metabolic_confidence: null,
+  metabolic_pending_type: null,
+  metabolic_pending_count: 0,
   preferencias: {
     vegetariano: false,
     vegano: false,
@@ -270,6 +270,41 @@ const DEFAULT_PROFILE = {
   },
   alergias: []
 };
+
+const buildProfileStateFromApi = (data, fallbackProfile = DEFAULT_PROFILE) => ({
+  ...DEFAULT_PROFILE,
+  ...fallbackProfile,
+  objetivo: data?.objetivo || fallbackProfile.objetivo || DEFAULT_PROFILE.objetivo,
+  actividad: data?.actividad || fallbackProfile.actividad || DEFAULT_PROFILE.actividad,
+  comidas_dia: data?.comidas_dia || fallbackProfile.comidas_dia || DEFAULT_PROFILE.comidas_dia,
+  metabolic_type: data?.metabolic_type || fallbackProfile.metabolic_type || DEFAULT_PROFILE.metabolic_type,
+  metabolic_score: data?.metabolic_score ?? fallbackProfile.metabolic_score ?? DEFAULT_PROFILE.metabolic_score,
+  metabolic_confidence: data?.metabolic_confidence ?? fallbackProfile.metabolic_confidence ?? DEFAULT_PROFILE.metabolic_confidence,
+  metabolic_pending_type: data?.metabolic_pending_type ?? fallbackProfile.metabolic_pending_type ?? DEFAULT_PROFILE.metabolic_pending_type,
+  metabolic_pending_count: data?.metabolic_pending_count ?? fallbackProfile.metabolic_pending_count ?? DEFAULT_PROFILE.metabolic_pending_count,
+  preferencias: {
+    ...DEFAULT_PROFILE.preferencias,
+    ...(fallbackProfile.preferencias || {}),
+    ...(data?.preferencias || {})
+  },
+  alergias: Array.isArray(data?.alergias)
+    ? data.alergias
+    : (Array.isArray(fallbackProfile.alergias) ? fallbackProfile.alergias : [])
+});
+
+const buildProfileStateFromUser = (profileData, userObjective, userActivity, userMeals) => ({
+  ...DEFAULT_PROFILE,
+  objetivo: userObjective || DEFAULT_PROFILE.objetivo,
+  actividad: userActivity || DEFAULT_PROFILE.actividad,
+  comidas_dia: userMeals || DEFAULT_PROFILE.comidas_dia,
+  metabolic_type: profileData?.metabolic_type || DEFAULT_PROFILE.metabolic_type,
+  metabolic_score: profileData?.metabolic_score ?? DEFAULT_PROFILE.metabolic_score,
+  metabolic_confidence: profileData?.metabolic_confidence ?? DEFAULT_PROFILE.metabolic_confidence,
+  metabolic_pending_type: profileData?.metabolic_pending_type ?? DEFAULT_PROFILE.metabolic_pending_type,
+  metabolic_pending_count: profileData?.metabolic_pending_count ?? DEFAULT_PROFILE.metabolic_pending_count,
+  preferencias: profileData?.preferencias || DEFAULT_PROFILE.preferencias,
+  alergias: Array.isArray(profileData?.alergias) ? profileData.alergias : []
+});
 
 /**
  * Generador de plan nutricional determinista con configuracion integrada
@@ -299,8 +334,8 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     training_type: 'hipertrofia',
     training_schedule: [true, false, true, false, true, false, false]
   });
-  const [dismissedMismatch, setDismissedMismatch] = useState(false);
   const [showActivityHelp, setShowActivityHelp] = useState(false);
+  const [nutritionOverridesProfile, setNutritionOverridesProfile] = useState(false);
   const [trainingPlanInfo, setTrainingPlanInfo] = useState({
     loading: true,
     hasPlan: false,
@@ -326,63 +361,11 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     ? Number(userData.comidas_diarias)
     : null;
 
-  const profileDiscrepancies = useMemo(() => {
-    if (!userData || profileLoading) return [];
-    const items = [];
-    if (userObjective && profileData.objetivo && userObjective !== profileData.objetivo) {
-      items.push({
-        field: 'objetivo',
-        label: 'Objetivo principal',
-        general: formatObjectiveLabel(userObjective),
-        nutrition: formatObjectiveLabel(profileData.objetivo)
-      });
-    }
-    if (userActivity && profileData.actividad && userActivity !== profileData.actividad) {
-      items.push({
-        field: 'actividad',
-        label: 'Nivel de actividad',
-        general: formatActivityLabel(userActivity),
-        nutrition: formatActivityLabel(profileData.actividad)
-      });
-    }
-    if (
-      userMeals &&
-      profileData.comidas_dia &&
-      Number(userMeals) !== Number(profileData.comidas_dia)
-    ) {
-      items.push({
-        field: 'comidas',
-        label: 'Comidas por dia',
-        general: `${Number(userMeals)}`,
-        nutrition: `${Number(profileData.comidas_dia)}`
-      });
-    }
-    return items;
-  }, [userData, userObjective, userActivity, userMeals, profileData, profileLoading]);
-
-  const buildProfileFromUser = () => ({
-    ...DEFAULT_PROFILE,
-    objetivo: userObjective || DEFAULT_PROFILE.objetivo,
-    actividad: userActivity || DEFAULT_PROFILE.actividad,
-    comidas_dia: userMeals || DEFAULT_PROFILE.comidas_dia,
-    preferencias: profileData.preferencias || DEFAULT_PROFILE.preferencias,
-    alergias: Array.isArray(profileData.alergias) ? profileData.alergias : []
-  });
-
   const loadProfileFromUserData = async () => {
-    const nextProfile = buildProfileFromUser();
+    const nextProfile = buildProfileStateFromUser(profileData, userObjective, userActivity, userMeals);
     setProfileData(nextProfile);
-    const saved = await handleSaveProfile(nextProfile);
-    if (saved) {
-      setDismissedMismatch(true);
-    }
+    await handleSaveProfile(nextProfile, false);
   };
-
-  useEffect(() => {
-    if (profileDiscrepancies.length === 0 && dismissedMismatch) {
-      setDismissedMismatch(false);
-    }
-  }, [profileDiscrepancies.length, dismissedMismatch]);
 
   useEffect(() => {
     let isMounted = true;
@@ -696,7 +679,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
         });
 
         if (response.status === 404) {
-          setProfileData(buildProfileFromUser());
+          setProfileData(buildProfileStateFromUser(DEFAULT_PROFILE, userObjective, userActivity, userMeals));
           return;
         }
 
@@ -705,20 +688,29 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
         }
 
         const data = await response.json();
-        setProfileData({
-          objetivo: data.objetivo || DEFAULT_PROFILE.objetivo,
-          actividad: data.actividad || DEFAULT_PROFILE.actividad,
-          comidas_dia: data.comidas_dia || DEFAULT_PROFILE.comidas_dia,
-          preferencias: {
-            ...DEFAULT_PROFILE.preferencias,
-            ...(data.preferencias || {})
-          },
-          alergias: Array.isArray(data.alergias) ? data.alergias : []
-        });
+        const isOverridden = Boolean(data.nutrition_overrides_profile);
+        setNutritionOverridesProfile(isOverridden);
+
+        // Si no tiene override, auto-sincronizar objetivo/actividad/comidas desde perfil general
+        const syncedObjetivo = (!isOverridden && userObjective) ? userObjective : (data.objetivo || DEFAULT_PROFILE.objetivo);
+        const syncedActividad = (!isOverridden && userActivity) ? userActivity : (data.actividad || DEFAULT_PROFILE.actividad);
+        const syncedComidas = (!isOverridden && userMeals) ? userMeals : (data.comidas_dia || DEFAULT_PROFILE.comidas_dia);
+
+        setProfileData(
+          buildProfileStateFromApi(
+            {
+              ...data,
+              objetivo: syncedObjetivo,
+              actividad: syncedActividad,
+              comidas_dia: syncedComidas
+            },
+            buildProfileStateFromUser(DEFAULT_PROFILE, userObjective, userActivity, userMeals)
+          )
+        );
       } catch (error) {
         if (error.name !== 'AbortError') {
           setProfileLoadError(error.message);
-          setProfileData(buildProfileFromUser());
+          setProfileData(buildProfileStateFromUser(DEFAULT_PROFILE, userObjective, userActivity, userMeals));
         }
       } finally {
         setProfileLoading(false);
@@ -790,12 +782,15 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     return typeof value.preventDefault === "function" || Object.prototype.hasOwnProperty.call(value, "nativeEvent");
   };
 
-  const handleSaveProfile = async (overrideData) => {
+  const handleSaveProfile = async (overrideData, overrideSyncState = null) => {
     setProfileSaving(true);
     setProfileSaveError(null);
     setProfileSuccess(null);
     const safeOverride = isEventLikePayload(overrideData) ? null : overrideData;
     const dataToSave = safeOverride || profileData;
+    const resolvedOverride = typeof overrideSyncState === "boolean"
+      ? overrideSyncState
+      : nutritionOverridesProfile;
     let wasSaved = false;
 
     try {
@@ -810,7 +805,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(dataToSave)
+        body: JSON.stringify({ ...dataToSave, nutrition_overrides_profile: resolvedOverride })
       });
 
       if (!response.ok) {
@@ -819,6 +814,10 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
       }
 
       const data = await response.json();
+      setProfileData((prev) => buildProfileStateFromApi(data.profile || data, prev));
+      setNutritionOverridesProfile(
+        Boolean((data.profile || data)?.nutrition_overrides_profile ?? resolvedOverride)
+      );
       setEstimaciones(data.estimaciones || null);
       setProfileSuccess('Perfil nutricional guardado correctamente');
       wasSaved = true;
@@ -888,7 +887,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(profileData)
+        body: JSON.stringify({ ...profileData, nutrition_overrides_profile: nutritionOverridesProfile })
       });
 
       if (!profileUpsert.ok) {
@@ -899,6 +898,9 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
       const profilePayload = await profileUpsert.json().catch(() => null);
       if (profilePayload?.estimaciones) {
         setEstimaciones(profilePayload.estimaciones);
+      }
+      if (profilePayload?.profile) {
+        setProfileData((prev) => buildProfileStateFromApi(profilePayload.profile, prev));
       }
 
       const response = await fetch(`${API_URL}/api/nutrition-v2/generate-plan`, {
@@ -944,6 +946,18 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     : isDailySchedule
       ? 'Vista basada en una semana completa del plan.'
       : 'Usa un preset o ajusta manualmente los dias';
+  const metabolicProfileMeta = getMetabolicProfileMeta(profileData.metabolic_type);
+
+  const handleMetabolicResult = (result) => {
+    const metabolicState = { ...result };
+    delete metabolicState.macros;
+    setProfileData((prev) => ({
+      ...prev,
+      ...metabolicState
+    }));
+    setProfileSaveError(null);
+    setProfileSuccess('Reparto de macros actualizado. Afecta solo a la distribucion, no a las calorias totales.');
+  };
 
   return (
     <div className="w-full max-w-5xl mx-auto p-0 sm:p-6 space-y-6">
@@ -968,63 +982,34 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
             </div>
           </header>
 
-          {profileDiscrepancies.length > 0 && !dismissedMismatch && (
-            <div className="p-4 bg-yellow-500/10 border border-yellow-500/40 rounded-lg space-y-3">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-yellow-400 mt-1" />
-                <div className="text-sm text-yellow-100">
-                  <p className="font-semibold text-yellow-200">Datos distintos entre perfiles</p>
-                  <p className="text-yellow-100/80">
-                    El plan usa el perfil de nutricion. Si quieres alinear todo, sincroniza con tu perfil general.
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-xs text-yellow-100/90">
-                <p className="font-semibold text-yellow-200 mb-2">Diferencias detectadas</p>
-                <div className="space-y-3">
-                  {profileDiscrepancies.map((item) => (
-                    <div key={item.field} className="rounded-lg border border-white/10 bg-white/5 p-3">
-                      <div className="text-[13px] font-semibold text-yellow-200 mb-2">{item.label}</div>
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        <div className="rounded-md border border-sky-300/40 bg-sky-400/10 px-2.5 py-1.5">
-                          <div className="text-[10px] uppercase tracking-wide text-sky-200/80">Perfil general</div>
-                          <div className="text-[12px] font-semibold text-sky-100">{item.general}</div>
-                        </div>
-                        <div className="rounded-md border border-yellow-300/40 bg-yellow-400/10 px-2.5 py-1.5">
-                          <div className="text-[10px] uppercase tracking-wide text-yellow-200/80">Nutricion</div>
-                          <div className="text-[12px] font-semibold text-yellow-100">{item.nutrition}</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    loadProfileFromUserData();
-                  }}
-                  className="px-4 py-2 bg-yellow-400 text-gray-900 rounded-lg font-semibold hover:bg-yellow-500 transition-colors disabled:opacity-60"
-                  disabled={profileLoading || profileSaving}
-                >
-                  Sincronizar con perfil general
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDismissedMismatch(true)}
-                  className="px-4 py-2 bg-white/5 border border-white/10 text-gray-200/80 rounded-lg font-semibold hover:bg-white/10 transition-colors disabled:opacity-60"
-                  disabled={profileLoading || profileSaving}
-                >
-                  Cancelar aviso
-                </button>
-              </div>
-
-              <p className="text-xs text-yellow-100/80">
-                Esto guardara esos valores en tu perfil de nutricion.
-              </p>
+          {!nutritionOverridesProfile ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-xs text-emerald-200">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span>Sincronizado con perfil general</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setNutritionOverridesProfile(true);
+                }}
+                className="ml-auto text-emerald-300/80 hover:text-emerald-200 underline"
+              >
+                Personalizar solo para nutricion
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-xs text-yellow-200">
+              <Settings className="w-4 h-4 text-yellow-400" />
+              <span>No sincronizado con perfil general</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setNutritionOverridesProfile(false);
+                  void loadProfileFromUserData();
+                }}
+                className="ml-auto text-yellow-300/80 hover:text-yellow-200 underline"
+              >
+                Volver a sincronizar con perfil general
+              </button>
             </div>
           )}
 
@@ -1095,13 +1080,16 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
               {showActivityHelp && (
                 <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3 text-xs text-gray-300 space-y-2">
                   {Object.entries(ACTIVITY_HELP).map(([key, info]) => (
-                    <div key={key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                      <span className="font-semibold text-yellow-200">{info.label}</span>
-                      <span className="text-gray-300">{info.short}</span>
+                    <div key={key} className="rounded-lg border border-white/10 bg-black/10 px-3 py-2 space-y-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                        <span className="font-semibold text-yellow-200">{info.label}</span>
+                        <span className="text-gray-300">{info.short}</span>
+                      </div>
+                      <p className="text-gray-400">{info.detail}</p>
                     </div>
                   ))}
                   <p className="text-gray-400">
-                    Ajusta tu seleccion si tus pasos o entrenos cambian semana a semana.
+                    Elige por tu movimiento total del dia: trabajo, entrenos y pasos. Si dudas entre dos, empieza por la mas baja.
                   </p>
                 </div>
               )}
@@ -1129,6 +1117,42 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Brain className="w-4 h-4 text-yellow-400" />
+                <h4 className="text-white font-semibold">Reparto de macros</h4>
+              </div>
+              <p className="text-sm text-gray-400">
+                Cuestionario opcional para afinar como repartimos proteinas, carbos y grasas. No cambia tus calorias totales.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4 md:col-span-2">
+                  <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Perfil aplicado</p>
+                  <p className="text-lg font-semibold text-white">{metabolicProfileMeta.label}</p>
+                  <p className="text-sm text-gray-400 mt-1">{metabolicProfileMeta.description}</p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Confianza</p>
+                  <p className="text-lg font-semibold text-white">{profileData.metabolic_confidence || 'Pendiente'}</p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Score / pendiente</p>
+                  <p className="text-lg font-semibold text-white">{profileData.metabolic_score ?? '—'}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {profileData.metabolic_pending_type
+                      ? `${getMetabolicProfileMeta(profileData.metabolic_pending_type).label} (${profileData.metabolic_pending_count}/2)`
+                      : 'Sin cambios pendientes'}
+                  </p>
+                </div>
+              </div>
+
+              <MetabolicQuestionnaire
+                onResult={handleMetabolicResult}
+                objective={profileData.objetivo}
+              />
             </div>
 
             <div>
@@ -1212,14 +1236,6 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
             >
               {profileSaving && <Loader2 className="w-4 h-4 animate-spin" />}
               Guardar configuracion
-            </button>
-            <button
-              type="button"
-              onClick={loadProfileFromUserData}
-              className="flex items-center gap-2 px-5 py-3 bg-white/5 border border-white/10 text-gray-200/80 font-semibold rounded-lg hover:bg-white/10 transition-colors disabled:opacity-60"
-              disabled={profileLoading || profileSaving}
-            >
-              Usar datos del perfil general
             </button>
             {profileSaving && (
               <span className="text-sm text-gray-400 flex items-center gap-2">
@@ -1325,7 +1341,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                     </div>
                     {(trainingPlanInfo.capApplied || trainingPlanInfo.minApplied) && (
                       <p className="text-xs text-amber-200/90 mt-2">
-                        {trainingPlanInfo.capApplied && 'Duracion ajustada a 28 dias (limite del plan nutricional).'}
+                        {trainingPlanInfo.capApplied && 'El calendario muestra hasta 28 dias. Tu plan continua activo.'}
                         {trainingPlanInfo.minApplied && 'Duracion ajustada al minimo de 3 dias.'}
                       </p>
                     )}
@@ -1344,7 +1360,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                       }`}
                       disabled={planLoading || isTrainingLinked}
                     >
-                      {days} dias
+                      Vista: {days}d
                     </button>
                   ))}
                 </div>
@@ -1371,21 +1387,21 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                   Tipo de entrenamiento
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {TRAINING_TYPES.map(({ value, label, desc, Icon }) => (
+                  {TRAINING_TYPES.map((trainingType) => (
                     <button
-                      key={value}
+                      key={trainingType.value}
                       type="button"
-                      onClick={() => setConfig((prev) => ({ ...prev, training_type: value }))}
+                      onClick={() => setConfig((prev) => ({ ...prev, training_type: trainingType.value }))}
                       className={`p-4 rounded-lg border transition-all text-left ${
-                        config.training_type === value
+                        config.training_type === trainingType.value
                           ? 'border-yellow-400 bg-yellow-500/10 text-white'
                           : 'border-white/10 bg-white/5 text-gray-300/80 hover:border-white/20'
                       }`}
                       disabled={planLoading || isTrainingLinked}
                     >
-                      <Icon className="w-5 h-5 mb-2 text-yellow-400" />
-                      <div className="text-sm font-semibold">{label}</div>
-                      <div className="text-xs text-gray-400 mt-1">{desc}</div>
+                      <trainingType.Icon className="w-5 h-5 mb-2 text-yellow-400" />
+                      <div className="text-sm font-semibold">{trainingType.label}</div>
+                      <div className="text-xs text-gray-400 mt-1">{trainingType.desc}</div>
                     </button>
                   ))}
                 </div>
@@ -1454,7 +1470,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                 </div>
 
                 <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-sm text-blue-200">
-                  <strong>Carb cycling:</strong> dias de entreno reciben +10% carbohidratos y dias de descanso -15%.
+                  <strong>Carb cycling (kcal semanales estables):</strong> subimos carbohidratos en entreno (+10%) y los bajamos en descanso (-15%), compensando con grasas para no inflar el promedio semanal.
                 </div>
               </div>
             </div>
@@ -1477,7 +1493,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                 {trainingDaysCount} entrenos/semana{isDailySchedule ? ' (semana habitual)' : ''}
               </li>
               <li>
-                <strong className="text-yellow-300">Carb cycling:</strong> activado
+                <strong className="text-yellow-300">Carb cycling:</strong> kcal semanales estables
               </li>
             </ul>
           </div>
@@ -1534,6 +1550,12 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
             </div>
 
             <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+              {generatedPlan.carb_cycling_audit && (
+                <div className="mb-3 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-sm text-blue-200">
+                  <strong>{generatedPlan.carb_cycling_audit.label}:</strong>{" "}
+                  {generatedPlan.carb_cycling_audit.description}
+                </div>
+              )}
               <div className="text-gray-400 text-sm mb-2">Macronutrientes objetivo (promedio):</div>
               <div className="flex flex-wrap gap-4 text-white text-sm">
                 <div>
@@ -1555,6 +1577,12 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                   <span className="text-gray-400 ml-1">grasas</span>
                 </div>
               </div>
+              {generatedPlan.carb_cycling_audit && (
+                <p className="mt-3 text-xs text-gray-400">
+                  Promedio semanal estimado: {generatedPlan.carb_cycling_audit.avg_weekly_kcal} kcal
+                  {" "}· drift {generatedPlan.carb_cycling_audit.drift_pct}%
+                </p>
+              )}
             </div>
 
             <p className="text-sm text-gray-400 text-center">

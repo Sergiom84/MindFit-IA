@@ -7,11 +7,12 @@ import express from 'express';
 import { pool } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
 import {
-  calculateBMR,
-  calculateTDEE,
-  adjustCaloriesForGoal,
+  calculateBMRAudit,
+  calculateTDEEAudit,
+  calculateGoalAdjustmentAudit,
   calculateMacros,
   generateNutritionPlan,
+  summarizeCarbCycling,
   validateMacros
 } from '../services/nutritionCalculator.js';
 import { nutritionMenuGeneratorPrompt } from '../prompts/nutrition-menu-generator.js';
@@ -35,6 +36,7 @@ import {
 import {
   evaluateRecipeHardRules,
   computePairingPenaltyForRecipe,
+  evaluateMealNutrientBalance,
   isProcessedFood
 } from '../services/menuHardRulesEngine.js';
 import {
@@ -151,6 +153,39 @@ function normalizeEstadoPesado(value) {
 
   const resolved = aliases[normalized] || normalized;
   return VALID_ESTADOS_PESADO.includes(resolved) ? resolved : null;
+}
+
+function normalizeComparableText(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function resolveVegetablePortionProfile(food = {}) {
+  const comparable = [
+    food?.nombre,
+    food?.slug,
+    food?.categoria,
+    food?.categoria_detalle
+  ]
+    .map((value) => normalizeComparableText(value))
+    .filter(Boolean)
+    .join(' ');
+
+  const leafyKeywords = ['rucula', 'lechuga', 'espinaca', 'canonigo', 'berro', 'escarola', 'endibia', 'acelga'];
+  const denseKeywords = ['zanahoria', 'remolacha', 'brocoli', 'coliflor', 'calabacin', 'berenjena', 'pimiento', 'cebolla', 'tomate', 'pepino', 'esparrago', 'seta', 'champi', 'judia verde', 'calabaza'];
+
+  if (leafyKeywords.some((keyword) => comparable.includes(keyword))) {
+    return { type: 'leafy', min: 30, max: 80 };
+  }
+
+  if (denseKeywords.some((keyword) => comparable.includes(keyword))) {
+    return { type: 'dense', min: 80, max: 150 };
+  }
+
+  return { type: 'generic', min: 50, max: 150 };
 }
 
 function normalizePositiveInt(value, defaultValue, maxValue = null) {
@@ -454,17 +489,17 @@ function matchesFoodFilters(food, userFoodFilters) {
 function getRoleMacroWeights(roleValue) {
   const role = String(roleValue || '').toUpperCase();
   if (role.includes('PROTEINA') || role === 'HUEVO' || role === 'CLARAS' || role.includes('LACTEO_PROTEICO') || role.includes('SUPLEMENTO_PROTEINA')) {
-    return { protein: 1, carbs: 0.2, fat: 0.25, kcal: 0.35 };
+    return { protein: 1, carbs: 0.1, fat: 0.12, kcal: 0.42 };
   }
   if (role.includes('CARBO') || role === 'FRUTA' || role === 'LEGUMBRE') {
-    return { protein: 0.2, carbs: 1, fat: 0.15, kcal: 0.35 };
+    return { protein: 0.08, carbs: 1, fat: 0.08, kcal: 0.42 };
   }
   if (role.includes('GRASA') || role.includes('QUESO')) {
-    return { protein: 0.05, carbs: 0.05, fat: 1, kcal: 0.2 };
+    return { protein: 0.03, carbs: 0.03, fat: 1, kcal: 0.2 };
   }
   if (role === 'VERDURA') {
     // VERDURA debe actuar como complemento/fibra, no como base para cuadrar macros.
-    return { protein: 0.03, carbs: 0.03, fat: 0.01, kcal: 0.05 };
+    return { protein: 0.01, carbs: 0.015, fat: 0.005, kcal: 0.03 };
   }
   if (role === 'BEBIDA') {
     return { protein: 0.05, carbs: 0.2, fat: 0.05, kcal: 0.05 };
@@ -493,6 +528,33 @@ function percentError(actual, target) {
   const safeTarget = parseNumeric(target) ?? 0;
   if (safeTarget <= 0) return 0;
   return Number((((Math.abs(actual - safeTarget)) / safeTarget) * 100).toFixed(2));
+}
+
+function evaluateCandidateMealBalance(items, mealMacros, mealKcalTarget) {
+  const balanceEval = evaluateMealNutrientBalance(items, {
+    protein_g: mealMacros?.protein_g,
+    carbs_g: mealMacros?.carbs_g,
+    fat_g: mealMacros?.fat_g,
+    kcal: mealKcalTarget
+  });
+
+  const blockingCodes = new Set([
+    'low_protein_from_protein_roles',
+    'low_carbs_from_carbo_roles',
+    'low_fat_from_grasa_roles',
+    'high_kcal_from_verduras',
+    'vegetal_grams_too_high'
+  ]);
+  const blockingWarnings = balanceEval.warnings.filter((warning) => blockingCodes.has(warning.code));
+  const nonBlockingWarnings = balanceEval.warnings.filter((warning) => !blockingCodes.has(warning.code));
+
+  return {
+    ...balanceEval,
+    blockingWarnings,
+    nonBlockingWarnings,
+    blocksCandidate: blockingWarnings.length > 0,
+    penaltyScore: Number(((blockingWarnings.length * 10) + (nonBlockingWarnings.length * 2.5)).toFixed(4))
+  };
 }
 
 function getPrimaryRoleFromRoles(roles = [], fallbackMacros = null) {
@@ -1477,31 +1539,50 @@ async function loadPairingRules({ mealType, candidateSlugs = [] }) {
   }
 }
 
-function getRoleGramBounds(roleValue, porcionTipica) {
+function getRoleGramBounds(roleValue, porcionTipica, food = null) {
   const role = String(roleValue || '').toUpperCase();
   let base;
   if (role.includes('GRASA') || role.includes('ACEITE')) {
-    base = { min: 3, max: 45 };
+    base = { min: 4, max: 35 };
   } else if (role.includes('SUPLEMENTO_PROTEINA')) {
-    base = { min: 20, max: 100 };
+    base = { min: 20, max: 60 };
   } else if (role === 'VERDURA') {
-    // Evitar porciones absurdas de vegetales (p.ej. 300-500g por slot).
-    base = { min: 50, max: 220 };
+    base = resolveVegetablePortionProfile(food);
   } else if (role === 'FRUTA') {
-    base = { min: 80, max: 450 };
+    base = { min: 80, max: 320 };
   } else if (role.includes('CARBO') || role === 'LEGUMBRE') {
-    base = { min: 40, max: 380 };
+    base = { min: 45, max: 220 };
   } else if (role.includes('PROTEINA') || role === 'HUEVO' || role === 'CLARAS' || role.includes('LACTEO')) {
-    base = { min: 40, max: 320 };
+    base = { min: 70, max: 260 };
   } else {
-    base = { min: 25, max: 420 };
+    base = { min: 25, max: 320 };
   }
 
   const pt = parseNumeric(porcionTipica);
   if (pt && pt > 0) {
     if (role === 'VERDURA') {
-      const min = Math.max(base.min, Math.round(pt * 0.35));
-      const max = Math.min(base.max, Math.round(pt * 1.0));
+      const minMultiplier = base.type === 'leafy' ? 0.6 : 0.75;
+      const maxMultiplier = base.type === 'leafy' ? 1.1 : 1.2;
+      const min = Math.max(base.min, Math.round(pt * minMultiplier));
+      const max = Math.min(base.max, Math.round(pt * maxMultiplier));
+      return { min, max: Math.max(max, min) };
+    }
+
+    if (role.includes('PROTEINA') || role === 'HUEVO' || role === 'CLARAS' || role.includes('LACTEO')) {
+      const min = Math.max(base.min, Math.round(pt * 0.75));
+      const max = Math.min(base.max, Math.max(Math.round(pt * 2.4), min));
+      return { min, max: Math.max(max, min) };
+    }
+
+    if (role.includes('CARBO') || role === 'LEGUMBRE') {
+      const min = Math.max(base.min, Math.round(pt * 0.7));
+      const max = Math.min(base.max, Math.max(Math.round(pt * 2.2), min));
+      return { min, max: Math.max(max, min) };
+    }
+
+    if (role.includes('GRASA') || role.includes('ACEITE')) {
+      const min = Math.max(base.min, Math.round(pt * 0.6));
+      const max = Math.min(base.max, Math.max(Math.round(pt * 1.8), min));
       return { min, max: Math.max(max, min) };
     }
 
@@ -1697,7 +1778,7 @@ function buildSlotCombinations(slotOptions) {
 function buildDraftItemsForTemplate({ selectedItems, mealMacros, mealKcalTarget }) {
   return selectedItems.map((entry) => {
     const roleWeights = getRoleMacroWeights(entry.role);
-    const bounds = getRoleGramBounds(entry.role, entry.food.porcion_tipica_g);
+    const bounds = getRoleGramBounds(entry.role, entry.food.porcion_tipica_g, entry.food);
     const macros100 = parseJsonObject(entry.food.macros_100g, {});
     const proteinPerG = (parseNumeric(macros100.protein_g) ?? 0) / 100;
     const carbsPerG = (parseNumeric(macros100.carbs_g) ?? 0) / 100;
@@ -2012,6 +2093,8 @@ async function generateDeterministicMenuForMeal({
   });
 
   let bestResult = null;
+  let balanceBlockedCount = 0;
+  let balanceBlockedExample = null;
 
   for (let index = 0; index < templatesToEvaluate.length; index += 1) {
     const template = templatesToEvaluate[index];
@@ -2083,7 +2166,19 @@ async function generateDeterministicMenuForMeal({
         + validation.error_carbs_porcentaje
         + validation.error_fat_porcentaje
       ) / 3;
-      const score = Number(((maxError * 0.75) + (avgMacroError * 0.25)).toFixed(6));
+      const balanceEval = evaluateCandidateMealBalance(menuItems, mealMacros, fallbackMealKcalTarget);
+      if (balanceEval.blocksCandidate) {
+        balanceBlockedCount += 1;
+        if (!balanceBlockedExample) {
+          balanceBlockedExample = {
+            template_code: template.template_code,
+            warnings: balanceEval.blockingWarnings.slice(0, 3)
+          };
+        }
+        continue;
+      }
+
+      const score = Number(((maxError * 0.75) + (avgMacroError * 0.25) + balanceEval.penaltyScore).toFixed(6));
 
       const candidateResult = {
         menu: {
@@ -2101,7 +2196,9 @@ async function generateDeterministicMenuForMeal({
           target_within_tolerance: maxError <= 2,
           evaluated_templates: templatesToEvaluate.length,
           selected_template_rank: index + 1,
-          evaluated_combinations: combinations.length
+          evaluated_combinations: combinations.length,
+          nutrient_balance_warnings: balanceEval.nonBlockingWarnings.length > 0 ? balanceEval.nonBlockingWarnings : null,
+          nutrient_balance_blocked_candidates: balanceBlockedCount
         },
         availableFoods: draftItems.map((item) => item.food),
         score
@@ -2129,6 +2226,16 @@ async function generateDeterministicMenuForMeal({
   }
 
   if (!bestResult) {
+    if (balanceBlockedCount > 0) {
+      const exampleCode = balanceBlockedExample?.template_code || 'N/A';
+      const exampleWarningCodes = (balanceBlockedExample?.warnings || [])
+        .map((warning) => warning?.code)
+        .filter(Boolean)
+        .join(',');
+      throw new Error(
+        `No se pudo construir menú determinista para meal_type=${mealType}: balance nutricional bloqueó ${balanceBlockedCount} combinaciones (ejemplo: ${exampleCode}${exampleWarningCodes ? `; warnings=${exampleWarningCodes}` : ''})`
+      );
+    }
     throw new Error(`No se pudo construir menú determinista para meal_type=${mealType}`);
   }
 
@@ -2283,6 +2390,8 @@ async function generateRecipeExamplesMenuForMeal({
   let bestResult = null;
   let hardRuleBlockedCount = 0;
   let hardRuleBlockedExample = null;
+  let balanceBlockedCount = 0;
+  let balanceBlockedExample = null;
 
   for (let index = 0; index < recipesToEvaluate.length; index += 1) {
     const recipe = recipesToEvaluate[index];
@@ -2378,6 +2487,17 @@ async function generateRecipeExamplesMenuForMeal({
       + validation.error_carbs_porcentaje
       + validation.error_fat_porcentaje
     ) / 3;
+    const balanceEval = evaluateCandidateMealBalance(menuItems, mealMacros, fallbackMealKcalTarget);
+    if (balanceEval.blocksCandidate) {
+      balanceBlockedCount += 1;
+      if (!balanceBlockedExample) {
+        balanceBlockedExample = {
+          recipe_code: recipe.recipe_code,
+          warnings: balanceEval.blockingWarnings.slice(0, 3)
+        };
+      }
+      continue;
+    }
     const pairingPenaltyResult = computePairingPenaltyForRecipe({
       mealType,
       recipeItems: selectedItems,
@@ -2398,6 +2518,7 @@ async function generateRecipeExamplesMenuForMeal({
       + (varietyPenalty * 0.05)
       + pairingPenaltyScore
       + palatabilityPenaltyScore
+      + balanceEval.penaltyScore
     ).toFixed(6));
 
     const candidateResult = {
@@ -2416,6 +2537,8 @@ async function generateRecipeExamplesMenuForMeal({
         evaluated_recipes: recipesToEvaluate.length,
         selected_recipe_rank: index + 1,
         recipe_items: selectedItems.length,
+        nutrient_balance_warnings: balanceEval.nonBlockingWarnings.length > 0 ? balanceEval.nonBlockingWarnings : null,
+        nutrient_balance_blocked_candidates: balanceBlockedCount,
         pairing_penalty: {
           total: pairingPenaltyTotal,
           matched_rules: pairingPenaltyResult.appliedPenaltyRules.length
@@ -2452,6 +2575,16 @@ async function generateRecipeExamplesMenuForMeal({
   }
 
   if (!bestResult) {
+    if (balanceBlockedCount > 0) {
+      const exampleCode = balanceBlockedExample?.recipe_code || 'N/A';
+      const exampleWarningCodes = (balanceBlockedExample?.warnings || [])
+        .map((warning) => warning?.code)
+        .filter(Boolean)
+        .join(',');
+      throw new Error(
+        `No se pudo construir menú recipe_examples para meal_type=${mealType}: balance nutricional bloqueó ${balanceBlockedCount} recetas (ejemplo: ${exampleCode}${exampleWarningCodes ? `; warnings=${exampleWarningCodes}` : ''})`
+      );
+    }
     if (hardRuleBlockedCount > 0) {
       const exampleCode = hardRuleBlockedExample?.recipe_code || 'N/A';
       const exampleRuleCodes = (hardRuleBlockedExample?.blocked_rules || [])
@@ -2962,6 +3095,56 @@ function normalizeActividad(value) {
   return mapping[normalized] || null;
 }
 
+const USER_OBJECTIVE_TO_NUTRITION_GOAL = {
+  perder_peso: 'cut',
+  ganar_musculo: 'bulk',
+  ganar_masa_muscular: 'bulk',
+  ganar_peso: 'bulk',
+  tonificar: 'mant',
+  mantener_forma: 'mant',
+  mantenimiento: 'mant',
+  mejorar_resistencia: 'mant',
+  fuerza: 'mant',
+  resistencia: 'mant',
+  rehabilitacion: 'mant',
+  flexibilidad: 'mant'
+};
+
+function mapUserObjectiveToNutritionGoal(value) {
+  if (!value) return null;
+  const normalized = String(value).trim().toLowerCase();
+  return USER_OBJECTIVE_TO_NUTRITION_GOAL[normalized] || null;
+}
+
+function resolveNutritionObjectiveMismatch({
+  userId,
+  userObjectivePrincipal,
+  nutritionObjective,
+  nutritionOverridesProfile
+}) {
+  const mappedUserObjective = mapUserObjectiveToNutritionGoal(userObjectivePrincipal);
+  if (!mappedUserObjective) {
+    return nutritionObjective || null;
+  }
+
+  if (!nutritionObjective || nutritionObjective === mappedUserObjective) {
+    return nutritionObjective || mappedUserObjective;
+  }
+
+  const resolvedObjective = nutritionOverridesProfile ? nutritionObjective : mappedUserObjective;
+
+  console.warn('[NutritionV2] Desajuste detectado entre onboarding/perfil y nutricion', {
+    userId,
+    userObjectivePrincipal,
+    nutritionObjective,
+    nutritionOverridesProfile,
+    resolvedObjective,
+    resolution: nutritionOverridesProfile ? 'nutrition_profile_override' : 'user_profile_sync'
+  });
+
+  return resolvedObjective;
+}
+
 function normalizeNivelEntrenamiento(value) {
   if (!value) return null;
   const normalized = String(value).trim().toLowerCase();
@@ -3001,8 +3184,18 @@ router.get('/profile', authenticateToken, async (req, res) => {
     }
 
     const profile = result.rows[0];
+    const userResult = await pool.query(
+      'SELECT objetivo_principal FROM app.users WHERE id = $1',
+      [userId]
+    );
     // Garantizar campo de sincronización con default false
     profile.nutrition_overrides_profile = profile.nutrition_overrides_profile || false;
+    profile.objetivo = resolveNutritionObjectiveMismatch({
+      userId,
+      userObjectivePrincipal: userResult.rows[0]?.objetivo_principal,
+      nutritionObjective: profile.objetivo,
+      nutritionOverridesProfile: profile.nutrition_overrides_profile
+    }) || profile.objetivo;
     res.json(profile);
   } catch (error) {
     console.error('Error al obtener perfil nutricional:', error);
@@ -3042,7 +3235,8 @@ router.post('/profile', authenticateToken, async (req, res) => {
             frecuencia_semanal,
             cintura,
             grasa_corporal,
-            nivel_entrenamiento
+            nivel_entrenamiento,
+            objetivo_principal
           FROM app.users
           WHERE id = $1
         `,
@@ -3099,7 +3293,38 @@ router.post('/profile', authenticateToken, async (req, res) => {
         if (waist_cm == null) waist_cm = userData.cintura;
         if (bodyfat_percent == null) bodyfat_percent = userData.grasa_corporal;
         if (level == null) level = userData.nivel_entrenamiento;
+
+        // Mapear objetivo_principal de onboarding a objetivo nutricional
+        if (!objetivo && userData.objetivo_principal) {
+          objetivo = mapUserObjectiveToNutritionGoal(userData.objetivo_principal) || 'mant';
+        }
       }
+    }
+
+    // Cuando nutrition_overrides_profile es false, sincronizar datos frescos de users
+    if (!nutrition_overrides_profile && existingProfile) {
+      const userData = await getUserFallback();
+      if (userData) {
+        sexo = normalizeSexo(userData.sexo) || sexo;
+        edad = userData.edad ?? edad;
+        altura_cm = userData.altura ?? altura_cm;
+        peso_kg = userData.peso ?? peso_kg;
+        actividad = normalizeActividad(userData.nivel_actividad) || actividad;
+        if (userData.objetivo_principal) {
+          const mappedGoal = mapUserObjectiveToNutritionGoal(userData.objetivo_principal);
+          if (mappedGoal) objetivo = mappedGoal;
+        }
+      }
+    }
+
+    const resolvedObjective = resolveNutritionObjectiveMismatch({
+      userId,
+      userObjectivePrincipal: (await getUserFallback())?.objetivo_principal,
+      nutritionObjective: objetivo,
+      nutritionOverridesProfile: nutrition_overrides_profile
+    });
+    if (resolvedObjective) {
+      objetivo = resolvedObjective;
     }
 
     // Validar campos requeridos (tras fallbacks)
@@ -3192,16 +3417,44 @@ router.post('/profile', authenticateToken, async (req, res) => {
 
     // Calcular estimaciones
     const profile = result.rows[0];
-    const bmr = calculateBMR(profile);
-    const tdee = calculateTDEE(bmr, actividad, training_days || undefined, steps_per_day || undefined);
-    const kcalObjetivo = adjustCaloriesForGoal(tdee, objetivo, profile);
+    const bmrAudit = calculateBMRAudit(profile);
+    const tdeeAudit = calculateTDEEAudit(
+      bmrAudit.bmr,
+      actividad,
+      training_days || undefined,
+      steps_per_day || undefined
+    );
+    const kcalAudit = calculateGoalAdjustmentAudit(tdeeAudit.tdee, objetivo, profile);
+    const bmr = bmrAudit.bmr;
+    const tdee = tdeeAudit.tdee;
+    const kcalObjetivo = kcalAudit.kcal_objetivo;
+
+    console.info('[NutritionV2] Audit perfil nutricional', {
+      userId,
+      formula: bmrAudit.formula,
+      formula_reason: bmrAudit.reason,
+      activity_input: tdeeAudit.actividad_input,
+      activity_normalized: tdeeAudit.actividad_normalized,
+      base_factor: tdeeAudit.base_factor,
+      training_factor: tdeeAudit.training_factor,
+      steps_adjustment: tdeeAudit.steps_adjustment,
+      applied_factor: tdeeAudit.applied_factor,
+      goal_factor: kcalAudit.goal_factor,
+      tdee,
+      kcal_objetivo: kcalObjetivo
+    });
 
     res.json({
       profile: profile,
       estimaciones: {
         bmr,
         tdee,
-        kcal_objetivo: kcalObjetivo
+        kcal_objetivo: kcalObjetivo,
+        audit: {
+          bmr: bmrAudit,
+          tdee: tdeeAudit,
+          kcal: kcalAudit
+        }
       }
     });
   } catch (error) {
@@ -3365,6 +3618,12 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
       bmr: planData.bmr,
       tdee: planData.tdee,
       kcal_objetivo: planData.kcal_objetivo,
+      formula: planData.calculation_audit?.bmr?.formula || null,
+      formula_reason: planData.calculation_audit?.bmr?.reason || null,
+      activity_input: planData.calculation_audit?.tdee?.actividad_input || null,
+      activity_normalized: planData.calculation_audit?.tdee?.actividad_normalized || null,
+      applied_activity_factor: planData.calculation_audit?.tdee?.applied_factor || null,
+      goal_factor: planData.calculation_audit?.kcal?.goal_factor || null,
       metabolic_type: profile.metabolic_type || 'mixto',
       metabolic_confidence: profile.metabolic_confidence || 'media',
       macros_objetivo: planData.macros_objetivo,
@@ -3452,12 +3711,6 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
         }
       }
 
-      // Una vez generado el plan, la fuente pasa a ser nutrición -> perfil
-      await client.query(
-        'UPDATE app.nutrition_profiles SET nutrition_overrides_profile = TRUE, updated_at = NOW() WHERE user_id = $1',
-        [userId]
-      );
-
       await client.query('COMMIT');
 
       res.json({
@@ -3470,7 +3723,8 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
           kcal_objetivo: planData.kcal_objetivo,
           macros_objetivo: planData.macros_objetivo,
           duracion_dias: planData.duracion_dias,
-          comidas_por_dia: planData.comidas_por_dia
+          comidas_por_dia: planData.comidas_por_dia,
+          carb_cycling_audit: planData.carb_cycling_audit
         }
       });
     } catch (error) {
@@ -3560,7 +3814,59 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'No tienes un plan activo' });
     }
 
-    res.json(result.rows[0]);
+    const activePlan = result.rows[0];
+    const profileResult = await pool.query(
+      'SELECT * FROM app.nutrition_profiles WHERE user_id = $1 LIMIT 1',
+      [userId]
+    );
+
+    if (profileResult.rows.length === 0) {
+      return res.json(activePlan);
+    }
+
+    const profile = profileResult.rows[0];
+    const bmrAudit = calculateBMRAudit(profile);
+    const tdeeAudit = calculateTDEEAudit(
+      bmrAudit.bmr,
+      profile.actividad,
+      profile.training_days || undefined,
+      profile.steps_per_day || undefined
+    );
+    const kcalAudit = calculateGoalAdjustmentAudit(tdeeAudit.tdee, profile.objetivo, profile);
+    const currentEstimate = {
+      bmr: bmrAudit.bmr,
+      tdee: tdeeAudit.tdee,
+      kcal_objetivo: kcalAudit.kcal_objetivo,
+      calculation_audit: {
+        bmr: bmrAudit,
+        tdee: tdeeAudit,
+        kcal: kcalAudit
+      }
+    };
+    const carbCyclingSummary = summarizeCarbCycling(activePlan.days, activePlan.kcal_objetivo);
+
+    const activePlanKcal = Number(activePlan.kcal_objetivo);
+    const estimateKcal = Number(currentEstimate.kcal_objetivo);
+    if (
+      Number.isFinite(activePlanKcal) &&
+      Number.isFinite(estimateKcal) &&
+      Math.abs(activePlanKcal - estimateKcal) >= 250
+    ) {
+      console.warn('[NutritionV2] Plan activo con kcal alejadas de la estimacion actual', {
+        userId,
+        active_plan_kcal: activePlanKcal,
+        current_estimate_kcal: estimateKcal,
+        formula: bmrAudit.formula,
+        applied_factor: tdeeAudit.applied_factor,
+        goal_factor: kcalAudit.goal_factor
+      });
+    }
+
+    res.json({
+      ...activePlan,
+      carb_cycling_summary: carbCyclingSummary,
+      current_estimate: currentEstimate
+    });
   } catch (error) {
     console.error('Error al obtener plan activo:', error);
     res.status(500).json({ error: 'Error al obtener plan' });
@@ -4057,11 +4363,14 @@ router.post('/meals/:mealId/items/:itemId/swap-food', authenticateToken, async (
           id,
           slug,
           nombre,
+          categoria,
+          categoria_detalle,
           macros_100g,
           tags,
           estado_pesado_base,
           estado_pesado_mostrado_default,
           grupo_factor,
+          porcion_tipica_g,
           is_verified
         FROM app.foods
         WHERE is_verified = TRUE
@@ -4098,11 +4407,14 @@ router.post('/meals/:mealId/items/:itemId/swap-food', authenticateToken, async (
           f.id AS db_food_id,
           f.slug AS db_food_slug,
           f.nombre AS db_food_nombre,
+          f.categoria AS db_food_categoria,
+          f.categoria_detalle AS db_food_categoria_detalle,
           f.macros_100g AS db_food_macros_100g,
           f.tags AS db_food_tags,
           f.estado_pesado_base AS db_food_estado_base,
           f.estado_pesado_mostrado_default AS db_food_estado_mostrado_default,
           f.grupo_factor AS db_food_grupo_factor,
+          f.porcion_tipica_g AS db_food_porcion_tipica_g,
           f.is_verified AS db_food_verified
         FROM app.nutrition_meal_items mi
         LEFT JOIN app.foods f ON f.id = COALESCE(mi.food_id, mi.alimento_id)
@@ -4215,11 +4527,14 @@ router.post('/meals/:mealId/items/:itemId/swap-food', authenticateToken, async (
           id: row.db_food_id,
           slug: row.db_food_slug,
           nombre: row.db_food_nombre,
+          categoria: row.db_food_categoria,
+          categoria_detalle: row.db_food_categoria_detalle,
           macros_100g: row.db_food_macros_100g,
           tags: row.db_food_tags,
           estado_pesado_base: row.db_food_estado_base,
           estado_pesado_mostrado_default: row.db_food_estado_mostrado_default,
-          grupo_factor: row.db_food_grupo_factor
+          grupo_factor: row.db_food_grupo_factor,
+          porcion_tipica_g: row.db_food_porcion_tipica_g
         };
 
       if (!selectedFood?.id || !selectedFood?.macros_100g) {
@@ -4231,7 +4546,7 @@ router.post('/meals/:mealId/items/:itemId/swap-food', authenticateToken, async (
         ? currentRoles
         : (rolesByFoodId.get(String(selectedFood.id)) || []);
       const role = getPrimaryRoleFromRoles(roleSet, itemMacros);
-      const bounds = getRoleGramBounds(role);
+      const bounds = getRoleGramBounds(role, selectedFood.porcion_tipica_g, selectedFood);
       const macros100 = parseJsonObject(selectedFood.macros_100g, {});
       const proteinPerG = (parseNumeric(macros100.protein_g) ?? 0) / 100;
       const carbsPerG = (parseNumeric(macros100.carbs_g) ?? 0) / 100;

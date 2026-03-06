@@ -27,6 +27,8 @@ export const BodyCompositionCard = (props) => {
   const [showCalculator, setShowCalculator] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const isEditing = editingSection === 'bodyComp'
+  const leanMassValue = userProfile.masa_magra ?? userProfile.masa_muscular
+  const musloValue = userProfile.muslo ?? userProfile.muslos
 
   const handleCalculatorResults = async (results) => {
     setIsSaving(true)
@@ -36,7 +38,8 @@ export const BodyCompositionCard = (props) => {
       // Usar los resultados calculados directamente por la calculadora
       const compositionData = {
         grasa_corporal: results.porcentaje_grasa,
-        masa_muscular: results.masa_magra,
+        masa_magra: results.masa_magra,
+        muslo: results.muslo ?? musloValue,
         agua_corporal: results.agua_corporal,
         metabolismo_basal: results.metabolismo_basal
       }
@@ -51,9 +54,9 @@ export const BodyCompositionCard = (props) => {
       })
 
       // Guardar en base de datos automáticamente
-      const success = await updateUserProfile(compositionData)
+      const result = await updateUserProfile(compositionData)
       
-      if (success) {
+      if (result?.success) {
         console.log('✅ Composición corporal guardada automáticamente en BD')
         // Cerrar calculadora
         setShowCalculator(false)
@@ -110,7 +113,7 @@ export const BodyCompositionCard = (props) => {
                 onClick={() =>
                   startEdit('bodyComp', {
                     grasa_corporal: userProfile.grasa_corporal,
-                    masa_muscular: userProfile.masa_muscular,
+                    masa_magra: leanMassValue,
                     agua_corporal: userProfile.agua_corporal,
                     metabolismo_basal: userProfile.metabolismo_basal
                   })
@@ -151,7 +154,7 @@ export const BodyCompositionCard = (props) => {
 
       <CardContent className="space-y-4">
         {/* Mostrar si hay datos calculados */}
-        {userProfile.grasa_corporal || userProfile.masa_muscular || userProfile.agua_corporal || userProfile.metabolismo_basal ? (
+        {userProfile.grasa_corporal || leanMassValue || userProfile.agua_corporal || userProfile.metabolismo_basal ? (
           <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-400/30 rounded-lg">
             <p className="text-emerald-300 text-sm flex items-center">
               <Activity className="w-4 h-4 mr-2" />
@@ -179,9 +182,9 @@ export const BodyCompositionCard = (props) => {
             onInputChange={handleInputChange}
           />
           <EditableField
-            label="Masa Muscular"
-            field="masa_muscular"
-            value={userProfile.masa_muscular}
+            label="Masa Magra"
+            field="masa_magra"
+            value={leanMassValue}
             type="number"
             suffix=" kg"
             editing={isEditing}

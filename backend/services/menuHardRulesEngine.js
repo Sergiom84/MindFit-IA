@@ -69,6 +69,49 @@ function normalizePairingContexts(rawValue) {
   return contexts.filter((value) => MEAL_CONTEXTS.has(value));
 }
 
+function classifyVegetableItem(item = {}) {
+  const normalizedName = normalizeText(item?.alimento_nombre || item?.food_name || item?.food_slug || item?.descripcion || "");
+  const leafyKeywords = [
+    "rucula",
+    "lechuga",
+    "espinaca",
+    "canonigo",
+    "canongo",
+    "berro",
+    "escarola",
+    "endibia",
+    "acelga",
+    "hoja verde"
+  ];
+  const denseKeywords = [
+    "zanahoria",
+    "remolacha",
+    "brocoli",
+    "coliflor",
+    "calabacin",
+    "berenjena",
+    "pimiento",
+    "cebolla",
+    "tomate",
+    "pepino",
+    "esparrago",
+    "seta",
+    "champi",
+    "judia verde",
+    "calabaza"
+  ];
+
+  if (leafyKeywords.some((keyword) => normalizedName.includes(keyword))) {
+    return { type: "leafy", minGrams: 30, maxGrams: 80 };
+  }
+
+  if (denseKeywords.some((keyword) => normalizedName.includes(keyword))) {
+    return { type: "dense", minGrams: 80, maxGrams: 150 };
+  }
+
+  return { type: "generic", minGrams: 50, maxGrams: 150 };
+}
+
 function buildRecipeFoodSlugSet(recipeItems = []) {
   return new Set(
     recipeItems
@@ -358,6 +401,128 @@ export function evaluateRecipeHardRules({
     blockedRules,
     processedItemsInRecipe: processedFoodIdsInRecipe.size
   };
+}
+
+export function evaluateMealNutrientBalance(items, mealTargets) {
+  const warnings = [];
+  const targetProtein = Number(mealTargets?.protein_g) || 0;
+  const targetCarbs = Number(mealTargets?.carbs_g) || 0;
+  const targetFat = Number(mealTargets?.fat_g) || 0;
+  const targetKcal = Number(mealTargets?.kcal) || 0;
+  const safeItems = items || [];
+
+  // 1) Proteina principal debe aportar 60-80% de proteina objetivo
+  if (targetProtein > 0) {
+    const proteinFromProteinRoles = safeItems
+      .filter((item) => String(item?.role || "").toUpperCase().includes("PROTEINA"))
+      .reduce((sum, item) => sum + (Number(item?.macros?.protein_g) || 0), 0);
+
+    if (proteinFromProteinRoles < targetProtein * 0.6) {
+      warnings.push({
+        code: "low_protein_from_protein_roles",
+        actual_g: Number(proteinFromProteinRoles.toFixed(1)),
+        target_g: targetProtein,
+        threshold_pct: 60
+      });
+    }
+
+    if (proteinFromProteinRoles > targetProtein * 0.8) {
+      warnings.push({
+        code: "high_protein_from_protein_roles",
+        actual_g: Number(proteinFromProteinRoles.toFixed(1)),
+        target_g: targetProtein,
+        threshold_pct: 80
+      });
+    }
+  }
+
+  // 2) Hidrato base debe aportar 80-95% de carbs objetivo
+  if (targetCarbs > 0) {
+    const carbsFromCarboRoles = safeItems
+      .filter((item) => {
+        const role = String(item?.role || "").toUpperCase();
+        return role.includes("CARBO") || role.includes("LEGUMBRE");
+      })
+      .reduce((sum, item) => sum + (Number(item?.macros?.carbs_g) || 0), 0);
+
+    if (carbsFromCarboRoles < targetCarbs * 0.8) {
+      warnings.push({
+        code: "low_carbs_from_carbo_roles",
+        actual_g: Number(carbsFromCarboRoles.toFixed(1)),
+        target_g: targetCarbs,
+        threshold_pct: 80
+      });
+    }
+
+    if (carbsFromCarboRoles > targetCarbs * 0.95) {
+      warnings.push({
+        code: "high_carbs_from_carbo_roles",
+        actual_g: Number(carbsFromCarboRoles.toFixed(1)),
+        target_g: targetCarbs,
+        threshold_pct: 95
+      });
+    }
+  }
+
+  // 3) Verduras <= 15% kcal comida + topes por gramaje
+  if (targetKcal > 0) {
+    const kcalFromVerduras = safeItems
+      .filter((item) => String(item?.role || "").toUpperCase().includes("VERDURA"))
+      .reduce((sum, item) => sum + (Number(item?.kcal) || 0), 0);
+
+    if (kcalFromVerduras > targetKcal * 0.15) {
+      warnings.push({
+        code: "high_kcal_from_verduras",
+        actual_kcal: Number(kcalFromVerduras.toFixed(1)),
+        target_kcal: targetKcal,
+        threshold_pct: 15
+      });
+    }
+  }
+
+  // Topes gramaje por vegetal individual
+  safeItems.forEach((item) => {
+    const role = String(item?.role || "").toUpperCase();
+    if (!role.includes("VERDURA")) return;
+    const grams = Number(item?.cantidad_g) || Number(item?.cantidad_g_base) || 0;
+    const vegetableProfile = classifyVegetableItem(item);
+    if (grams > vegetableProfile.maxGrams) {
+      warnings.push({
+        code: "vegetal_grams_too_high",
+        food_name: item?.alimento_nombre || "desconocido",
+        actual_g: grams,
+        max_g: vegetableProfile.maxGrams,
+        vegetable_type: vegetableProfile.type
+      });
+    }
+  });
+
+  // 4) Grasa anadida debe aportar 60-90% de fat objetivo
+  if (targetFat > 0) {
+    const fatFromGrasaRoles = safeItems
+      .filter((item) => String(item?.role || "").toUpperCase().includes("GRASA"))
+      .reduce((sum, item) => sum + (Number(item?.macros?.fat_g) || 0), 0);
+
+    if (fatFromGrasaRoles < targetFat * 0.6) {
+      warnings.push({
+        code: "low_fat_from_grasa_roles",
+        actual_g: Number(fatFromGrasaRoles.toFixed(1)),
+        target_g: targetFat,
+        threshold_pct: 60
+      });
+    }
+
+    if (fatFromGrasaRoles > targetFat * 0.9) {
+      warnings.push({
+        code: "high_fat_from_grasa_roles",
+        actual_g: Number(fatFromGrasaRoles.toFixed(1)),
+        target_g: targetFat,
+        threshold_pct: 90
+      });
+    }
+  }
+
+  return { warnings, hasWarnings: warnings.length > 0 };
 }
 
 export function computePairingPenaltyForRecipe({

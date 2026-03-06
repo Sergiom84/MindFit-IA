@@ -288,6 +288,12 @@ const generateMenusForDay = async (day) => {
   const currentWeekStart = planStartWeek
     ? new Date(planStartWeek.getFullYear(), planStartWeek.getMonth(), planStartWeek.getDate() + currentWeek * 7)
     : null;
+  const activePlanKcal = Number(plan.kcal_objetivo);
+  const currentEstimateKcal = Number(plan.current_estimate?.kcal_objetivo);
+  const showCurrentEstimateWarning =
+    Number.isFinite(activePlanKcal) &&
+    Number.isFinite(currentEstimateKcal) &&
+    Math.abs(activePlanKcal - currentEstimateKcal) >= 250;
 
   const dayMap = new Map();
   if (planStartDate) {
@@ -356,6 +362,16 @@ const generateMenusForDay = async (day) => {
           <div className="mt-2 text-sm text-emerald-300">{infoMessage}</div>
         )}
 
+        {showCurrentEstimateWarning && (
+          <div className="mt-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100">
+            <p className="font-semibold text-yellow-200">Estimacion actual distinta al plan activo</p>
+            <p className="text-yellow-100/90">
+              El plan activo fue generado con {activePlanKcal} kcal, pero la estimacion actual del perfil es {currentEstimateKcal} kcal.
+              Si has cambiado actividad, pasos o vienes de un calculo anterior, regenera el plan para actualizarlo.
+            </p>
+          </div>
+        )}
+
         <div className="mt-3 mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <label className="text-xs text-gray-300/80">Modo de generación de menús</label>
           <select
@@ -390,6 +406,18 @@ const generateMenusForDay = async (day) => {
             <div className="text-xl font-bold text-sky-300">{plan.macros_objetivo.fat_g}g</div>
           </div>
         </div>
+
+        {plan.carb_cycling_summary && (
+          <div className="mt-4 rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-100">
+            <p className="font-semibold text-blue-200">{plan.carb_cycling_summary.label}</p>
+            <p className="text-blue-100/90">{plan.carb_cycling_summary.description}</p>
+            <p className="mt-2 text-xs text-blue-100/80">
+              Promedio semanal estimado: {plan.carb_cycling_summary.avg_weekly_kcal} kcal
+              {" "}· objetivo {plan.carb_cycling_summary.kcal_objetivo} kcal
+              {" "}· drift {plan.carb_cycling_summary.drift_pct}%
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Navegación de Semanas */}
@@ -548,7 +576,8 @@ const generateMenusForDay = async (day) => {
           day={selectedDay}
           planInfo={{
             plan_name: plan.plan_name,
-            training_type: plan.training_type
+            training_type: plan.training_type,
+            carb_cycling_summary: plan.carb_cycling_summary || null
           }}
           menuGenerationMode={menuGenerationMode}
           menusEnabled={menusEnabled}

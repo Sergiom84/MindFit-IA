@@ -32,7 +32,7 @@ const BMR_FORMULAS = {
 /**
  * Selecciona y calcula la TMB según perfil y reglas del documento
  */
-export function calculateBMR(profile) {
+export function calculateBMRAudit(profile) {
   const {
     sexo,
     peso_kg,
@@ -51,7 +51,11 @@ export function calculateBMR(profile) {
   }
 
   if (formula_preferida && BMR_FORMULAS[formula_preferida]) {
-    return BMR_FORMULAS[formula_preferida](profile);
+    return {
+      formula: formula_preferida,
+      reason: 'preferred_formula',
+      bmr: BMR_FORMULAS[formula_preferida](profile)
+    };
   }
 
   const whtr = cintura_cm && altura_cm ? cintura_cm / altura_cm : null;
@@ -60,7 +64,11 @@ export function calculateBMR(profile) {
 
   // Regla 1: principiante/sedentario
   if (levelNormalized === 'principiante' || profile.actividad === 'sedentario') {
-    return BMR_FORMULAS.harris(profile);
+    return {
+      formula: 'harris',
+      reason: 'beginner_or_sedentary',
+      bmr: BMR_FORMULAS.harris(profile)
+    };
   }
 
   // Regla 2: edad avanzada o altura extrema
@@ -68,12 +76,20 @@ export function calculateBMR(profile) {
     (sexo === 'hombre' && (altura_cm >= 190 || altura_cm <= 160)) ||
     (sexo === 'mujer' && (altura_cm >= 175 || altura_cm <= 150));
   if (edad >= 50 || alturaExtrema) {
-    return BMR_FORMULAS.mifflin(profile);
+    return {
+      formula: 'mifflin',
+      reason: 'advanced_age_or_extreme_height',
+      bmr: BMR_FORMULAS.mifflin(profile)
+    };
   }
 
   // Regla 3: intermedio y edad <= 40
   if (levelNormalized === 'intermedio' && edad <= 40) {
-    return BMR_FORMULAS.tenHaaf(profile);
+    return {
+      formula: 'tenHaaf',
+      reason: 'intermediate_under_40',
+      bmr: BMR_FORMULAS.tenHaaf(profile)
+    };
   }
 
   // Regla 4: avanzado varón sin alta grasa y peso >=80
@@ -85,11 +101,23 @@ export function calculateBMR(profile) {
     (!bodyfat_percent || bodyfat_percent < 18) &&
     (!whtr || whtr < 0.52)
   ) {
-    return BMR_FORMULAS.tinsley(profile);
+    return {
+      formula: 'tinsley',
+      reason: 'advanced_male_lean_heavy',
+      bmr: BMR_FORMULAS.tinsley(profile)
+    };
   }
 
   // Regla 5 fallback
-  return BMR_FORMULAS.mifflin(profile);
+  return {
+    formula: 'mifflin',
+    reason: 'default_fallback',
+    bmr: BMR_FORMULAS.mifflin(profile)
+  };
+}
+
+export function calculateBMR(profile) {
+  return calculateBMRAudit(profile).bmr;
 }
 
 /**
@@ -109,7 +137,7 @@ const ACTIVITY_FACTORS = {
  * @param {number} trainingDays - Entrenos/semana para ajustar el factor
  * @returns {number} TDEE en kcal/día
  */
-export function calculateTDEE(bmr, actividad, trainingDays, stepsPerDay) {
+export function calculateTDEEAudit(bmr, actividad, trainingDays, stepsPerDay) {
   const actividadNormalizada = actividad === 'alto'
     ? 'activo'
     : actividad === 'muy_alto'
@@ -117,32 +145,52 @@ export function calculateTDEE(bmr, actividad, trainingDays, stepsPerDay) {
       : actividad === 'ligero'
         ? 'ligeramente_activo'
         : actividad === 'moderado'
-          ? 'activo'
+          ? 'ligeramente_activo'
           : actividad;
 
-  const activityConfig = ACTIVITY_FACTORS[actividadNormalizada] || ACTIVITY_FACTORS.moderado;
+  const activityConfig = ACTIVITY_FACTORS[actividadNormalizada] || ACTIVITY_FACTORS.sedentario;
   let factor = activityConfig.base;
+  let trainingFactorApplied = null;
+  let stepsAdjustment = 0;
 
   const entrenos = trainingDays || 0;
   if (entrenos >= 4) {
     const key = Math.min(entrenos, 6);
     if (activityConfig.byTraining[key]) {
       factor = activityConfig.byTraining[key];
+      trainingFactorApplied = activityConfig.byTraining[key];
     }
   }
 
   // Ajuste NEAT por pasos
   if (stepsPerDay) {
     if (stepsPerDay < 5000) {
-      factor = Math.max(1.2, factor - 0.05);
+      stepsAdjustment = -0.05;
+      factor = Math.max(1.2, factor + stepsAdjustment);
     } else if (stepsPerDay >= 7500 && stepsPerDay <= 10000) {
-      factor = factor + 0.05;
+      stepsAdjustment = 0.05;
+      factor = factor + stepsAdjustment;
     } else if (stepsPerDay > 10000) {
-      factor = Math.min(2.2, factor + 0.1);
+      stepsAdjustment = 0.1;
+      factor = Math.min(2.2, factor + stepsAdjustment);
     }
   }
 
-  return Math.round(bmr * factor);
+  return {
+    actividad_input: actividad || null,
+    actividad_normalized: actividadNormalizada,
+    base_factor: Number(activityConfig.base.toFixed(2)),
+    training_days: entrenos,
+    training_factor: trainingFactorApplied == null ? null : Number(trainingFactorApplied.toFixed(2)),
+    steps_per_day: stepsPerDay ?? null,
+    steps_adjustment: Number(stepsAdjustment.toFixed(2)),
+    applied_factor: Number(factor.toFixed(2)),
+    tdee: Math.round(bmr * factor)
+  };
+}
+
+export function calculateTDEE(bmr, actividad, trainingDays, stepsPerDay) {
+  return calculateTDEEAudit(bmr, actividad, trainingDays, stepsPerDay).tdee;
 }
 
 /**
@@ -176,8 +224,31 @@ function resolveCalorieFactor(objetivo, profile = {}) {
 }
 
 export function adjustCaloriesForGoal(tdee, objetivo, profile = {}) {
+  return calculateGoalAdjustmentAudit(tdee, objetivo, profile).kcal_objetivo;
+}
+
+export function calculateGoalAdjustmentAudit(tdee, objetivo, profile = {}) {
   const factor = resolveCalorieFactor(objetivo, profile);
-  return Math.round(tdee * factor);
+  return {
+    objetivo: objetivo || 'mant',
+    goal_factor: Number(factor.toFixed(2)),
+    kcal_objetivo: Math.round(tdee * factor)
+  };
+}
+
+const CARB_CYCLING_STRATEGY = {
+  mode: "weekly_isocaloric",
+  label: "Carb cycling (kcal semanales estables)",
+  description:
+    "Subimos carbohidratos en dias de entreno y los bajamos en descanso. Compensamos con grasas para mantener el promedio semanal estable.",
+  training_carb_delta_pct: 10,
+  rest_carb_delta_pct: -15,
+  compensation_macro: "fat",
+  protein_fixed: true
+};
+
+export function getCarbCyclingStrategySummary() {
+  return { ...CARB_CYCLING_STRATEGY };
 }
 
 /**
@@ -231,31 +302,58 @@ export function calculateMacros(kcalObjetivo, peso_kg, trainingType, objetivo, m
  */
 export function applyCarbCycling(baseMacros, isTrainingDay) {
   const { protein_g, carbs_g, fat_g } = baseMacros;
+  const baseKcal = protein_g * 4 + carbs_g * 4 + fat_g * 9;
+  const carbMultiplier = isTrainingDay ? 1.10 : 0.85;
+  const carbDeltaPct = isTrainingDay
+    ? CARB_CYCLING_STRATEGY.training_carb_delta_pct
+    : CARB_CYCLING_STRATEGY.rest_carb_delta_pct;
+  const newCarbs = Math.round(carbs_g * carbMultiplier);
+  const remainingFatKcal = Math.max(0, baseKcal - protein_g * 4 - newCarbs * 4);
+  const newFat = Math.max(0, Math.round(remainingFatKcal / 9));
+  const adjustedKcal = protein_g * 4 + newCarbs * 4 + newFat * 9;
 
-  if (isTrainingDay) {
-    // Día de entrenamiento: +10% carbohidratos
-    const newCarbs = Math.round(carbs_g * 1.10);
-    const carbsDiff = (newCarbs - carbs_g) * 4; // Diferencia en kcal
+  return {
+    protein_g,
+    carbs_g: newCarbs,
+    fat_g: newFat,
+    kcal: adjustedKcal,
+    carb_cycling: {
+      ...CARB_CYCLING_STRATEGY,
+      day_type: isTrainingDay ? "training" : "rest",
+      carb_delta_pct: carbDeltaPct,
+      kcal_base: baseKcal,
+      kcal_day: adjustedKcal,
+      kcal_delta: adjustedKcal - baseKcal
+    }
+  };
+}
 
-    return {
-      protein_g,
-      carbs_g: newCarbs,
-      fat_g,
-      kcal: protein_g * 4 + newCarbs * 4 + fat_g * 9
-    };
-  } else {
-    // Día de descanso: -15% carbohidratos, +grasas compensar
-    const newCarbs = Math.round(carbs_g * 0.85);
-    const carbsDiff = (carbs_g - newCarbs) * 4; // kcal reducidas
-    const addedFat = Math.round(carbsDiff / 9); // Compensar con grasa
+export function summarizeCarbCycling(days = [], kcalObjetivo = 0) {
+  const baseSummary = getCarbCyclingStrategySummary();
+  const safeDays = Array.isArray(days) ? days : [];
+  const weekDays = safeDays.slice(0, Math.min(7, safeDays.length));
+  const avgWeeklyKcal = weekDays.length > 0
+    ? weekDays.reduce((sum, day) => sum + (Number(day?.kcal) || 0), 0) / weekDays.length
+    : kcalObjetivo;
+  const weeklyDriftPct = kcalObjetivo > 0
+    ? Number((((avgWeeklyKcal - kcalObjetivo) / kcalObjetivo) * 100).toFixed(2))
+    : 0;
+  const trainingDays = safeDays.filter((day) => day?.tipo_dia === "entreno");
+  const restDays = safeDays.filter((day) => day?.tipo_dia !== "entreno");
+  const averageKcal = (items) => {
+    if (!items.length) return null;
+    return Math.round(items.reduce((sum, item) => sum + (Number(item?.kcal) || 0), 0) / items.length);
+  };
 
-    return {
-      protein_g,
-      carbs_g: newCarbs,
-      fat_g: fat_g + addedFat,
-      kcal: protein_g * 4 + newCarbs * 4 + (fat_g + addedFat) * 9
-    };
-  }
+  return {
+    ...baseSummary,
+    avg_weekly_kcal: Math.round(avgWeeklyKcal || 0),
+    kcal_objetivo: kcalObjetivo,
+    drift_pct: weeklyDriftPct,
+    weekly_stable: Math.abs(weeklyDriftPct) <= 1,
+    training_day_avg_kcal: averageKcal(trainingDays),
+    rest_day_avg_kcal: averageKcal(restDays)
+  };
 }
 
 /**
@@ -407,11 +505,14 @@ export function generateNutritionPlan(profile, duracionDias, trainingSchedule = 
     : buildDefaultTrainingSchedule(trainingDays);
 
   // 1. Calcular BMR y TDEE
-  const bmr = calculateBMR({ ...profile, sexo, peso_kg, altura_cm, edad });
-  const tdee = calculateTDEE(bmr, actividad, trainingDays, steps_per_day);
+  const bmrAudit = calculateBMRAudit({ ...profile, sexo, peso_kg, altura_cm, edad });
+  const tdeeAudit = calculateTDEEAudit(bmrAudit.bmr, actividad, trainingDays, steps_per_day);
+  const bmr = bmrAudit.bmr;
+  const tdee = tdeeAudit.tdee;
 
   // 2. Ajustar calorías por objetivo
-  const kcalObjetivo = adjustCaloriesForGoal(tdee, objetivo, profile);
+  const goalAudit = calculateGoalAdjustmentAudit(tdee, objetivo, profile);
+  const kcalObjetivo = goalAudit.kcal_objetivo;
 
   // 3. Calcular macros base
   const baseMacros = calculateMacros(kcalObjetivo, peso_kg, training_type, objetivo, metabolic_type, metabolic_confidence, level);
@@ -447,6 +548,12 @@ export function generateNutritionPlan(profile, duracionDias, trainingSchedule = 
     comidas_por_dia: comidas_dia,
     fuente: 'determinista',
     version_reglas: 'v1',
+    calculation_audit: {
+      bmr: bmrAudit,
+      tdee: tdeeAudit,
+      kcal: goalAudit
+    },
+    carb_cycling_audit: summarizeCarbCycling(days, kcalObjetivo),
     days
   };
 }
@@ -481,12 +588,19 @@ export function generateNutritionPlanWithKcalOverride(
     ? trainingSchedule
     : buildDefaultTrainingSchedule(trainingDays);
 
-  const bmr = calculateBMR({ ...profile, sexo, peso_kg, altura_cm, edad });
-  const tdee = calculateTDEE(bmr, actividad, trainingDays, steps_per_day);
+  const bmrAudit = calculateBMRAudit({ ...profile, sexo, peso_kg, altura_cm, edad });
+  const tdeeAudit = calculateTDEEAudit(bmrAudit.bmr, actividad, trainingDays, steps_per_day);
+  const bmr = bmrAudit.bmr;
+  const tdee = tdeeAudit.tdee;
 
-  const kcalObjetivo = Number.isFinite(Number(kcalObjetivoOverride))
-    ? Math.round(Number(kcalObjetivoOverride))
-    : adjustCaloriesForGoal(tdee, objetivo, profile);
+  const goalAudit = Number.isFinite(Number(kcalObjetivoOverride))
+    ? {
+        objetivo: objetivo || 'mant',
+        goal_factor: null,
+        kcal_objetivo: Math.round(Number(kcalObjetivoOverride))
+      }
+    : calculateGoalAdjustmentAudit(tdee, objetivo, profile);
+  const kcalObjetivo = goalAudit.kcal_objetivo;
 
   const baseMacros = calculateMacros(
     kcalObjetivo,
@@ -528,6 +642,12 @@ export function generateNutritionPlanWithKcalOverride(
     comidas_por_dia: comidas_dia,
     fuente: 'determinista',
     version_reglas: 'v1',
+    calculation_audit: {
+      bmr: bmrAudit,
+      tdee: tdeeAudit,
+      kcal: goalAudit
+    },
+    carb_cycling_audit: summarizeCarbCycling(days, kcalObjetivo),
     days
   };
 }

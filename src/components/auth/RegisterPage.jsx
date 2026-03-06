@@ -35,7 +35,7 @@ const INITIAL_FORM_DATA = {
   cintura: '',
   pecho: '',
   brazos: '',
-  muslos: '',
+  muslo: '',
   cuello: '',
   antebrazos: '',
 

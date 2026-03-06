@@ -61,7 +61,7 @@ const logUserProfile = (user, userId) => {
       },
       'Composición Corporal': {
         grasa_corporal: user.grasa_corporal || 'No especificado',
-        masa_muscular: user.masa_muscular || 'No especificado',
+        masa_magra: user.masa_magra || 'No especificado',
         pecho: user.pecho || 'No especificado',
         brazos: user.brazos || 'No especificado'
       },

@@ -73,8 +73,8 @@ const METHODOLOGIES_CONFIG = {
 
 // Campos numéricos para validación de perfiles
 export const NUMBER_KEYS = [
-  'edad', 'peso_kg', 'altura_cm', 'grasa_corporal', 'masa_muscular', 'agua_corporal', 'metabolismo_basal',
-  'cintura', 'pecho', 'brazos', 'muslos', 'cuello', 'antebrazos',
+  'edad', 'peso_kg', 'altura_cm', 'grasa_corporal', 'masa_magra', 'agua_corporal', 'metabolismo_basal',
+  'cintura', 'pecho', 'brazos', 'muslo', 'cuello', 'antebrazos',
   'comidas_diarias', 'frecuencia_semanal', 'años_entrenando', 'meta_peso', 'meta_grasa'
 ];
 

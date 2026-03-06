@@ -13,7 +13,7 @@ const BODY_MEASUREMENTS = {
   cintura: { label: "Cintura (cm)", placeholder: "Ej: 80", min: 50, max: 200 },
   pecho: { label: "Pecho (cm)", placeholder: "Ej: 95", min: 50, max: 200 },
   brazos: { label: "Brazos (cm)", placeholder: "Ej: 35", min: 20, max: 80 },
-  muslos: { label: "Muslos (cm)", placeholder: "Ej: 55", min: 30, max: 100 },
+  muslo: { label: "Muslo (cm)", placeholder: "Ej: 55", min: 30, max: 100 },
   cuello: { label: "Cuello (cm)", placeholder: "Ej: 38", min: 25, max: 60 },
   antebrazos: { label: "Antebrazos (cm)", placeholder: "Ej: 28", min: 15, max: 50 }
 };

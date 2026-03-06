@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   computePairingPenaltyForRecipe,
+  evaluateMealNutrientBalance,
   evaluateRecipeHardRules,
   isProcessedFood,
   normalizeProcessingLevel
@@ -287,4 +288,92 @@ test("menu hard rules: ignora penalty si contexto no aplica", () => {
 
   assert.equal(result.totalPenalty, 0);
   assert.equal(result.appliedPenaltyRules.length, 0);
+});
+
+test("menu hard rules: balance correcto cuando proteina/carbos/grasa recaen en sus roles principales", () => {
+  const result = evaluateMealNutrientBalance(
+    [
+      {
+        role: "PROTEINA_ANIMAL_MAGRA",
+        alimento_nombre: "Pechuga de pollo",
+        cantidad_g: 140,
+        kcal: 160,
+        macros: { protein_g: 26, carbs_g: 0, fat_g: 3 }
+      },
+      {
+        role: "CARBO_BASE",
+        alimento_nombre: "Arroz basmati",
+        cantidad_g: 170,
+        kcal: 220,
+        macros: { protein_g: 4, carbs_g: 47, fat_g: 1 }
+      },
+      {
+        role: "GRASA_ACEITE",
+        alimento_nombre: "Aceite de oliva",
+        cantidad_g: 11,
+        kcal: 99,
+        macros: { protein_g: 0, carbs_g: 0, fat_g: 11 }
+      },
+      {
+        role: "VERDURA",
+        alimento_nombre: "Rúcula",
+        cantidad_g: 45,
+        kcal: 11,
+        macros: { protein_g: 1, carbs_g: 1, fat_g: 0 }
+      }
+    ],
+    {
+      protein_g: 40,
+      carbs_g: 52,
+      fat_g: 16,
+      kcal: 520
+    }
+  );
+
+  assert.equal(result.hasWarnings, false);
+});
+
+test("menu hard rules: detecta proteina insuficiente y exceso de gramos en verdura de hoja", () => {
+  const result = evaluateMealNutrientBalance(
+    [
+      {
+        role: "PROTEINA_ANIMAL_MAGRA",
+        alimento_nombre: "Pavo",
+        cantidad_g: 55,
+        kcal: 70,
+        macros: { protein_g: 12, carbs_g: 0, fat_g: 1 }
+      },
+      {
+        role: "CARBO_BASE",
+        alimento_nombre: "Arroz cocido",
+        cantidad_g: 165,
+        kcal: 210,
+        macros: { protein_g: 4, carbs_g: 45, fat_g: 1 }
+      },
+      {
+        role: "GRASA_ACEITE",
+        alimento_nombre: "Aceite de oliva",
+        cantidad_g: 8,
+        kcal: 72,
+        macros: { protein_g: 0, carbs_g: 0, fat_g: 8 }
+      },
+      {
+        role: "VERDURA",
+        alimento_nombre: "Rúcula",
+        cantidad_g: 160,
+        kcal: 32,
+        macros: { protein_g: 4, carbs_g: 5, fat_g: 0 }
+      }
+    ],
+    {
+      protein_g: 30,
+      carbs_g: 50,
+      fat_g: 12,
+      kcal: 470
+    }
+  );
+
+  assert.equal(result.hasWarnings, true);
+  assert.equal(result.warnings.some((warning) => warning.code === "low_protein_from_protein_roles"), true);
+  assert.equal(result.warnings.some((warning) => warning.code === "vegetal_grams_too_high"), true);
 });

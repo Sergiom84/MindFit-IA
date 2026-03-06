@@ -15,6 +15,20 @@ const OBJETIVO_PRINCIPAL_MAP = {
   'Mantenimiento': 'mantenimiento'
 };
 
+const OBJETIVO_PRINCIPAL_SNAKE_CASE_MAP = {
+  ganar_peso: 'ganar_peso',
+  rehabilitacion: 'rehabilitacion',
+  perder_peso: 'perder_peso',
+  tonificar: 'tonificar',
+  ganar_musculo: 'ganar_masa_muscular',
+  ganar_masa_muscular: 'ganar_masa_muscular',
+  mejorar_resistencia: 'mejorar_resistencia',
+  mejorar_flexibilidad: 'mejorar_flexibilidad',
+  salud_general: 'salud_general',
+  mantener_forma: 'mantenimiento',
+  mantenimiento: 'mantenimiento'
+};
+
 // Función para formatear fecha a DD/MM/YYYY
 function formatDateToDDMMYYYY(dateString) {
   if (!dateString) return null;
@@ -31,10 +45,26 @@ function formatDateToDDMMYYYY(dateString) {
 // Función para mapear objetivo principal
 function mapObjetivoPrincipal(objetivo) {
   if (!objetivo) return null;
-  // Si ya viene en formato backend (snake_case), devolverlo tal como está
-  if (objetivo.includes('_')) return objetivo;
+  // Canonizar tambien cuando ya viene en snake_case.
+  if (objetivo.includes('_')) {
+    return OBJETIVO_PRINCIPAL_SNAKE_CASE_MAP[objetivo] || objetivo;
+  }
   // Si viene del frontend, mapearlo
   return OBJETIVO_PRINCIPAL_MAP[objetivo] || objetivo;
+}
+
+function normalizeLegacyBodyFields(payload = {}) {
+  const normalized = { ...payload };
+
+  if (normalized.masa_magra === undefined && normalized.masa_muscular !== undefined) {
+    normalized.masa_magra = normalized.masa_muscular;
+  }
+
+  if (normalized.muslo === undefined && normalized.muslos !== undefined) {
+    normalized.muslo = normalized.muslos;
+  }
+
+  return normalized;
 }
 
 const router = express.Router();
@@ -55,13 +85,13 @@ router.get('/:id', authenticateToken, async (req, res) => {
         u.edad, u.sexo, u.peso, u.altura,
         u.nivel_entrenamiento, u.anos_entrenando, u.frecuencia_semanal,
         u.nivel_actividad, u.cintura, u.pecho, u.brazos,
-        u.muslos, u.cuello, u.antebrazos, u.gemelo, u.pliegue_abdominal,
+        u.muslo, u.cuello, u.antebrazos, u.gemelo, u.pliegue_abdominal,
         u.historial_medico,
         u.alergias, u.medicamentos, u.lesiones, u.meta_peso, u.meta_grasa,
         u.fecha_inicio_objetivo, u.fecha_meta_objetivo, u.notas_progreso,
         u.meta_grasa_corporal, u.enfoque_entrenamiento, u.horario_preferido,
         u.comidas_por_dia, u.suplementacion, u.alimentos_excluidos,
-        u.grasa_corporal, u.masa_muscular, u.agua_corporal, u.metabolismo_basal,
+        u.grasa_corporal, u.masa_magra, u.agua_corporal, u.metabolismo_basal,
         u.cadera,
         p.metodologia_preferida, p.limitaciones_fisicas, p.objetivo_principal,
         p.usar_preferencias_ia, p.dias_preferidos_entrenamiento, p.ejercicios_por_dia_preferido,
@@ -107,18 +137,19 @@ router.put('/:id', authenticateToken, async (req, res) => {
     }
 
     await client.query('BEGIN');
+    const requestBody = normalizeLegacyBodyFields(req.body);
 
     // Separar campos según la tabla correspondiente
     const usersFields = [
       'nombre', 'apellido', 'edad', 'sexo', 'peso', 'altura',
       'nivel_entrenamiento', 'anos_entrenando', 'frecuencia_semanal',
       'nivel_actividad', 'cintura', 'pecho', 'brazos',
-      'muslos', 'cuello', 'antebrazos', 'gemelo', 'pliegue_abdominal', 'historial_medico',
+      'muslo', 'cuello', 'antebrazos', 'gemelo', 'pliegue_abdominal', 'historial_medico',
       'alergias', 'medicamentos', 'lesiones', 'meta_peso', 'meta_grasa',
       'fecha_inicio_objetivo', 'fecha_meta_objetivo', 'notas_progreso',
       'meta_grasa_corporal', 'enfoque_entrenamiento', 'horario_preferido',
       'comidas_por_dia', 'suplementacion', 'alimentos_excluidos',
-      'grasa_corporal', 'masa_muscular', 'agua_corporal', 'metabolismo_basal', 'cadera'
+      'grasa_corporal', 'masa_magra', 'agua_corporal', 'metabolismo_basal', 'cadera'
     ];
 
     const profilesFields = [
@@ -132,24 +163,24 @@ router.put('/:id', authenticateToken, async (req, res) => {
     let usersParamCount = 1;
 
     for (const field of usersFields) {
-      if (req.body[field] !== undefined) {
+      if (requestBody[field] !== undefined) {
         usersUpdateFields.push(`${field} = $${usersParamCount}`);
-        usersValues.push(req.body[field]);
+        usersValues.push(requestBody[field]);
         usersParamCount++;
       }
     }
 
     // Agregar metodologia_preferida a users para mantener sincronía
-    if (req.body.metodologia_preferida !== undefined) {
+    if (requestBody.metodologia_preferida !== undefined) {
       usersUpdateFields.push(`metodologia_preferida = $${usersParamCount}`);
-      usersValues.push(req.body.metodologia_preferida);
+      usersValues.push(requestBody.metodologia_preferida);
       usersParamCount++;
     }
 
     // Agregar objetivo_principal a users para mantener sincronía
-    if (req.body.objetivo_principal !== undefined) {
-      const mappedObjetivo = mapObjetivoPrincipal(req.body.objetivo_principal);
-      console.log(`🔄 Mapeando objetivo principal: "${req.body.objetivo_principal}" → "${mappedObjetivo}"`);
+    if (requestBody.objetivo_principal !== undefined) {
+      const mappedObjetivo = mapObjetivoPrincipal(requestBody.objetivo_principal);
+      console.log(`🔄 Mapeando objetivo principal: "${requestBody.objetivo_principal}" → "${mappedObjetivo}"`);
       usersUpdateFields.push(`objetivo_principal = $${usersParamCount}`);
       usersValues.push(mappedObjetivo);
       usersParamCount++;
@@ -171,12 +202,12 @@ router.put('/:id', authenticateToken, async (req, res) => {
     let profilesParamCount = 1;
 
     for (const field of profilesFields) {
-      if (req.body[field] !== undefined) {
-        let value = req.body[field];
+      if (requestBody[field] !== undefined) {
+        let value = requestBody[field];
         // Aplicar mapeo específico para objetivo_principal
         if (field === 'objetivo_principal') {
           value = mapObjetivoPrincipal(value);
-          console.log(`🔄 Mapeando objetivo principal en profiles: "${req.body[field]}" → "${value}"`);
+          console.log(`🔄 Mapeando objetivo principal en profiles: "${requestBody[field]}" → "${value}"`);
         }
         profilesUpdateFields.push(`${field} = $${profilesParamCount}`);
         profilesValues.push(value);
@@ -203,14 +234,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
         await client.query(profilesQuery, profilesValues);
       } else {
         // Crear nuevo registro en user_profiles
-        const insertFields = ['user_id', ...profilesFields.filter(field => req.body[field] !== undefined)];
-        const insertValues = [id, ...profilesFields.filter(field => req.body[field] !== undefined).map(field => {
+        const insertFields = ['user_id', ...profilesFields.filter(field => requestBody[field] !== undefined)];
+        const insertValues = [id, ...profilesFields.filter(field => requestBody[field] !== undefined).map(field => {
           if (field === 'objetivo_principal') {
-            const mapped = mapObjetivoPrincipal(req.body[field]);
-            console.log(`🔄 Mapeando objetivo principal en INSERT: "${req.body[field]}" → "${mapped}"`);
+            const mapped = mapObjetivoPrincipal(requestBody[field]);
+            console.log(`🔄 Mapeando objetivo principal en INSERT: "${requestBody[field]}" → "${mapped}"`);
             return mapped;
           }
-          return req.body[field];
+          return requestBody[field];
         })];
         const placeholders = insertValues.map((_, index) => `$${index + 1}`);
         

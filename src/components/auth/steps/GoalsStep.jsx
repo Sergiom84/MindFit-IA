@@ -57,7 +57,7 @@ const GoalsStep = ({ formData, onInputChange, errors = {} }) => {
             >
               <option value="">Seleccionar objetivo</option>
               <option value="perder_peso">Perder peso</option>
-              <option value="ganar_musculo">Ganar músculo</option>
+              <option value="ganar_masa_muscular">Ganar músculo</option>
               <option value="tonificar">Tonificar</option>
               <option value="mejorar_resistencia">Mejorar resistencia</option>
               <option value="fuerza">Aumentar fuerza</option>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, memo } from 'react';
+import { useCallback, useEffect, useMemo, useState, memo } from 'react';
 import { User, Activity, Target, Heart, Settings, Ruler, Dumbbell, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -195,13 +195,13 @@ const ProfileSection = () => {
       { key: 'metodologia_preferida', label: 'Metodología preferida', category: 'Experiencia', type: 'select', options: metodologiaOptions },
       { key: 'frecuencia_semanal', label: 'Frecuencia semanal', category: 'Experiencia', type: 'number' },
       { key: 'grasa_corporal', label: 'Grasa corporal (%)', category: 'Composición corporal', type: 'number' },
-      { key: 'masa_muscular', label: 'Masa muscular (kg)', category: 'Composición corporal', type: 'number' },
+      { key: 'masa_magra', label: 'Masa magra (kg)', category: 'Composición corporal', type: 'number' },
       { key: 'agua_corporal', label: 'Agua corporal (%)', category: 'Composición corporal', type: 'number' },
       { key: 'metabolismo_basal', label: 'Metabolismo basal (kcal)', category: 'Composición corporal', type: 'number' },
       { key: 'cintura', label: 'Cintura (cm)', category: 'Medidas corporales', type: 'number' },
       { key: 'pecho', label: 'Pecho (cm)', category: 'Medidas corporales', type: 'number' },
       { key: 'brazos', label: 'Brazos (cm)', category: 'Medidas corporales', type: 'number' },
-      { key: 'muslos', label: 'Muslos (cm)', category: 'Medidas corporales', type: 'number' },
+      { key: 'muslo', label: 'Muslo (cm)', category: 'Medidas corporales', type: 'number' },
       { key: 'cuello', label: 'Cuello (cm)', category: 'Medidas corporales', type: 'number' },
       { key: 'antebrazos', label: 'Antebrazos (cm)', category: 'Medidas corporales', type: 'number' },
       { key: 'gemelo', label: 'Gemelo (cm)', category: 'Medidas corporales', type: 'number' },
@@ -229,13 +229,13 @@ const ProfileSection = () => {
     profileState.sexoOptions
   ]);
 
-  const normalizeList = (list) => (
+  const normalizeList = useCallback((list) => (
     Array.isArray(list)
       ? list.map(item => String(item || '').trim()).filter(Boolean)
       : []
-  );
+  ), []);
 
-  const isFieldComplete = (field, profile) => {
+  const isFieldComplete = useCallback((field, profile) => {
     const value = profile?.[field.key];
     if (field.type === 'equipment') {
       return equipmentState.none || equipmentState.curated.length > 0 || equipmentState.custom.length > 0;
@@ -250,11 +250,11 @@ const ProfileSection = () => {
       return normalizeList(value).length > 0;
     }
     return value !== null && value !== undefined && value !== '';
-  };
+  }, [equipmentState, normalizeList]);
 
-  const getRelevantFields = (profile) => completionFields.filter(field => (
+  const getRelevantFields = useCallback((profile) => completionFields.filter(field => (
     typeof field.isRelevant === 'function' ? field.isRelevant(profile) : true
-  ));
+  )), [completionFields]);
 
   const completionSummary = useMemo(() => {
     const relevant = getRelevantFields(profileState.userProfile);
@@ -274,7 +274,7 @@ const ProfileSection = () => {
       missing,
       grouped
     };
-  }, [completionFields, profileState.userProfile, equipmentState]);
+  }, [getRelevantFields, isFieldComplete, profileState.userProfile]);
 
   const profileProgress = completionSummary.percent;
   const editSectionLabels = {
@@ -353,7 +353,7 @@ const ProfileSection = () => {
     });
     setCompletionData(initial);
     setCompletionError('');
-  }, [isCompletionOpen]);
+  }, [completionSummary.missing, isCompletionOpen, profileState.userProfile]);
 
   const handleCompletionInputChange = (field, value) => {
     setCompletionData(prev => ({
@@ -431,7 +431,8 @@ const ProfileSection = () => {
 
     const compositionData = {
       grasa_corporal: results.porcentaje_grasa,
-      masa_muscular: results.masa_magra,
+      masa_magra: results.masa_magra,
+      muslo: results.muslo ?? profileState.userProfile.muslo ?? profileState.userProfile.muslos,
       agua_corporal: results.agua_corporal,
       metabolismo_basal: results.metabolismo_basal
     };

@@ -54,7 +54,7 @@ export const BodyMeasuresCard = ({
                     cintura: userProfile.cintura,
                     pecho: userProfile.pecho,
                     brazos: userProfile.brazos,
-                    muslos: userProfile.muslos,
+                    muslo: userProfile.muslo ?? userProfile.muslos,
                     cuello: userProfile.cuello,
                     antebrazos: userProfile.antebrazos,
                     gemelo: userProfile.gemelo,
@@ -115,9 +115,9 @@ export const BodyMeasuresCard = ({
             onInputChange={handleInputChange}
           />
           <EditableField
-            label="Muslos"
-            field="muslos"
-            value={userProfile.muslos}
+            label="Muslo"
+            field="muslo"
+            value={userProfile.muslo ?? userProfile.muslos}
             type="number"
             suffix=" cm"
             editing={isEditing}

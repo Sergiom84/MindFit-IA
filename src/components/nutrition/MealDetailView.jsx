@@ -301,6 +301,7 @@ export default function MealDetailView({
     planInfo?.duration_days ? `${planInfo.duration_days} días` : null,
     planInfo?.training_type || null
   ].filter(Boolean).join(" · ");
+  const carbCyclingSummary = planInfo?.carb_cycling_summary || null;
 
   useEffect(() => {
     if (!dayMeals.length) {
@@ -498,7 +499,7 @@ export default function MealDetailView({
   if (!dayState) return null;
 
   const dayTypeLabel = isTraining ? "Entrenamiento" : "Descanso";
-  const carbCyclingLabel = isTraining ? "+10%" : "-15%";
+  const carbCyclingLabel = isTraining ? "+10% carbos" : "-15% carbos";
 
   return (
     <div
@@ -605,9 +606,17 @@ export default function MealDetailView({
               style={{ backgroundColor: "rgb(var(--border) / 0.04)", borderColor: "rgb(var(--border) / 0.08)" }}
             >
               <TrendingUp className="h-4 w-4 text-[rgb(var(--text-2)/0.9)]" />
-              <span className="text-sm text-[rgb(var(--text-2)/0.95)]">Carb Cycling {carbCyclingLabel}</span>
+              <span className="text-sm text-[rgb(var(--text-2)/0.95)]">
+                {carbCyclingSummary?.label || "Carb cycling"} · {carbCyclingLabel}
+              </span>
               <Info className="h-4 w-4 text-[rgb(var(--text-2)/0.75)]" />
             </div>
+
+            {carbCyclingSummary && (
+              <p className="mt-2 text-xs text-[rgb(var(--text-2)/0.82)]">
+                {carbCyclingSummary.description}
+              </p>
+            )}
           </section>
 
           <div className="mt-4 flex items-center justify-between">

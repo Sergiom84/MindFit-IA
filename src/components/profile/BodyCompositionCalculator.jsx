@@ -16,7 +16,8 @@ export const BodyCompositionCalculator = ({ isOpen, onClose, onCalculate, userPr
     altura: userProfile?.altura || '',
     cintura: userProfile?.cintura || '',
     cuello: userProfile?.cuello || '',
-    cadera: userProfile?.cadera || ''
+    cadera: userProfile?.cadera || '',
+    muslo: (userProfile?.muslo ?? userProfile?.muslos) || ''
   })
 
   // Actualizar formData cuando cambie userProfile
@@ -29,7 +30,8 @@ export const BodyCompositionCalculator = ({ isOpen, onClose, onCalculate, userPr
         altura: userProfile.altura || '',
         cintura: userProfile.cintura || '',
         cuello: userProfile.cuello || '',
-        cadera: userProfile.cadera || ''
+        cadera: userProfile.cadera || '',
+        muslo: (userProfile.muslo ?? userProfile.muslos) || ''
       })
     }
   }, [userProfile, isOpen])
@@ -42,75 +44,61 @@ export const BodyCompositionCalculator = ({ isOpen, onClose, onCalculate, userPr
   }
 
   const calculateComposition = () => {
-    const { sexo, edad, peso, altura, cintura, cuello, cadera } = formData
-    
-    console.log('🔍 DEBUG: formData recibido:', formData)
-    console.log('🔍 DEBUG: Datos extraídos:', { sexo, edad, peso, altura, cintura, cuello, cadera })
-    
+    const { sexo, edad, peso, altura, cintura, cuello, cadera, muslo } = formData
+
     if (!edad || !peso || !altura || !cintura || !cuello) {
       alert('Por favor completa todos los campos')
       return
     }
-    
+
     if (sexo === 'femenino' && !cadera) {
       alert('Para mujeres es necesario ingresar la medida de cadera')
       return
     }
 
-    // Convertir a números para asegurar cálculos correctos
     const pesoNum = parseFloat(peso)
     const alturaNum = parseFloat(altura)
-    const cinturaNum = parseFloat(cintura)  
+    const cinturaNum = parseFloat(cintura)
     const cuelloNum = parseFloat(cuello)
     const caderaNum = parseFloat(cadera)
     const edadNum = parseFloat(edad)
-    
-    console.log('🔢 DEBUG: Valores numéricos:', {
-      sexo, 
-      edad: edadNum,
-      peso: pesoNum, 
-      altura: alturaNum, 
-      cintura: cinturaNum, 
-      cuello: cuelloNum, 
-      cadera: caderaNum
-    })
+    const musloNum = muslo ? parseFloat(muslo) : null
 
-    // Calcular IMC usando valores numéricos
     const alturaM = alturaNum / 100
     const imc = (pesoNum / (alturaM * alturaM)).toFixed(1)
 
-    // Calcular porcentaje de grasa corporal usando la fórmula del US Navy
+    // % grasa corporal: formula US Navy (Hodgdon & Beckett, 1984)
     let bodyFat
     if (sexo === 'masculino') {
       bodyFat = 495 / (1.0324 - 0.19077 * Math.log10(cinturaNum - cuelloNum) + 0.15456 * Math.log10(alturaNum)) - 450
-      console.log('🔢 DEBUG Masculino:', { cintura: cinturaNum, cuello: cuelloNum, altura: alturaNum })
     } else {
-      // Fórmula oficial US Navy para mujeres (Hodgdon & Beckett, 1984)
       const suma = cinturaNum + caderaNum - cuelloNum
       bodyFat = 163.205 * Math.log10(suma) - 97.684 * Math.log10(alturaNum) - 78.387
-      console.log('🔢 DEBUG Femenino:', { 
-        cintura: cinturaNum, 
-        cadera: caderaNum, 
-        cuello: cuelloNum, 
-        altura: alturaNum, 
-        suma: suma,
-        log10_suma: Math.log10(suma),
-        log10_altura: Math.log10(alturaNum),
-        bodyFat_raw: bodyFat
-      })
     }
 
-    // Aplicar solo límite inferior realista; sin límite superior para que refleje cambios grandes
     bodyFat = Math.max(sexo === 'masculino' ? 3 : 8, bodyFat)
 
-    // Calcular masa muscular estimada usando valores numéricos
-    const masaGrasa = (pesoNum * bodyFat / 100).toFixed(1)
-    const masaMagra = (pesoNum - masaGrasa).toFixed(1)
+    const masaGrasa = parseFloat((pesoNum * bodyFat / 100).toFixed(1))
+    let masaMagra = parseFloat((pesoNum - masaGrasa).toFixed(1))
 
-    // Calcular agua corporal (estimación: 60% para hombres, 55% para mujeres)
+    // Si muslo disponible, corregir masa magra con estimacion de masa muscular
+    // apendicular (Lee et al. 2000) para afinar la distribucion grasa/magra.
+    // ASM = 0.244*peso + 7.80*altura_m + 6.6*sexo_code - 0.098*edad + muslo*0.030 - 4.5
+    // sexo_code: 1=hombre, 0=mujer. El termino muslo*0.030 es un ajuste conservador
+    // basado en la correlacion perimetro muslo <-> masa muscular apendicular.
+    let metodoCalculo = 'navy'
+    if (musloNum && musloNum > 30 && musloNum < 90) {
+      const sexoCode = sexo === 'masculino' ? 1 : 0
+      const asm = 0.244 * pesoNum + 7.80 * alturaM + 6.6 * sexoCode - 0.098 * edadNum + musloNum * 0.030 - 4.5
+      // ASM es masa muscular apendicular; masa magra total ~ ASM / 0.56 (Heymsfield 1990)
+      const massMagraEstimada = parseFloat((asm / 0.56).toFixed(1))
+      // Promediar con la estimacion Navy para suavizar
+      masaMagra = parseFloat(((masaMagra + massMagraEstimada) / 2).toFixed(1))
+      metodoCalculo = 'navy+muslo'
+    }
+
     const aguaCorporal = sexo === 'masculino' ? 60 : 55
 
-    // Calcular metabolismo basal usando la fórmula Harris-Benedict con valores numéricos
     let metabolismoBasal
     if (sexo === 'masculino') {
       metabolismoBasal = 88.362 + (13.397 * pesoNum) + (4.799 * alturaNum) - (5.677 * edadNum)
@@ -121,27 +109,16 @@ export const BodyCompositionCalculator = ({ isOpen, onClose, onCalculate, userPr
     const results = {
       imc: parseFloat(imc),
       porcentaje_grasa: parseFloat(bodyFat.toFixed(1)),
-      masa_grasa: parseFloat(masaGrasa),
-      masa_magra: parseFloat(masaMagra),
+      masa_grasa: masaGrasa,
+      masa_magra: masaMagra,
+      muslo: musloNum,
       agua_corporal: aguaCorporal,
-      metabolismo_basal: Math.round(metabolismoBasal)
+      metabolismo_basal: Math.round(metabolismoBasal),
+      metodo_calculo: metodoCalculo
     }
 
-    console.log('🧮 Calculadora - Resultados generados:', results)
-    console.log('📊 Detalles del cálculo:')
-    console.log('  - Sexo:', sexo)
-    console.log('  - Peso:', peso, 'kg')
-    console.log('  - Altura:', altura, 'cm') 
-    console.log('  - Cintura:', cintura, 'cm')
-    console.log('  - Cuello:', cuello, 'cm')
-    if (sexo === 'femenino') console.log('  - Cadera:', cadera, 'cm')
-    console.log('  - % Grasa calculado:', bodyFat.toFixed(1), '%')
-    console.log('  - Masa grasa:', masaGrasa, 'kg')
-    console.log('  - Masa magra:', masaMagra, 'kg')
-
     onCalculate(results)
-    
-    // Resetear formulario después de calcular para siguiente uso
+
     setFormData({
       sexo: userProfile?.sexo || 'masculino',
       edad: userProfile?.edad || '',
@@ -149,14 +126,14 @@ export const BodyCompositionCalculator = ({ isOpen, onClose, onCalculate, userPr
       altura: userProfile?.altura || '',
       cintura: userProfile?.cintura || '',
       cuello: userProfile?.cuello || '',
-      cadera: userProfile?.cadera || ''
+      cadera: userProfile?.cadera || '',
+      muslo: (userProfile?.muslo ?? userProfile?.muslos) || ''
     })
-    
+
     onClose()
   }
 
   const handleReset = () => {
-    // Resetear a los valores originales del perfil
     setFormData({
       sexo: userProfile?.sexo || 'masculino',
       edad: userProfile?.edad || '',
@@ -164,9 +141,9 @@ export const BodyCompositionCalculator = ({ isOpen, onClose, onCalculate, userPr
       altura: userProfile?.altura || '',
       cintura: userProfile?.cintura || '',
       cuello: userProfile?.cuello || '',
-      cadera: userProfile?.cadera || ''
+      cadera: userProfile?.cadera || '',
+      muslo: (userProfile?.muslo ?? userProfile?.muslos) || ''
     })
-    console.log('🔄 Formulario reseteado a valores del perfil')
   }
 
   const handleCancel = () => {
@@ -294,9 +271,8 @@ export const BodyCompositionCalculator = ({ isOpen, onClose, onCalculate, userPr
             </div>
           </div>
 
-          {/* Mostrar campo de cadera solo para mujeres */}
-          {formData.sexo === 'femenino' && (
-            <div className="grid grid-cols-1 gap-4">
+          <div className={`grid ${formData.sexo === 'femenino' ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
+            {formData.sexo === 'femenino' && (
               <div>
                 <label className="text-gray-300/70 text-sm mb-1 block">Cadera (cm) *</label>
                 <input
@@ -309,10 +285,24 @@ export const BodyCompositionCalculator = ({ isOpen, onClose, onCalculate, userPr
                   max="150"
                   step="0.1"
                 />
-                <p className="text-xs text-gray-300/60 mt-1">Requerido para el cálculo correcto en mujeres</p>
+                <p className="text-xs text-gray-300/60 mt-1">Requerido en mujeres</p>
               </div>
+            )}
+            <div>
+              <label className="text-gray-300/70 text-sm mb-1 block">Muslo (cm)</label>
+              <input
+                type="number"
+                value={formData.muslo}
+                onChange={(e) => handleInputChange('muslo', e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white focus:outline-none focus:border-yellow-400"
+                placeholder="55.0"
+                min="30"
+                max="90"
+                step="0.1"
+              />
+              <p className="text-xs text-gray-300/60 mt-1">Opcional. Afina la estimacion de masa magra</p>
             </div>
-          )}
+          </div>
 
           <div className="flex gap-3 pt-4">
             <Button

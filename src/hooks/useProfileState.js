@@ -42,13 +42,13 @@ export const useProfileState = () => {
     lesiones: [],
     // Composición corporal
     grasa_corporal: '',
-    masa_muscular: '',
+    masa_magra: '',
     agua_corporal: '',
     metabolismo_basal: '',
     cintura: '',
     pecho: '',
     brazos: '',
-    muslos: '',
+    muslo: '',
     cuello: '',
     antebrazos: '',
     cadera: '',
@@ -64,67 +64,93 @@ export const useProfileState = () => {
 
   // Helpers de mapeo UI<->DB
   const toNumber = (v) => (v === '' || v === null || v === undefined ? null : Number(v))
+  const normalizeBodyCompositionFields = (data = {}) => {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return data
 
-  const mapDbToUi = useCallback((u = {}) => ({
-    ...defaultProfile,
-    // Básicos
-    nombre: u.nombre || '',
-    apellido: u.apellido || '',
-    email: u.email || '',
-    edad: u.edad ?? '',
-    sexo: u.sexo || '',
-    peso: u.peso ?? '',
-    altura: u.altura ?? '',
-    nivel_actividad: u.nivel_actividad || '',
-    // Experiencia
-    nivel: u.nivel_entrenamiento || '',
-    años_entrenando: u.anos_entrenando ?? u["años_entrenando"] ?? '',
-    frecuencia_semanal: u.frecuencia_semanal ?? '',
-    metodologia_preferida: u.metodologia_preferida || '',
-    // Preferencias
-    enfoque: u.enfoque_entrenamiento || '',
-    horario_preferido: u.horario_preferido || '',
-    comidas_diarias: u.comidas_por_dia ?? '',
-    suplementacion: u.suplementacion || [],
-    alimentos_excluidos: u.alimentos_excluidos || [],
-    // Preferencias entrenamiento IA
-    usar_preferencias_ia: u.usar_preferencias_ia ?? null,
-    dias_preferidos_entrenamiento: Array.isArray(u.dias_preferidos_entrenamiento)
-      ? u.dias_preferidos_entrenamiento
-      : [],
-    ejercicios_por_dia_preferido: u.ejercicios_por_dia_preferido ?? '',
-    semanas_entrenamiento: u.semanas_entrenamiento ?? '',
-    // Objetivos y Metas
-    objetivo_principal: u.objetivo_principal || '',
-    meta_peso: u.meta_peso ?? '',
-    meta_grasa: u.meta_grasa ?? '',
-    fecha_inicio_objetivo: u.fecha_inicio_objetivo || '',
-    fecha_meta_objetivo: u.fecha_meta_objetivo || '',
-    notas_progreso: u.notas_progreso || '',
-    // Salud
-    historial_medico: u.historial_medico || '',
-    limitaciones_fisicas: u.limitaciones_fisicas || [],
-    alergias: u.alergias || [],
-    medicamentos: u.medicamentos || [],
-    lesiones: u.lesiones || [],
-    // Composición
-    grasa_corporal: u.grasa_corporal ?? '',
-    masa_muscular: u.masa_muscular ?? '',
-    agua_corporal: u.agua_corporal ?? '',
-    metabolismo_basal: u.metabolismo_basal ?? '',
-    cintura: u.cintura ?? '',
-    pecho: u.pecho ?? '',
-    brazos: u.brazos ?? '',
-    muslos: u.muslos ?? '',
-    cuello: u.cuello ?? '',
-    antebrazos: u.antebrazos ?? '',
-    cadera: u.cadera ?? '',
-    gemelo: u.gemelo ?? '',
-    pliegue_abdominal: u.pliegue_abdominal ?? ''
-  }), [defaultProfile])
+    const normalized = { ...data }
+
+    if (!Object.prototype.hasOwnProperty.call(normalized, 'masa_magra') &&
+        Object.prototype.hasOwnProperty.call(normalized, 'masa_muscular')) {
+      normalized.masa_magra = normalized.masa_muscular
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(normalized, 'muslo') &&
+        Object.prototype.hasOwnProperty.call(normalized, 'muslos')) {
+      normalized.muslo = normalized.muslos
+    }
+
+    delete normalized.masa_muscular
+    delete normalized.muslos
+
+    return normalized
+  }
+
+  const mapDbToUi = useCallback((u = {}) => {
+    const normalized = normalizeBodyCompositionFields(u)
+    const masaMagra = normalized.masa_magra ?? ''
+    const muslo = normalized.muslo ?? ''
+
+    return {
+      ...defaultProfile,
+      // Básicos
+      nombre: u.nombre || '',
+      apellido: u.apellido || '',
+      email: u.email || '',
+      edad: u.edad ?? '',
+      sexo: u.sexo || '',
+      peso: u.peso ?? '',
+      altura: u.altura ?? '',
+      nivel_actividad: u.nivel_actividad || '',
+      // Experiencia
+      nivel: u.nivel_entrenamiento || '',
+      años_entrenando: u.anos_entrenando ?? u["años_entrenando"] ?? '',
+      frecuencia_semanal: u.frecuencia_semanal ?? '',
+      metodologia_preferida: u.metodologia_preferida || '',
+      // Preferencias
+      enfoque: u.enfoque_entrenamiento || '',
+      horario_preferido: u.horario_preferido || '',
+      comidas_diarias: u.comidas_por_dia ?? '',
+      suplementacion: u.suplementacion || [],
+      alimentos_excluidos: u.alimentos_excluidos || [],
+      // Preferencias entrenamiento IA
+      usar_preferencias_ia: u.usar_preferencias_ia ?? null,
+      dias_preferidos_entrenamiento: Array.isArray(u.dias_preferidos_entrenamiento)
+        ? u.dias_preferidos_entrenamiento
+        : [],
+      ejercicios_por_dia_preferido: u.ejercicios_por_dia_preferido ?? '',
+      semanas_entrenamiento: u.semanas_entrenamiento ?? '',
+      // Objetivos y Metas
+      objetivo_principal: u.objetivo_principal || '',
+      meta_peso: u.meta_peso ?? '',
+      meta_grasa: u.meta_grasa ?? '',
+      fecha_inicio_objetivo: u.fecha_inicio_objetivo || '',
+      fecha_meta_objetivo: u.fecha_meta_objetivo || '',
+      notas_progreso: u.notas_progreso || '',
+      // Salud
+      historial_medico: u.historial_medico || '',
+      limitaciones_fisicas: u.limitaciones_fisicas || [],
+      alergias: u.alergias || [],
+      medicamentos: u.medicamentos || [],
+      lesiones: u.lesiones || [],
+      // Composición
+      grasa_corporal: normalized.grasa_corporal ?? '',
+      masa_magra: masaMagra,
+      agua_corporal: normalized.agua_corporal ?? '',
+      metabolismo_basal: normalized.metabolismo_basal ?? '',
+      cintura: normalized.cintura ?? '',
+      pecho: normalized.pecho ?? '',
+      brazos: normalized.brazos ?? '',
+      muslo,
+      cuello: normalized.cuello ?? '',
+      antebrazos: normalized.antebrazos ?? '',
+      cadera: normalized.cadera ?? '',
+      gemelo: normalized.gemelo ?? '',
+      pliegue_abdominal: normalized.pliegue_abdominal ?? ''
+    }
+  }, [defaultProfile])
 
   const mapUiToDb = (data = {}) => {
-    const payload = { ...data }
+    const payload = normalizeBodyCompositionFields({ ...data })
     if ('años_entrenando' in payload) {
       payload.anos_entrenando = toNumber(payload['años_entrenando'])
       delete payload['años_entrenando']
@@ -142,7 +168,7 @@ export const useProfileState = () => {
       delete payload.enfoque
     }
     // Normalizar numéricos comunes
-    ;['edad','peso','altura','grasa_corporal','masa_muscular','agua_corporal','metabolismo_basal','cintura','pecho','brazos','muslos','cuello','antebrazos','cadera','gemelo','pliegue_abdominal','frecuencia_semanal','meta_peso','meta_grasa']
+    ;['edad','peso','altura','grasa_corporal','masa_magra','agua_corporal','metabolismo_basal','cintura','pecho','brazos','muslo','cuello','antebrazos','cadera','gemelo','pliegue_abdominal','frecuencia_semanal','meta_peso','meta_grasa']
       .forEach(k => { if (k in payload) payload[k] = toNumber(payload[k]) })
     return payload
   }
@@ -168,7 +194,7 @@ export const useProfileState = () => {
     const savedProfile = localStorage.getItem('profileData')
     if (savedProfile) {
       const parsed = JSON.parse(savedProfile)
-      setUserProfile({ ...defaultProfile, ...parsed })
+      setUserProfile({ ...defaultProfile, ...normalizeBodyCompositionFields(parsed) })
     }
 
     // Intentar cargar desde API si hay usuario autenticado (claves legacy por ahora)
@@ -191,7 +217,7 @@ export const useProfileState = () => {
           .catch(err => console.error('Error cargando perfil desde API:', err))
       }
     }
-  }, [])
+  }, [defaultProfile, mapDbToUi])
 
   // Guardar datos del perfil en localStorage cuando cambien (clave dedicada)
   useEffect(() => {
@@ -356,8 +382,10 @@ export const useProfileState = () => {
   const handleSave = async () => {
     if (!editingSection) return
 
+    const normalizedData = normalizeBodyCompositionFields(editedData)
+
     // Actualizar UI inmediata
-    setUserProfile(prev => ({ ...prev, ...editedData }))
+    setUserProfile(prev => ({ ...prev, ...normalizedData }))
 
     try {
       const token = localStorage.getItem('token')
@@ -365,7 +393,7 @@ export const useProfileState = () => {
       const u = userStr ? JSON.parse(userStr) : null
       if (!token || !u?.id) return
 
-      const payload = mapUiToDb(editedData)
+      const payload = mapUiToDb(normalizedData)
 
       const resp = await fetch(`/api/users/${u.id}`, {
         method: 'PUT',
@@ -395,7 +423,9 @@ export const useProfileState = () => {
   const saveProfileData = async (data = {}) => {
     if (!data || Object.keys(data).length === 0) return false
 
-    setUserProfile(prev => ({ ...prev, ...data }))
+    const normalizedData = normalizeBodyCompositionFields(data)
+
+    setUserProfile(prev => ({ ...prev, ...normalizedData }))
 
     try {
       const token = localStorage.getItem('token')
@@ -403,7 +433,7 @@ export const useProfileState = () => {
       const u = userStr ? JSON.parse(userStr) : null
       if (!token || !u?.id) return false
 
-      const payload = mapUiToDb(data)
+      const payload = mapUiToDb(normalizedData)
 
       const resp = await fetch(`/api/users/${u.id}`, {
         method: 'PUT',

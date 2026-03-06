@@ -55,8 +55,20 @@ const FITNESS_VALIDATIONS = {
     required: false,
     validator: (value) => {
       const validObjectives = [
-        'perder_peso', 'ganar_musculo', 'mantenimiento',
-        'fuerza', 'resistencia', 'flexibilidad'
+        'perder_peso',
+        'ganar_musculo',
+        'ganar_masa_muscular',
+        'ganar_peso',
+        'tonificar',
+        'mejorar_resistencia',
+        'fuerza',
+        'mantener_forma',
+        'mantenimiento',
+        'rehabilitacion',
+        'mejorar_flexibilidad',
+        'salud_general',
+        'resistencia',
+        'flexibilidad'
       ];
       return !value || validObjectives.includes(value);
     },

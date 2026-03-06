@@ -15,7 +15,7 @@ export default function NutritionScreen() {
   const [activeTab, setActiveTab] = useState('generate-plan');
   const [, setNutritionPlan] = useState(null);
   const [, setIsLoading] = useState(false);
-  const [kcalInfo, setKcalInfo] = useState({ value: null, source: null });
+  const [kcalInfo, setKcalInfo] = useState({ value: null, source: null, note: null });
 
   useEffect(() => {
     const handleMouseMove = (event) => {
@@ -46,11 +46,25 @@ export default function NutritionScreen() {
 
       let kcalValue = null;
       let source = null;
+      let note = null;
 
       const planData = planRes.ok ? await planRes.json().catch(() => null) : null;
       if (planData?.kcal_objetivo) {
-        kcalValue = planData.kcal_objetivo;
-        source = 'plan';
+        const activePlanKcal = Number(planData.kcal_objetivo);
+        const currentEstimateKcal = Number(planData?.current_estimate?.kcal_objetivo);
+        const hasCurrentEstimateDrift =
+          Number.isFinite(activePlanKcal) &&
+          Number.isFinite(currentEstimateKcal) &&
+          Math.abs(activePlanKcal - currentEstimateKcal) >= 250;
+
+        kcalValue = hasCurrentEstimateDrift ? currentEstimateKcal : activePlanKcal;
+        source = hasCurrentEstimateDrift ? 'current_estimate' : 'plan';
+        if (hasCurrentEstimateDrift) {
+          note = 'Estimacion actual del perfil. Regenera el plan para actualizar el activo.';
+        }
+      } else if (planData?.current_estimate?.kcal_objetivo) {
+        kcalValue = planData.current_estimate.kcal_objetivo;
+        source = 'current_estimate';
       }
       if (planData) {
         setNutritionPlan(planData);
@@ -67,7 +81,7 @@ export default function NutritionScreen() {
         }
       }
 
-      setKcalInfo({ value: kcalValue, source });
+      setKcalInfo({ value: kcalValue, source, note });
 
     } catch (error) {
       console.error('Error fetching nutrition data:', error);
@@ -176,6 +190,7 @@ export default function NutritionScreen() {
   const basicMacros = calculateBasicMacros();
   const kcalDisplay = kcalInfo.value || basicMacros?.calories;
   const showFallbackNote = !kcalInfo.value && !!basicMacros?.calories;
+  const showCurrentEstimateNote = Boolean(kcalInfo.note);
 
   const nutritionTabs = [
     // ===== SISTEMA V2 (DETERMINISTA) =====
@@ -241,6 +256,11 @@ export default function NutritionScreen() {
                         {kcalDisplay}
                       </p>
                       <p className="text-sm text-gray-300/80">kcal/día</p>
+                      {showCurrentEstimateNote && (
+                        <p className="text-[11px] text-yellow-200/80 mt-1">
+                          {kcalInfo.note}
+                        </p>
+                      )}
                       {showFallbackNote && (
                         <p className="text-[11px] text-gray-400 mt-1">
                           Completa tu perfil para una recomendacion precisa.

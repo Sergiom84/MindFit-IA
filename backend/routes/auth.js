@@ -34,6 +34,7 @@ router.post('/register', async (req, res) => {
       cintura,
       pecho,
       brazos,
+      muslo,
       muslos,
       cuello,
       antebrazos,
@@ -213,13 +214,15 @@ router.post('/register', async (req, res) => {
     const limitacionesFisicasValue = normalizeArrayValue(limitacionesFisicas, isArrayColumn['limitaciones_fisicas']);
 
 
+    const musloValue = muslo ?? muslos;
+
     // Insertar usuario en la base de datos (created_at y updated_at se manejan automáticamente)
     const result = await pool.query(
       `INSERT INTO app.users (
         nombre, apellido, email, password_hash, edad, sexo, peso, altura,
         nivel_entrenamiento, anos_entrenando, frecuencia_semanal,
         metodologia_preferida, nivel_actividad, cintura, pecho, brazos,
-        muslos, cuello, antebrazos, historial_medico, limitaciones_fisicas,
+        muslo, cuello, antebrazos, historial_medico, limitaciones_fisicas,
         alergias, medicamentos, objetivo_principal, meta_peso,
         meta_grasa_corporal, enfoque_entrenamiento, horario_preferido,
         comidas_por_dia, suplementacion, alimentos_excluidos
@@ -234,7 +237,7 @@ router.post('/register', async (req, res) => {
         toNullIfEmpty(nivelEntrenamiento), anosEntrenamientoValue, frecuenciaSemanalValue,
         toNullIfEmpty(metodologiaPreferida), normalizeNivelActividad(nivelActividad),
         toNumberOrNull(cintura), toNumberOrNull(pecho), toNumberOrNull(brazos),
-        toNumberOrNull(muslos), toNumberOrNull(cuello), toNumberOrNull(antebrazos),
+        toNumberOrNull(musloValue), toNumberOrNull(cuello), toNumberOrNull(antebrazos),
         toNullIfEmpty(historialMedico), limitacionesFisicasValue,
         alergiasValue, medicamentosValue, normalizeObjetivoPrincipal(objetivoPrincipal),
         toNumberOrNull(metaPeso), toNumberOrNull(metaGrasaCorporal), normalizeEnfoqueEntrenamiento(enfoqueEntrenamiento),
