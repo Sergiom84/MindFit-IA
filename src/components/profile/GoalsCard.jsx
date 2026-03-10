@@ -17,10 +17,22 @@ export const GoalsCard = ({
   handleSave,
   handleCancel,
   handleInputChange,
+  resetGoalProgress,
   objetivosOptions,
   getObjetivoLabel
 }) => {
   const isEditing = editingSection === 'goals'
+  const progressPct = Number.isFinite(Number(userProfile.goal_progress_pct))
+    ? Math.max(0, Math.min(100, Number(userProfile.goal_progress_pct)))
+    : 0
+
+  const handleResetProgress = async () => {
+    const confirmed = window.confirm(
+      'Se reiniciará el progreso y el peso actual pasará a ser tu nuevo peso de inicio del objetivo. ¿Continuar?'
+    )
+    if (!confirmed) return
+    await resetGoalProgress?.()
+  }
 
   return (
     <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
@@ -30,6 +42,17 @@ export const GoalsCard = ({
             <Target className="mr-2 text-yellow-400" /> Objetivos y Metas
           </div>
           <div className="flex items-center gap-2">
+            {!isEditing && (
+              <Button
+                onClick={handleResetProgress}
+                size="sm"
+                variant="outline"
+                className="border-white/10 text-gray-200/80 hover:bg-white/10"
+                disabled={editingSection && editingSection !== 'goals'}
+              >
+                Reiniciar progreso
+              </Button>
+            )}
             {isEditing
               ? (
               <>
@@ -90,10 +113,13 @@ export const GoalsCard = ({
               <div className="mt-2">
                 <div className="flex justify-between text-sm text-gray-300/70 mb-1">
                   <span>Progreso hacia el objetivo</span>
-                  <span>75%</span>
+                  <span>{progressPct}%</span>
                 </div>
                 <div className="w-full bg-white/10 rounded-full h-2">
-                  <div className="bg-yellow-400 h-2 rounded-full" style={{ width: '75%' }}></div>
+                  <div
+                    className="bg-yellow-400 h-2 rounded-full"
+                    style={{ width: `${progressPct}%` }}
+                  ></div>
                 </div>
               </div>
             )}
@@ -128,6 +154,10 @@ export const GoalsCard = ({
                 <h4 className="text-sm font-semibold text-gray-200/80 mb-2">Comparación Actual vs Meta</h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
+                    <span className="text-gray-300/70">Peso Inicial:</span>
+                    <span className="text-white font-semibold ml-2">{userProfile.peso_inicio_objetivo || '-'} kg</span>
+                  </div>
+                  <div>
                     <span className="text-gray-300/70">Peso Actual:</span>
                     <span className="text-white font-semibold ml-2">{userProfile.peso} kg</span>
                   </div>
@@ -144,6 +174,10 @@ export const GoalsCard = ({
                     }`}>
                       {Math.abs(userProfile.peso - userProfile.meta_peso).toFixed(1)} kg
                     </span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-300/70">Inicio objetivo:</span>
+                    <span className="text-white font-semibold ml-2">{userProfile.objetivo_activo_desde || '-'}</span>
                   </div>
                 </div>
               </div>

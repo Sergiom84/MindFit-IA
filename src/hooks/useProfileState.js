@@ -31,6 +31,9 @@ export const useProfileState = () => {
     objetivo_principal: '',
     meta_peso: '',
     meta_grasa: '',
+    peso_inicio_objetivo: '',
+    objetivo_activo_desde: '',
+    goal_progress_pct: 0,
     fecha_inicio_objetivo: '',
     fecha_meta_objetivo: '',
     notas_progreso: '',
@@ -61,6 +64,28 @@ export const useProfileState = () => {
   const [userProfile, setUserProfile] = useState(defaultProfile)
   const [editingSection, setEditingSection] = useState(null)
   const [editedData, setEditedData] = useState({})
+
+  const getAuthSession = useCallback(() => {
+    const token = localStorage.getItem('token')
+    if (!token) return { token: null, userId: null }
+
+    const userKeys = ['user', 'userProfile', 'userData']
+    for (const key of userKeys) {
+      const raw = localStorage.getItem(key)
+      if (!raw) continue
+      try {
+        const parsed = JSON.parse(raw)
+        const directId = parsed?.id
+        const nestedId = parsed?.user?.id
+        const userId = directId ?? nestedId ?? null
+        if (userId) return { token, userId: Number(userId) }
+      } catch {
+        // Ignorar JSON inválido en claves legacy.
+      }
+    }
+
+    return { token, userId: null }
+  }, [])
 
   // Helpers de mapeo UI<->DB
   const toNumber = (v) => (v === '' || v === null || v === undefined ? null : Number(v))
@@ -120,9 +145,12 @@ export const useProfileState = () => {
       ejercicios_por_dia_preferido: u.ejercicios_por_dia_preferido ?? '',
       semanas_entrenamiento: u.semanas_entrenamiento ?? '',
       // Objetivos y Metas
-      objetivo_principal: u.objetivo_principal || '',
+      objetivo_principal: u.objetivo_principal || u.u_objetivo_principal || '',
       meta_peso: u.meta_peso ?? '',
       meta_grasa: u.meta_grasa ?? '',
+      peso_inicio_objetivo: u.peso_inicio_objetivo ?? '',
+      objetivo_activo_desde: u.objetivo_activo_desde ?? '',
+      goal_progress_pct: u.goal_progress_pct ?? 0,
       fecha_inicio_objetivo: u.fecha_inicio_objetivo || '',
       fecha_meta_objetivo: u.fecha_meta_objetivo || '',
       notas_progreso: u.notas_progreso || '',
@@ -198,12 +226,9 @@ export const useProfileState = () => {
     }
 
     // Intentar cargar desde API si hay usuario autenticado (claves legacy por ahora)
-    const token = localStorage.getItem('token')
-    const userStr = localStorage.getItem('user')
-    if (token && userStr) {
-      const u = JSON.parse(userStr)
-      if (u?.id) {
-        fetch(`/api/users/${u.id}`, {
+    const { token, userId } = getAuthSession()
+    if (token && userId) {
+      fetch(`/api/users/${userId}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
           .then(r => r.ok ? r.json() : Promise.reject(r))
@@ -215,9 +240,8 @@ export const useProfileState = () => {
             }
           })
           .catch(err => console.error('Error cargando perfil desde API:', err))
-      }
     }
-  }, [defaultProfile, mapDbToUi])
+  }, [defaultProfile, mapDbToUi, getAuthSession])
 
   // Guardar datos del perfil en localStorage cuando cambien (clave dedicada)
   useEffect(() => {
@@ -388,14 +412,12 @@ export const useProfileState = () => {
     setUserProfile(prev => ({ ...prev, ...normalizedData }))
 
     try {
-      const token = localStorage.getItem('token')
-      const userStr = localStorage.getItem('user')
-      const u = userStr ? JSON.parse(userStr) : null
-      if (!token || !u?.id) return
+      const { token, userId } = getAuthSession()
+      if (!token || !userId) return
 
       const payload = mapUiToDb(normalizedData)
 
-      const resp = await fetch(`/api/users/${u.id}`, {
+      const resp = await fetch(`/api/users/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -406,6 +428,13 @@ export const useProfileState = () => {
 
       if (!resp.ok) {
         console.error('Error guardando perfil:', await resp.text())
+      } else {
+        const data = await resp.json()
+        if (data?.user) {
+          const ui = mapDbToUi(data.user)
+          setUserProfile(ui)
+          localStorage.setItem('profileData', JSON.stringify(ui))
+        }
       }
     } catch (e) {
       console.error('Error en handleSave:', e)
@@ -428,14 +457,12 @@ export const useProfileState = () => {
     setUserProfile(prev => ({ ...prev, ...normalizedData }))
 
     try {
-      const token = localStorage.getItem('token')
-      const userStr = localStorage.getItem('user')
-      const u = userStr ? JSON.parse(userStr) : null
-      if (!token || !u?.id) return false
+      const { token, userId } = getAuthSession()
+      if (!token || !userId) return false
 
       const payload = mapUiToDb(normalizedData)
 
-      const resp = await fetch(`/api/users/${u.id}`, {
+      const resp = await fetch(`/api/users/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -447,6 +474,13 @@ export const useProfileState = () => {
       if (!resp.ok) {
         console.error('Error guardando perfil:', await resp.text())
         return false
+      }
+
+      const dataResp = await resp.json()
+      if (dataResp?.user) {
+        const ui = mapDbToUi(dataResp.user)
+        setUserProfile(ui)
+        localStorage.setItem('profileData', JSON.stringify(ui))
       }
 
       return true
@@ -462,10 +496,8 @@ export const useProfileState = () => {
     setUserProfile(prev => ({ ...prev, ...data }))
 
     try {
-      const token = localStorage.getItem('token')
-      const userStr = localStorage.getItem('user')
-      const u = userStr ? JSON.parse(userStr) : null
-      if (!token || !u?.id) return false
+      const { token, userId } = getAuthSession()
+      if (!token || !userId) return false
 
       const payload = {
         usar_preferencias_ia: data.usar_preferencias_ia,
@@ -474,7 +506,7 @@ export const useProfileState = () => {
         semanas_entrenamiento: data.semanas_entrenamiento
       }
 
-      const resp = await fetch(`/api/users/${u.id}/training-preferences`, {
+      const resp = await fetch(`/api/users/${userId}/training-preferences`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -495,6 +527,37 @@ export const useProfileState = () => {
     }
   }
 
+  const resetGoalProgress = async () => {
+    try {
+      const { token, userId } = getAuthSession()
+      if (!token || !userId) return false
+
+      const resp = await fetch(`/api/users/${userId}/objective/reset`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!resp.ok) {
+        console.error('Error reiniciando progreso:', await resp.text())
+        return false
+      }
+
+      const data = await resp.json()
+      if (data?.user) {
+        const ui = mapDbToUi(data.user)
+        setUserProfile(ui)
+        localStorage.setItem('profileData', JSON.stringify(ui))
+      }
+
+      return true
+    } catch (e) {
+      console.error('Error en resetGoalProgress:', e)
+      return false
+    }
+  }
+
   const handleInputChange = (field, value) => {
     setEditedData(prev => ({
       ...prev,
@@ -510,6 +573,7 @@ export const useProfileState = () => {
     handleSave,
     handleCancel,
     handleInputChange,
+    resetGoalProgress,
     saveProfileData,
     saveTrainingPreferences,
     sexoOptions,

@@ -366,3 +366,13 @@
 - Fix en cancelacion de plan activo: UPDATE con ORDER BY/LIMIT reemplazado por CTE.
 - Ajuste del script HipertrofiaV2 para enviar RIR entero y normalizar exercise_id.
 - Busqueda por nombre en catalogo de ejercicios extendida a hipertrofia + fallback de exercise_id en simulacion.
+
+## 2026-03-10
+
+- Nutrición/perfil: corregido en `NutritionPlanGenerator` el mapeo de comidas para leer `comidas_por_dia` (con fallback legacy `comidas_diarias`) y persistir sincronización con `comidas_por_dia`, tras detectar que el botón de resync tomaba un valor erróneo por nombre de campo inconsistente.
+- Reformateado `docs/MindFeed_Incidencias_Nutricion_v2.md` para dejarlo estructurado en secciones, tablas y criterios de aceptación legibles.
+- Convertido `MindFeed_Incidencias_Nutricion_v2.pdf` a Markdown y guardado en `docs/MindFeed_Incidencias_Nutricion_v2.md`.
+- Nutrición (sincronización perfil↔nutrición): corregido mapeo de comidas en `NutritionPlanGenerator` para usar `comidas_por_dia` (fallback legacy `comidas_diarias`) tanto al leer `userData` como al persistir sincronización (`syncUpdates.comidas_por_dia`), y ampliado mapeo de objetivos generales (`salud_general`, `mejorar_flexibilidad`) hacia fase nutricional `mant`.
+- Perfil/Objetivos (progreso real): restaurado cálculo backend de `goal_progress_pct` con baseline (`peso_inicio_objetivo`, `objetivo_activo_desde`), actualización automática del baseline al definir/cambiar dirección de `meta_peso`, endpoint `POST /api/users/:id/objective/reset` y consumo en frontend para mostrar barra de progreso real (sin valor fijo) + botón “Reiniciar progreso”.
+- Perfil/Objetivos (barra en 0): reforzado `useProfileState` para leer sesión desde claves auth reales (`user`, `userProfile`, `userData`), refrescar estado con la respuesta real del backend tras guardar perfil, y exponer `resetGoalProgress` para que el botón de reinicio aplique el baseline y actualice la barra al momento.
+- Rollback solicitado en nutrición: revertidos en `NutritionPlanGenerator` los cambios recientes de mapeo de `salud_general/mejorar_flexibilidad` y la migración de `comidas_por_dia`↔`comidas_diarias`, volviendo al comportamiento previo.

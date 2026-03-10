@@ -1,6 +1,11 @@
 import express from 'express';
 import { pool } from '../db.js';
 import authenticateToken from '../middleware/auth.js';
+import {
+  calculateGoalProgressPct,
+  shouldResetBaselineForMetaChange,
+  toNumericOrNull
+} from '../services/goalProgressService.js';
 
 // Mapeo de objetivo principal: frontend → backend
 const OBJETIVO_PRINCIPAL_MAP = {
@@ -69,51 +74,71 @@ function normalizeLegacyBodyFields(payload = {}) {
 
 const router = express.Router();
 
+const USER_PROFILE_QUERY = `
+  SELECT
+    u.id, u.nombre, u.apellido, u.email, u.created_at,
+    u.edad, u.sexo, u.peso, u.altura,
+    u.nivel_entrenamiento, u.anos_entrenando, u.frecuencia_semanal,
+    u.nivel_actividad, u.cintura, u.pecho, u.brazos,
+    u.muslo, u.cuello, u.antebrazos, u.gemelo, u.pliegue_abdominal,
+    u.historial_medico,
+    u.alergias, u.medicamentos, u.lesiones, u.meta_peso, u.meta_grasa,
+    u.peso_inicio_objetivo, u.objetivo_activo_desde,
+    u.fecha_inicio_objetivo, u.fecha_meta_objetivo, u.notas_progreso,
+    u.meta_grasa_corporal, u.enfoque_entrenamiento, u.horario_preferido,
+    u.comidas_por_dia, u.suplementacion, u.alimentos_excluidos,
+    u.grasa_corporal, u.masa_magra, u.agua_corporal, u.metabolismo_basal,
+    u.cadera,
+    p.metodologia_preferida, p.limitaciones_fisicas,
+    COALESCE(p.objetivo_principal, u.objetivo_principal) AS objetivo_principal,
+    p.usar_preferencias_ia, p.dias_preferidos_entrenamiento, p.ejercicios_por_dia_preferido,
+    p.semanas_entrenamiento,
+    u.objetivo_principal as u_objetivo_principal
+  FROM app.users u
+  LEFT JOIN app.user_profiles p ON u.id = p.user_id
+  WHERE u.id = $1
+`;
+
+const enrichUserProfile = (row) => {
+  const user = { ...row };
+  user.goal_progress_pct = calculateGoalProgressPct({
+    startWeight: user.peso_inicio_objetivo,
+    currentWeight: user.peso,
+    targetWeight: user.meta_peso
+  });
+
+  if (user.fecha_inicio_objetivo) {
+    user.fecha_inicio_objetivo = formatDateToDDMMYYYY(user.fecha_inicio_objetivo);
+  }
+  if (user.fecha_meta_objetivo) {
+    user.fecha_meta_objetivo = formatDateToDDMMYYYY(user.fecha_meta_objetivo);
+  }
+  if (user.objetivo_activo_desde) {
+    user.objetivo_activo_desde = formatDateToDDMMYYYY(user.objetivo_activo_desde);
+  }
+
+  return user;
+};
+
+const getUserProfileById = async (db, userId) => {
+  const result = await db.query(USER_PROFILE_QUERY, [userId]);
+  if (result.rows.length === 0) return null;
+  return enrichUserProfile(result.rows[0]);
+};
+
 // Obtener perfil de usuario
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
+    const userId = parseInt(req.params.id, 10);
     
     // Verificar que el usuario solo pueda acceder a su propio perfil
-    if (req.user.userId !== parseInt(id)) {
+    if (req.user.userId !== userId) {
       return res.status(403).json({ error: 'No autorizado' });
     }
 
-    const result = await pool.query(
-      `SELECT
-        u.id, u.nombre, u.apellido, u.email, u.created_at,
-        u.edad, u.sexo, u.peso, u.altura,
-        u.nivel_entrenamiento, u.anos_entrenando, u.frecuencia_semanal,
-        u.nivel_actividad, u.cintura, u.pecho, u.brazos,
-        u.muslo, u.cuello, u.antebrazos, u.gemelo, u.pliegue_abdominal,
-        u.historial_medico,
-        u.alergias, u.medicamentos, u.lesiones, u.meta_peso, u.meta_grasa,
-        u.fecha_inicio_objetivo, u.fecha_meta_objetivo, u.notas_progreso,
-        u.meta_grasa_corporal, u.enfoque_entrenamiento, u.horario_preferido,
-        u.comidas_por_dia, u.suplementacion, u.alimentos_excluidos,
-        u.grasa_corporal, u.masa_magra, u.agua_corporal, u.metabolismo_basal,
-        u.cadera,
-        p.metodologia_preferida, p.limitaciones_fisicas, p.objetivo_principal,
-        p.usar_preferencias_ia, p.dias_preferidos_entrenamiento, p.ejercicios_por_dia_preferido,
-        p.semanas_entrenamiento,
-        u.objetivo_principal as u_objetivo_principal
-      FROM app.users u
-      LEFT JOIN app.user_profiles p ON u.id = p.user_id
-      WHERE u.id = $1`,
-      [id]
-    );
-
-    if (result.rows.length === 0) {
+    const user = await getUserProfileById(pool, userId);
+    if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-
-    // Formatear fechas antes de enviar la respuesta
-    const user = result.rows[0];
-    if (user.fecha_inicio_objetivo) {
-      user.fecha_inicio_objetivo = formatDateToDDMMYYYY(user.fecha_inicio_objetivo);
-    }
-    if (user.fecha_meta_objetivo) {
-      user.fecha_meta_objetivo = formatDateToDDMMYYYY(user.fecha_meta_objetivo);
     }
 
     res.json({ user });
@@ -129,15 +154,37 @@ router.put('/:id', authenticateToken, async (req, res) => {
   const client = await pool.connect();
   
   try {
-    const { id } = req.params;
+    const userId = parseInt(req.params.id, 10);
     
     // Verificar que el usuario solo pueda actualizar su propio perfil
-    if (req.user.userId !== parseInt(id)) {
+    if (req.user.userId !== userId) {
       return res.status(403).json({ error: 'No autorizado' });
     }
 
     await client.query('BEGIN');
     const requestBody = normalizeLegacyBodyFields(req.body);
+
+    const currentUserResult = await client.query(
+      `SELECT peso, meta_peso, peso_inicio_objetivo
+       FROM app.users
+       WHERE id = $1
+       FOR UPDATE`,
+      [userId]
+    );
+
+    if (currentUserResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    const currentUser = currentUserResult.rows[0];
+    const hasWeightUpdate = requestBody.peso !== undefined;
+    const nextWeight = hasWeightUpdate ? toNumericOrNull(requestBody.peso) : null;
+
+    if (hasWeightUpdate && nextWeight === null) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'El peso debe ser un número válido' });
+    }
 
     // Separar campos según la tabla correspondiente
     const usersFields = [
@@ -186,8 +233,35 @@ router.put('/:id', authenticateToken, async (req, res) => {
       usersParamCount++;
     }
 
+    const hasMetaUpdate = requestBody.meta_peso !== undefined;
+    const previousMetaWeight = toNumericOrNull(currentUser.meta_peso);
+    const nextMetaWeight = hasMetaUpdate
+      ? toNumericOrNull(requestBody.meta_peso)
+      : previousMetaWeight;
+    const previousStartWeight = toNumericOrNull(currentUser.peso_inicio_objetivo);
+    const currentWeightForRules = hasWeightUpdate
+      ? nextWeight
+      : toNumericOrNull(currentUser.peso);
+
+    const shouldInitializeBaseline = nextMetaWeight !== null && previousStartWeight === null;
+    const shouldResetForDirection = hasMetaUpdate && shouldResetBaselineForMetaChange({
+      currentWeight: currentWeightForRules,
+      previousMetaWeight,
+      nextMetaWeight
+    });
+
+    if ((shouldInitializeBaseline || shouldResetForDirection) && currentWeightForRules !== null) {
+      usersUpdateFields.push(`peso_inicio_objetivo = $${usersParamCount}`);
+      usersValues.push(currentWeightForRules);
+      usersParamCount++;
+
+      usersUpdateFields.push(`objetivo_activo_desde = $${usersParamCount}`);
+      usersValues.push(new Date().toISOString().slice(0, 10));
+      usersParamCount++;
+    }
+
     if (usersUpdateFields.length > 0) {
-      usersValues.push(id);
+      usersValues.push(userId);
       const usersQuery = `
         UPDATE app.users
         SET ${usersUpdateFields.join(', ')}, updated_at = NOW()
@@ -216,12 +290,12 @@ router.put('/:id', authenticateToken, async (req, res) => {
     }
 
     if (profilesUpdateFields.length > 0) {
-      profilesValues.push(id);
+      profilesValues.push(userId);
       
       // Verificar si existe el registro en user_profiles
       const existsResult = await client.query(
         'SELECT id FROM app.user_profiles WHERE user_id = $1',
-        [id]
+        [userId]
       );
 
       if (existsResult.rows.length > 0) {
@@ -235,7 +309,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       } else {
         // Crear nuevo registro en user_profiles
         const insertFields = ['user_id', ...profilesFields.filter(field => requestBody[field] !== undefined)];
-        const insertValues = [id, ...profilesFields.filter(field => requestBody[field] !== undefined).map(field => {
+        const insertValues = [userId, ...profilesFields.filter(field => requestBody[field] !== undefined).map(field => {
           if (field === 'objetivo_principal') {
             const mapped = mapObjetivoPrincipal(requestBody[field]);
             console.log(`🔄 Mapeando objetivo principal en INSERT: "${requestBody[field]}" → "${mapped}"`);
@@ -255,43 +329,22 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     await client.query('COMMIT');
 
-    // Obtener los datos actualizados
-    const result = await client.query(
-      `SELECT 
-        u.id, u.nombre, u.apellido, u.email,
-        u.meta_peso, u.meta_grasa_corporal, u.fecha_inicio_objetivo, 
-        u.fecha_meta_objetivo, u.notas_progreso, u.objetivo_principal as u_objetivo_principal,
-        p.metodologia_preferida, p.limitaciones_fisicas, p.objetivo_principal
-      FROM app.users u
-      LEFT JOIN app.user_profiles p ON u.id = p.user_id
-      WHERE u.id = $1`,
-      [id]
-    );
-
-    if (result.rows.length === 0) {
+    const updatedUser = await getUserProfileById(client, userId);
+    if (!updatedUser) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    console.log(`✅ Perfil actualizado para usuario ${id}:`, {
-      metodologia_preferida: result.rows[0].metodologia_preferida,
-      objetivo_principal: result.rows[0].objetivo_principal,
-      objetivo_principal_users: result.rows[0].u_objetivo_principal,
-      limitaciones_fisicas: result.rows[0].limitaciones_fisicas,
-      meta_peso: result.rows[0].meta_peso,
-      meta_grasa_corporal: result.rows[0].meta_grasa_corporal,
-      fecha_inicio_objetivo: result.rows[0].fecha_inicio_objetivo,
-      fecha_meta_objetivo: result.rows[0].fecha_meta_objetivo,
-      notas_progreso: result.rows[0].notas_progreso
+    console.log(`✅ Perfil actualizado para usuario ${userId}:`, {
+      metodologia_preferida: updatedUser.metodologia_preferida,
+      objetivo_principal: updatedUser.objetivo_principal,
+      objetivo_principal_users: updatedUser.u_objetivo_principal,
+      limitaciones_fisicas: updatedUser.limitaciones_fisicas,
+      meta_peso: updatedUser.meta_peso,
+      meta_grasa_corporal: updatedUser.meta_grasa_corporal,
+      peso_inicio_objetivo: updatedUser.peso_inicio_objetivo,
+      objetivo_activo_desde: updatedUser.objetivo_activo_desde,
+      goal_progress_pct: updatedUser.goal_progress_pct
     });
-
-    // Formatear fechas antes de enviar la respuesta
-    const updatedUser = result.rows[0];
-    if (updatedUser.fecha_inicio_objetivo) {
-      updatedUser.fecha_inicio_objetivo = formatDateToDDMMYYYY(updatedUser.fecha_inicio_objetivo);
-    }
-    if (updatedUser.fecha_meta_objetivo) {
-      updatedUser.fecha_meta_objetivo = formatDateToDDMMYYYY(updatedUser.fecha_meta_objetivo);
-    }
 
     res.json({
       message: 'Perfil actualizado exitosamente',
@@ -302,6 +355,67 @@ router.put('/:id', authenticateToken, async (req, res) => {
     await client.query('ROLLBACK');
     console.error('❌ Error actualizando perfil:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
+  } finally {
+    client.release();
+  }
+});
+
+// Reiniciar baseline del objetivo de peso
+router.post('/:id/objective/reset', authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const userId = parseInt(req.params.id, 10);
+
+    if (req.user.userId !== userId) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+
+    await client.query('BEGIN');
+
+    const currentUserResult = await client.query(
+      `SELECT peso
+       FROM app.users
+       WHERE id = $1
+       FOR UPDATE`,
+      [userId]
+    );
+
+    if (currentUserResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    const currentWeight = toNumericOrNull(currentUserResult.rows[0].peso);
+    if (currentWeight === null) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'No hay peso actual para reiniciar el progreso' });
+    }
+
+    await client.query(
+      `UPDATE app.users
+       SET peso_inicio_objetivo = $1,
+           objetivo_activo_desde = $2,
+           updated_at = NOW()
+       WHERE id = $3`,
+      [currentWeight, new Date().toISOString().slice(0, 10), userId]
+    );
+
+    await client.query('COMMIT');
+
+    const user = await getUserProfileById(pool, userId);
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    return res.json({
+      message: 'Progreso reiniciado exitosamente',
+      user
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('❌ Error reiniciando progreso del objetivo:', error);
+    return res.status(500).json({ error: 'Error interno del servidor' });
   } finally {
     client.release();
   }
