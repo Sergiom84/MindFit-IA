@@ -376,3 +376,8 @@
 - Perfil/Objetivos (progreso real): restaurado cálculo backend de `goal_progress_pct` con baseline (`peso_inicio_objetivo`, `objetivo_activo_desde`), actualización automática del baseline al definir/cambiar dirección de `meta_peso`, endpoint `POST /api/users/:id/objective/reset` y consumo en frontend para mostrar barra de progreso real (sin valor fijo) + botón “Reiniciar progreso”.
 - Perfil/Objetivos (barra en 0): reforzado `useProfileState` para leer sesión desde claves auth reales (`user`, `userProfile`, `userData`), refrescar estado con la respuesta real del backend tras guardar perfil, y exponer `resetGoalProgress` para que el botón de reinicio aplique el baseline y actualice la barra al momento.
 - Rollback solicitado en nutrición: revertidos en `NutritionPlanGenerator` los cambios recientes de mapeo de `salud_general/mejorar_flexibilidad` y la migración de `comidas_por_dia`↔`comidas_diarias`, volviendo al comportamiento previo.
+
+## 2026-03-12
+
+- Nutrición/perfil: `NutritionPlanGenerator` ahora fuerza `refreshProfile()` al entrar y usa un snapshot fresco del perfil general para sincronizar objetivo, actividad y comidas, evitando que el selector cargue valores obsoletos del `UserContext` cacheado.
+- Nutrición/comidas bajas: se amplía el selector a 1-6 comidas en `NutritionPlanGenerator`, con modal de confirmación para 1-2 comidas al seleccionar o al generar el plan si ese valor aún no se ha confirmado en la sesión; además, backend y constraints pasan a permitir 1-2 comidas y se añaden tests de distribución para 1 y 2 comidas diarias.

@@ -359,7 +359,7 @@ export function summarizeCarbCycling(days = [], kcalObjetivo = 0) {
 /**
  * Distribuye macros entre comidas del día
  * @param {Object} dayMacros - Macros totales del día
- * @param {number} numMeals - Número de comidas (3-6)
+ * @param {number} numMeals - Número de comidas (1-6)
  * @param {boolean} isTrainingDay - Si es día de entrenamiento
  * @returns {Array} Array de objetos con macros por comida
  */
@@ -370,7 +370,34 @@ export function distributeMacrosAcrossMeals(dayMacros, numMeals = 4, isTrainingD
   const mealNames = ['Desayuno', 'Almuerzo', 'Comida', 'Merienda', 'Cena', 'Snack nocturno'];
   const meals = [];
 
-  if (numMeals === 3) {
+  if (numMeals === 1) {
+    meals.push({
+      nombre: 'Comida principal',
+      orden: 1,
+      kcal: Math.round(kcal),
+      macros: {
+        protein_g: Math.round(protein_g),
+        carbs_g: Math.round(carbs_g),
+        fat_g: Math.round(fat_g)
+      },
+      timing_note: isTrainingDay ? 'Prioriza esta comida cerca del entreno si te resulta cómodo.' : null
+    });
+  } else if (numMeals === 2) {
+    const distributions = [0.45, 0.55];
+    for (let i = 0; i < 2; i++) {
+      meals.push({
+        nombre: ['Primera comida', 'Segunda comida'][i],
+        orden: i + 1,
+        kcal: Math.round(kcal * distributions[i]),
+        macros: {
+          protein_g: Math.round(protein_g * distributions[i]),
+          carbs_g: Math.round(carbs_g * distributions[i]),
+          fat_g: Math.round(fat_g * distributions[i])
+        },
+        timing_note: isTrainingDay && i === 1 ? 'Post-entreno' : null
+      });
+    }
+  } else if (numMeals === 3) {
     // 3 comidas: 30% - 40% - 30%
     const distributions = [0.30, 0.40, 0.30];
     for (let i = 0; i < 3; i++) {
@@ -433,6 +460,10 @@ export function distributeMacrosAcrossMeals(dayMacros, numMeals = 4, isTrainingD
         timing_note: isTrainingDay && i === 3 ? 'Post-entreno' : null
       });
     }
+  }
+
+  if (meals.length === 0) {
+    return distributeMacrosAcrossMeals(dayMacros, 4, isTrainingDay);
   }
 
   return meals;

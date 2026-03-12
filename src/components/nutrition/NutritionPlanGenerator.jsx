@@ -30,6 +30,7 @@ const DIAS_SEMANA_DATE = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
 const DURATION_PRESETS = [7, 14, 21, 28];
 const MAX_PLAN_DAYS = 28;
 const MIN_PLAN_DAYS = 3;
+const LOW_MEAL_COUNTS = new Set([1, 2]);
 
 const OBJECTIVE_OPTIONS = [
   { value: 'cut', label: 'Definicion', desc: 'Perder grasa' },
@@ -306,6 +307,15 @@ const buildProfileStateFromUser = (profileData, userObjective, userActivity, use
   alergias: Array.isArray(profileData?.alergias) ? profileData.alergias : []
 });
 
+const LOW_MEAL_COUNT_WARNING_COPY = {
+  title: '¿Seguro que quieres usar pocas comidas al día?',
+  description:
+    'Con 1 o 2 comidas al día, según tus calorías objetivo, puede ser más difícil repartir bien calorías y macronutrientes. En muchos casos resulta más fácil organizar el plan en 3 o más comidas.',
+  confirmSelection: 'Entendido y mantener esta opción',
+  confirmGeneration: 'Entendido y generar plan',
+  cancel: 'Cancelar y elegir otro número'
+};
+
 /**
  * Generador de plan nutricional determinista con configuracion integrada
  */
@@ -317,6 +327,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
   } = useUserContext();
 
   const [profileLoading, setProfileLoading] = useState(true);
+  const [freshUserData, setFreshUserData] = useState(null);
   const [profileLoadError, setProfileLoadError] = useState(null);
   const [profileSaveError, setProfileSaveError] = useState(null);
   const [profileSaving, setProfileSaving] = useState(false);
@@ -336,6 +347,12 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
   });
   const [showActivityHelp, setShowActivityHelp] = useState(false);
   const [nutritionOverridesProfile, setNutritionOverridesProfile] = useState(false);
+  const [confirmedLowMealCount, setConfirmedLowMealCount] = useState(null);
+  const [mealCountWarning, setMealCountWarning] = useState({
+    open: false,
+    nextValue: null,
+    source: null
+  });
   const [trainingPlanInfo, setTrainingPlanInfo] = useState({
     loading: true,
     hasPlan: false,
@@ -351,20 +368,82 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     previewSchedule: null
   });
 
-  const userObjective = userData?.objetivo_principal
-    ? GOAL_FROM_USER[userData.objetivo_principal] || null
+  const effectiveUserData = freshUserData || userData;
+
+  const userObjective = effectiveUserData?.objetivo_principal
+    ? GOAL_FROM_USER[effectiveUserData.objetivo_principal] || null
     : null;
-  const userActivity = userData?.nivel_actividad
-    ? ACTIVITY_FROM_USER[userData.nivel_actividad] || null
+  const userActivity = effectiveUserData?.nivel_actividad
+    ? ACTIVITY_FROM_USER[effectiveUserData.nivel_actividad] || null
     : null;
-  const userMeals = userData?.comidas_diarias
-    ? Number(userData.comidas_diarias)
+  const rawUserMeals = effectiveUserData?.comidas_por_dia ?? effectiveUserData?.comidas_diarias;
+  const userMeals = rawUserMeals
+    ? Number(rawUserMeals)
     : null;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const refreshUserSnapshot = async () => {
+      try {
+        const latestProfile = await refreshProfile?.();
+        if (isMounted && latestProfile) {
+          setFreshUserData(latestProfile);
+        }
+      } catch (error) {
+        console.warn('No se pudo refrescar el perfil antes de cargar nutricion:', error);
+      }
+    };
+
+    void refreshUserSnapshot();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [refreshProfile]);
 
   const loadProfileFromUserData = async () => {
     const nextProfile = buildProfileStateFromUser(profileData, userObjective, userActivity, userMeals);
     setProfileData(nextProfile);
+    setConfirmedLowMealCount(null);
     await handleSaveProfile(nextProfile, false);
+  };
+
+  const applyMealCountSelection = (count, { confirmed = false } = {}) => {
+    setProfileData((prev) => ({ ...prev, comidas_dia: count }));
+    if (LOW_MEAL_COUNTS.has(Number(count)) && confirmed) {
+      setConfirmedLowMealCount(Number(count));
+      return;
+    }
+    if (!LOW_MEAL_COUNTS.has(Number(count))) {
+      setConfirmedLowMealCount(null);
+    }
+  };
+
+  const requestMealCountSelection = (count) => {
+    if (!LOW_MEAL_COUNTS.has(Number(count))) {
+      applyMealCountSelection(count);
+      return;
+    }
+
+    if (Number(profileData.comidas_dia) === Number(count) && confirmedLowMealCount === Number(count)) {
+      applyMealCountSelection(count, { confirmed: true });
+      return;
+    }
+
+    setMealCountWarning({
+      open: true,
+      nextValue: Number(count),
+      source: 'selection'
+    });
+  };
+
+  const closeMealCountWarning = () => {
+    setMealCountWarning({
+      open: false,
+      nextValue: null,
+      source: null
+    });
   };
 
   useEffect(() => {
@@ -827,19 +906,19 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
       const mappedActivity = ACTIVITY_TO_USER[dataToSave.actividad];
       const mappedMeals = Number(dataToSave.comidas_dia);
 
-      if (mappedGoal && mappedGoal !== userData?.objetivo_principal) {
+      if (mappedGoal && mappedGoal !== effectiveUserData?.objetivo_principal) {
         syncUpdates.objetivo_principal = mappedGoal;
       }
-      if (mappedActivity && mappedActivity !== userData?.nivel_actividad) {
+      if (mappedActivity && mappedActivity !== effectiveUserData?.nivel_actividad) {
         syncUpdates.nivel_actividad = mappedActivity;
       }
       if (
         mappedMeals &&
         !Number.isNaN(mappedMeals) &&
         mappedMeals > 0 &&
-        mappedMeals !== Number(userData?.comidas_diarias)
+        mappedMeals !== Number(effectiveUserData?.comidas_por_dia ?? effectiveUserData?.comidas_diarias)
       ) {
-        syncUpdates.comidas_diarias = mappedMeals;
+        syncUpdates.comidas_por_dia = mappedMeals;
       }
 
       if (Object.keys(syncUpdates).length > 0) {
@@ -857,7 +936,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     return wasSaved;
   };
 
-  const handleGeneratePlan = async () => {
+  const continueGeneratePlan = async () => {
     setPlanLoading(true);
     setPlanError(null);
     setPlanSuccess(false);
@@ -929,6 +1008,42 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     } finally {
       setPlanLoading(false);
     }
+  };
+
+  const handleGeneratePlan = async () => {
+    const selectedMeals = Number(profileData.comidas_dia);
+    if (
+      LOW_MEAL_COUNTS.has(selectedMeals) &&
+      confirmedLowMealCount !== selectedMeals
+    ) {
+      setMealCountWarning({
+        open: true,
+        nextValue: selectedMeals,
+        source: 'generate'
+      });
+      return;
+    }
+
+    await continueGeneratePlan();
+  };
+
+  const handleMealCountWarningConfirm = async () => {
+    const nextValue = Number(mealCountWarning.nextValue);
+    if (!LOW_MEAL_COUNTS.has(nextValue)) {
+      closeMealCountWarning();
+      return;
+    }
+
+    setConfirmedLowMealCount(nextValue);
+
+    if (mealCountWarning.source === 'selection') {
+      applyMealCountSelection(nextValue, { confirmed: true });
+      closeMealCountWarning();
+      return;
+    }
+
+    closeMealCountWarning();
+    await continueGeneratePlan();
   };
 
   const isDailySchedule = config.training_schedule.length > DIAS_SEMANA.length;
@@ -1101,11 +1216,11 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                 Comidas por dia
               </h4>
               <div className="flex flex-wrap gap-2">
-                {[3, 4, 5, 6].map((count) => (
+                {[1, 2, 3, 4, 5, 6].map((count) => (
                   <button
                     key={count}
                     type="button"
-                    onClick={() => setProfileData((prev) => ({ ...prev, comidas_dia: count }))}
+                    onClick={() => requestMealCountSelection(count)}
                     className={`px-4 py-3 rounded-lg font-semibold transition-all ${
                       profileData.comidas_dia === count
                         ? 'bg-yellow-400 text-gray-900'
@@ -1117,6 +1232,9 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
                   </button>
                 ))}
               </div>
+              <p className="mt-2 text-xs text-gray-500">
+                Puedes usar 1 o 2 comidas si te encaja mejor, pero te pediremos confirmación antes de aplicarlo o generar el plan.
+              </p>
             </div>
 
             <div className="space-y-4">
@@ -1518,6 +1636,47 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
               )}
             </button>
           </div>
+
+          {mealCountWarning.open && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+              <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-neutral-900 p-6 shadow-2xl">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="mt-0.5 h-6 w-6 text-yellow-400" />
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="text-lg font-semibold text-white">
+                        {LOW_MEAL_COUNT_WARNING_COPY.title}
+                      </h4>
+                      <p className="mt-2 text-sm text-gray-300">
+                        {LOW_MEAL_COUNT_WARNING_COPY.description}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100">
+                      Has elegido <strong>{mealCountWarning.nextValue}</strong> comida{mealCountWarning.nextValue === 1 ? '' : 's'} al día.
+                    </div>
+                    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                      <button
+                        type="button"
+                        onClick={closeMealCountWarning}
+                        className="rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-gray-300 hover:bg-white/5"
+                      >
+                        {LOW_MEAL_COUNT_WARNING_COPY.cancel}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleMealCountWarningConfirm}
+                        className="rounded-xl bg-yellow-400 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-yellow-300"
+                      >
+                        {mealCountWarning.source === 'generate'
+                          ? LOW_MEAL_COUNT_WARNING_COPY.confirmGeneration
+                          : LOW_MEAL_COUNT_WARNING_COPY.confirmSelection}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         {generatedPlan && (
