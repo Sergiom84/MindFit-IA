@@ -428,7 +428,14 @@ function resolvePhaseContext(profile) {
 }
 
 function resolveMealType(meal) {
+  const explicitMealType = String(meal?.meal_type || '').trim().toUpperCase();
+  if (['DESAYUNO', 'SNACK', 'COMIDA', 'CENA'].includes(explicitMealType)) {
+    return explicitMealType;
+  }
+
   const mealName = String(meal?.nombre || '').trim().toLowerCase();
+  if (mealName === 'primera comida') return 'COMIDA';
+  if (mealName === 'segunda comida') return 'CENA';
   if (mealName.includes('desay')) return 'DESAYUNO';
   if (mealName.includes('cena')) return 'CENA';
   if (mealName.includes('almuerzo')) return 'SNACK';
@@ -2097,6 +2104,7 @@ async function generateDeterministicMenuForMeal({
   });
 
   let bestResult = null;
+  let bestBlockedResult = null;
   let balanceBlockedCount = 0;
   let balanceBlockedExample = null;
 
@@ -2171,6 +2179,32 @@ async function generateDeterministicMenuForMeal({
         + validation.error_fat_porcentaje
       ) / 3;
       const balanceEval = evaluateCandidateMealBalance(menuItems, mealMacros, fallbackMealKcalTarget);
+      const emergencyScore = Number(((maxError * 0.75) + (avgMacroError * 0.25) + balanceEval.penaltyScore + 50).toFixed(6));
+      const blockedCandidateResult = {
+        menu: {
+          items: menuItems,
+          instrucciones: `Menú determinista de rescate generado con plantilla ${template.template_name}.`,
+          notas: `Plantilla ${template.template_code} (${template.day_context}/${template.diet_allowed}) usada como fallback de balance.`,
+          validacion: validation
+        },
+        metadata: {
+          mode: 'deterministic',
+          template_code: template.template_code,
+          template_name: template.template_name,
+          total_slots: slots.length,
+          max_error: maxError,
+          target_within_tolerance: false,
+          evaluated_templates: templatesToEvaluate.length,
+          selected_template_rank: index + 1,
+          evaluated_combinations: combinations.length,
+          nutrient_balance_warnings: balanceEval.warnings,
+          nutrient_balance_blocked_candidates: balanceBlockedCount,
+          emergency_balance_override: true,
+          emergency_reason: 'all_candidates_blocked_by_balance'
+        },
+        availableFoods: draftItems.map((item) => item.food),
+        score: emergencyScore
+      };
       if (balanceEval.blocksCandidate) {
         balanceBlockedCount += 1;
         if (!balanceBlockedExample) {
@@ -2178,6 +2212,9 @@ async function generateDeterministicMenuForMeal({
             template_code: template.template_code,
             warnings: balanceEval.blockingWarnings.slice(0, 3)
           };
+        }
+        if (!bestBlockedResult || blockedCandidateResult.score < bestBlockedResult.score) {
+          bestBlockedResult = blockedCandidateResult;
         }
         continue;
       }
@@ -2230,6 +2267,14 @@ async function generateDeterministicMenuForMeal({
   }
 
   if (!bestResult) {
+    if (bestBlockedResult) {
+      console.warn(`⚠️ Deterministic emergency fallback for meal_type=${mealType}: all candidates blocked by balance, returning least-bad candidate.`);
+      return {
+        menu: bestBlockedResult.menu,
+        metadata: bestBlockedResult.metadata,
+        availableFoods: bestBlockedResult.availableFoods
+      };
+    }
     if (balanceBlockedCount > 0) {
       const exampleCode = balanceBlockedExample?.template_code || 'N/A';
       const exampleWarningCodes = (balanceBlockedExample?.warnings || [])
@@ -3700,14 +3745,15 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
         for (const meal of day.meals) {
           const mealQuery = `
             INSERT INTO app.nutrition_meals (
-              plan_day_id, orden, nombre, kcal, macros, timing_note
-            ) VALUES ($1, $2, $3, $4, $5, $6);
+              plan_day_id, orden, nombre, meal_type, kcal, macros, timing_note
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7);
           `;
 
           await client.query(mealQuery, [
             dayId,
             meal.orden,
             meal.nombre,
+            meal.meal_type || resolveMealType(meal),
             meal.kcal,
             JSON.stringify(meal.macros),
             meal.timing_note
@@ -3768,6 +3814,7 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
                     'id', m.id,
                     'orden', m.orden,
                     'nombre', m.nombre,
+                    'meal_type', m.meal_type,
                     'kcal', m.kcal,
                     'macros', m.macros,
                     'timing_note', m.timing_note,

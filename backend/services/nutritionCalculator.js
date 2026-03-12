@@ -363,16 +363,63 @@ export function summarizeCarbCycling(days = [], kcalObjetivo = 0) {
  * @param {boolean} isTrainingDay - Si es día de entrenamiento
  * @returns {Array} Array de objetos con macros por comida
  */
+function buildMealLayout(numMeals = 4) {
+  switch (numMeals) {
+    case 1:
+      return [
+        { nombre: "Comida", meal_type: "COMIDA" }
+      ];
+    case 2:
+      return [
+        { nombre: "Comida", meal_type: "COMIDA" },
+        { nombre: "Cena", meal_type: "CENA" }
+      ];
+    case 3:
+      return [
+        { nombre: "Desayuno", meal_type: "DESAYUNO" },
+        { nombre: "Comida", meal_type: "COMIDA" },
+        { nombre: "Cena", meal_type: "CENA" }
+      ];
+    case 4:
+      return [
+        { nombre: "Desayuno", meal_type: "DESAYUNO" },
+        { nombre: "Almuerzo", meal_type: "SNACK" },
+        { nombre: "Comida", meal_type: "COMIDA" },
+        { nombre: "Cena", meal_type: "CENA" }
+      ];
+    case 5:
+      return [
+        { nombre: "Desayuno", meal_type: "DESAYUNO" },
+        { nombre: "Almuerzo", meal_type: "SNACK" },
+        { nombre: "Comida", meal_type: "COMIDA" },
+        { nombre: "Merienda", meal_type: "SNACK" },
+        { nombre: "Cena", meal_type: "CENA" }
+      ];
+    case 6:
+      return [
+        { nombre: "Desayuno", meal_type: "DESAYUNO" },
+        { nombre: "Almuerzo", meal_type: "SNACK" },
+        { nombre: "Comida", meal_type: "COMIDA" },
+        { nombre: "Merienda", meal_type: "SNACK" },
+        { nombre: "Cena", meal_type: "CENA" },
+        { nombre: "Snack nocturno", meal_type: "SNACK" }
+      ];
+    default:
+      return buildMealLayout(4);
+  }
+}
+
 export function distributeMacrosAcrossMeals(dayMacros, numMeals = 4, isTrainingDay = false) {
   const { protein_g, carbs_g, fat_g, kcal } = dayMacros;
 
   // Distribución estándar por comida
-  const mealNames = ['Desayuno', 'Almuerzo', 'Comida', 'Merienda', 'Cena', 'Snack nocturno'];
+  const mealLayout = buildMealLayout(numMeals);
   const meals = [];
 
   if (numMeals === 1) {
     meals.push({
-      nombre: 'Comida principal',
+      nombre: mealLayout[0].nombre,
+      meal_type: mealLayout[0].meal_type,
       orden: 1,
       kcal: Math.round(kcal),
       macros: {
@@ -386,7 +433,8 @@ export function distributeMacrosAcrossMeals(dayMacros, numMeals = 4, isTrainingD
     const distributions = [0.45, 0.55];
     for (let i = 0; i < 2; i++) {
       meals.push({
-        nombre: ['Primera comida', 'Segunda comida'][i],
+        nombre: mealLayout[i].nombre,
+        meal_type: mealLayout[i].meal_type,
         orden: i + 1,
         kcal: Math.round(kcal * distributions[i]),
         macros: {
@@ -402,7 +450,8 @@ export function distributeMacrosAcrossMeals(dayMacros, numMeals = 4, isTrainingD
     const distributions = [0.30, 0.40, 0.30];
     for (let i = 0; i < 3; i++) {
       meals.push({
-        nombre: ['Desayuno', 'Comida', 'Cena'][i],
+        nombre: mealLayout[i].nombre,
+        meal_type: mealLayout[i].meal_type,
         orden: i + 1,
         kcal: Math.round(kcal * distributions[i]),
         macros: {
@@ -417,7 +466,8 @@ export function distributeMacrosAcrossMeals(dayMacros, numMeals = 4, isTrainingD
     const distributions = [0.25, 0.15, 0.35, 0.25];
     for (let i = 0; i < 4; i++) {
       meals.push({
-        nombre: ['Desayuno', 'Almuerzo', 'Comida', 'Cena'][i],
+        nombre: mealLayout[i].nombre,
+        meal_type: mealLayout[i].meal_type,
         orden: i + 1,
         kcal: Math.round(kcal * distributions[i]),
         macros: {
@@ -433,7 +483,8 @@ export function distributeMacrosAcrossMeals(dayMacros, numMeals = 4, isTrainingD
     const distributions = [0.20, 0.15, 0.30, 0.15, 0.20];
     for (let i = 0; i < 5; i++) {
       meals.push({
-        nombre: ['Desayuno', 'Almuerzo', 'Comida', 'Merienda', 'Cena'][i],
+        nombre: mealLayout[i].nombre,
+        meal_type: mealLayout[i].meal_type,
         orden: i + 1,
         kcal: Math.round(kcal * distributions[i]),
         macros: {
@@ -449,7 +500,8 @@ export function distributeMacrosAcrossMeals(dayMacros, numMeals = 4, isTrainingD
     const distributions = [0.20, 0.10, 0.25, 0.15, 0.20, 0.10];
     for (let i = 0; i < 6; i++) {
       meals.push({
-        nombre: mealNames[i],
+        nombre: mealLayout[i].nombre,
+        meal_type: mealLayout[i].meal_type,
         orden: i + 1,
         kcal: Math.round(kcal * distributions[i]),
         macros: {
