@@ -44,6 +44,10 @@ import {
   calculatePendingProfileState,
   processMetabolicEvaluation
 } from '../services/metabolicProfileCalculator.js';
+import {
+  buildMetabolicEvaluationContextFromRow,
+  getMissingMetabolicEvaluationFields
+} from '../services/metabolicEvaluationContext.js';
 
 const router = express.Router();
 
@@ -5323,35 +5327,37 @@ router.post('/metabolic-evaluate', authenticateToken, async (req, res) => {
 
     const profileResult = await pool.query(
       `SELECT
-        user_id,
-        peso_kg,
-        objetivo,
-        training_type,
-        kcal_objetivo,
-        tdee,
-        level,
-        nivel_entrenamiento,
-        metabolic_type,
-        metabolic_pending_type,
-        metabolic_pending_count,
-        metabolic_confidence
-      FROM app.nutrition_profiles
-      WHERE user_id = $1`,
+        np.user_id,
+        np.sexo AS nutrition_sexo,
+        np.edad AS nutrition_edad,
+        np.altura_cm,
+        np.peso_kg,
+        np.objetivo AS nutrition_objetivo,
+        np.training_days,
+        np.kcal_objetivo,
+        np.tdee,
+        np.level,
+        np.metabolic_type,
+        np.metabolic_pending_type,
+        np.metabolic_pending_count,
+        np.metabolic_confidence,
+        u.sexo AS user_sexo,
+        u.edad AS user_edad,
+        u.altura AS user_altura_cm,
+        u.peso AS user_peso_kg,
+        u.objetivo_principal AS user_objetivo_principal,
+        u.frecuencia_semanal AS user_training_days,
+        u.nivel_entrenamiento AS user_level
+      FROM app.nutrition_profiles np
+      LEFT JOIN app.users u ON np.user_id = u.id
+      WHERE np.user_id = $1`,
       [userId]
     );
     if (profileResult.rows.length === 0) {
       return res.status(404).json({ error: 'Perfil nutricional no encontrado' });
     }
     const profile = profileResult.rows[0];
-
-    const userProfile = {
-      peso_kg: profile.peso_kg || 70,
-      objetivo: profile.objetivo || 'mant',
-      training_type: profile.training_type || 'general',
-      kcal_objetivo: profile.kcal_objetivo,
-      tdee: profile.tdee,
-      level: profile.level || profile.nivel_entrenamiento
-    };
+    const { userProfile } = buildMetabolicEvaluationContextFromRow(profile);
 
     const currentEvaluation = {
       metabolic_profile: profile.metabolic_type || 'mixto',
@@ -5368,6 +5374,17 @@ router.post('/metabolic-evaluate', authenticateToken, async (req, res) => {
       stableEnergyWithCarbs: Boolean(signals.stableEnergyWithCarbs),
       waistMaintained: Boolean(signals.waistStableOrDown)
     };
+
+    if (!userProfile.objetivo && objectiveData.objetivo) {
+      userProfile.objetivo = objectiveData.objetivo;
+    }
+
+    const missingFields = getMissingMetabolicEvaluationFields(userProfile);
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        error: `Faltan datos para evaluar el perfil metabólico: ${missingFields.join(', ')}. Guarda primero tu perfil de nutrición o sincronízalo desde Perfil.`
+      });
+    }
 
     const evaluationResult = processMetabolicEvaluation(
       normalizedAnswers,
