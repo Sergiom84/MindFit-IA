@@ -90,8 +90,9 @@ export default function NutritionScreen() {
     }
   };
 
-  // Calcular macros básicos basados en el perfil del usuario
-  const calculateBasicMacros = () => {
+  // Fallback local solo para kcal cuando no existe plan/perfil v2 disponible.
+  // No calculamos macros en cliente para evitar incoherencias con el backend.
+  const calculateBasicKcalEstimate = () => {
     if (!userData) {
       console.warn('⚠️ userData no disponible en NutritionScreen');
       return null;
@@ -150,46 +151,16 @@ export default function NutritionScreen() {
       calories = tdee * 1.15; // Superávit del 15%
     }
 
-    // Distribución de macros según metodología
-    const methodology = userData.metodologia_preferida || 'hipertrofia';
-    let proteinRatio, carbRatio, fatRatio;
-
-    switch (methodology) {
-      case 'crossfit':
-        proteinRatio = 0.30;
-        carbRatio = 0.40;
-        fatRatio = 0.30;
-        break;
-      case 'powerlifting':
-        proteinRatio = 0.25;
-        carbRatio = 0.45;
-        fatRatio = 0.30;
-        break;
-      case 'bodybuilding':
-      case 'hipertrofia':
-        proteinRatio = 0.35;
-        carbRatio = 0.40;
-        fatRatio = 0.25;
-        break;
-      default:
-        proteinRatio = 0.30;
-        carbRatio = 0.40;
-        fatRatio = 0.30;
-    }
-
     return {
       calories: Math.round(calories),
-      protein: Math.round((calories * proteinRatio) / 4), // 4 kcal por gramo
-      carbs: Math.round((calories * carbRatio) / 4),
-      fat: Math.round((calories * fatRatio) / 9), // 9 kcal por gramo
       bmr: Math.round(bmr),
       tdee: Math.round(tdee)
     };
   };
 
-  const basicMacros = calculateBasicMacros();
-  const kcalDisplay = kcalInfo.value || basicMacros?.calories;
-  const showFallbackNote = !kcalInfo.value && !!basicMacros?.calories;
+  const basicKcalEstimate = calculateBasicKcalEstimate();
+  const kcalDisplay = kcalInfo.value || basicKcalEstimate?.calories;
+  const showFallbackNote = !kcalInfo.value && !!basicKcalEstimate?.calories;
   const showCurrentEstimateNote = Boolean(kcalInfo.note);
 
   const nutritionTabs = [

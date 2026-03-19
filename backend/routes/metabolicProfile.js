@@ -10,9 +10,9 @@ import {
   METABOLIC_QUESTIONS,
   processMetabolicEvaluation,
   calculatePendingProfileState,
-  getProfileDescription,
-  MACRO_DISTRIBUTIONS
+  getProfileDescription
 } from '../services/metabolicProfileCalculator.js';
+import { getMacroDistributionCatalog } from '../services/macroProfilePhaseResolver.js';
 import {
   buildMetabolicEvaluationContextFromRow,
   getMissingMetabolicEvaluationFields
@@ -265,6 +265,7 @@ router.post('/evaluate', authenticateToken, async (req, res) => {
 router.get('/current', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
+    const distributionCatalog = getMacroDistributionCatalog();
 
     // Obtener evaluacion activa
     const evalResult = await pool.query(
@@ -288,7 +289,9 @@ router.get('/current', authenticateToken, async (req, res) => {
         success: true,
         hasProfile: false,
         message: 'No tienes un perfil metabolico configurado. Completa el cuestionario para obtener tu perfil.',
-        distributions: MACRO_DISTRIBUTIONS
+        ruleset: distributionCatalog.ruleset,
+        distributions: distributionCatalog.distributions,
+        legacy_ranges: distributionCatalog.legacy_ranges
       });
     }
 
@@ -514,32 +517,28 @@ router.put('/config', authenticateToken, async (req, res) => {
 // ============================================================================
 router.get('/distributions', authenticateToken, (req, res) => {
   try {
+    const catalog = getMacroDistributionCatalog();
     const distributions = {};
 
-    for (const [profile, dist] of Object.entries(MACRO_DISTRIBUTIONS)) {
+    for (const [profile, phaseTable] of Object.entries(catalog.phase_table)) {
       distributions[profile] = {
-        protein: {
-          min: Math.round(dist.protein_min * 100),
-          max: Math.round(dist.protein_max * 100),
-          mid: Math.round(dist.protein_mid * 100)
-        },
-        carbs: {
-          min: Math.round(dist.carbs_min * 100),
-          max: Math.round(dist.carbs_max * 100),
-          mid: Math.round(dist.carbs_mid * 100)
-        },
-        fat: {
-          min: Math.round(dist.fat_min * 100),
-          max: Math.round(dist.fat_max * 100),
-          mid: Math.round(dist.fat_mid * 100)
-        },
+        ...phaseTable,
         description: getProfileDescription(profile)
       };
     }
 
     res.json({
       success: true,
-      distributions
+      ruleset: catalog.ruleset,
+      distributions,
+      phase_table: distributions,
+      legacy_ranges: Object.entries(catalog.legacy_ranges).reduce((accumulator, [profile, ranges]) => {
+        accumulator[profile] = {
+          ...ranges,
+          description: getProfileDescription(profile)
+        };
+        return accumulator;
+      }, {})
     });
 
   } catch (error) {

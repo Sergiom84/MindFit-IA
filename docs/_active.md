@@ -1,35 +1,30 @@
 # Active implementation
 
-- slug: sistema-menus-profesional-omni-veg
-- path: docs/sistema-menus-profesional-omni-veg
+- slug: macros-perfil-metabolico-fase
+- path: docs/macros-perfil-metabolico-fase
 
 ## Orden de lectura
 
 1. `docs/README.md`
-2. `docs/sistema-menus-profesional-omni-veg/status.md`
-3. `docs/sistema-menus-profesional-omni-veg/implementation.md`
-4. `docs/sistema-menus-profesional-omni-veg/checklist.md`
-5. `docs/sistema-menus-profesional-omni-veg/tests.md`
-6. `docs/PLAN_IMPLEMENTACION_SISTEMA_MENUS_PROFESIONAL_OMNI_VEG.md`
-7. `docs/MATRIZ_COBERTURA_MENUS_FASE1.md`
-8. `docs/TEMP_PLAN_IMPLEMENTACION_SWAP_CONVERSIONES.md`
-9. `docs/REGISTRO_DIARIO_IMPLEMENTACIONES.md`
+2. `docs/macros-perfil-metabolico-fase/status.md`
+3. `docs/macros-perfil-metabolico-fase/checklist.md`
+4. `docs/macros-perfil-metabolico-fase/implementation.md`
+5. `docs/macros-perfil-metabolico-fase/tests.md`
+6. `docs/PLAN_IMPLEMENTACION_MACROS_PERFIL_METABOLICO_FASE.md`
+7. `docs/especificacion_macros_perfil_metabolico_fase.md`
+8. `docs/REGISTRO_DIARIO_IMPLEMENTACIONES.md`
 
 ## Current phase
 
-Fase 5 cerrada. Foco actual: revisión funcional y de UX sobre menús generados antes de abrir una nueva tanda de reglas o penalties.
+Ready for impl-pack-close. QA manual Playwright autenticado completado y evidenciado en `test-results/manual-qa-macros-perfil-fase/qa-report.json`.
 
 ## Next task
 
-Revisión manual de menús generados para decidir si hace falta:
-
-- afinar palatabilidad,
-- ajustar penalties culinarios finos,
-- o cerrar la fase sin más cambios de motor.
+Si procede, cerrar el pack con `impl-pack-close`.
 
 ## Last update
 
-2026-03-06 11:10 CET
+2026-03-19 18:34 CET
 
-- previous_context_slug: motor-hibrido-nutricion-ia
-- previous_context_path: docs/motor-hibrido-nutricion-ia
+- previous_context_slug: sistema-menus-profesional-omni-veg
+- previous_context_path: docs/sistema-menus-profesional-omni-veg

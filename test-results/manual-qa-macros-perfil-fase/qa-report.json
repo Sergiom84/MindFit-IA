@@ -1,0 +1,3907 @@
+{
+  "startedAt": "2026-03-19T17:33:50.517Z",
+  "baseUrl": "http://localhost:5173",
+  "apiUrl": "http://127.0.0.1:3010",
+  "checks": [
+    {
+      "name": "Login autenticado",
+      "ok": true,
+      "summary": "URL final: http://localhost:5173/"
+    },
+    {
+      "name": "Pantalla de nutrición cargada",
+      "ok": true
+    },
+    {
+      "name": "Distribuciones canónicas disponibles",
+      "ok": true,
+      "summary": "mindfeed_macro_phase_v2"
+    },
+    {
+      "name": "Configuración nutricional guardada",
+      "ok": true,
+      "summary": "Objetivo bulk persistido"
+    },
+    {
+      "name": "Cuestionario metabólico persistido",
+      "ok": true,
+      "summary": "Perfil aplicado: intolerante"
+    },
+    {
+      "name": "Plan generado y plan activo visible",
+      "ok": true
+    },
+    {
+      "name": "Plan activo alineado con tabla perfil+fase",
+      "ok": true,
+      "summary": "intolerante + bulk"
+    },
+    {
+      "name": "Paridad UI/API en resumen de macros",
+      "ok": true,
+      "summary": "P 151 · C 211 · G 107"
+    },
+    {
+      "name": "Vista calendario cargada",
+      "ok": true,
+      "summary": "Semana 1 de 4"
+    },
+    {
+      "name": "Bridge override preserva perfil y fase canónicos",
+      "ok": true,
+      "summary": "intolerante + bulk @ 2500 kcal"
+    },
+    {
+      "name": "Navegación entre tabs estable",
+      "ok": true
+    }
+  ],
+  "screenshots": [
+    "/Users/miguelangelbatistaruiz/Documents/Proyectos/Entrenaconia/test-results/manual-qa-macros-perfil-fase/01-login.png",
+    "/Users/miguelangelbatistaruiz/Documents/Proyectos/Entrenaconia/test-results/manual-qa-macros-perfil-fase/02-nutrition-initial.png",
+    "/Users/miguelangelbatistaruiz/Documents/Proyectos/Entrenaconia/test-results/manual-qa-macros-perfil-fase/03-profile-saved.png",
+    "/Users/miguelangelbatistaruiz/Documents/Proyectos/Entrenaconia/test-results/manual-qa-macros-perfil-fase/04-metabolic-attempt-1.png",
+    "/Users/miguelangelbatistaruiz/Documents/Proyectos/Entrenaconia/test-results/manual-qa-macros-perfil-fase/04-metabolic-attempt-2.png",
+    "/Users/miguelangelbatistaruiz/Documents/Proyectos/Entrenaconia/test-results/manual-qa-macros-perfil-fase/05-calendar-active-plan.png",
+    "/Users/miguelangelbatistaruiz/Documents/Proyectos/Entrenaconia/test-results/manual-qa-macros-perfil-fase/06-return-generate-plan.png"
+  ],
+  "api": {
+    "metabolic_current_before": {
+      "success": true,
+      "hasProfile": true,
+      "profile": {
+        "id": 11,
+        "metabolicProfile": "intolerante",
+        "confidence": "alta",
+        "rawScore": 7,
+        "adjustedScore": 8,
+        "itemsAnswered": 10,
+        "itemsNoSe": 0,
+        "macros": {
+          "fat_g": 84,
+          "level": "intermedio",
+          "carbs_g": 167,
+          "fat_pct": 38,
+          "ruleset": "mindfeed_macro_phase_v2",
+          "carbs_pct": 33,
+          "fat_min_g": 54,
+          "final_pct": {
+            "fat_pct": 38,
+            "carbs_pct": 33,
+            "protein_pct": 29
+          },
+          "protein_g": 144,
+          "raw_grams": {
+            "fat_g": 89,
+            "carbs_g": 175,
+            "protein_g": 125
+          },
+          "adjustments": [
+            {
+              "macro": "protein",
+              "reason": "Minimo 1.6 g/kg para bulk",
+              "adjusted": 144,
+              "original": 125
+            }
+          ],
+          "protein_pct": 29,
+          "template_pct": {
+            "fat_pct": 40,
+            "carbs_pct": 35,
+            "protein_pct": 25
+          },
+          "applied_phase": "bulk",
+          "adjusted_grams": {
+            "fat_g": 84,
+            "carbs_g": 167,
+            "protein_g": 144
+          },
+          "applied_profile": "intolerante",
+          "kcal_calculated": 2000,
+          "protein_range_g": {
+            "max": 180,
+            "min": 144
+          },
+          "requested_phase": "bulk",
+          "requested_profile": "intolerante",
+          "guardrails_applied": true,
+          "metabolic_confidence": "alta"
+        },
+        "evaluationDate": "2026-03-18T23:00:00.000Z",
+        "daysSinceEvaluation": 0
+      },
+      "profileDescription": {
+        "title": "Intolerante a los Carbohidratos",
+        "summary": "Tu cuerpo tiende a responder mejor utilizando grasas como fuente principal de energia.",
+        "characteristics": [
+          "Suele presentar grasa corporal elevada, especialmente en el abdomen",
+          "Tiende a acumular grasa con facilidad",
+          "Experimenta somnolencia o bajada de energia tras ingerir carbohidratos",
+          "Se despierta con cansancio o sensacion de sueno prolongado",
+          "Prefiere alimentos grasos y salados frente a los dulces"
+        ],
+        "recommendation": "Se recomienda priorizar las grasas como fuente principal de energia. Distribucion recomendada: 20-30% carbohidratos."
+      },
+      "reEvaluation": {
+        "frequencyDays": 14,
+        "daysUntilDue": 14,
+        "shouldReEvaluate": false,
+        "pendingChange": null,
+        "consecutiveCount": 0
+      },
+      "config": {
+        "notificationEnabled": true
+      }
+    },
+    "distributions": {
+      "success": true,
+      "ruleset": "mindfeed_macro_phase_v2",
+      "distributions": {
+        "tolerante": {
+          "cut": {
+            "protein_pct": 28,
+            "carbs_pct": 47,
+            "fat_pct": 25
+          },
+          "mant": {
+            "protein_pct": 25,
+            "carbs_pct": 55,
+            "fat_pct": 20
+          },
+          "bulk": {
+            "protein_pct": 23,
+            "carbs_pct": 57,
+            "fat_pct": 20
+          },
+          "description": {
+            "title": "Tolerante a los Carbohidratos",
+            "summary": "Tu metabolismo gestiona bien la glucosa y tienes buena sensibilidad a la insulina.",
+            "characteristics": [
+              "Niveles de grasa bajos y energia estable durante el dia",
+              "Mejora el descanso si consume carbohidratos antes de dormir",
+              "Prefiere alimentos dulces a los salados",
+              "No tiende a acumular grasa facilmente",
+              "Responde bien al consumo de hidratos de carbono"
+            ],
+            "recommendation": "Puedes utilizar los carbohidratos como fuente principal de energia. Distribucion recomendada: 50-60% carbohidratos."
+          }
+        },
+        "mixto": {
+          "cut": {
+            "protein_pct": 28,
+            "carbs_pct": 32,
+            "fat_pct": 40
+          },
+          "mant": {
+            "protein_pct": 25,
+            "carbs_pct": 40,
+            "fat_pct": 35
+          },
+          "bulk": {
+            "protein_pct": 23,
+            "carbs_pct": 47,
+            "fat_pct": 30
+          },
+          "description": {
+            "title": "Perfil Mixto o Equilibrado",
+            "summary": "Tienes una tolerancia intermedia a los carbohidratos.",
+            "characteristics": [
+              "No presenta somnolencia tras las comidas ni alteraciones marcadas del apetito",
+              "Composicion corporal tiende a mantenerse estable",
+              "Puede funcionar bien tanto con dietas altas en carbohidratos como en grasas",
+              "Requiere un reparto equilibrado de macronutrientes"
+            ],
+            "recommendation": "Un reparto equilibrado de macronutrientes es optimo para ti. Distribucion recomendada: 35-40% carbohidratos."
+          }
+        },
+        "intolerante": {
+          "cut": {
+            "protein_pct": 30,
+            "carbs_pct": 22,
+            "fat_pct": 48
+          },
+          "mant": {
+            "protein_pct": 27,
+            "carbs_pct": 28,
+            "fat_pct": 45
+          },
+          "bulk": {
+            "protein_pct": 25,
+            "carbs_pct": 35,
+            "fat_pct": 40
+          },
+          "description": {
+            "title": "Intolerante a los Carbohidratos",
+            "summary": "Tu cuerpo tiende a responder mejor utilizando grasas como fuente principal de energia.",
+            "characteristics": [
+              "Suele presentar grasa corporal elevada, especialmente en el abdomen",
+              "Tiende a acumular grasa con facilidad",
+              "Experimenta somnolencia o bajada de energia tras ingerir carbohidratos",
+              "Se despierta con cansancio o sensacion de sueno prolongado",
+              "Prefiere alimentos grasos y salados frente a los dulces"
+            ],
+            "recommendation": "Se recomienda priorizar las grasas como fuente principal de energia. Distribucion recomendada: 20-30% carbohidratos."
+          }
+        }
+      },
+      "phase_table": {
+        "tolerante": {
+          "cut": {
+            "protein_pct": 28,
+            "carbs_pct": 47,
+            "fat_pct": 25
+          },
+          "mant": {
+            "protein_pct": 25,
+            "carbs_pct": 55,
+            "fat_pct": 20
+          },
+          "bulk": {
+            "protein_pct": 23,
+            "carbs_pct": 57,
+            "fat_pct": 20
+          },
+          "description": {
+            "title": "Tolerante a los Carbohidratos",
+            "summary": "Tu metabolismo gestiona bien la glucosa y tienes buena sensibilidad a la insulina.",
+            "characteristics": [
+              "Niveles de grasa bajos y energia estable durante el dia",
+              "Mejora el descanso si consume carbohidratos antes de dormir",
+              "Prefiere alimentos dulces a los salados",
+              "No tiende a acumular grasa facilmente",
+              "Responde bien al consumo de hidratos de carbono"
+            ],
+            "recommendation": "Puedes utilizar los carbohidratos como fuente principal de energia. Distribucion recomendada: 50-60% carbohidratos."
+          }
+        },
+        "mixto": {
+          "cut": {
+            "protein_pct": 28,
+            "carbs_pct": 32,
+            "fat_pct": 40
+          },
+          "mant": {
+            "protein_pct": 25,
+            "carbs_pct": 40,
+            "fat_pct": 35
+          },
+          "bulk": {
+            "protein_pct": 23,
+            "carbs_pct": 47,
+            "fat_pct": 30
+          },
+          "description": {
+            "title": "Perfil Mixto o Equilibrado",
+            "summary": "Tienes una tolerancia intermedia a los carbohidratos.",
+            "characteristics": [
+              "No presenta somnolencia tras las comidas ni alteraciones marcadas del apetito",
+              "Composicion corporal tiende a mantenerse estable",
+              "Puede funcionar bien tanto con dietas altas en carbohidratos como en grasas",
+              "Requiere un reparto equilibrado de macronutrientes"
+            ],
+            "recommendation": "Un reparto equilibrado de macronutrientes es optimo para ti. Distribucion recomendada: 35-40% carbohidratos."
+          }
+        },
+        "intolerante": {
+          "cut": {
+            "protein_pct": 30,
+            "carbs_pct": 22,
+            "fat_pct": 48
+          },
+          "mant": {
+            "protein_pct": 27,
+            "carbs_pct": 28,
+            "fat_pct": 45
+          },
+          "bulk": {
+            "protein_pct": 25,
+            "carbs_pct": 35,
+            "fat_pct": 40
+          },
+          "description": {
+            "title": "Intolerante a los Carbohidratos",
+            "summary": "Tu cuerpo tiende a responder mejor utilizando grasas como fuente principal de energia.",
+            "characteristics": [
+              "Suele presentar grasa corporal elevada, especialmente en el abdomen",
+              "Tiende a acumular grasa con facilidad",
+              "Experimenta somnolencia o bajada de energia tras ingerir carbohidratos",
+              "Se despierta con cansancio o sensacion de sueno prolongado",
+              "Prefiere alimentos grasos y salados frente a los dulces"
+            ],
+            "recommendation": "Se recomienda priorizar las grasas como fuente principal de energia. Distribucion recomendada: 20-30% carbohidratos."
+          }
+        }
+      },
+      "legacy_ranges": {
+        "tolerante": {
+          "protein": {
+            "min": 20,
+            "max": 25,
+            "mid": 23
+          },
+          "carbs": {
+            "min": 50,
+            "max": 60,
+            "mid": 55
+          },
+          "fat": {
+            "min": 15,
+            "max": 25,
+            "mid": 20
+          },
+          "description": {
+            "title": "Tolerante a los Carbohidratos",
+            "summary": "Tu metabolismo gestiona bien la glucosa y tienes buena sensibilidad a la insulina.",
+            "characteristics": [
+              "Niveles de grasa bajos y energia estable durante el dia",
+              "Mejora el descanso si consume carbohidratos antes de dormir",
+              "Prefiere alimentos dulces a los salados",
+              "No tiende a acumular grasa facilmente",
+              "Responde bien al consumo de hidratos de carbono"
+            ],
+            "recommendation": "Puedes utilizar los carbohidratos como fuente principal de energia. Distribucion recomendada: 50-60% carbohidratos."
+          }
+        },
+        "mixto": {
+          "protein": {
+            "min": 25,
+            "max": 30,
+            "mid": 28
+          },
+          "carbs": {
+            "min": 35,
+            "max": 40,
+            "mid": 38
+          },
+          "fat": {
+            "min": 30,
+            "max": 35,
+            "mid": 33
+          },
+          "description": {
+            "title": "Perfil Mixto o Equilibrado",
+            "summary": "Tienes una tolerancia intermedia a los carbohidratos.",
+            "characteristics": [
+              "No presenta somnolencia tras las comidas ni alteraciones marcadas del apetito",
+              "Composicion corporal tiende a mantenerse estable",
+              "Puede funcionar bien tanto con dietas altas en carbohidratos como en grasas",
+              "Requiere un reparto equilibrado de macronutrientes"
+            ],
+            "recommendation": "Un reparto equilibrado de macronutrientes es optimo para ti. Distribucion recomendada: 35-40% carbohidratos."
+          }
+        },
+        "intolerante": {
+          "protein": {
+            "min": 30,
+            "max": 35,
+            "mid": 33
+          },
+          "carbs": {
+            "min": 20,
+            "max": 30,
+            "mid": 25
+          },
+          "fat": {
+            "min": 35,
+            "max": 45,
+            "mid": 40
+          },
+          "description": {
+            "title": "Intolerante a los Carbohidratos",
+            "summary": "Tu cuerpo tiende a responder mejor utilizando grasas como fuente principal de energia.",
+            "characteristics": [
+              "Suele presentar grasa corporal elevada, especialmente en el abdomen",
+              "Tiende a acumular grasa con facilidad",
+              "Experimenta somnolencia o bajada de energia tras ingerir carbohidratos",
+              "Se despierta con cansancio o sensacion de sueno prolongado",
+              "Prefiere alimentos grasos y salados frente a los dulces"
+            ],
+            "recommendation": "Se recomienda priorizar las grasas como fuente principal de energia. Distribucion recomendada: 20-30% carbohidratos."
+          }
+        }
+      }
+    },
+    "metabolic_current_after_attempt_1": {
+      "success": true,
+      "hasProfile": true,
+      "profile": {
+        "id": 12,
+        "metabolicProfile": "intolerante",
+        "confidence": "alta",
+        "rawScore": 7,
+        "adjustedScore": 8,
+        "itemsAnswered": 10,
+        "itemsNoSe": 0,
+        "macros": {
+          "fat_g": 84,
+          "level": "intermedio",
+          "carbs_g": 167,
+          "fat_pct": 38,
+          "ruleset": "mindfeed_macro_phase_v2",
+          "carbs_pct": 33,
+          "fat_min_g": 54,
+          "final_pct": {
+            "fat_pct": 38,
+            "carbs_pct": 33,
+            "protein_pct": 29
+          },
+          "protein_g": 144,
+          "raw_grams": {
+            "fat_g": 89,
+            "carbs_g": 175,
+            "protein_g": 125
+          },
+          "adjustments": [
+            {
+              "macro": "protein",
+              "reason": "Minimo 1.6 g/kg para bulk",
+              "adjusted": 144,
+              "original": 125
+            }
+          ],
+          "protein_pct": 29,
+          "template_pct": {
+            "fat_pct": 40,
+            "carbs_pct": 35,
+            "protein_pct": 25
+          },
+          "applied_phase": "bulk",
+          "adjusted_grams": {
+            "fat_g": 84,
+            "carbs_g": 167,
+            "protein_g": 144
+          },
+          "applied_profile": "intolerante",
+          "kcal_calculated": 2000,
+          "protein_range_g": {
+            "max": 180,
+            "min": 144
+          },
+          "requested_phase": "bulk",
+          "requested_profile": "intolerante",
+          "guardrails_applied": true,
+          "metabolic_confidence": "alta"
+        },
+        "evaluationDate": "2026-03-18T23:00:00.000Z",
+        "daysSinceEvaluation": 0
+      },
+      "profileDescription": {
+        "title": "Intolerante a los Carbohidratos",
+        "summary": "Tu cuerpo tiende a responder mejor utilizando grasas como fuente principal de energia.",
+        "characteristics": [
+          "Suele presentar grasa corporal elevada, especialmente en el abdomen",
+          "Tiende a acumular grasa con facilidad",
+          "Experimenta somnolencia o bajada de energia tras ingerir carbohidratos",
+          "Se despierta con cansancio o sensacion de sueno prolongado",
+          "Prefiere alimentos grasos y salados frente a los dulces"
+        ],
+        "recommendation": "Se recomienda priorizar las grasas como fuente principal de energia. Distribucion recomendada: 20-30% carbohidratos."
+      },
+      "reEvaluation": {
+        "frequencyDays": 14,
+        "daysUntilDue": 14,
+        "shouldReEvaluate": false,
+        "pendingChange": null,
+        "consecutiveCount": 0
+      },
+      "config": {
+        "notificationEnabled": true
+      }
+    },
+    "metabolic_current_after_attempt_2": {
+      "success": true,
+      "hasProfile": true,
+      "profile": {
+        "id": 13,
+        "metabolicProfile": "intolerante",
+        "confidence": "alta",
+        "rawScore": 7,
+        "adjustedScore": 8,
+        "itemsAnswered": 10,
+        "itemsNoSe": 0,
+        "macros": {
+          "fat_g": 84,
+          "level": "intermedio",
+          "carbs_g": 167,
+          "fat_pct": 38,
+          "ruleset": "mindfeed_macro_phase_v2",
+          "carbs_pct": 33,
+          "fat_min_g": 54,
+          "final_pct": {
+            "fat_pct": 38,
+            "carbs_pct": 33,
+            "protein_pct": 29
+          },
+          "protein_g": 144,
+          "raw_grams": {
+            "fat_g": 89,
+            "carbs_g": 175,
+            "protein_g": 125
+          },
+          "adjustments": [
+            {
+              "macro": "protein",
+              "reason": "Minimo 1.6 g/kg para bulk",
+              "adjusted": 144,
+              "original": 125
+            }
+          ],
+          "protein_pct": 29,
+          "template_pct": {
+            "fat_pct": 40,
+            "carbs_pct": 35,
+            "protein_pct": 25
+          },
+          "applied_phase": "bulk",
+          "adjusted_grams": {
+            "fat_g": 84,
+            "carbs_g": 167,
+            "protein_g": 144
+          },
+          "applied_profile": "intolerante",
+          "kcal_calculated": 2000,
+          "protein_range_g": {
+            "max": 180,
+            "min": 144
+          },
+          "requested_phase": "bulk",
+          "requested_profile": "intolerante",
+          "guardrails_applied": true,
+          "metabolic_confidence": "alta"
+        },
+        "evaluationDate": "2026-03-18T23:00:00.000Z",
+        "daysSinceEvaluation": 0
+      },
+      "profileDescription": {
+        "title": "Intolerante a los Carbohidratos",
+        "summary": "Tu cuerpo tiende a responder mejor utilizando grasas como fuente principal de energia.",
+        "characteristics": [
+          "Suele presentar grasa corporal elevada, especialmente en el abdomen",
+          "Tiende a acumular grasa con facilidad",
+          "Experimenta somnolencia o bajada de energia tras ingerir carbohidratos",
+          "Se despierta con cansancio o sensacion de sueno prolongado",
+          "Prefiere alimentos grasos y salados frente a los dulces"
+        ],
+        "recommendation": "Se recomienda priorizar las grasas como fuente principal de energia. Distribucion recomendada: 20-30% carbohidratos."
+      },
+      "reEvaluation": {
+        "frequencyDays": 14,
+        "daysUntilDue": 14,
+        "shouldReEvaluate": false,
+        "pendingChange": null,
+        "consecutiveCount": 0
+      },
+      "config": {
+        "notificationEnabled": true
+      }
+    },
+    "active_plan": {
+      "id": "f62c2ced-ec65-445f-9c9a-b57f53f1d886",
+      "user_id": 33,
+      "plan_name": "Plan bulk - 28 días",
+      "tipo": "activo",
+      "bmr": 1653,
+      "tdee": 2232,
+      "kcal_objetivo": 2411,
+      "macros_objetivo": {
+        "fat_g": 107,
+        "level": "intermedio",
+        "carbs_g": 211,
+        "fat_pct": 40,
+        "ruleset": "mindfeed_macro_phase_v2",
+        "carbs_pct": 35,
+        "fat_min_g": 54,
+        "final_pct": {
+          "fat_pct": 40,
+          "carbs_pct": 35,
+          "protein_pct": 25
+        },
+        "protein_g": 151,
+        "raw_grams": {
+          "fat_g": 107,
+          "carbs_g": 211,
+          "protein_g": 151
+        },
+        "adjustments": [],
+        "protein_pct": 25,
+        "template_pct": {
+          "fat_pct": 40,
+          "carbs_pct": 35,
+          "protein_pct": 25
+        },
+        "applied_phase": "bulk",
+        "adjusted_grams": {
+          "fat_g": 107,
+          "carbs_g": 211,
+          "protein_g": 151
+        },
+        "applied_profile": "intolerante",
+        "kcal_calculated": 2411,
+        "protein_range_g": {
+          "max": 180,
+          "min": 144
+        },
+        "requested_phase": "bulk",
+        "requested_profile": "intolerante",
+        "guardrails_applied": false,
+        "metabolic_confidence": "alta"
+      },
+      "meta": "bulk",
+      "duracion_dias": 28,
+      "training_type": "hipertrofia",
+      "comidas_por_dia": 5,
+      "fuente": "determinista",
+      "version_reglas": "mindfeed_macro_phase_v2",
+      "created_at": "2026-03-19T17:34:10.368Z",
+      "updated_at": "2026-03-19T17:34:10.368Z",
+      "days": [
+        {
+          "day_index": 0,
+          "tipo_dia": "entreno",
+          "kcal": 2414,
+          "macros": {
+            "fat_g": 98,
+            "carbs_g": 232,
+            "protein_g": 151
+          },
+          "day_id": "78598b78-b5a1-474d-83a4-57c98a41d467",
+          "meals": [
+            {
+              "id": "da948246-9b65-4352-98aa-01ac1ad95a97",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "64d61398-0d96-46fe-a4ad-1e6646013b7a",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "91af8b2d-c888-4c2a-ae5c-42ee81f88682",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 724,
+              "macros": {
+                "fat_g": 29,
+                "carbs_g": 70,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "cc6904dc-7328-4538-9bdb-453b66bc47ec",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": "Post-entreno",
+              "items": []
+            },
+            {
+              "id": "f88eb861-9173-4481-ab40-aa02bab184b3",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 1,
+          "tipo_dia": "entreno",
+          "kcal": 2414,
+          "macros": {
+            "fat_g": 98,
+            "carbs_g": 232,
+            "protein_g": 151
+          },
+          "day_id": "1d188429-b543-4822-94c7-2a16c8941caf",
+          "meals": [
+            {
+              "id": "eb333f95-67b8-4298-ad05-52d417440848",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "fadec17e-6b34-4c43-8a50-d8985abe77c2",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "b8351cb5-8444-4a78-98ce-354ac57b051b",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 724,
+              "macros": {
+                "fat_g": 29,
+                "carbs_g": 70,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "9b1fd4e6-85be-4c1c-bb1d-ae46cc10a90b",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": "Post-entreno",
+              "items": []
+            },
+            {
+              "id": "b34d84db-62c5-4731-abb4-733d6a35d98a",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 2,
+          "tipo_dia": "descanso",
+          "kcal": 2409,
+          "macros": {
+            "fat_g": 121,
+            "carbs_g": 179,
+            "protein_g": 151
+          },
+          "day_id": "770c3458-a74d-44e2-9e4a-21359e041798",
+          "meals": [
+            {
+              "id": "605d49a0-8b6c-4de6-bede-1e1ec93f5ada",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "4455fa5e-b351-4de5-a0df-fd993b991a60",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "52ec2674-311a-44da-a9af-551af1058116",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 723,
+              "macros": {
+                "fat_g": 36,
+                "carbs_g": 54,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "998fff08-a876-4062-a5f5-1123c2f8f9d7",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "982e2026-df71-4b60-acf8-896a66d5fe47",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 3,
+          "tipo_dia": "descanso",
+          "kcal": 2409,
+          "macros": {
+            "fat_g": 121,
+            "carbs_g": 179,
+            "protein_g": 151
+          },
+          "day_id": "07efbc93-a141-41a9-b9d6-a7e313e1ec37",
+          "meals": [
+            {
+              "id": "1f570b9b-37f7-4478-b333-9ee1d456dc24",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "622e0a15-b93c-4676-b2a1-46e5e8601c3e",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "150ef646-c7c3-4c6b-9a9e-7254c33943f0",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 723,
+              "macros": {
+                "fat_g": 36,
+                "carbs_g": 54,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "6ec5950a-0976-46ea-8e34-c458b0b8c6ee",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "82f874b9-993e-4497-821b-57154ee05baf",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 4,
+          "tipo_dia": "entreno",
+          "kcal": 2414,
+          "macros": {
+            "fat_g": 98,
+            "carbs_g": 232,
+            "protein_g": 151
+          },
+          "day_id": "bb201a83-03c4-425a-b829-c601efe0b779",
+          "meals": [
+            {
+              "id": "b2c8d399-a819-44d2-9622-1b6899a03224",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "fb2ecb53-effb-493a-bdb8-4ec80bf63aa4",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "63a821cc-24ea-4d92-9cf2-209ae0b7adf2",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 724,
+              "macros": {
+                "fat_g": 29,
+                "carbs_g": 70,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "5b8d4687-df6f-43a0-b424-487639963740",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": "Post-entreno",
+              "items": []
+            },
+            {
+              "id": "3e1f35ee-7283-4782-bb2d-4146a0857c0d",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 5,
+          "tipo_dia": "entreno",
+          "kcal": 2414,
+          "macros": {
+            "fat_g": 98,
+            "carbs_g": 232,
+            "protein_g": 151
+          },
+          "day_id": "3001a82d-fdbb-4619-8702-c0278605000b",
+          "meals": [
+            {
+              "id": "82088a17-944a-419d-b1ca-45189f68e264",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "2fc3ea1a-e601-411a-b40f-c17eddd5a9e9",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "1ea66a73-6d7a-4cad-947e-8f885ab105f0",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 724,
+              "macros": {
+                "fat_g": 29,
+                "carbs_g": 70,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "cb5a2a58-42c0-4f5a-85d7-0f46bcf02d0d",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": "Post-entreno",
+              "items": []
+            },
+            {
+              "id": "9c34c461-e7d0-4e28-8c30-da39017e7347",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 6,
+          "tipo_dia": "descanso",
+          "kcal": 2409,
+          "macros": {
+            "fat_g": 121,
+            "carbs_g": 179,
+            "protein_g": 151
+          },
+          "day_id": "48abcab6-f5c0-4b77-b41d-a8e1916055b7",
+          "meals": [
+            {
+              "id": "5362a4ea-d0e3-46e5-b774-8ecc8bd0386e",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "7505cdaf-84e8-4404-86af-4a8ec6314edf",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "efa2ef74-bfe9-4d55-9c30-35df027bcb33",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 723,
+              "macros": {
+                "fat_g": 36,
+                "carbs_g": 54,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "708dd4dc-79fe-48df-b52d-70c9ca7f6452",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "e3bea0df-eb8a-49a5-90b5-0281e128414a",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 7,
+          "tipo_dia": "entreno",
+          "kcal": 2414,
+          "macros": {
+            "fat_g": 98,
+            "carbs_g": 232,
+            "protein_g": 151
+          },
+          "day_id": "e87e04ab-22a8-4c2b-9c6d-e3a55517658a",
+          "meals": [
+            {
+              "id": "be5ba415-7e88-444c-996c-1bddb479bd83",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "d35138c4-620c-409d-af37-6e0a854c67be",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "16d783fd-3708-47be-a177-2ecea345ed5c",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 724,
+              "macros": {
+                "fat_g": 29,
+                "carbs_g": 70,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "13808cc7-e928-4e2e-a0ec-9f0b512cdafe",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": "Post-entreno",
+              "items": []
+            },
+            {
+              "id": "c196dbb4-eb78-42b1-8f8b-ccf26f56fe82",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 8,
+          "tipo_dia": "entreno",
+          "kcal": 2414,
+          "macros": {
+            "fat_g": 98,
+            "carbs_g": 232,
+            "protein_g": 151
+          },
+          "day_id": "7c303403-eefe-44b8-8c34-5df56bc70a98",
+          "meals": [
+            {
+              "id": "afa121a2-d9f6-4707-b985-9f5f772a9f7e",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "578095d3-d751-42cb-b70e-079bae9654a6",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "cca84fbb-c7b4-4592-a60c-3a6cccffd131",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 724,
+              "macros": {
+                "fat_g": 29,
+                "carbs_g": 70,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "d4dd4754-40ab-45bc-b3fd-ca44f48cb1f0",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": "Post-entreno",
+              "items": []
+            },
+            {
+              "id": "a7c0c255-624e-4fab-b082-13a9291fae96",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 9,
+          "tipo_dia": "descanso",
+          "kcal": 2409,
+          "macros": {
+            "fat_g": 121,
+            "carbs_g": 179,
+            "protein_g": 151
+          },
+          "day_id": "21f8e688-931c-4a08-a8f9-97ce4d9a89aa",
+          "meals": [
+            {
+              "id": "93f22d7e-39f0-4ce3-a81d-6e46c627c1a6",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "6550b3b2-cc6e-4e07-ac8f-c8c323ca3851",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "9190a1a4-eb7e-4a8c-a737-a50eb0244558",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 723,
+              "macros": {
+                "fat_g": 36,
+                "carbs_g": 54,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "e0e9019e-5cbe-482c-be65-02f8463ed403",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "b4cab79a-9444-4783-b13d-a4c5e75d083e",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 10,
+          "tipo_dia": "descanso",
+          "kcal": 2409,
+          "macros": {
+            "fat_g": 121,
+            "carbs_g": 179,
+            "protein_g": 151
+          },
+          "day_id": "8d3dfba8-ec62-49b1-ba30-4efdec68714d",
+          "meals": [
+            {
+              "id": "d6fda346-7d0d-4d11-987f-340ef4de59aa",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "0598333b-a5a3-418c-be79-60ce20d422bd",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "7a639de8-04e1-4568-a8e8-bb5a66d7a918",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 723,
+              "macros": {
+                "fat_g": 36,
+                "carbs_g": 54,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "ddf93330-23b0-4684-b0b2-377764f7e189",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "47753113-af04-484a-a77b-f2be0ca29934",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 11,
+          "tipo_dia": "entreno",
+          "kcal": 2414,
+          "macros": {
+            "fat_g": 98,
+            "carbs_g": 232,
+            "protein_g": 151
+          },
+          "day_id": "592bb7a6-f75c-4e5b-96fa-189bc0c6f509",
+          "meals": [
+            {
+              "id": "a7e57ec3-24e0-476c-8b0a-32177e74cbe8",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "35fd62b2-10e2-4db4-99b5-9a6d57cd9c88",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "e6653601-900d-4913-ba42-457f22ef2c52",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 724,
+              "macros": {
+                "fat_g": 29,
+                "carbs_g": 70,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "3a094b87-96da-40fd-a338-c7924668bae6",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": "Post-entreno",
+              "items": []
+            },
+            {
+              "id": "19187754-782b-4d30-ba0b-cf41a6f69d48",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 12,
+          "tipo_dia": "entreno",
+          "kcal": 2414,
+          "macros": {
+            "fat_g": 98,
+            "carbs_g": 232,
+            "protein_g": 151
+          },
+          "day_id": "9cdba3f1-13ca-43fc-9cbc-9c393703f1a8",
+          "meals": [
+            {
+              "id": "150be164-ccf2-4a15-8f8c-b22cda04e3b2",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "4ed32016-bb5f-450c-85cb-36be59862776",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "d62aaedd-2ff8-4607-bf26-abb012bde102",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 724,
+              "macros": {
+                "fat_g": 29,
+                "carbs_g": 70,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "ebfd717d-ddd4-4feb-805d-d8a09e1ec13e",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": "Post-entreno",
+              "items": []
+            },
+            {
+              "id": "01049528-43d3-4ec8-9dd8-87a1fcc1a393",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 13,
+          "tipo_dia": "descanso",
+          "kcal": 2409,
+          "macros": {
+            "fat_g": 121,
+            "carbs_g": 179,
+            "protein_g": 151
+          },
+          "day_id": "54a68b6b-1023-4c7a-80ad-7e5bd7563dfc",
+          "meals": [
+            {
+              "id": "b71473ea-19c1-4440-935d-3fba9f99a808",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "d36b5426-a328-477e-b42a-47095882b466",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "2707dddf-d56b-4119-adb2-d673413062e0",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 723,
+              "macros": {
+                "fat_g": 36,
+                "carbs_g": 54,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "e4cdb204-4ef1-416e-b5b3-498a7ff3dbd2",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "c7bf0cb4-81ae-4c7d-8820-23f84733010e",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 14,
+          "tipo_dia": "entreno",
+          "kcal": 2414,
+          "macros": {
+            "fat_g": 98,
+            "carbs_g": 232,
+            "protein_g": 151
+          },
+          "day_id": "d6d85077-23ce-417c-96ea-035e339a68aa",
+          "meals": [
+            {
+              "id": "b29130c2-9b09-4dfa-963d-31ec765b3bb7",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "0d34e56e-3c20-4a23-8e44-8bf7821cb97d",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "6e7c882f-c105-4c89-81da-900e9e53c30a",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 724,
+              "macros": {
+                "fat_g": 29,
+                "carbs_g": 70,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "9dfafa11-e7b8-4a27-ab82-f118a630d0d5",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": "Post-entreno",
+              "items": []
+            },
+            {
+              "id": "ed5ba370-7d64-4118-9e70-833f52006563",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 15,
+          "tipo_dia": "entreno",
+          "kcal": 2414,
+          "macros": {
+            "fat_g": 98,
+            "carbs_g": 232,
+            "protein_g": 151
+          },
+          "day_id": "4857d491-c954-4038-8b7d-7b1ad387c8cf",
+          "meals": [
+            {
+              "id": "9df41180-f63e-4902-99e7-63e2d86d2827",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "267677b2-04aa-42c4-b349-25e68076f456",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "34c64b7e-081b-49f1-8a1a-14157738ce4e",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 724,
+              "macros": {
+                "fat_g": 29,
+                "carbs_g": 70,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "d9c22cf8-379d-4b4f-8055-b80e99124721",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": "Post-entreno",
+              "items": []
+            },
+            {
+              "id": "5368b77a-6977-43b6-84bc-8ee934f927e2",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 16,
+          "tipo_dia": "descanso",
+          "kcal": 2409,
+          "macros": {
+            "fat_g": 121,
+            "carbs_g": 179,
+            "protein_g": 151
+          },
+          "day_id": "c41fc7a0-9b8d-466e-bfb5-4971c01d21cd",
+          "meals": [
+            {
+              "id": "aa2ed902-a14d-4d0c-8107-2ec0fddd36bb",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "b44f7773-4d62-46db-80ce-caa73d8dbaef",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "8a45080f-7134-480e-96f8-2d57a2c464ef",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 723,
+              "macros": {
+                "fat_g": 36,
+                "carbs_g": 54,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "2b02a0d7-be75-49d4-a74a-22e4474c6960",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "d4ae0377-f85d-4fc6-8490-2b54a8d9f1b9",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 17,
+          "tipo_dia": "descanso",
+          "kcal": 2409,
+          "macros": {
+            "fat_g": 121,
+            "carbs_g": 179,
+            "protein_g": 151
+          },
+          "day_id": "48fd4840-c9a7-4490-aacc-04680ebf0af8",
+          "meals": [
+            {
+              "id": "d3764c44-007b-4109-9c00-f57d9d04f668",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "1db0aa29-47e3-40c3-8cca-3ff8cf2441b9",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "acfcce42-0723-4d6e-8efe-bb8c554ef821",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 723,
+              "macros": {
+                "fat_g": 36,
+                "carbs_g": 54,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "c887d654-c2af-41bd-809a-4018f667a9cf",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "1f4b3440-e77b-4ea3-8ebd-d306b2a37790",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 18,
+          "tipo_dia": "entreno",
+          "kcal": 2414,
+          "macros": {
+            "fat_g": 98,
+            "carbs_g": 232,
+            "protein_g": 151
+          },
+          "day_id": "fcde044e-e8a2-43df-8684-59fb1e04b6a6",
+          "meals": [
+            {
+              "id": "3aee9104-9faa-40c1-be47-8ffc6a2c815e",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "381e5ab5-4a59-4fe6-b343-538ae92a25ab",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "93f821aa-1a7e-436f-88df-2209724266a3",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 724,
+              "macros": {
+                "fat_g": 29,
+                "carbs_g": 70,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "aa085f7b-4457-4735-ba9d-6bc07102b2f2",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": "Post-entreno",
+              "items": []
+            },
+            {
+              "id": "4fbfe3fd-7e7f-4540-8dd4-eb6275ce48cb",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 19,
+          "tipo_dia": "entreno",
+          "kcal": 2414,
+          "macros": {
+            "fat_g": 98,
+            "carbs_g": 232,
+            "protein_g": 151
+          },
+          "day_id": "ba4118cb-33f8-46c2-b70b-cc8cfed519d2",
+          "meals": [
+            {
+              "id": "0481c515-869d-4067-ae2b-cd309614ae46",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "2ad710cd-f617-4df0-9257-83c2ef7515b2",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "a61dfc56-dbc6-475d-aaaf-0b2eae0c727c",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 724,
+              "macros": {
+                "fat_g": 29,
+                "carbs_g": 70,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "ebb3842f-524a-4dd8-b88c-4f0110a7d6b0",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": "Post-entreno",
+              "items": []
+            },
+            {
+              "id": "58d5ddf6-9c13-4193-8b19-0c42b9611de6",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 20,
+          "tipo_dia": "descanso",
+          "kcal": 2409,
+          "macros": {
+            "fat_g": 121,
+            "carbs_g": 179,
+            "protein_g": 151
+          },
+          "day_id": "a09a95b2-a73e-4ea3-9d24-1853fc13ffa3",
+          "meals": [
+            {
+              "id": "ef2dc174-c55c-4214-8708-55194510e8b0",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "40ef7715-c159-42bf-b9bc-b89d7c734351",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "90e8d48f-e651-406b-b450-eacbb65363a3",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 723,
+              "macros": {
+                "fat_g": 36,
+                "carbs_g": 54,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "982f8449-2914-4a64-bb76-2772e0a3dd9c",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "f64abdce-cfeb-42e3-bce7-ae590eadb6d6",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 21,
+          "tipo_dia": "entreno",
+          "kcal": 2414,
+          "macros": {
+            "fat_g": 98,
+            "carbs_g": 232,
+            "protein_g": 151
+          },
+          "day_id": "efcf79db-b53e-4d15-a58f-62ed43a1c461",
+          "meals": [
+            {
+              "id": "83da387a-87a7-47dc-b6a9-4502e4905fbd",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "e4d59931-e3db-47e5-985f-d03358e1b822",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "3448493f-a43b-4393-9bf6-e3937ac66217",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 724,
+              "macros": {
+                "fat_g": 29,
+                "carbs_g": 70,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "05b11f92-ff81-42f7-bf77-85289ab97ad5",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": "Post-entreno",
+              "items": []
+            },
+            {
+              "id": "53887ce7-7fd0-4b7d-9b68-900d48285f21",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 22,
+          "tipo_dia": "entreno",
+          "kcal": 2414,
+          "macros": {
+            "fat_g": 98,
+            "carbs_g": 232,
+            "protein_g": 151
+          },
+          "day_id": "8accbe8f-1a3e-4908-aec4-acee83920106",
+          "meals": [
+            {
+              "id": "39089ba2-6447-4c2b-bec5-4232e99c05ab",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "7da7d5a3-5c83-42a0-b666-0d73b046562c",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "39225a18-2e98-452c-a848-737e9883c3ef",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 724,
+              "macros": {
+                "fat_g": 29,
+                "carbs_g": 70,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "526da8d3-12f0-42e0-a565-119f6293ed71",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": "Post-entreno",
+              "items": []
+            },
+            {
+              "id": "0013497f-9777-46fb-942a-272e4567435d",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 23,
+          "tipo_dia": "descanso",
+          "kcal": 2409,
+          "macros": {
+            "fat_g": 121,
+            "carbs_g": 179,
+            "protein_g": 151
+          },
+          "day_id": "46149074-6d9b-43b3-9034-3a2531bb0d54",
+          "meals": [
+            {
+              "id": "da08db18-1c62-40fe-ab1c-dd1915b77842",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "2a3bc07c-3e63-4919-8324-e9eb0f02a6a8",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "3cbb600b-ad18-467b-b1d1-a803f1ce42c7",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 723,
+              "macros": {
+                "fat_g": 36,
+                "carbs_g": 54,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "0d1482c7-d35d-4d0e-8389-bba0cff95b2a",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "44f8af6a-6a28-45b5-a83b-8a7b178debd6",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 24,
+          "tipo_dia": "descanso",
+          "kcal": 2409,
+          "macros": {
+            "fat_g": 121,
+            "carbs_g": 179,
+            "protein_g": 151
+          },
+          "day_id": "9eb30202-f6cf-40f9-bf0a-bbca5af81e42",
+          "meals": [
+            {
+              "id": "0ce6bedc-5acf-46d0-997d-b5de3e9d5737",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "9d554847-f9b5-4bb5-a27f-0923f522ca54",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "72504445-4e14-4de0-89f4-1b3c4abe400e",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 723,
+              "macros": {
+                "fat_g": 36,
+                "carbs_g": 54,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "551ba2fa-ec14-4a72-a94d-1fe06c8b2199",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "04e13452-ce7a-4125-9546-53170aa15561",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 25,
+          "tipo_dia": "entreno",
+          "kcal": 2414,
+          "macros": {
+            "fat_g": 98,
+            "carbs_g": 232,
+            "protein_g": 151
+          },
+          "day_id": "de8eb27d-f073-463f-b676-310a34faea10",
+          "meals": [
+            {
+              "id": "003040aa-0e62-4abd-ac4f-9cffb2d25583",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "f6b0e9e2-b327-4587-901a-7584a0852a45",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "fc841836-bfbf-422f-908b-995a4f3e8ebf",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 724,
+              "macros": {
+                "fat_g": 29,
+                "carbs_g": 70,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "aa120ddd-3a78-4a49-9db6-02399f6683d0",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": "Post-entreno",
+              "items": []
+            },
+            {
+              "id": "41b87599-743a-499c-8f6f-331cf5f21c20",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 26,
+          "tipo_dia": "entreno",
+          "kcal": 2414,
+          "macros": {
+            "fat_g": 98,
+            "carbs_g": 232,
+            "protein_g": 151
+          },
+          "day_id": "fa5032ce-7b77-4cea-a0f6-48e2df6fe5b8",
+          "meals": [
+            {
+              "id": "4abd827f-f599-47b7-9c1b-720d3e6af3f5",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "f5b49096-9c89-43f1-890a-4ec4acc1399b",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "11a83d00-c900-468d-b3e1-768f04d7f166",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 724,
+              "macros": {
+                "fat_g": 29,
+                "carbs_g": 70,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "6c1c82b6-dd77-42c8-9618-62fe95b45724",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 362,
+              "macros": {
+                "fat_g": 15,
+                "carbs_g": 35,
+                "protein_g": 23
+              },
+              "timing_note": "Post-entreno",
+              "items": []
+            },
+            {
+              "id": "3c463daa-726c-4536-bb7b-57bc02158432",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 483,
+              "macros": {
+                "fat_g": 20,
+                "carbs_g": 46,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        },
+        {
+          "day_index": 27,
+          "tipo_dia": "descanso",
+          "kcal": 2409,
+          "macros": {
+            "fat_g": 121,
+            "carbs_g": 179,
+            "protein_g": 151
+          },
+          "day_id": "1ef2040d-f741-45dc-a0df-dce33cb70e13",
+          "meals": [
+            {
+              "id": "7370cfb0-f806-4fd9-91c5-6891cda4b6e5",
+              "orden": 1,
+              "nombre": "Desayuno",
+              "meal_type": "DESAYUNO",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "98843500-4bd6-4f30-8d38-a14cc9c5e61a",
+              "orden": 2,
+              "nombre": "Almuerzo",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "9fb1f84a-9c0f-4ad6-9f82-1a3af54a8220",
+              "orden": 3,
+              "nombre": "Comida",
+              "meal_type": "COMIDA",
+              "kcal": 723,
+              "macros": {
+                "fat_g": 36,
+                "carbs_g": 54,
+                "protein_g": 45
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "e46c4032-23ac-404d-ba6d-18e8ed358e57",
+              "orden": 4,
+              "nombre": "Merienda",
+              "meal_type": "SNACK",
+              "kcal": 361,
+              "macros": {
+                "fat_g": 18,
+                "carbs_g": 27,
+                "protein_g": 23
+              },
+              "timing_note": null,
+              "items": []
+            },
+            {
+              "id": "fe7d195b-9a4a-431a-a71f-d16d581aef97",
+              "orden": 5,
+              "nombre": "Cena",
+              "meal_type": "CENA",
+              "kcal": 482,
+              "macros": {
+                "fat_g": 24,
+                "carbs_g": 36,
+                "protein_g": 30
+              },
+              "timing_note": null,
+              "items": []
+            }
+          ]
+        }
+      ],
+      "carb_cycling_summary": {
+        "mode": "weekly_isocaloric",
+        "label": "Carb cycling (kcal semanales estables)",
+        "description": "Subimos carbohidratos en dias de entreno y los bajamos en descanso. Compensamos con grasas para mantener el promedio semanal estable.",
+        "training_carb_delta_pct": 10,
+        "rest_carb_delta_pct": -15,
+        "compensation_macro": "fat",
+        "protein_fixed": true,
+        "avg_weekly_kcal": 2412,
+        "kcal_objetivo": 2411,
+        "drift_pct": 0.04,
+        "weekly_stable": true,
+        "training_day_avg_kcal": 2414,
+        "rest_day_avg_kcal": 2409
+      },
+      "current_estimate": {
+        "bmr": 1653,
+        "tdee": 2232,
+        "kcal_objetivo": 2411,
+        "macros_objetivo": {
+          "protein_g": 151,
+          "carbs_g": 211,
+          "fat_g": 107,
+          "protein_pct": 25,
+          "carbs_pct": 35,
+          "fat_pct": 40,
+          "kcal_calculated": 2411,
+          "requested_profile": "intolerante",
+          "applied_profile": "intolerante",
+          "requested_phase": "bulk",
+          "applied_phase": "bulk",
+          "metabolic_confidence": "alta",
+          "level": "intermedio",
+          "template_pct": {
+            "protein_pct": 25,
+            "carbs_pct": 35,
+            "fat_pct": 40
+          },
+          "raw_grams": {
+            "protein_g": 151,
+            "carbs_g": 211,
+            "fat_g": 107
+          },
+          "adjusted_grams": {
+            "protein_g": 151,
+            "carbs_g": 211,
+            "fat_g": 107
+          },
+          "final_pct": {
+            "fat_pct": 40,
+            "protein_pct": 25,
+            "carbs_pct": 35
+          },
+          "guardrails_applied": false,
+          "adjustments": [],
+          "protein_range_g": {
+            "min": 144,
+            "max": 180
+          },
+          "fat_min_g": 54,
+          "ruleset": "mindfeed_macro_phase_v2"
+        },
+        "calculation_audit": {
+          "bmr": {
+            "formula": "harris",
+            "reason": "beginner_or_sedentary",
+            "bmr": 1653
+          },
+          "tdee": {
+            "actividad_input": "sedentario",
+            "actividad_normalized": "sedentario",
+            "base_factor": 1.2,
+            "training_days": 4,
+            "training_factor": 1.3,
+            "steps_per_day": 8000,
+            "steps_adjustment": 0.05,
+            "applied_factor": 1.35,
+            "tdee": 2232
+          },
+          "kcal": {
+            "objetivo": "bulk",
+            "goal_factor": 1.08,
+            "kcal_objetivo": 2411
+          },
+          "macros": {
+            "protein_g": 151,
+            "carbs_g": 211,
+            "fat_g": 107,
+            "protein_pct": 25,
+            "carbs_pct": 35,
+            "fat_pct": 40,
+            "kcal_calculated": 2411,
+            "requested_profile": "intolerante",
+            "applied_profile": "intolerante",
+            "requested_phase": "bulk",
+            "applied_phase": "bulk",
+            "metabolic_confidence": "alta",
+            "level": "intermedio",
+            "template_pct": {
+              "protein_pct": 25,
+              "carbs_pct": 35,
+              "fat_pct": 40
+            },
+            "raw_grams": {
+              "protein_g": 151,
+              "carbs_g": 211,
+              "fat_g": 107
+            },
+            "adjusted_grams": {
+              "protein_g": 151,
+              "carbs_g": 211,
+              "fat_g": 107
+            },
+            "final_pct": {
+              "fat_pct": 40,
+              "protein_pct": 25,
+              "carbs_pct": 35
+            },
+            "guardrails_applied": false,
+            "adjustments": [],
+            "protein_range_g": {
+              "min": 144,
+              "max": 180
+            },
+            "fat_min_g": 54,
+            "ruleset": "mindfeed_macro_phase_v2"
+          }
+        }
+      }
+    },
+    "bridge_override": {
+      "success": true,
+      "inputs": {
+        "methodology": "hipertrofia",
+        "weekly_cls": 50,
+        "performance": "mantiene",
+        "flags": {}
+      },
+      "nutrition": {
+        "kcal_objetivo": 2500,
+        "macros_base": {
+          "protein_g": 156,
+          "carbs_g": 219,
+          "fat_g": 111,
+          "protein_pct": 25,
+          "carbs_pct": 35,
+          "fat_pct": 40,
+          "kcal_calculated": 2499,
+          "requested_profile": "intolerante",
+          "applied_profile": "intolerante",
+          "requested_phase": "bulk",
+          "applied_phase": "bulk",
+          "metabolic_confidence": "alta",
+          "level": "intermedio",
+          "template_pct": {
+            "protein_pct": 25,
+            "carbs_pct": 35,
+            "fat_pct": 40
+          },
+          "raw_grams": {
+            "protein_g": 156,
+            "carbs_g": 219,
+            "fat_g": 111
+          },
+          "adjusted_grams": {
+            "protein_g": 156,
+            "carbs_g": 219,
+            "fat_g": 111
+          },
+          "final_pct": {
+            "fat_pct": 40,
+            "protein_pct": 25,
+            "carbs_pct": 35
+          },
+          "guardrails_applied": false,
+          "adjustments": [],
+          "protein_range_g": {
+            "min": 144,
+            "max": 180
+          },
+          "fat_min_g": 56,
+          "ruleset": "mindfeed_macro_phase_v2"
+        },
+        "per_day": {
+          "D0": {
+            "protein_g": 151,
+            "fat_g": 121,
+            "carbs_g": 179,
+            "kcal": 2409
+          },
+          "D1": {
+            "protein_g": 151,
+            "carbs_g": 211,
+            "fat_g": 107,
+            "protein_pct": 25,
+            "carbs_pct": 35,
+            "fat_pct": 40,
+            "kcal_calculated": 2411,
+            "requested_profile": "intolerante",
+            "applied_profile": "intolerante",
+            "requested_phase": "bulk",
+            "applied_phase": "bulk",
+            "metabolic_confidence": "alta",
+            "level": "intermedio",
+            "template_pct": {
+              "protein_pct": 25,
+              "carbs_pct": 35,
+              "fat_pct": 40
+            },
+            "raw_grams": {
+              "protein_g": 151,
+              "carbs_g": 211,
+              "fat_g": 107
+            },
+            "adjusted_grams": {
+              "protein_g": 151,
+              "carbs_g": 211,
+              "fat_g": 107
+            },
+            "final_pct": {
+              "fat_pct": 40,
+              "protein_pct": 25,
+              "carbs_pct": 35
+            },
+            "guardrails_applied": false,
+            "adjustments": [],
+            "protein_range_g": {
+              "min": 144,
+              "max": 180
+            },
+            "fat_min_g": 54,
+            "ruleset": "mindfeed_macro_phase_v2",
+            "kcal": 2411
+          },
+          "D2": {
+            "protein_g": 151,
+            "fat_g": 93,
+            "carbs_g": 243,
+            "kcal": 2413
+          }
+        },
+        "calendar_macros": []
+      },
+      "training_guidance": {
+        "objetivo_calorico_unico": 2500,
+        "carb_cycling_aplicado": true,
+        "notas": []
+      },
+      "evaluation": {
+        "decision_type": "no_change",
+        "adjustments": {
+          "kcal": 0,
+          "carbsD2": 0
+        },
+        "new_flags": [],
+        "recommendations": []
+      },
+      "metabolic_profile": {
+        "type": "intolerante",
+        "confidence": "alta"
+      }
+    }
+  },
+  "console": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "%c🔧 DEBUG COMMANDS AVAILABLE color: #00FF00; font-weight: bold"
+    },
+    {
+      "type": "log",
+      "text": "Usa: window.__DEBUG_CONTEXTS.getHistory(\"NombreDelContexto\")"
+    },
+    {
+      "type": "log",
+      "text": "🚀 Entrena con IA - Inicializando aplicación..."
+    },
+    {
+      "type": "log",
+      "text": "📦 Modo: development"
+    },
+    {
+      "type": "log",
+      "text": "🌐 Base URL: /"
+    },
+    {
+      "type": "log",
+      "text": "⚛️ React Version: 19.2.0"
+    },
+    {
+      "type": "log",
+      "text": "✅ Aplicación inicializada en 2.50ms"
+    },
+    {
+      "type": "log",
+      "text": "ℹ️ [Router] EVENT NAVIGATE {path: /login, search: , file: http://localhost:5173/src/utils/trace.js:40:38}"
+    },
+    {
+      "type": "log",
+      "text": "Initializing enhanced auth system..."
+    },
+    {
+      "type": "log",
+      "text": "Session manager cleaned up"
+    },
+    {
+      "type": "log",
+      "text": "Connection manager cleaned up"
+    },
+    {
+      "type": "log",
+      "text": "ℹ️ [Router] EVENT NAVIGATE {path: /login, search: , file: http://localhost:5173/src/utils/trace.js:40:38}"
+    },
+    {
+      "type": "log",
+      "text": "Initializing enhanced auth system..."
+    },
+    {
+      "type": "log",
+      "text": "%c📚 DEBUGGING GUIDE color: #00D4FF; font-weight: bold; font-size: 16px"
+    },
+    {
+      "type": "log",
+      "text": "%cList all contexts:\n%c  window.__DEBUG_CONTEXTS.listContexts() color: #FFD700 color: #00FF00; font-family: monospace"
+    },
+    {
+      "type": "log",
+      "text": "%cGet context history:\n%c  window.__DEBUG_CONTEXTS.getHistory(\"WorkoutContext\") color: #FFD700 color: #00FF00; font-family: monospace"
+    },
+    {
+      "type": "log",
+      "text": "%cGet all stats:\n%c  window.__DEBUG_CONTEXTS.getAllStats() color: #FFD700 color: #00FF00; font-family: monospace"
+    },
+    {
+      "type": "log",
+      "text": "%cDisable debugging:\n%c  window.__DEBUG_CONTEXTS.disable() color: #FFD700 color: #FF6B6B; font-family: monospace"
+    },
+    {
+      "type": "log",
+      "text": "%c📚 DEBUGGING GUIDE color: #00D4FF; font-weight: bold; font-size: 16px"
+    },
+    {
+      "type": "log",
+      "text": "%cList all contexts:\n%c  window.__DEBUG_CONTEXTS.listContexts() color: #FFD700 color: #00FF00; font-family: monospace"
+    },
+    {
+      "type": "log",
+      "text": "%cGet context history:\n%c  window.__DEBUG_CONTEXTS.getHistory(\"WorkoutContext\") color: #FFD700 color: #00FF00; font-family: monospace"
+    },
+    {
+      "type": "log",
+      "text": "%cGet all stats:\n%c  window.__DEBUG_CONTEXTS.getAllStats() color: #FFD700 color: #00FF00; font-family: monospace"
+    },
+    {
+      "type": "log",
+      "text": "%cDisable debugging:\n%c  window.__DEBUG_CONTEXTS.disable() color: #FFD700 color: #FF6B6B; font-family: monospace"
+    },
+    {
+      "type": "log",
+      "text": "Token refresh scheduled in 10074 minutes"
+    },
+    {
+      "type": "log",
+      "text": "Session manager initialized"
+    },
+    {
+      "type": "log",
+      "text": "Connection manager initialized"
+    },
+    {
+      "type": "log",
+      "text": "Analytics flushed: [Object]"
+    },
+    {
+      "type": "log",
+      "text": "Activity tracked: {sessionDuration: 27, timeSinceLastActivity: 0, isActive: true, isOnline: true, userAgent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap…Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36}"
+    },
+    {
+      "type": "log",
+      "text": "ℹ️ [ApiClient] EVENT API_REQUEST {url: http://localhost:3010/api/training/state, method: GET, file: http://localhost:5173/src/utils/trace.js:40:38}"
+    },
+    {
+      "type": "log",
+      "text": "🔗 API GET: http://localhost:3010/api/training/state "
+    },
+    {
+      "type": "log",
+      "text": "ℹ️ [Router] EVENT NAVIGATE {path: /, search: , file: http://localhost:5173/src/utils/trace.js:40:38}"
+    },
+    {
+      "type": "log",
+      "text": "ℹ️ [ApiClient] EVENT API_REQUEST {url: http://localhost:3010/api/routines/active-plan, method: GET, file: http://localhost:5173/src/utils/trace.js:40:38}"
+    },
+    {
+      "type": "log",
+      "text": "ℹ️ [ApiClient] EVENT API_REQUEST {url: http://localhost:3010/api/routines/active-plan, method: GET, file: http://localhost:5173/src/utils/trace.js:40:38}"
+    },
+    {
+      "type": "log",
+      "text": "🔗 API GET: http://localhost:3010/api/routines/active-plan "
+    },
+    {
+      "type": "log",
+      "text": "🔗 API GET: http://localhost:3010/api/routines/active-plan "
+    },
+    {
+      "type": "log",
+      "text": "ℹ️ [ApiClient] EVENT API_RESPONSE {url: http://localhost:3010/api/training/state, status: 200, ok: true, file: http://localhost:5173/src/utils/trace.js:40:38}"
+    },
+    {
+      "type": "log",
+      "text": "✅ API GET 200: http://localhost:3010/api/training/state "
+    },
+    {
+      "type": "log",
+      "text": "✅ Profile loaded successfully: 33 {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino}"
+    },
+    {
+      "type": "log",
+      "text": "ℹ️ [ApiClient] EVENT API_RESPONSE {url: http://localhost:3010/api/routines/active-plan, status: 200, ok: true, file: http://localhost:5173/src/utils/trace.js:40:38}"
+    },
+    {
+      "type": "log",
+      "text": "✅ API GET 200: http://localhost:3010/api/routines/active-plan "
+    },
+    {
+      "type": "log",
+      "text": "ℹ️ [ApiClient] EVENT API_RESPONSE {url: http://localhost:3010/api/routines/active-plan, status: 200, ok: true, file: http://localhost:5173/src/utils/trace.js:40:38}"
+    },
+    {
+      "type": "log",
+      "text": "✅ API GET 200: http://localhost:3010/api/routines/active-plan "
+    },
+    {
+      "type": "log",
+      "text": "Activity tracked: {sessionDuration: 1299, timeSinceLastActivity: 0, isActive: true, isOnline: true, userAgent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap…Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36}"
+    },
+    {
+      "type": "log",
+      "text": "ℹ️ [ApiClient] EVENT API_REQUEST {url: http://localhost:3010/api/training-session/stats/progress-data?methodology_plan_id=254, method: GET, file: http://localhost:5173/src/utils/trace.js:40:38}"
+    },
+    {
+      "type": "log",
+      "text": "🔗 API GET: http://localhost:3010/api/training-session/stats/progress-data?methodology_plan_id=254 "
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "%c🔧 DEBUG COMMANDS AVAILABLE color: #00FF00; font-weight: bold"
+    },
+    {
+      "type": "log",
+      "text": "Usa: window.__DEBUG_CONTEXTS.getHistory(\"NombreDelContexto\")"
+    },
+    {
+      "type": "log",
+      "text": "🚀 Entrena con IA - Inicializando aplicación..."
+    },
+    {
+      "type": "log",
+      "text": "📦 Modo: development"
+    },
+    {
+      "type": "log",
+      "text": "🌐 Base URL: /"
+    },
+    {
+      "type": "log",
+      "text": "⚛️ React Version: 19.2.0"
+    },
+    {
+      "type": "log",
+      "text": "✅ Aplicación inicializada en 0.90ms"
+    },
+    {
+      "type": "log",
+      "text": "ℹ️ [Router] EVENT NAVIGATE {path: /nutrition, search: , file: http://localhost:5173/src/utils/trace.js:40:38}"
+    },
+    {
+      "type": "log",
+      "text": "Initializing enhanced auth system..."
+    },
+    {
+      "type": "log",
+      "text": "Token refresh scheduled in 10074 minutes"
+    },
+    {
+      "type": "log",
+      "text": "Session manager cleaned up"
+    },
+    {
+      "type": "log",
+      "text": "Connection manager cleaned up"
+    },
+    {
+      "type": "log",
+      "text": "ℹ️ [Router] EVENT NAVIGATE {path: /nutrition, search: , file: http://localhost:5173/src/utils/trace.js:40:38}"
+    },
+    {
+      "type": "log",
+      "text": "Initializing enhanced auth system..."
+    },
+    {
+      "type": "log",
+      "text": "Token refresh scheduled in 10074 minutes"
+    },
+    {
+      "type": "log",
+      "text": "Session manager initialized"
+    },
+    {
+      "type": "log",
+      "text": "Connection manager initialized"
+    },
+    {
+      "type": "log",
+      "text": "Session manager initialized"
+    },
+    {
+      "type": "log",
+      "text": "Connection manager initialized"
+    },
+    {
+      "type": "log",
+      "text": "Activity tracked: {sessionDuration: 66, timeSinceLastActivity: 0, isActive: true, isOnline: true, userAgent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap…Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36}"
+    },
+    {
+      "type": "log",
+      "text": "ℹ️ [ApiClient] EVENT API_REQUEST {url: http://localhost:3010/api/training/state, method: GET, file: http://localhost:5173/src/utils/trace.js:40:38}"
+    },
+    {
+      "type": "log",
+      "text": "Loading profile from cache: 33"
+    },
+    {
+      "type": "log",
+      "text": "🔗 API GET: http://localhost:3010/api/training/state "
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "ℹ️ [ApiClient] EVENT API_RESPONSE {url: http://localhost:3010/api/training/state, status: 200, ok: true, file: http://localhost:5173/src/utils/trace.js:40:38}"
+    },
+    {
+      "type": "log",
+      "text": "✅ API GET 200: http://localhost:3010/api/training/state "
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "✅ Profile loaded successfully: 33 {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "%c📚 DEBUGGING GUIDE color: #00D4FF; font-weight: bold; font-size: 16px"
+    },
+    {
+      "type": "log",
+      "text": "%cList all contexts:\n%c  window.__DEBUG_CONTEXTS.listContexts() color: #FFD700 color: #00FF00; font-family: monospace"
+    },
+    {
+      "type": "log",
+      "text": "%cGet context history:\n%c  window.__DEBUG_CONTEXTS.getHistory(\"WorkoutContext\") color: #FFD700 color: #00FF00; font-family: monospace"
+    },
+    {
+      "type": "log",
+      "text": "%cGet all stats:\n%c  window.__DEBUG_CONTEXTS.getAllStats() color: #FFD700 color: #00FF00; font-family: monospace"
+    },
+    {
+      "type": "log",
+      "text": "%cDisable debugging:\n%c  window.__DEBUG_CONTEXTS.disable() color: #FFD700 color: #FF6B6B; font-family: monospace"
+    },
+    {
+      "type": "log",
+      "text": "✅ Profile loaded successfully: 33 {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino}"
+    },
+    {
+      "type": "log",
+      "text": "%c📚 DEBUGGING GUIDE color: #00D4FF; font-weight: bold; font-size: 16px"
+    },
+    {
+      "type": "log",
+      "text": "%cList all contexts:\n%c  window.__DEBUG_CONTEXTS.listContexts() color: #FFD700 color: #00FF00; font-family: monospace"
+    },
+    {
+      "type": "log",
+      "text": "%cGet context history:\n%c  window.__DEBUG_CONTEXTS.getHistory(\"WorkoutContext\") color: #FFD700 color: #00FF00; font-family: monospace"
+    },
+    {
+      "type": "log",
+      "text": "%cGet all stats:\n%c  window.__DEBUG_CONTEXTS.getAllStats() color: #FFD700 color: #00FF00; font-family: monospace"
+    },
+    {
+      "type": "log",
+      "text": "%cDisable debugging:\n%c  window.__DEBUG_CONTEXTS.disable() color: #FFD700 color: #FF6B6B; font-family: monospace"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "Activity tracked: {sessionDuration: 2491, timeSinceLastActivity: 0, isActive: true, isOnline: true, userAgent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap…Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "Activity tracked: {sessionDuration: 4643, timeSinceLastActivity: 0, isActive: true, isOnline: true, userAgent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap…Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "Activity tracked: {sessionDuration: 5893, timeSinceLastActivity: 0, isActive: true, isOnline: true, userAgent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap…Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "Activity tracked: {sessionDuration: 6972, timeSinceLastActivity: 0, isActive: true, isOnline: true, userAgent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap…Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "Activity tracked: {sessionDuration: 10807, timeSinceLastActivity: 0, isActive: true, isOnline: true, userAgent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap…Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "Activity tracked: {sessionDuration: 14088, timeSinceLastActivity: 0, isActive: true, isOnline: true, userAgent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap…Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "✅ Plan V2 generado: {success: true, message: Plan nutricional generado exitosamente, plan_id: f62c2ced-ec65-445f-9c9a-b57f53f1d886, plan: Object}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "Activity tracked: {sessionDuration: 24622, timeSinceLastActivity: 0, isActive: true, isOnline: true, userAgent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap…Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "✅ Plan cargado: {id: f62c2ced-ec65-445f-9c9a-b57f53f1d886, user_id: 33, plan_name: Plan bulk - 28 días, tipo: activo, bmr: 1653}"
+    },
+    {
+      "type": "log",
+      "text": "✅ Plan cargado: {id: f62c2ced-ec65-445f-9c9a-b57f53f1d886, user_id: 33, plan_name: Plan bulk - 28 días, tipo: activo, bmr: 1653}"
+    },
+    {
+      "type": "log",
+      "text": "Activity tracked: {sessionDuration: 28106, timeSinceLastActivity: 0, isActive: true, isOnline: true, userAgent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap…Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "✅ Profile loaded successfully: 33 {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino}"
+    },
+    {
+      "type": "log",
+      "text": "✅ Profile loaded successfully: 33 {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    },
+    {
+      "type": "log",
+      "text": "📊 Calculando macros con userData: {peso: 90.00, altura: 181.00, edad: 42, sexo: femenino, nivel_actividad: sedentario}"
+    }
+  ],
+  "pageErrors": [],
+  "finishedAt": "2026-03-19T17:34:25.336Z",
+  "success": true
+}

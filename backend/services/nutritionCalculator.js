@@ -4,6 +4,12 @@
  * Carb Cycling para optimización
  */
 
+import {
+  MACRO_RULESET_VERSION,
+  extractMacroCalculationAudit,
+  resolveMacroTargets
+} from "./macroProfilePhaseResolver.js";
+
 /**
  * Ecuaciones de TMB
  */
@@ -260,38 +266,15 @@ export function getCarbCyclingStrategySummary() {
  * @param {string} metabolicType - 'tolerante' | 'intolerante' | 'mixto'
  * @returns {Object} Distribución de macros {protein_g, carbs_g, fat_g}
  */
-export function calculateMacros(kcalObjetivo, peso_kg, trainingType, objetivo, metabolicType, metabolicConfidence = 'media', level = 'intermedio') {
-  const ranges = {
-    tolerante: { protein: [0.2, 0.25], carbs: [0.5, 0.6], fat: [0.15, 0.25] },
-    intolerante: { protein: [0.3, 0.35], carbs: [0.2, 0.3], fat: [0.35, 0.45] },
-    mixto: { protein: [0.25, 0.3], carbs: [0.35, 0.4], fat: [0.3, 0.35] }
-  };
-
-  const appliedMetabolicType = metabolicConfidence === 'baja' ? 'mixto' : (metabolicType || 'mixto');
-  let pct = ranges[appliedMetabolicType] || ranges.mixto;
-  const proteinMin =
-    objetivo === 'cut'
-      ? 2.0 * peso_kg
-      : objetivo === 'mant'
-        ? 1.6 * peso_kg
-        : (level === 'avanzado' ? 1.8 : 1.6) * peso_kg;
-  const fatMin = Math.max(0.6 * peso_kg, (kcalObjetivo * 0.20) / 9);
-
-  // Porcentajes base
-  let protein_g = Math.round((kcalObjetivo * ((pct.protein[0] + pct.protein[1]) / 2)) / 4);
-  let fat_g = Math.round((kcalObjetivo * ((pct.fat[0] + pct.fat[1]) / 2)) / 9);
-  let carbs_g = Math.round((kcalObjetivo * ((pct.carbs[0] + pct.carbs[1]) / 2)) / 4);
-
-  // Normalización con mínimos fisiológicos
-  protein_g = Math.max(protein_g, Math.round(proteinMin));
-  fat_g = Math.max(fat_g, Math.round(fatMin));
-
-  const proteinKcal = protein_g * 4;
-  const fatKcal = fat_g * 9;
-  const remainingKcal = Math.max(0, kcalObjetivo - proteinKcal - fatKcal);
-  carbs_g = Math.max(0, Math.round(remainingKcal / 4));
-
-  return { protein_g, carbs_g, fat_g };
+export function calculateMacros(kcalObjetivo, peso_kg, _trainingType, objetivo, metabolicType, metabolicConfidence = 'media', level = 'intermedio') {
+  return resolveMacroTargets({
+    kcalTarget: kcalObjetivo,
+    pesoKg: peso_kg,
+    metabolicProfile: metabolicType,
+    metabolicConfidence,
+    phase: objetivo,
+    level
+  });
 }
 
 /**
@@ -630,11 +613,12 @@ export function generateNutritionPlan(profile, duracionDias, trainingSchedule = 
     training_type,
     comidas_por_dia: comidas_dia,
     fuente: 'determinista',
-    version_reglas: 'v1',
+    version_reglas: MACRO_RULESET_VERSION,
     calculation_audit: {
       bmr: bmrAudit,
       tdee: tdeeAudit,
-      kcal: goalAudit
+      kcal: goalAudit,
+      macros: extractMacroCalculationAudit(baseMacros)
     },
     carb_cycling_audit: summarizeCarbCycling(days, kcalObjetivo),
     days
@@ -724,11 +708,12 @@ export function generateNutritionPlanWithKcalOverride(
     training_type,
     comidas_por_dia: comidas_dia,
     fuente: 'determinista',
-    version_reglas: 'v1',
+    version_reglas: MACRO_RULESET_VERSION,
     calculation_audit: {
       bmr: bmrAudit,
       tdee: tdeeAudit,
-      kcal: goalAudit
+      kcal: goalAudit,
+      macros: extractMacroCalculationAudit(baseMacros)
     },
     carb_cycling_audit: summarizeCarbCycling(days, kcalObjetivo),
     days

@@ -11,10 +11,6 @@ import {
   adjustCaloriesForGoal,
   calculateMacros
 } from './nutritionCalculator.js';
-import {
-  calculateMacrosWithMetabolicProfile,
-  applyMinimumGuardrails
-} from './metabolicProfileCalculator.js';
 import { logNutritionChange } from './nutritionAuditLogger.js';
 
 // ============================================================================
@@ -123,23 +119,20 @@ export async function processTrainingToNutrition(userId, trainingInputs) {
   let kcalBase = adjustCaloriesForGoal(effectiveTdee, objetivo, profile);
   const auditEntries = [];
 
-  // Calcular macros base (con o sin perfil metabolico)
-  let macrosBase;
-  if (metabolicProfile) {
-    macrosBase = calculateMacrosWithMetabolicProfile(
-      kcalBase,
-      profile.peso_kg,
-      metabolicProfile.metabolic_profile,
-      objetivo
-    );
-  } else {
-    macrosBase = calculateMacros(
-      kcalBase,
-      profile.peso_kg,
-      profile.training_type || 'hipertrofia',
-      objetivo
-    );
-  }
+  const resolvedMetabolicType = metabolicProfile?.metabolic_profile || profile.metabolic_type;
+  const resolvedMetabolicConfidence = metabolicProfile?.confidence_level || profile.metabolic_confidence || 'media';
+  const resolvedLevel = profile.level || profile.nivel_entrenamiento || 'intermedio';
+
+  // Calcular macros base desde la fuente canónica perfil + fase
+  let macrosBase = calculateMacros(
+    kcalBase,
+    profile.peso_kg,
+    profile.training_type || 'hipertrofia',
+    objetivo,
+    resolvedMetabolicType,
+    resolvedMetabolicConfidence,
+    resolvedLevel
+  );
 
   // Evaluar flags y generar ajustes
   const evaluation = evaluateTrainingFlags({
@@ -242,22 +235,16 @@ export async function processTrainingToNutrition(userId, trainingInputs) {
     });
 
     adjustedKcal += evaluation.adjustments.kcal;
-    // Recalcular macros con nuevas kcal
-    if (metabolicProfile) {
-      adjustedMacros = calculateMacrosWithMetabolicProfile(
-        adjustedKcal,
-        profile.peso_kg,
-        metabolicProfile.metabolic_profile,
-        objetivo
-      );
-    } else {
-      adjustedMacros = calculateMacros(
-        adjustedKcal,
-        profile.peso_kg,
-        profile.training_type || 'hipertrofia',
-        objetivo
-      );
-    }
+    // Recalcular macros con nuevas kcal manteniendo perfil + confianza
+    adjustedMacros = calculateMacros(
+      adjustedKcal,
+      profile.peso_kg,
+      profile.training_type || 'hipertrofia',
+      objetivo,
+      resolvedMetabolicType,
+      resolvedMetabolicConfidence,
+      resolvedLevel
+    );
   }
 
   if (evaluation.adjustments.carbsD2) {
@@ -271,9 +258,6 @@ export async function processTrainingToNutrition(userId, trainingInputs) {
       source: 'bridge'
     });
   }
-
-  // Aplicar guardrails minimos
-  adjustedMacros = applyMinimumGuardrails(adjustedMacros, profile.peso_kg, objetivo, adjustedKcal, profile.level || profile.nivel_entrenamiento);
 
   // Generar distribucion por tipo de dia (carb cycling)
   const perDayMacros = buildCarbCyclingDistribution(adjustedMacros, profile.peso_kg, weekly_cls, objetivo);

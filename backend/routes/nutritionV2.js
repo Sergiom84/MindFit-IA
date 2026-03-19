@@ -3884,14 +3884,25 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
       profile.steps_per_day || undefined
     );
     const kcalAudit = calculateGoalAdjustmentAudit(tdeeAudit.tdee, profile.objetivo, profile);
+    const macrosAudit = calculateMacros(
+      kcalAudit.kcal_objetivo,
+      profile.peso_kg,
+      profile.training_type || 'general',
+      profile.objetivo,
+      profile.metabolic_type,
+      profile.metabolic_confidence,
+      profile.level || profile.nivel_entrenamiento || 'intermedio'
+    );
     const currentEstimate = {
       bmr: bmrAudit.bmr,
       tdee: tdeeAudit.tdee,
       kcal_objetivo: kcalAudit.kcal_objetivo,
+      macros_objetivo: macrosAudit,
       calculation_audit: {
         bmr: bmrAudit,
         tdee: tdeeAudit,
-        kcal: kcalAudit
+        kcal: kcalAudit,
+        macros: macrosAudit
       }
     };
     const carbCyclingSummary = summarizeCarbCycling(activePlan.days, activePlan.kcal_objetivo);
