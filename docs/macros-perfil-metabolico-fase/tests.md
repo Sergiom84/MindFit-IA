@@ -167,3 +167,27 @@ Objetivo: validar consumidores frontend/documentación.
 - Capturas: `test-results/manual-qa-macros-perfil-fase/*.png`
 - Flujo validado: login → `/nutrition` → guardado de configuración `bulk` → cuestionario metabólico (2 intentos) → generación de plan → vista `Calendario V2` → bridge override `2500 kcal` → vuelta a `Generar Plan`.
 - Resultado observado en QA: perfil aplicado `intolerante`, plan activo `bulk`, macros UI/API `P 151 / C 211 / G 107`, bridge override coherente con `intolerante + bulk`.
+
+## Resultados ejecutados
+
+### Automatizados
+
+- `node --test backend/tests/macroProfilePhaseResolver.test.js` ✅
+- `node --test backend/tests/nutritionCalculatorMacrosByPhase.test.js` ✅
+- `node --test backend/tests/metabolicProfileMacroAlignment.test.js` ✅
+- `node --test backend/tests/trainingNutritionBridgeMacroOverride.test.js` ✅
+- `npm run test:backend` ✅ (`69/69`)
+- `eslint` dirigido sobre los archivos tocados ✅ sin errores; solo warnings legacy fuera de alcance.
+
+### QA manual / Playwright
+
+- Script: `test-results/manual-qa-macros-perfil-fase/run-playwright-qa.mjs`
+- Reporte: `test-results/manual-qa-macros-perfil-fase/qa-report.json`
+- Capturas: `test-results/manual-qa-macros-perfil-fase/*.png`
+- Checks OK: `11/11`
+- Flujo validado: login → `/nutrition` → guardado de configuración `bulk` → cuestionario metabólico (2 intentos) → generación de plan → `Calendario V2` → bridge override `2500 kcal` → vuelta a `Generar Plan`.
+- Resultado observado: perfil aplicado `intolerante`, fase validada `bulk`, macros UI/API del plan activo `P 151 / C 211 / G 107`, y coherencia del bridge override con `intolerante + bulk`.
+
+### Qué queda por ejecutar
+
+- Nada pendiente dentro del alcance de este impl-pack.

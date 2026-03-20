@@ -289,3 +289,30 @@ Se considerará terminado cuando:
 - la matriz `3x3` esté cubierta por tests;
 - exista evidencia de QA manual;
 - `docs/_active.md`, `status.md`, `checklist.md`, `tests.md` y `REGISTRO_DIARIO_IMPLEMENTACIONES.md` estén alineados.
+
+## Outcome summary
+
+### Qué se implementó
+
+- Se creó `backend/services/macroProfilePhaseResolver.js` como fuente única de verdad para la tabla oficial `perfil + fase`, con ruleset `mindfeed_macro_phase_v2`, aliases controlados y salida auditable.
+- Se alinearon `backend/services/nutritionCalculator.js`, `backend/services/metabolicProfileCalculator.js`, `backend/services/bridgeCoordinator.js`, `backend/routes/trainingNutritionBridge.js`, `backend/routes/metabolicProfile.js` y `backend/routes/nutritionV2.js` para que consuman el mismo resolver.
+- Se corrigió el flujo de `override_kcal` para no perder `metabolic_type` y se expuso `calculation_audit.macros` como rastro operativo del reparto aplicado.
+- Se eliminó del frontend el cálculo local incoherente en `src/components/nutrition/NutritionScreen.jsx`, manteniendo compatibilidad de consumo con los datos reales del backend.
+- Se añadieron suites backend específicas para matriz `3x3`, alineación entre calculadoras y bridge override, y se completó QA manual/autenticado con Playwright sobre el flujo visible.
+
+### Qué se cambió vs plan original
+
+- El rollout se cerró manteniendo wrappers compatibles en lugar de hacer un corte agresivo de contratos legacy, para reducir riesgo en rutas secundarias.
+- El QA manual se automatizó con un script Playwright autenticado (`test-results/manual-qa-macros-perfil-fase/run-playwright-qa.mjs`) y un reporte JSON reutilizable, en vez de dejar solo pasos manuales narrativos.
+- La verificación funcional final se apoyó también en la auditoría observable del plan activo (`macros_objetivo` / respuesta API) para validar paridad UI/API sin depender de inspección visual únicamente.
+
+### Pendientes
+
+- No quedan pendientes críticos dentro del alcance de este impl-pack.
+- Como mejora futura opcional, se puede homogeneizar aún más la exposición de `calculation_audit` en consumers secundarios si se quisiera extender trazabilidad en otras vistas.
+
+### Riesgos conocidos post-release
+
+- Persisten documentos históricos que pueden mencionar lógica legacy; si se reutilizan fuera del pack activo conviene revisarlos antes de tomarlos como referencia operativa.
+- La build/lint global del repo mantiene warnings legacy fuera de alcance, por lo que futuras tareas deben seguir separando deuda histórica del contrato implementado aquí.
+- El QA manual cubre el flujo autenticado principal y los casos críticos del rollout, pero no sustituye una matriz E2E completa para todas las combinaciones de perfil/fase.
