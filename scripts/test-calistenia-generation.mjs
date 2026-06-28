@@ -69,7 +69,12 @@ async function runStaticContractCheck() {
     failures.push("WorkoutContext no parece validar result.plan antes de activar el plan.");
   }
 
-  const generatorMatch = serviceSource.match(/export async function generateCalisteniaPlan[\s\S]*?\n}/);
+  // Captura el cuerpo completo de generateCalisteniaPlan: desde su declaración
+  // hasta el siguiente export de nivel superior (o el final del archivo). La
+  // versión anterior cortaba en el primer "\n}" y dejaba fuera el return.
+  const generatorMatch = serviceSource.match(
+    /export async function generateCalisteniaPlan[\s\S]*?(?=\nexport (?:async )?function |\nexport \{|$)/
+  );
   const generatorBlock = generatorMatch?.[0] || "";
 
   if (!generatorBlock) {
@@ -79,11 +84,12 @@ async function runStaticContractCheck() {
       failures.push("generateCalisteniaPlan() sigue devolviendo un placeholder.");
     }
 
-    if (!/\bplan\s*:/.test(generatorBlock)) {
+    // Acepta tanto `plan:` como la propiedad abreviada `plan` en el return.
+    if (!/return\s*\{[\s\S]*?\bplan\b/.test(generatorBlock)) {
       failures.push("generateCalisteniaPlan() no devuelve una propiedad plan.");
     }
 
-    if (!/\bsemanas\s*:/.test(generatorBlock)) {
+    if (!/\bsemanas\b/.test(generatorBlock)) {
       failures.push("generateCalisteniaPlan() no construye semanas[], que es el contrato esperado por el frontend.");
     }
   }

@@ -332,24 +332,24 @@ router.get('/session-config-all', sessionControllers.getAllSessionConfigs);
 // TRACKING DE SERIES
 // ============================================================
 
-router.post('/save-set', sessionControllers.saveSet);
-router.get('/session-summary/:sessionId', sessionControllers.getSessionSummary);
+router.post('/save-set', authenticateToken, sessionControllers.saveSet);
+router.get('/session-summary/:sessionId', authenticateToken, sessionControllers.getSessionSummary);
 
 // ============================================================
 // CICLO Y PROGRESIÓN
 // ============================================================
 
-router.get('/cycle-status/:userId', cycleControllers.getCycleStatus);
+router.get('/cycle-status/:userId', authenticateToken, cycleControllers.getCycleStatus);
 router.post('/advance-cycle', authenticateToken, cycleControllers.advanceCycle);
 router.post('/apply-progression', authenticateToken, progressionControllers.applyProgression);
-router.get('/progression/:userId/:exerciseId', progressionControllers.getProgression);
-router.post('/update-progression', progressionControllers.updateProgression);
+router.get('/progression/:userId/:exerciseId', authenticateToken, progressionControllers.getProgression);
+router.post('/update-progression', authenticateToken, progressionControllers.updateProgression);
 
 // ============================================================
 // DELOAD
 // ============================================================
 
-router.get('/check-deload/:userId', deloadControllers.checkDeload);
+router.get('/check-deload/:userId', authenticateToken, deloadControllers.checkDeload);
 router.post('/activate-deload', authenticateToken, deloadControllers.activateDeload);
 router.post('/deactivate-deload', authenticateToken, deloadControllers.deactivateDeload);
 

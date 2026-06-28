@@ -51,3 +51,6 @@ _supabase_backup_*/
 
 # Backups de migración con secretos del proyecto viejo
 *.bak-old-project
+
+# Codex CLI artifacts
+.codex/

@@ -1,5 +1,20 @@
 # HANDOFF — Implementar generación de planes (Calistenia y demás metodologías)
 
+> ⚠️ **DOCUMENTO HISTÓRICO / COMPLETADO (2026-06-28).** Lo que describe abajo
+> como "pendiente" YA ESTÁ IMPLEMENTADO. Se conserva como registro del diseño.
+>
+> Estado real actual:
+>
+> - **Calistenia, CrossFit, Gimnasio y Funcional generan planes reales** (ya no
+>   son placeholders). Calistenia: `CalisteniaService.generateCalisteniaPlan`;
+>   CrossFit/Gym/Funcional vía `planEngine.js` + sus servicios.
+> - El proxy de `server.js` para `hipertrofiav2` enruta a
+>   **`/api/hipertrofiav2/generate-d1d5`** (no a `/generate`, que nunca existió).
+> - Fuente de ejercicios unificada en `app.ejercicios` (CrossFit en
+>   `Ejercicios_CrossFit`). El contrato del frontend (`plan.semanas[]`) se cumple.
+>
+> Las secciones siguientes reflejan el diagnóstico ORIGINAL previo a esos cambios.
+
 > Documento autónomo para una conversación nueva. Contiene el diagnóstico, el contrato exacto, el sistema de referencia y el plan de implementación.
 
 ## 1. Objetivo

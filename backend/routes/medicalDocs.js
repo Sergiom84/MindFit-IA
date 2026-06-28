@@ -6,14 +6,22 @@ import fs from 'fs'
 import path from 'path'
 import multer from 'multer'
 import { pool } from '../db.js'
+import authenticateToken from '../middleware/auth.js'
 
 const router = express.Router()
+
+// 🛡️ Todos los endpoints requieren autenticación. El usuario SIEMPRE se toma
+// del token (req.user.id); nunca de un parámetro de ruta → evita IDOR
+// (acceso a documentos médicos de otros usuarios por ID).
+router.use(authenticateToken)
+
+const getUserId = (req) => req.user?.id || req.user?.userId
 
 // Garantiza que la columna exista (idempotente)
 const ensureDocsColumn = async () => {
   try {
-    await pool.query('ALTER TABLE public.users ADD COLUMN IF NOT EXISTS historial_medico_docs jsonb')
-    await pool.query("ALTER TABLE public.users ALTER COLUMN historial_medico_docs SET DEFAULT '[]'::jsonb")
+    await pool.query('ALTER TABLE app.users ADD COLUMN IF NOT EXISTS historial_medico_docs jsonb')
+    await pool.query("ALTER TABLE app.users ALTER COLUMN historial_medico_docs SET DEFAULT '[]'::jsonb")
   } catch (e) {
     // log suave; no bloquear
     console.warn('⚠️ No se pudo asegurar historial_medico_docs:', e.message)
@@ -23,7 +31,7 @@ const ensureDocsColumn = async () => {
 // Storage para PDFs de documentación médica
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const userId = req.params.id
+    const userId = getUserId(req)
     const dest = path.join('uploads', 'medical', String(userId))
     fs.mkdirSync(dest, { recursive: true })
     cb(null, dest)
@@ -44,28 +52,25 @@ const uploadPdf = multer({
   }
 })
 
-// GET: servir archivo PDF específico
-router.get('/users/:id/medical-docs/:docId/view', async (req, res) => {
+// GET: servir archivo PDF específico (del propio usuario)
+router.get('/:docId/view', async (req, res) => {
   try {
-    const { id: userId, docId } = req.params
+    const userId = getUserId(req)
+    const { docId } = req.params
 
-    // Obtener el documento de la base de datos
-    const result = await pool.query('SELECT historial_medico_docs FROM public.users WHERE id=$1', [userId])
+    const result = await pool.query('SELECT historial_medico_docs FROM app.users WHERE id=$1', [userId])
     if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Usuario no encontrado' })
 
     const docs = result.rows[0].historial_medico_docs || []
     const doc = docs.find(d => String(d.id) === String(docId))
     if (!doc) return res.status(404).json({ success: false, error: 'Documento no encontrado' })
 
-    // Construir la ruta del archivo
     const filePath = path.join(process.cwd(), doc.url.replace(/^\//, ''))
 
-    // Verificar que el archivo existe
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ success: false, error: 'Archivo no encontrado en el servidor' })
     }
 
-    // Servir el archivo PDF
     res.setHeader('Content-Type', 'application/pdf')
     res.setHeader('Content-Disposition', `inline; filename="${doc.originalName}"`)
     return res.sendFile(filePath)
@@ -75,12 +80,12 @@ router.get('/users/:id/medical-docs/:docId/view', async (req, res) => {
   }
 })
 
-// GET: listar documentos
-router.get('/users/:id/medical-docs', async (req, res) => {
+// GET: listar documentos del propio usuario
+router.get('/', async (req, res) => {
   try {
     await ensureDocsColumn()
-    const userId = req.params.id
-    const result = await pool.query('SELECT historial_medico_docs FROM public.users WHERE id=$1', [userId])
+    const userId = getUserId(req)
+    const result = await pool.query('SELECT historial_medico_docs FROM app.users WHERE id=$1', [userId])
     if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Usuario no encontrado' })
     const docs = result.rows[0].historial_medico_docs || []
     return res.json({ success: true, docs })
@@ -90,17 +95,16 @@ router.get('/users/:id/medical-docs', async (req, res) => {
   }
 })
 
-// POST: subir PDF y anexar metadatos en jsonb
-router.post('/users/:id/medical-docs', uploadPdf.single('file'), async (req, res) => {
+// POST: subir PDF y anexar metadatos en jsonb (al propio usuario)
+router.post('/', uploadPdf.single('file'), async (req, res) => {
   try {
     await ensureDocsColumn()
-    const userId = req.params.id
+    const userId = getUserId(req)
     const file = req.file
     if (!file) return res.status(400).json({ success: false, error: 'Archivo no recibido' })
 
     const url = `/uploads/medical/${userId}/${file.filename}`
-    // Obtener docs actuales
-    const current = await pool.query('SELECT historial_medico_docs FROM public.users WHERE id=$1', [userId])
+    const current = await pool.query('SELECT historial_medico_docs FROM app.users WHERE id=$1', [userId])
     if (current.rows.length === 0) return res.status(404).json({ success: false, error: 'Usuario no encontrado' })
 
     const prev = current.rows[0].historial_medico_docs || []
@@ -116,7 +120,7 @@ router.post('/users/:id/medical-docs', uploadPdf.single('file'), async (req, res
     }
     const next = [...prev, doc]
 
-    await pool.query('UPDATE public.users SET historial_medico_docs=$1, updated_at=NOW() WHERE id=$2', [JSON.stringify(next), userId])
+    await pool.query('UPDATE app.users SET historial_medico_docs=$1, updated_at=NOW() WHERE id=$2', [JSON.stringify(next), userId])
 
     return res.json({ success: true, doc, docs: next })
   } catch (e) {
@@ -126,10 +130,11 @@ router.post('/users/:id/medical-docs', uploadPdf.single('file'), async (req, res
 })
 
 // POST: extraer texto del PDF (requiere pdf-parse)
-router.post('/users/:id/medical-docs/:docId/extract', async (req, res) => {
+router.post('/:docId/extract', async (req, res) => {
   try {
-    const { id, docId } = req.params
-    const result = await pool.query('SELECT historial_medico_docs FROM public.users WHERE id=$1', [id])
+    const userId = getUserId(req)
+    const { docId } = req.params
+    const result = await pool.query('SELECT historial_medico_docs FROM app.users WHERE id=$1', [userId])
     if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Usuario no encontrado' })
     const docs = result.rows[0].historial_medico_docs || []
     const doc = docs.find(d => String(d.id) === String(docId))
@@ -153,13 +158,13 @@ router.post('/users/:id/medical-docs/:docId/extract', async (req, res) => {
   }
 })
 
-// DELETE: eliminar un documento específico
-router.delete('/users/:id/medical-docs/:docId', async (req, res) => {
+// DELETE: eliminar un documento específico (del propio usuario)
+router.delete('/:docId', async (req, res) => {
   try {
-    const { id: userId, docId } = req.params
+    const userId = getUserId(req)
+    const { docId } = req.params
 
-    // 1. Obtener los documentos actuales del usuario desde la BBDD
-    const result = await pool.query('SELECT historial_medico_docs FROM public.users WHERE id=$1', [userId])
+    const result = await pool.query('SELECT historial_medico_docs FROM app.users WHERE id=$1', [userId])
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Usuario no encontrado' })
     }
@@ -167,34 +172,28 @@ router.delete('/users/:id/medical-docs/:docId', async (req, res) => {
     const docs = result.rows[0].historial_medico_docs || []
     const docToDelete = docs.find(d => String(d.id) === String(docId))
 
-    // Si el documento no existe en el registro del usuario, devuelve 404
     if (!docToDelete) {
       return res.status(404).json({ success: false, error: 'Documento no encontrado' })
     }
 
-    // 2. Eliminar el archivo físico del servidor
-    // Construye la ruta absoluta al archivo desde la raíz del proyecto
+    // Eliminar el archivo físico del servidor
     const filePath = path.join(process.cwd(), docToDelete.url.replace(/^\//, ''))
 
     if (fs.existsSync(filePath)) {
       try {
-        fs.unlinkSync(filePath) // Usamos unlinkSync para simplicidad en el flujo
+        fs.unlinkSync(filePath)
         console.log(`Archivo físico eliminado: ${filePath}`)
       } catch (fileErr) {
-        // Si falla la eliminación del archivo, solo lo registramos, pero continuamos para borrar el registro de la BBDD
         console.error(`Error al eliminar el archivo físico ${filePath}:`, fileErr)
       }
     } else {
       console.warn(`El archivo físico no se encontró para eliminar, pero se procederá a borrar el registro de la BBDD: ${filePath}`)
     }
 
-    // 3. Crear la nueva lista de documentos filtrando el que se va a eliminar
     const nextDocs = docs.filter(d => String(d.id) !== String(docId))
 
-    // 4. Actualizar el registro en la base de datos con la nueva lista
-    await pool.query('UPDATE public.users SET historial_medico_docs=$1, updated_at=NOW() WHERE id=$2', [JSON.stringify(nextDocs), userId])
+    await pool.query('UPDATE app.users SET historial_medico_docs=$1, updated_at=NOW() WHERE id=$2', [JSON.stringify(nextDocs), userId])
 
-    // 5. Devolver una respuesta exitosa
     return res.json({ success: true, message: 'Documento eliminado correctamente', docs: nextDocs })
   } catch (e) {
     console.error('Error en el proceso de eliminación del documento médico:', e)

@@ -14,15 +14,20 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
   const [showPreview, setShowPreview] = useState(false)
   const [medicalDocs, setMedicalDocs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [previewUrl, setPreviewUrl] = useState(null)
   const fileInputRef = useRef(null)
+
+  // El usuario se identifica por el token (el backend lo deriva de req.user).
+  const authHeaders = () => {
+    const token = localStorage.getItem('token')
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  }
 
   // Cargar documentos del backend al montar el componente
   const fetchDocs = async () => {
     try {
       setLoading(true)
-      // Por ahora usamos un userId fijo, en producción vendría del contexto de autenticación
-      const userId = 1
-      const response = await fetch(`/api/users/${userId}/medical-docs`)
+      const response = await fetch('/api/medical-docs', { headers: authHeaders() })
       const data = await response.json()
 
       if (data.success) {
@@ -63,10 +68,10 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
       const formData = new FormData()
       formData.append('file', file)
 
-      // Por ahora usamos un userId fijo, en producción vendría del contexto de autenticación
-      const userId = 1
-      const response = await fetch(`/api/users/${userId}/medical-docs`, {
+      // No fijar Content-Type: el navegador añade el boundary de multipart.
+      const response = await fetch('/api/medical-docs', {
         method: 'POST',
+        headers: authHeaders(),
         body: formData
       })
 
@@ -95,18 +100,36 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
 
 
 
-  const handlePreview = (doc) => {
+  const handlePreview = async (doc) => {
     setSelectedDoc(doc)
     setShowPreview(true)
+    setPreviewUrl(null)
+    try {
+      // El iframe no puede enviar cabecera Authorization; descargamos el PDF
+      // con el token y lo mostramos como blob URL.
+      const response = await fetch(`/api/medical-docs/${doc.id}/view`, { headers: authHeaders() })
+      if (!response.ok) throw new Error('No se pudo cargar el documento')
+      const blob = await response.blob()
+      setPreviewUrl(URL.createObjectURL(blob))
+    } catch (error) {
+      console.error('Error cargando vista previa:', error)
+    }
+  }
+
+  const closePreview = () => {
+    setShowPreview(false)
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+      setPreviewUrl(null)
+    }
   }
 
   const handleDelete = async (docId) => {
     if (confirm('¿Estás seguro de que quieres eliminar este documento?')) {
       try {
-        // Por ahora usamos un userId fijo, en producción vendría del contexto de autenticación
-        const userId = 1
-        const response = await fetch(`/api/users/${userId}/medical-docs/${docId}`, {
-          method: 'DELETE'
+        const response = await fetch(`/api/medical-docs/${docId}`, {
+          method: 'DELETE',
+          headers: authHeaders()
         })
 
         const data = await response.json()
@@ -257,7 +280,7 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
                 {selectedDoc.fileName}
               </h3>
               <Button
-                onClick={() => setShowPreview(false)}
+                onClick={closePreview}
                 variant="outline"
                 size="sm"
                 className="border-white/10 text-gray-200/80 hover:bg-white/10"
@@ -265,14 +288,21 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
                 Cerrar
               </Button>
             </div>
-            
+
             <div className="flex-1 p-4 overflow-auto">
               <div className="bg-white rounded-lg h-full min-h-[500px] flex items-center justify-center">
-                <iframe
-                  src={`/api/users/1/medical-docs/${selectedDoc.id}/view`}
-                  className="w-full h-full min-h-[500px] rounded"
-                  title={selectedDoc.originalName || selectedDoc.fileName}
-                />
+                {previewUrl ? (
+                  <iframe
+                    src={previewUrl}
+                    className="w-full h-full min-h-[500px] rounded"
+                    title={selectedDoc.originalName || selectedDoc.fileName}
+                  />
+                ) : (
+                  <div className="text-center text-gray-500">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-3"></div>
+                    Cargando documento...
+                  </div>
+                )}
               </div>
             </div>
           </div>
