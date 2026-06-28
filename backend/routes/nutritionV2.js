@@ -15,6 +15,7 @@ import {
   calculateBMRAudit,
   calculateTDEEAudit,
   calculateGoalAdjustmentAudit,
+  calculateMacros,
   generateNutritionPlan,
   summarizeCarbCycling
 } from '../services/nutritionCalculator.js';
@@ -28,7 +29,8 @@ import {
   normalizeActividad,
   mapUserObjectiveToNutritionGoal,
   resolveNutritionObjectiveMismatch,
-  normalizeNivelEntrenamiento
+  normalizeNivelEntrenamiento,
+  resolveMealType
 } from '../services/nutritionV2Engine.js';
 import foodCatalogRoutes from './nutritionV2/foodCatalog.js';
 import dailyTrackingRoutes from './nutritionV2/dailyTracking.js';
@@ -581,14 +583,15 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
         for (const meal of day.meals) {
           const mealQuery = `
             INSERT INTO app.nutrition_meals (
-              plan_day_id, orden, nombre, kcal, macros, timing_note
-            ) VALUES ($1, $2, $3, $4, $5, $6);
+              plan_day_id, orden, nombre, meal_type, kcal, macros, timing_note
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7);
           `;
 
           await client.query(mealQuery, [
             dayId,
             meal.orden,
             meal.nombre,
+            meal.meal_type || resolveMealType(meal),
             meal.kcal,
             JSON.stringify(meal.macros),
             meal.timing_note
@@ -649,6 +652,7 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
                     'id', m.id,
                     'orden', m.orden,
                     'nombre', m.nombre,
+                    'meal_type', m.meal_type,
                     'kcal', m.kcal,
                     'macros', m.macros,
                     'timing_note', m.timing_note,
@@ -718,14 +722,25 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
       profile.steps_per_day || undefined
     );
     const kcalAudit = calculateGoalAdjustmentAudit(tdeeAudit.tdee, profile.objetivo, profile);
+    const macrosAudit = calculateMacros(
+      kcalAudit.kcal_objetivo,
+      profile.peso_kg,
+      profile.training_type || 'general',
+      profile.objetivo,
+      profile.metabolic_type,
+      profile.metabolic_confidence,
+      profile.level || profile.nivel_entrenamiento || 'intermedio'
+    );
     const currentEstimate = {
       bmr: bmrAudit.bmr,
       tdee: tdeeAudit.tdee,
       kcal_objetivo: kcalAudit.kcal_objetivo,
+      macros_objetivo: macrosAudit,
       calculation_audit: {
         bmr: bmrAudit,
         tdee: tdeeAudit,
-        kcal: kcalAudit
+        kcal: kcalAudit,
+        macros: macrosAudit
       }
     };
     const carbCyclingSummary = summarizeCarbCycling(activePlan.days, activePlan.kcal_objetivo);

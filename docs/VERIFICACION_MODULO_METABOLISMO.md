@@ -1,5 +1,10 @@
 # 🔍 VERIFICACIÓN: Módulo de Metabolismo y Distribución de Macronutrientes
 
+> **Actualización 2026-03-19**
+> Este documento queda como verificación histórica del rollout inicial.
+> La fuente de verdad actual para macros `perfil + fase` es `docs/especificacion_macros_perfil_metabolico_fase.md` y la implementación activa del ruleset `mindfeed_macro_phase_v2`.
+> Para estado vigente, revisar también `docs/macros-perfil-metabolico-fase/` y el código en `backend/services/macroProfilePhaseResolver.js`.
+
 **Fecha:** 2026-02-02  
 **Estado:** ✅ **TOTALMENTE IMPLEMENTADO**  
 **Archivos verificados:**

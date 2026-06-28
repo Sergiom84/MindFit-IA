@@ -92,7 +92,14 @@ export default function MetabolicQuestionnaire({ onResult, objective = null }) {
       });
 
       if (!response.ok) {
-        throw new Error("No se pudo evaluar el perfil metabólico");
+        let backendMessage = "No se pudo evaluar el perfil metabólico";
+        try {
+          const errorPayload = await response.json();
+          backendMessage = errorPayload?.error || errorPayload?.message || backendMessage;
+        } catch {
+          // Mantener mensaje genérico si no llega JSON válido
+        }
+        throw new Error(backendMessage);
       }
 
       const data = await response.json();

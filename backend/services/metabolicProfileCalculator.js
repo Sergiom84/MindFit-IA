@@ -5,6 +5,13 @@
  * Basado en el documento: "Modulo de Metabolismo y Distribucion de Macronutrientes"
  */
 
+import {
+  LEGACY_PROFILE_MACRO_RANGES,
+  MACRO_RULESET_VERSION,
+  resolveMacroTargets,
+  resolveMacrosFromExistingTargets
+} from "./macroProfilePhaseResolver.js";
+
 /**
  * Preguntas del cuestionario metabolico con sus puntuaciones
  * Puntos positivos (+) desplazan hacia INTOLERANTE
@@ -156,44 +163,7 @@ export const PROFILE_THRESHOLDS = {
 /**
  * Distribucion porcentual de macronutrientes segun perfil
  */
-export const MACRO_DISTRIBUTIONS = {
-  tolerante: {
-    protein_min: 0.20,
-    protein_max: 0.25,
-    carbs_min: 0.50,
-    carbs_max: 0.60,
-    fat_min: 0.15,
-    fat_max: 0.25,
-    // Valores medios para calculo
-    protein_mid: 0.225,
-    carbs_mid: 0.55,
-    fat_mid: 0.20
-  },
-  mixto: {
-    protein_min: 0.25,
-    protein_max: 0.30,
-    carbs_min: 0.35,
-    carbs_max: 0.40,
-    fat_min: 0.30,
-    fat_max: 0.35,
-    // Valores medios para calculo
-    protein_mid: 0.275,
-    carbs_mid: 0.375,
-    fat_mid: 0.325
-  },
-  intolerante: {
-    protein_min: 0.30,
-    protein_max: 0.35,
-    carbs_min: 0.20,
-    carbs_max: 0.30,
-    fat_min: 0.35,
-    fat_max: 0.45,
-    // Valores medios para calculo
-    protein_mid: 0.325,
-    carbs_mid: 0.25,
-    fat_mid: 0.40
-  }
-};
+export const MACRO_DISTRIBUTIONS = LEGACY_PROFILE_MACRO_RANGES;
 
 /**
  * Minimos fisiologicos de macronutrientes por objetivo
@@ -323,54 +293,20 @@ export function calculateMacrosWithMetabolicProfile(
   peso_kg,
   metabolicProfile,
   objetivo = 'mant',
-  trainingType = 'general'
+  trainingType = 'general',
+  level = 'intermedio',
+  metabolicConfidence = 'media'
 ) {
-  const distribution = MACRO_DISTRIBUTIONS[metabolicProfile] || MACRO_DISTRIBUTIONS.mixto;
+  void trainingType;
 
-  // Usar valores medios del rango para cada perfil
-  let proteinPct = distribution.protein_mid;
-  let carbsPct = distribution.carbs_mid;
-  let fatPct = distribution.fat_mid;
-
-  // Ajuste fino por objetivo
-  if (objetivo === 'cut') {
-    // En definicion, priorizar proteina dentro del rango
-    proteinPct = distribution.protein_max;
-    // Reducir carbos al minimo del rango
-    carbsPct = distribution.carbs_min;
-    // Grasas se ajustan para completar
-    fatPct = 1 - proteinPct - carbsPct;
-  } else if (objetivo === 'bulk') {
-    // En volumen, mas carbos para energia
-    carbsPct = distribution.carbs_max;
-    proteinPct = distribution.protein_mid;
-    fatPct = 1 - proteinPct - carbsPct;
-  }
-
-  // Normalizar para que sumen 100%
-  const total = proteinPct + carbsPct + fatPct;
-  proteinPct = proteinPct / total;
-  carbsPct = carbsPct / total;
-  fatPct = fatPct / total;
-
-  // Calcular gramos
-  const proteinKcal = kcalObjetivo * proteinPct;
-  const carbsKcal = kcalObjetivo * carbsPct;
-  const fatKcal = kcalObjetivo * fatPct;
-
-  const protein_g = Math.round(proteinKcal / 4);
-  const carbs_g = Math.round(carbsKcal / 4);
-  const fat_g = Math.round(fatKcal / 9);
-
-  return {
-    protein_g,
-    carbs_g,
-    fat_g,
-    protein_pct: Math.round(proteinPct * 100),
-    carbs_pct: Math.round(carbsPct * 100),
-    fat_pct: Math.round(fatPct * 100),
-    kcal_calculated: protein_g * 4 + carbs_g * 4 + fat_g * 9
-  };
+  return resolveMacroTargets({
+    kcalTarget: kcalObjetivo,
+    pesoKg: peso_kg,
+    metabolicProfile,
+    metabolicConfidence,
+    phase: objetivo,
+    level
+  });
 }
 
 /**
@@ -382,68 +318,12 @@ export function calculateMacrosWithMetabolicProfile(
  * @returns {Object} Macros ajustados con guardarrailes aplicados
  */
 export function applyMinimumGuardrails(macros, peso_kg, objetivo, kcalObjetivo, level = 'intermedio') {
-  let { protein_g, carbs_g, fat_g } = macros;
-
-  // 1. Minimo de proteina segun objetivo
-  const baseProtein = MINIMUM_GUARDRAILS.protein[objetivo] || MINIMUM_GUARDRAILS.protein.mant;
-  const minProteinPerKg = (objetivo === 'bulk' && level === 'avanzado') ? 1.8 : baseProtein;
-  const minProtein_g = Math.round(peso_kg * minProteinPerKg);
-
-  // 2. Minimo de grasa: mayor entre g/kg y % del total
-  const minFatByKg = Math.round(peso_kg * MINIMUM_GUARDRAILS.fat.min_per_kg);
-  const minFatByPct = Math.round((kcalObjetivo * MINIMUM_GUARDRAILS.fat.min_percentage) / 9);
-  const minFat_g = Math.max(minFatByKg, minFatByPct);
-
-  let adjustments = [];
-
-  // Aplicar minimo de proteina si es necesario
-  if (protein_g < minProtein_g) {
-    const diff = minProtein_g - protein_g;
-    adjustments.push({
-      macro: 'protein',
-      original: protein_g,
-      adjusted: minProtein_g,
-      reason: `Minimo ${minProteinPerKg}g/kg para ${objetivo}`
-    });
-    protein_g = minProtein_g;
-
-    // Reducir carbos para compensar
-    const diffKcal = diff * 4;
-    const carbsReduction = Math.round(diffKcal / 4);
-    carbs_g = Math.max(0, carbs_g - carbsReduction);
-  }
-
-  // Aplicar minimo de grasa si es necesario
-  if (fat_g < minFat_g) {
-    const diff = minFat_g - fat_g;
-    adjustments.push({
-      macro: 'fat',
-      original: fat_g,
-      adjusted: minFat_g,
-      reason: `Minimo ${MINIMUM_GUARDRAILS.fat.min_per_kg}g/kg o ${MINIMUM_GUARDRAILS.fat.min_percentage * 100}%`
-    });
-    fat_g = minFat_g;
-
-    // Reducir carbos para compensar
-    const diffKcal = diff * 9;
-    const carbsReduction = Math.round(diffKcal / 4);
-    carbs_g = Math.max(0, carbs_g - carbsReduction);
-  }
-
-  // Recalcular porcentajes finales
-  const totalKcal = protein_g * 4 + carbs_g * 4 + fat_g * 9;
-
-  return {
-    protein_g,
-    carbs_g,
-    fat_g,
-    protein_pct: Math.round((protein_g * 4 / totalKcal) * 100),
-    carbs_pct: Math.round((carbs_g * 4 / totalKcal) * 100),
-    fat_pct: Math.round((fat_g * 9 / totalKcal) * 100),
-    kcal_calculated: totalKcal,
-    adjustments,
-    guardrails_applied: adjustments.length > 0
-  };
+  return resolveMacrosFromExistingTargets(macros, {
+    kcalTarget: kcalObjetivo,
+    pesoKg: peso_kg,
+    phase: objetivo,
+    level
+  });
 }
 
 /**
@@ -714,16 +594,15 @@ export function processMetabolicEvaluation(answers, userProfile, currentEvaluati
   const { peso_kg, objetivo, training_type, level } = userProfile;
   const kcalObjetivo = userProfile.kcal_objetivo || userProfile.tdee || 2000;
 
-  const rawMacros = calculateMacrosWithMetabolicProfile(
+  const finalMacros = calculateMacrosWithMetabolicProfile(
     kcalObjetivo,
     peso_kg,
     appliedProfile,
     objetivo,
-    training_type
+    training_type,
+    level || 'intermedio',
+    confidence.level
   );
-
-  // 8. Aplicar guardarrailes de minimos
-  const finalMacros = applyMinimumGuardrails(rawMacros, peso_kg, objetivo, kcalObjetivo, level || 'intermedio');
 
   // 9. Obtener descripcion del perfil
   const profileDescription = getProfileDescription(appliedProfile);
@@ -756,6 +635,7 @@ export function processMetabolicEvaluation(answers, userProfile, currentEvaluati
 
     // Metadata
     evaluationDate: new Date().toISOString(),
-    version: '1.0'
+    version: '1.0',
+    ruleset: MACRO_RULESET_VERSION
   };
 }

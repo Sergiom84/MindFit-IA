@@ -15,12 +15,7 @@ import {
   getAdjustmentHistory,
   COORDINATED_FLAGS
 } from '../services/bridgeCoordinator.js';
-import {
-  calculateBMR,
-  calculateTDEE,
-  adjustCaloriesForGoal,
-  calculateMacros
-} from '../services/nutritionCalculator.js';
+import { calculateBridgeOverrideMacros } from '../services/trainingNutritionBridgeHelpers.js';
 
 const router = express.Router();
 
@@ -67,11 +62,10 @@ router.post('/training-summary', authenticateToken, async (req, res) => {
       );
       if (profileResult.rows.length > 0) {
         const profile = profileResult.rows[0];
-        result.nutrition.macros_base = calculateMacros(
+        result.nutrition.macros_base = calculateBridgeOverrideMacros(
           override_kcal,
-          profile.peso_kg,
-          profile.training_type || 'hipertrofia',
-          objective_phase || profile.objetivo || 'mant'
+          profile,
+          objective_phase
         );
       }
     }

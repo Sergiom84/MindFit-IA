@@ -10,11 +10,52 @@ import {
   METABOLIC_QUESTIONS,
   processMetabolicEvaluation,
   calculatePendingProfileState,
-  getProfileDescription,
-  MACRO_DISTRIBUTIONS
+  getProfileDescription
 } from '../services/metabolicProfileCalculator.js';
+import { getMacroDistributionCatalog } from '../services/macroProfilePhaseResolver.js';
+import {
+  buildMetabolicEvaluationContextFromRow,
+  getMissingMetabolicEvaluationFields
+} from '../services/metabolicEvaluationContext.js';
 
 const router = express.Router();
+
+async function loadMetabolicEvaluationContext(client, userId) {
+  const result = await client.query(
+    `SELECT
+      np.user_id,
+      np.sexo AS nutrition_sexo,
+      np.edad AS nutrition_edad,
+      np.altura_cm,
+      np.peso_kg,
+      np.objetivo AS nutrition_objetivo,
+      np.training_days,
+      np.kcal_objetivo,
+      np.tdee,
+      np.level,
+      np.metabolic_type,
+      np.metabolic_pending_type,
+      np.metabolic_pending_count,
+      np.metabolic_confidence,
+      u.sexo AS user_sexo,
+      u.edad AS user_edad,
+      u.altura AS user_altura_cm,
+      u.peso AS user_peso_kg,
+      u.objetivo_principal AS user_objetivo_principal,
+      u.frecuencia_semanal AS user_training_days,
+      u.nivel_entrenamiento AS user_level
+     FROM app.nutrition_profiles np
+     LEFT JOIN app.users u ON np.user_id = u.id
+     WHERE np.user_id = $1`,
+    [userId]
+  );
+
+  if (result.rows.length === 0) {
+    return null;
+  }
+
+  return buildMetabolicEvaluationContextFromRow(result.rows[0]);
+}
 
 // ============================================================================
 // GET /api/metabolic-profile/questionnaire
@@ -60,33 +101,26 @@ router.post('/evaluate', authenticateToken, async (req, res) => {
       });
     }
 
-    // Obtener perfil nutricional del usuario
-    const profileResult = await client.query(
-      `SELECT np.*, up.peso, up.objetivo_principal
-       FROM app.nutrition_profiles np
-       LEFT JOIN app.user_profiles up ON np.user_id = up.user_id
-       WHERE np.user_id = $1`,
-      [userId]
-    );
-
-    if (profileResult.rows.length === 0) {
+    const evaluationContext = await loadMetabolicEvaluationContext(client, userId);
+    if (!evaluationContext) {
       return res.status(400).json({
         success: false,
         error: 'Debes configurar tu perfil nutricional antes de evaluar tu perfil metabolico'
       });
     }
 
-    const nutritionProfile = profileResult.rows[0];
+    const { userProfile } = evaluationContext;
+    if (!userProfile.objetivo && objectiveData?.objetivo) {
+      userProfile.objetivo = objectiveData.objetivo;
+    }
 
-    // Construir perfil de usuario para el calculador
-    const userProfile = {
-      peso_kg: nutritionProfile.peso_kg || nutritionProfile.peso || 70,
-      objetivo: nutritionProfile.objetivo || 'mant',
-      training_type: nutritionProfile.training_type || 'general',
-      kcal_objetivo: nutritionProfile.kcal_objetivo,
-      tdee: nutritionProfile.tdee,
-      level: nutritionProfile.level || nutritionProfile.nivel_entrenamiento
-    };
+    const missingFields = getMissingMetabolicEvaluationFields(userProfile);
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: `Faltan datos para evaluar el perfil metabólico: ${missingFields.join(', ')}. Guarda primero tu perfil de nutrición o sincronízalo desde Perfil.`
+      });
+    }
 
     // Obtener evaluacion actual si existe
     const currentEvalResult = await client.query(
@@ -217,7 +251,7 @@ router.post('/evaluate', authenticateToken, async (req, res) => {
     console.error('Error procesando evaluacion metabolica:', error);
     res.status(500).json({
       success: false,
-      error: 'Error procesando la evaluacion'
+      error: 'Error procesando la evaluacion metabolica'
     });
   } finally {
     client.release();
@@ -231,6 +265,7 @@ router.post('/evaluate', authenticateToken, async (req, res) => {
 router.get('/current', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
+    const distributionCatalog = getMacroDistributionCatalog();
 
     // Obtener evaluacion activa
     const evalResult = await pool.query(
@@ -254,7 +289,9 @@ router.get('/current', authenticateToken, async (req, res) => {
         success: true,
         hasProfile: false,
         message: 'No tienes un perfil metabolico configurado. Completa el cuestionario para obtener tu perfil.',
-        distributions: MACRO_DISTRIBUTIONS
+        ruleset: distributionCatalog.ruleset,
+        distributions: distributionCatalog.distributions,
+        legacy_ranges: distributionCatalog.legacy_ranges
       });
     }
 
@@ -480,32 +517,28 @@ router.put('/config', authenticateToken, async (req, res) => {
 // ============================================================================
 router.get('/distributions', authenticateToken, (req, res) => {
   try {
+    const catalog = getMacroDistributionCatalog();
     const distributions = {};
 
-    for (const [profile, dist] of Object.entries(MACRO_DISTRIBUTIONS)) {
+    for (const [profile, phaseTable] of Object.entries(catalog.phase_table)) {
       distributions[profile] = {
-        protein: {
-          min: Math.round(dist.protein_min * 100),
-          max: Math.round(dist.protein_max * 100),
-          mid: Math.round(dist.protein_mid * 100)
-        },
-        carbs: {
-          min: Math.round(dist.carbs_min * 100),
-          max: Math.round(dist.carbs_max * 100),
-          mid: Math.round(dist.carbs_mid * 100)
-        },
-        fat: {
-          min: Math.round(dist.fat_min * 100),
-          max: Math.round(dist.fat_max * 100),
-          mid: Math.round(dist.fat_mid * 100)
-        },
+        ...phaseTable,
         description: getProfileDescription(profile)
       };
     }
 
     res.json({
       success: true,
-      distributions
+      ruleset: catalog.ruleset,
+      distributions,
+      phase_table: distributions,
+      legacy_ranges: Object.entries(catalog.legacy_ranges).reduce((accumulator, [profile, ranges]) => {
+        accumulator[profile] = {
+          ...ranges,
+          description: getProfileDescription(profile)
+        };
+        return accumulator;
+      }, {})
     });
 
   } catch (error) {
