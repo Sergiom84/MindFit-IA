@@ -165,8 +165,10 @@ const CALISTENIA_COLUMNS = `
   descanso_seg,
   tempo,
   criterio_de_progreso,
+  progresion_hacia,
   como_hacerlo,
-  consejos
+  consejos,
+  gif_url
 `;
 
 // Descanso por defecto cuando la BD no lo especifica (muchas filas de calistenia
@@ -232,6 +234,43 @@ function parseSeriesReps(raw) {
   };
 }
 
+// ── Progresión MindFeed para Calistenia (Fase 3a, a nivel de plan_data) ──
+// Cada microciclo (semana de entrenamiento) sube el objetivo de reps/tiempo
+// dentro del rango del ejercicio; al alcanzar el tope se sugiere la variante
+// (progresion_hacia). Cada DELOAD_EVERY semanas se aplica descarga (volumen).
+const DELOAD_EVERY = 6;
+const DELOAD_VOLUME_FACTOR = 0.5;
+
+// Primer número de un rango "3-5" → 3 (mínimo de series).
+function parseSeriesCount(seriesStr) {
+  const m = String(seriesStr || '').match(/\d+/);
+  const n = m ? parseInt(m[0], 10) : 3;
+  return Number.isFinite(n) && n > 0 ? n : 3;
+}
+
+// Parsea "6-12", "20-30s", "8-12/lado" → { min, max, suffix, raw }.
+function parseRepRange(repsStr) {
+  const raw = String(repsStr || '').trim();
+  const suffixMatch = raw.match(/(s)?(\/lado)?$/i);
+  const suffix = suffixMatch ? suffixMatch[0] : '';
+  const m = raw.match(/(\d+)\s*-\s*(\d+)/);
+  if (!m) {
+    const single = raw.match(/(\d+)/);
+    const v = single ? parseInt(single[1], 10) : null;
+    return { min: v, max: v, suffix, raw };
+  }
+  return { min: parseInt(m[1], 10), max: parseInt(m[2], 10), suffix, raw };
+}
+
+// Objetivo de reps progresivo para la semana de entrenamiento microIndex (1..totalMicro).
+function progressedReps(range, microIndex, totalMicro) {
+  if (range.min == null) return range.raw;
+  if (range.min === range.max || totalMicro <= 1) return `${range.max}${range.suffix}`;
+  const frac = Math.min(1, Math.max(0, (microIndex - 1) / (totalMicro - 1)));
+  const value = Math.round(range.min + (range.max - range.min) * frac);
+  return `${value}${range.suffix}`;
+}
+
 /**
  * Selector con baraja + cursor por categoría: entrega ejercicios sin repetir
  * dentro de una misma sesión; entre sesiones puede reciclar si el pool es pequeño.
@@ -260,10 +299,42 @@ function buildExercisePicker(exercisesByCategory) {
 }
 
 /**
- * Construye un ejercicio del plan a partir de una fila de app.ejercicios.
+ * Construye un ejercicio del plan a partir de una fila de app.ejercicios,
+ * aplicando la progresión MindFeed del microciclo (Fase 3a).
+ *
+ * @param {object} progression - { weekNumber, microIndex, totalMicro, isDeload }
  */
-function toPlanExercise(ex, orden, sessionId) {
-  const { series, reps_objetivo } = parseSeriesReps(ex.series_reps_objetivo);
+function toPlanExercise(ex, orden, sessionId, progression = null) {
+  const { series: seriesRaw, reps_objetivo: repsRaw } = parseSeriesReps(ex.series_reps_objetivo);
+  const range = parseRepRange(repsRaw);
+  const baseSeries = parseSeriesCount(seriesRaw);
+
+  let series = baseSeries;
+  let repsObjetivo = repsRaw;
+  let esDeload = false;
+  let listoParaProgresar = false;
+  let notas = '';
+
+  if (progression) {
+    const { microIndex, totalMicro, isDeload } = progression;
+    if (isDeload) {
+      // Descarga: menos volumen (series), reps al extremo bajo del rango.
+      esDeload = true;
+      series = Math.max(1, Math.round(baseSeries * DELOAD_VOLUME_FACTOR));
+      repsObjetivo = range.min != null ? `${range.min}${range.suffix}` : repsRaw;
+      notas = 'Semana de descarga: reduce el volumen y prioriza técnica.';
+    } else {
+      // Progresión de reps/tiempo dentro del rango.
+      repsObjetivo = progressedReps(range, microIndex, totalMicro);
+      // Al alcanzar el tope del rango, sugerir la variante más difícil.
+      const reached = range.max != null && String(repsObjetivo).startsWith(String(range.max));
+      if (reached && ex.progresion_hacia) {
+        listoParaProgresar = true;
+        notas = `Objetivo alcanzado: cuando completes ${range.max}${range.suffix} con técnica perfecta, progresa a "${ex.progresion_hacia}".`;
+      }
+    }
+  }
+
   return {
     id: `${sessionId}-E${orden}`,
     orden,
@@ -274,13 +345,18 @@ function toPlanExercise(ex, orden, sessionId) {
     patron_movimiento: ex.patron,
     tipo_ejercicio: 'calistenia',
     series,
-    reps_objetivo,
+    reps_objetivo: repsObjetivo,
     series_reps_objetivo: ex.series_reps_objetivo || null,
+    rep_range: range.min != null ? { min: range.min, max: range.max, suffix: range.suffix } : null,
     descanso_seg: ex.descanso_seg ?? DEFAULT_REST_SECONDS,
     tempo: ex.tempo || null,
     como_hacerlo: ex.como_hacerlo || null,
     criterio_de_progreso: ex.criterio_de_progreso || null,
-    notas: ''
+    progresion_hacia: ex.progresion_hacia || null,
+    variante_sugerida: listoParaProgresar ? ex.progresion_hacia : null,
+    es_deload: esDeload,
+    listo_para_progresar: listoParaProgresar,
+    notas
   };
 }
 
@@ -359,10 +435,19 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
     };
   });
 
-  // 4) Expandir plantillas a semanas/sesiones.
+  // 4) Expandir plantillas a semanas/sesiones aplicando progresión MindFeed.
   const dayLabels = DEFAULT_DAY_LABELS[frecuencia] || DEFAULT_DAY_LABELS[3];
   const semanas = [];
+  // Semanas de descarga (cada DELOAD_EVERY) y total de microciclos de entrenamiento.
+  const isDeloadWeek = (w) => w % DELOAD_EVERY === 0;
+  const totalMicro = Array.from({ length: totalWeeks }, (_, i) => i + 1).filter((w) => !isDeloadWeek(w)).length;
+  let microIndex = 0;
+
   for (let w = 1; w <= totalWeeks; w++) {
+    const deload = isDeloadWeek(w);
+    if (!deload) microIndex += 1;
+    const progression = { weekNumber: w, microIndex, totalMicro, isDeload: deload };
+
     const sesiones = templates.map((tpl, dIdx) => {
       const sessionId = `W${w}-D${dIdx + 1}`;
       return {
@@ -372,16 +457,22 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
         orden: dIdx + 1,
         nombre: tpl.nombre,
         descripcion: `Sesión de ${tpl.nombre.toLowerCase()}`,
-        coach_tip: 'Prioriza la técnica y el control del movimiento sobre el número de repeticiones.',
+        coach_tip: deload
+          ? 'Semana de descarga: baja el volumen, mantén la técnica y recupera.'
+          : 'Prioriza la técnica y el control del movimiento; sube reps según el objetivo de la semana.',
         grupos_musculares: tpl.grupos_musculares,
-        ejercicios: tpl.ejercicios.map((ex, eIdx) => toPlanExercise(ex, eIdx + 1, sessionId))
+        es_deload: deload,
+        ejercicios: tpl.ejercicios.map((ex, eIdx) => toPlanExercise(ex, eIdx + 1, sessionId, progression))
       };
     });
 
     semanas.push({
       numero: w,
-      tipo: 'entrenamiento',
-      objetivo: levelConfig.description,
+      tipo: deload ? 'deload' : 'entrenamiento',
+      es_deload: deload,
+      objetivo: deload
+        ? 'Semana de descarga (deload): recuperación y consolidación técnica.'
+        : `Microciclo ${microIndex}/${totalMicro}: progresión de repeticiones. ${levelConfig.description}`,
       sesiones
     });
   }
@@ -390,7 +481,7 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
   const fechaInicio = new Date().toISOString();
   const plan = {
     metodologia: 'Calistenia',
-    version: 'calistenia_v1',
+    version: 'calistenia_v2',
     nivel: nivelLabel,
     total_weeks: totalWeeks,
     duracion_total_semanas: totalWeeks,
@@ -399,11 +490,14 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
     sessions_per_week: frecuencia,
     objetivo: planData.goals || levelConfig.description,
     configuracion: {
-      progression_type: 'linear',
+      progression_type: 'microcycle_reps',
+      progression_model: 'reps_to_variant',
+      deload_every_weeks: DELOAD_EVERY,
+      deload_volume_factor: DELOAD_VOLUME_FACTOR,
       sessions_per_week: frecuencia,
       duration_weeks: totalWeeks,
       rest_default_seconds: DEFAULT_REST_SECONDS,
-      source: 'calistenia_v1_deterministic'
+      source: 'calistenia_v2_progressive'
     },
     semanas
   };
