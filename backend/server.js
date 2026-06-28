@@ -46,6 +46,7 @@ import nutritionCalibrationRoutes from './routes/nutritionCalibration.js';
 import musicRoutes from './routes/music.js';
 import analyticsRoutes from './routes/analytics.js';
 import hipertrofiaV2Routes from './routes/hipertrofiaV2.js';
+import methodologySingleDayRoutes from './routes/methodologySingleDay.js';
 import adaptationBlockRoutes from './routes/adaptationBlock.js';
 import menstrualCycleRoutes from './routes/menstrualCycle.js';
 import trainingNutritionBridgeRoutes from './routes/trainingNutritionBridge.js';
@@ -435,6 +436,7 @@ app.use('/api/nutrition/supplements', nutritionSupplementsRoutes); // Complement
 app.use('/api/music', musicRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/hipertrofiav2', hipertrofiaV2Routes); // Sistema de tracking RIR
+app.use('/api/methodology-session', methodologySingleDayRoutes); // Single-day genérico por metodología
 app.use('/api/adaptation', adaptationBlockRoutes); // Bloque de Adaptación Inicial
 app.use('/api/menstrual-cycle', menstrualCycleRoutes);
 
