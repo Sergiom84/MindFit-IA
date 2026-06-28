@@ -1,11 +1,10 @@
 import { pool } from "../db.js";
 import { isNutritionDayRegistered } from "./nutritionDailyLogV2.js";
+import { isIsoDate } from './nutritionUtils.js';
 
 const PHASES = new Set(["definicion", "volumen", "normocalorica"]);
 
-function isIsoDate(value) {
-  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
-}
+
 
 function addDaysIso(isoDate, deltaDays) {
   const [y, m, d] = isoDate.split("-").map(Number);

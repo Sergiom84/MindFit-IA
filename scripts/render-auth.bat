@@ -1,6 +1,11 @@
 @echo off
 REM Script para autenticación de Render CLI en Windows
 
+setlocal
+set "RENDER_CLI_CONFIG_PATH=%~dp0..\.render\cli.yaml"
+set "SCRIPT_PS=%~dp0render-cli.ps1"
+for %%I in ("%SCRIPT_PS%") do set "SCRIPT_PS=%%~fI"
+
 echo ========================================
 echo    [92mAutenticacion de Render CLI[0m
 echo ========================================
@@ -13,6 +18,17 @@ if %errorlevel% neq 0 (
     echo Descarga desde: https://github.com/render-oss/cli/releases
     pause
     exit /b 1
+)
+
+REM Si el token local del proyecto ya funciona, reutilizarlo
+powershell -ExecutionPolicy Bypass -File "%SCRIPT_PS%" whoami --output text >nul 2>&1
+if %errorlevel% equ 0 (
+    echo Ya existe una credencial valida en el .env de este proyecto.
+    echo.
+    powershell -ExecutionPolicy Bypass -File "%SCRIPT_PS%" whoami --output text
+    echo.
+    pause
+    exit /b 0
 )
 
 echo Generando codigo de autorizacion...
@@ -51,3 +67,4 @@ echo [92mLogin exitoso![0m
 render whoami
 echo.
 pause
+endlocal

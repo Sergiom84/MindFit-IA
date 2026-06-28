@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label.jsx';
 import { Settings, Brain, User as UserIcon, AlertCircle, Zap } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog.jsx';
 import { METHODOLOGIES, sanitizeProfile } from './methodologiesData.js';
+import { LOCAL_STATE_INITIAL, formatLocalDate, getDayName } from './MethodologiesScreen.helpers.js';
+import { useMousePosition } from './hooks/useMousePosition.js';
 import MethodologyDetailsDialog from './shared/MethodologyDetailsDialog.jsx';
 import TrainingPlanConfirmationModal from '../routines/TrainingPlanConfirmationModal.jsx';
 import RoutineSessionModal from '../routines/RoutineSessionModal.jsx';
@@ -41,35 +43,12 @@ import { useMethodologyValidation } from './hooks/useMethodologyValidation';
 // 🎯 ESTADO LOCAL MÍNIMO PARA ESTA PANTALLA
 // ===============================================
 
-const LOCAL_STATE_INITIAL = {
-  selectionMode: 'auto', // Cambiar de 'automatico' a 'auto' para coincidir con validación
-  pendingMethodology: null,
-  detailsMethod: {}, // Cambiar de null a objeto vacío para evitar warnings
-  activeTrainingInfo: null,
-  versionSelectionData: null,
-  showWeekendWarning: false,
-  weekendGenerationData: null,
-  pendingSessionData: null,
-  showWarmupModal: false,
-  showRoutineSessionModal: false,
-  // 🆕 Estados para modales de inicio
-  showStartDayModal: false,
-  showDistributionModal: false,
-  startConfig: null,
-  distributionConfig: null,
-  // 🆕 Flujos específicos HipertrofiaV2 en fin de semana
-  showHpv2WeekendModal: false,
-  showHpv2FocusModal: false,
-  pendingLevel: null,
-  pendingFocusGroup: null,
-  isGeneratingSingleDay: false
-};
 
 export default function MethodologiesScreen() {
   const { user } = useAuth();
   const { userData } = useUserContext();
   const navigate = useNavigate();
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const mousePosition = useMousePosition();
 
   // ===============================================
   // 🛡️ FUNCIONES DE VALIDACIÓN - Hook modular
@@ -120,13 +99,6 @@ export default function MethodologiesScreen() {
   const [localState, setLocalState] = useState(LOCAL_STATE_INITIAL);
   const [sessionData, setSessionData] = useState(null); // 🔥 Datos de la sesión con ejercicios
 
-  useEffect(() => {
-    const handleMouseMove = (event) => {
-      setMousePosition({ x: event.clientX, y: event.clientY });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
   const [isConfirmingPlan, setIsConfirmingPlan] = useState(false);
   const pendingPlanActionRef = useRef(null);
 
@@ -140,14 +112,6 @@ export default function MethodologiesScreen() {
     nextMonday.setHours(0, 0, 0, 0);
     return nextMonday;
   }, []);
-
-  const formatLocalDate = (date) => {
-    if (!date) return null;
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
 
   const buildStartConfigPayload = useCallback(() => {
     if (!localState.startConfig) return null;
@@ -685,21 +649,16 @@ export default function MethodologiesScreen() {
   /**
     * 🆕 Helper para obtener nombre del día
     */
-  const getDayName = (dayOfWeek) => {
-    const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    return days[dayOfWeek];
-  };
-
   const handleOpenDetails = (methodology) => {
     try { track('BUTTON_CLICK', { id: 'ver_detalles', methodology: methodology?.name }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
     updateLocalState({ detailsMethod: methodology });
     ui.showModal('methodologyDetails');
   };
 
-  const handleCalisteniaManualGenerate = async (calisteniaData) => {
-    try { track('ACTION', { id: 'generate_calistenia' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
+  // Generador manual genérico: consolida los handlers ManualGenerate por disciplina.
+  const runManualGenerate = async ({ trackId, methodology, dataKey, hideModalName, data }) => {
+    try { track('ACTION', { id: trackId }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
 
-    // 🛡️ Prevenir múltiples clicks estableciendo loading inmediatamente
     if (ui.isLoading) {
       console.warn('⚠️ Ya hay una generación en curso, ignorando click...');
       return;
@@ -707,29 +666,13 @@ export default function MethodologiesScreen() {
 
     await runWithActivePlanGuard(async () => {
       ui.setLoading(true);
-
       try {
-        console.log('🎯 [METHODOLOGIES] Iniciando generación de Calistenia Manual:', {
-          timestamp: new Date().toISOString(),
-          level: calisteniaData.level || calisteniaData.selectedLevel,
-          hasGoals: !!calisteniaData.goals,
-          dayOfWeek: new Date().toLocaleDateString('es-ES', { weekday: 'long' })
-        });
-
-        console.log('🤸‍♀️ [METHODOLOGIES] Llamando a generatePlan...');
-
-        // Usar generatePlan del WorkoutContext
-        const result = await generatePlan({
-          mode: 'manual',
-          methodology: 'calistenia',
-          calisteniaData
-        });
+        console.log(`🎯 [METHODOLOGIES] Generando plan manual: ${methodology}`);
+        const result = await generatePlan({ mode: 'manual', methodology, [dataKey]: data });
 
         if (result.success) {
-          console.log('✅ Plan de calistenia generado exitosamente');
-          ui.hideModal('calisteniaManual');
-
-          // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL (usar result.plan en lugar de plan.currentPlan)
+          console.log(`✅ Plan de ${methodology} generado exitosamente`);
+          ui.hideModal(hideModalName);
           const validation = validatePlanData(result.plan);
           if (validation.isValid) {
             ui.showModal('planConfirmation');
@@ -738,64 +681,22 @@ export default function MethodologiesScreen() {
             ui.setError(`Plan generado incorrectamente: ${validation.error}`);
           }
         } else {
-          throw new Error(result.error || 'Error al generar el plan de calistenia');
+          throw new Error(result.error || `Error al generar el plan de ${methodology}`);
         }
-
       } catch (error) {
-        console.error('❌ Error generando plan de calistenia:', error);
-        ui.setError(error.message || 'Error al generar el plan de calistenia');
+        console.error(`❌ Error generando plan de ${methodology}:`, error);
+        ui.setError(error.message || `Error al generar el plan de ${methodology}`);
       } finally {
         ui.setLoading(false);
       }
     });
   };
 
-  const handleHeavyDutyManualGenerate = async (heavyDutyData) => {
-    try { track('ACTION', { id: 'generate_heavy_duty' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
+  const handleCalisteniaManualGenerate = (calisteniaData) =>
+    runManualGenerate({ trackId: 'generate_calistenia', methodology: 'calistenia', dataKey: 'calisteniaData', hideModalName: 'calisteniaManual', data: calisteniaData });
 
-    // 🛡️ Prevenir múltiples clicks estableciendo loading inmediatamente
-    if (ui.isLoading) {
-      console.warn('⚠️ Ya hay una generación en curso, ignorando click...');
-      return;
-    }
-
-    await runWithActivePlanGuard(async () => {
-      ui.setLoading(true);
-
-      try {
-        console.log('💪 Generando plan de Heavy Duty...');
-
-        // Usar generatePlan del WorkoutContext
-        const result = await generatePlan({
-          mode: 'manual',
-          methodology: 'heavy-duty',
-          heavyDutyData
-        });
-
-        if (result.success) {
-          console.log('✅ Plan de Heavy Duty generado exitosamente');
-          ui.hideModal('heavyDutyManual');
-
-          // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
-          const validation = validatePlanData(result.plan);
-          if (validation.isValid) {
-            ui.showModal('planConfirmation');
-          } else {
-            console.error('❌ Plan inválido:', validation.error);
-            ui.setError(`Plan generado incorrectamente: ${validation.error}`);
-          }
-        } else {
-          throw new Error(result.error || 'Error al generar el plan de Heavy Duty');
-        }
-
-      } catch (error) {
-        console.error('❌ Error generando plan de Heavy Duty:', error);
-        ui.setError(error.message || 'Error al generar el plan de Heavy Duty');
-      } finally {
-        ui.setLoading(false);
-      }
-    });
-  };
+  const handleHeavyDutyManualGenerate = (heavyDutyData) =>
+    runManualGenerate({ trackId: 'generate_heavy_duty', methodology: 'heavy-duty', dataKey: 'heavyDutyData', hideModalName: 'heavyDutyManual', data: heavyDutyData });
 
   const handleHipertrofiaManualGenerate = async (hipertrofiaData) => {
     try { track('ACTION', { id: 'generate_hipertrofia' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
@@ -910,99 +811,11 @@ export default function MethodologiesScreen() {
     });
   };
 
-  const handlePowerliftingManualGenerate = async (powerliftingData) => {
-    try { track('ACTION', { id: 'generate_powerlifting' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
+  const handlePowerliftingManualGenerate = (powerliftingData) =>
+    runManualGenerate({ trackId: 'generate_powerlifting', methodology: 'powerlifting', dataKey: 'powerliftingData', hideModalName: 'powerliftingManual', data: powerliftingData });
 
-    // 🛡️ Prevenir múltiples clicks estableciendo loading inmediatamente
-    if (ui.isLoading) {
-      console.warn('⚠️ Ya hay una generación en curso, ignorando click...');
-      return;
-    }
-
-    await runWithActivePlanGuard(async () => {
-      ui.setLoading(true);
-
-      try {
-        console.log('🏋️ Generando plan de Powerlifting...');
-
-        // Usar generatePlan del WorkoutContext
-        const result = await generatePlan({
-          mode: 'manual',
-          methodology: 'powerlifting',
-          powerliftingData
-        });
-
-        if (result.success) {
-          console.log('✅ Plan de Powerlifting generado exitosamente');
-          ui.hideModal('powerliftingManual');
-
-          // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
-          const validation = validatePlanData(result.plan);
-          if (validation.isValid) {
-            ui.showModal('planConfirmation');
-          } else {
-            console.error('❌ Plan inválido:', validation.error);
-            ui.setError(`Plan generado incorrectamente: ${validation.error}`);
-          }
-        } else {
-          throw new Error(result.error || 'Error al generar el plan de Powerlifting');
-        }
-
-      } catch (error) {
-        console.error('❌ Error generando plan de Powerlifting:', error);
-        ui.setError(error.message || 'Error al generar el plan de Powerlifting');
-      } finally {
-        ui.setLoading(false);
-      }
-    });
-  };
-
-  const handleCrossFitManualGenerate = async (crossfitData) => {
-    try { track('ACTION', { id: 'generate_crossfit' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
-
-    // 🛡️ Prevenir múltiples clicks estableciendo loading inmediatamente
-    if (ui.isLoading) {
-      console.warn('⚠️ Ya hay una generación en curso, ignorando click...');
-      return;
-    }
-
-    await runWithActivePlanGuard(async () => {
-      ui.setLoading(true);
-
-      try {
-        console.log('🏋️‍♀️ Generando plan de CrossFit...');
-
-        // Usar generatePlan del WorkoutContext
-        const result = await generatePlan({
-          mode: 'manual',
-          methodology: 'crossfit',
-          crossfitData
-        });
-
-        if (result.success) {
-          console.log('✅ Plan de CrossFit generado exitosamente');
-          ui.hideModal('crossfitManual');
-
-          // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
-          const validation = validatePlanData(result.plan);
-          if (validation.isValid) {
-            ui.showModal('planConfirmation');
-          } else {
-            console.error('❌ Plan inválido:', validation.error);
-            ui.setError(`Plan generado incorrectamente: ${validation.error}`);
-          }
-        } else {
-          throw new Error(result.error || 'Error al generar el plan de CrossFit');
-        }
-
-      } catch (error) {
-        console.error('❌ Error generando plan de CrossFit:', error);
-        ui.setError(error.message || 'Error al generar el plan de CrossFit');
-      } finally {
-        ui.setLoading(false);
-      }
-    });
-  };
+  const handleCrossFitManualGenerate = (crossfitData) =>
+    runManualGenerate({ trackId: 'generate_crossfit', methodology: 'crossfit', dataKey: 'crossfitData', hideModalName: 'crossfitManual', data: crossfitData });
 
   const handleFuncionalManualGenerate = async (funcionalData) => {
     try { track('ACTION', { id: 'generate_funcional' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
@@ -1105,52 +918,8 @@ export default function MethodologiesScreen() {
     });
   };
 
-  const handleCasaManualGenerate = async (casaData) => {
-    try { track('ACTION', { id: 'generate_casa' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
-
-    // 🛡️ Prevenir múltiples clicks estableciendo loading inmediatamente
-    if (ui.isLoading) {
-      console.warn('⚠️ Ya hay una generación en curso, ignorando click...');
-      return;
-    }
-
-    await runWithActivePlanGuard(async () => {
-      ui.setLoading(true);
-
-      try {
-        console.log('🏠 Generando plan de Entrenamiento en Casa...');
-
-        // Usar generatePlan del WorkoutContext
-        const result = await generatePlan({
-          mode: 'manual',
-          methodology: 'entrenamiento-casa',
-          casaData
-        });
-
-        if (result.success) {
-          console.log('✅ Plan de Entrenamiento en Casa generado exitosamente');
-          ui.hideModal('casaManual');
-
-          // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
-          const validation = validatePlanData(result.plan);
-          if (validation.isValid) {
-            ui.showModal('planConfirmation');
-          } else {
-            console.error('❌ Plan inválido:', validation.error);
-            ui.setError(`Plan generado incorrectamente: ${validation.error}`);
-          }
-        } else {
-          throw new Error(result.error || 'Error al generar el plan de Entrenamiento en Casa');
-        }
-
-      } catch (error) {
-        console.error('❌ Error generando plan de Casa:', error);
-        ui.setError(error.message || 'Error al generar el plan de Entrenamiento en Casa');
-      } finally {
-        ui.setLoading(false);
-      }
-    });
-  };
+  const handleCasaManualGenerate = (casaData) =>
+    runManualGenerate({ trackId: 'generate_casa', methodology: 'entrenamiento-casa', dataKey: 'casaData', hideModalName: 'casaManual', data: casaData });
 
   const handleSavePlan = async () => {
     try {

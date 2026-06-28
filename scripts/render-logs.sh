@@ -11,6 +11,21 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}📊 Render Logs - Entrena con IA${NC}\n"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+ENV_FILE="$PROJECT_ROOT/.env"
+CONFIG_DIR="$PROJECT_ROOT/.render"
+CONFIG_FILE="$CONFIG_DIR/cli.yaml"
+
+mkdir -p "$CONFIG_DIR"
+export RENDER_CLI_CONFIG_PATH="$CONFIG_FILE"
+
+if [ -n "${RENDER_API_KEY:-}" ]; then
+    export RENDER_API_KEY="$RENDER_API_KEY"
+elif [ -n "${RENDER_MCP_BEARER_TOKEN:-}" ]; then
+    export RENDER_API_KEY="$RENDER_MCP_BEARER_TOKEN"
+fi
+
 # Verificar que render CLI está instalado
 if ! command -v render &> /dev/null; then
     echo -e "${RED}❌ Render CLI no está instalado${NC}"
@@ -18,10 +33,31 @@ if ! command -v render &> /dev/null; then
     exit 1
 fi
 
+# Cargar token local del proyecto si existe
+if [ -f "$ENV_FILE" ]; then
+    TOKEN_LINE="$(grep -m1 -E '^(RENDER_API_KEY|RENDER_MCP_BEARER_TOKEN)=' "$ENV_FILE" || true)"
+    WORKSPACE_LINE="$(grep -m1 -E '^(RENDER_WORKSPACE_ID|RENDER_WORKSPACE_NAME)=' "$ENV_FILE" || true)"
+    if [ -z "${RENDER_API_KEY:-}" ] && [ -n "$TOKEN_LINE" ]; then
+        export RENDER_API_KEY="${TOKEN_LINE#*=}"
+    fi
+fi
+
+if [ -z "${WORKSPACE_LINE:-}" ]; then
+    if [ -n "${RENDER_WORKSPACE_ID:-}" ]; then
+        WORKSPACE_LINE="RENDER_WORKSPACE_ID=${RENDER_WORKSPACE_ID}"
+    elif [ -n "${RENDER_WORKSPACE_NAME:-}" ]; then
+        WORKSPACE_LINE="RENDER_WORKSPACE_NAME=${RENDER_WORKSPACE_NAME}"
+    fi
+fi
+
+if [ -n "${WORKSPACE_LINE:-}" ]; then
+    render workspace set "${WORKSPACE_LINE#*=}" --confirm --output text >/dev/null 2>&1 || true
+fi
+
 # Verificar autenticación
 if ! render whoami &> /dev/null; then
     echo -e "${YELLOW}⚠️  No estás autenticado en Render${NC}"
-    echo -e "Ejecuta: ${GREEN}render login${NC}"
+    echo -e "Revisa ${GREEN}RENDER_API_KEY${NC}/${GREEN}RENDER_MCP_BEARER_TOKEN${NC} o ejecuta ${GREEN}npm run render:auth${NC}"
     exit 1
 fi
 

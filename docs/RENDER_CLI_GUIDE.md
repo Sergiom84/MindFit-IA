@@ -4,7 +4,14 @@ Fecha de revisión: 2026-03-06
 
 ## Objetivo
 
-Usar Render CLI sin depender de documentación vieja ni de credenciales incrustadas en Markdown.
+Usar Render CLI sin depender de documentación vieja, claves incrustadas ni configuración global compartida con otros proyectos.
+
+## Fuente de verdad
+
+- Este repositorio toma la credencial de Render desde `.env` en la raíz del proyecto.
+- Se acepta `RENDER_MCP_BEARER_TOKEN` como variable canónica; si existe `RENDER_API_KEY`, también se usa.
+- `RENDER_WORKSPACE_ID` o `RENDER_WORKSPACE_NAME` permiten fijar el workspace del proyecto sin usar el global del usuario.
+- Los scripts de `scripts/` exportan la credencial solo para el proceso actual y guardan la config de la CLI en `.render/cli.yaml`; no escriben en `~/.bashrc`, PowerShell profile ni variables globales del sistema.
 
 ## Instalación
 
@@ -49,7 +56,8 @@ npm run render:tail
 
 - `npm run render:login` no existe en este repositorio; el comando correcto es `npm run render:auth` o `npm run render:auth:win`.
 - No guardes API keys en archivos `.md`.
-- Si usas `RENDER_API_KEY`, configúrala solo en entorno local o en tu shell, nunca en documentación versionada.
+- No incrustes `RENDER_API_KEY` o `RENDER_MCP_BEARER_TOKEN` en scripts versionados.
+- Si actualizas la credencial o el workspace, hazlo en el `.env` de este proyecto.
 
 ## Flujo recomendado
 

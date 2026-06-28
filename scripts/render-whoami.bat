@@ -1,2 +1,4 @@
 @echo off
-wsl bash -c "source ~/.bashrc && render whoami --output text 2>/dev/null || render whoami --output text"
+set "SCRIPT_PS=%~dp0render-cli.ps1"
+for %%I in ("%SCRIPT_PS%") do set "SCRIPT_PS=%%~fI"
+powershell -ExecutionPolicy Bypass -File "%SCRIPT_PS%" whoami --output text

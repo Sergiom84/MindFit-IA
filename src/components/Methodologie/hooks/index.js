@@ -7,9 +7,7 @@
  */
 
 export { useMethodologyValidation } from './useMethodologyValidation';
-export { useMethodologyModals } from './useMethodologyModals';
 
 // Re-export defaults
 export { default as useMethodologyValidationDefault } from './useMethodologyValidation';
-export { default as useMethodologyModalsDefault } from './useMethodologyModals';
 

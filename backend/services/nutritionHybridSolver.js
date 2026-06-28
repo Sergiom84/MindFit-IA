@@ -1,3 +1,4 @@
+import { clampNumber, parseJsonObject } from './nutritionUtils.js';
 function parseNumeric(value) {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
@@ -9,29 +10,9 @@ function parseNumeric(value) {
   return 0;
 }
 
-function parseJsonObject(value, fallback = {}) {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return value;
-  }
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        return parsed;
-      }
-    } catch {
-      return fallback;
-    }
-  }
-  return fallback;
-}
 
-function clampNumber(value, min, max) {
-  if (!Number.isFinite(value)) return min;
-  if (value < min) return min;
-  if (value > max) return max;
-  return value;
-}
+
+
 
 function percentError(actual, target) {
   const safeTarget = parseNumeric(target);

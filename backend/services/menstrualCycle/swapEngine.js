@@ -75,7 +75,7 @@ export async function findSwapCandidate(client, {
 
   const queryBase = `
     SELECT
-      e.exercise_id,
+      e.source_exercise_id as exercise_id,
       e.nombre,
       e.categoria,
       e.tipo_ejercicio,
@@ -89,7 +89,8 @@ export async function findSwapCandidate(client, {
       t.overhead,
       t.equipment
     FROM app.exercise_tags t
-    JOIN app."Ejercicios_Hipertrofia" e ON e.exercise_id = t.exercise_id
+    JOIN app.ejercicios e
+      ON e.source_exercise_id = t.exercise_id::text AND e.disciplina = 'hipertrofia'
   `;
 
   const runQuery = async (equipmentMatch) => {

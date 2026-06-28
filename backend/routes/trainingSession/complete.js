@@ -1,27 +1,36 @@
 /**
- * @fileoverview Endpoints de finalización de sesiones
- * 
- * Endpoints:
- * - POST /complete/methodology/:sessionId - Completar sesión de metodología
- * - POST /complete/home/:sessionId - Completar sesión de home training
- * - POST /handle-abandon/:sessionId - Manejar abandono de sesión
- * - PUT /close-active - Cerrar sesiones activas
- * - DELETE /cancel/methodology/:sessionId - Cancelar sesión
- * 
- * @module routes/trainingSession/complete
+ * Rutas de training-session - dominio: complete (extraidas del monolito).
  */
 
 import express from 'express';
 import authenticateToken from '../../middleware/auth.js';
-import { pool } from '../../db.js';
-import { finalizePlanIfCompleted } from '../../services/methodologyPlansService.js';
-import { calculateSessionStatus } from '../../services/sessionStatusService.js';
+import {
+  pool
+} from '../../db.js';
+import {
+  finalizePlanIfCompleted
+} from '../../services/methodologyPlansService.js';
+import {
+  calculateSessionStatus,
+  SESSION_STATES
+} from '../../services/sessionStatusService.js';
+import {
+  transition,
+  SESSION_ACTIONS,
+  createSessionContext
+} from '../../services/sessionStateMachine.js';
 
 const router = express.Router();
 
-// =============================================================================
-// POST /complete/methodology/:sessionId - Completar sesión de metodología
-// =============================================================================
+
+// ===============================================
+// FINALIZACIÓN DE SESIONES
+// ===============================================
+
+/**
+ * POST /api/training-session/complete/methodology/:sessionId
+ * Finalizar sesión de metodología
+ */
 router.post('/complete/methodology/:sessionId', authenticateToken, async (req, res) => {
   const client = await pool.connect();
   try {
@@ -73,12 +82,28 @@ router.post('/complete/methodology/:sessionId', authenticateToken, async (req, r
     );
 
     // Calcular estado de sesión usando el servicio
-    const { status: sessionStatus, completionRate, metrics } = calculateSessionStatus(exercisesQuery.rows);
+    const { status: calculatedStatus, completionRate, metrics } = calculateSessionStatus(exercisesQuery.rows);
 
     const totalExercises = metrics.total;
     const completedExercises = metrics.completed;
     const skippedExercises = metrics.skipped;
     const cancelledExercises = metrics.cancelled;
+
+    // 🔄 Validar transición de estado usando la máquina de estados
+    const currentStatus = ses.rows[0].session_status || SESSION_STATES.IN_PROGRESS;
+    const sessionContext = createSessionContext(ses.rows[0], exercisesQuery.rows);
+    const transitionResult = transition(currentStatus, SESSION_ACTIONS.FINISH, sessionContext);
+    
+    // Determinar el estado final - usar el calculado si la transición es válida
+    const finalSessionStatus = transitionResult.success 
+      ? transitionResult.newState 
+      : calculatedStatus;
+    
+    if (!transitionResult.success) {
+      console.warn(`⚠️ [StateMachine] Transición al finalizar: ${transitionResult.error}. Usando estado calculado: ${calculatedStatus}`);
+    } else {
+      console.log(`🔄 [StateMachine] Transición exitosa: ${currentStatus} → ${finalSessionStatus}`);
+    }
 
     await client.query(
       `UPDATE app.methodology_exercise_sessions
@@ -94,7 +119,7 @@ router.post('/complete/methodology/:sessionId', authenticateToken, async (req, r
              ELSE total_duration_seconds
            END
        WHERE id = $1`,
-      [sessionId, sessionStatus, completedExercises, skippedExercises, cancelledExercises, totalExercises, completionRate]
+      [sessionId, finalSessionStatus, completedExercises, skippedExercises, cancelledExercises, totalExercises, completionRate]
     );
 
     // Obtener todos los ejercicios de la sesión para mover al historial
@@ -141,6 +166,38 @@ router.post('/complete/methodology/:sessionId', authenticateToken, async (req, r
       }
     }
 
+    // Registrar feedback opcional
+    if (Array.isArray(feedback) && feedback.length > 0) {
+      for (const entry of feedback) {
+        if (!entry) continue;
+        const allowedTypes = ['skipped','cancelled','missed'];
+        const allowedReasons = ['dificil','no_se_ejecutar','lesion','equipamiento','cansancio','tiempo','motivacion','auto_missed','otros'];
+        const feedbackType = allowedTypes.includes(entry.feedback_type) ? entry.feedback_type : 'cancelled';
+        const reasonCode = allowedReasons.includes(entry.reason_code) ? entry.reason_code : 'otros';
+
+        await client.query(
+          `INSERT INTO app.methodology_session_feedback (
+            user_id, methodology_plan_id, methodology_session_id,
+            exercise_order, exercise_name, feedback_type, reason_code, reason_text,
+            difficulty_rating, would_retry, created_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+          ON CONFLICT DO NOTHING`,
+          [
+            userId,
+            ses.rows[0].methodology_plan_id,
+            sessionId,
+            entry.exercise_order ?? null,
+            entry.exercise_name ?? null,
+            feedbackType,
+            reasonCode,
+            entry.reason_text || null,
+            entry.difficulty_rating ?? null,
+            entry.would_retry ?? false
+          ]
+        );
+      }
+    }
+
     await finalizePlanIfCompleted(ses.rows[0].methodology_plan_id, client);
 
     await client.query('COMMIT');
@@ -149,12 +206,17 @@ router.post('/complete/methodology/:sessionId', authenticateToken, async (req, r
       success: true,
       message: 'Sesión finalizada y datos guardados en historial',
       summary: {
-        status: sessionStatus,
+        status: finalSessionStatus,
         completionRate,
         totalExercises,
         completedExercises,
         skippedExercises,
-        cancelledExercises
+        cancelledExercises,
+        stateTransition: {
+          from: currentStatus,
+          to: finalSessionStatus,
+          valid: transitionResult.success
+        }
       }
     });
 
@@ -167,9 +229,11 @@ router.post('/complete/methodology/:sessionId', authenticateToken, async (req, r
   }
 });
 
-// =============================================================================
-// POST /complete/home/:sessionId - Completar sesión de home training
-// =============================================================================
+
+/**
+ * POST /api/training-session/complete/home/:sessionId
+ * Finalizar sesión de entrenamiento en casa
+ */
 router.post('/complete/home/:sessionId', authenticateToken, async (req, res) => {
   const client = await pool.connect();
   try {
@@ -178,6 +242,7 @@ router.post('/complete/home/:sessionId', authenticateToken, async (req, res) => 
     const { sessionId } = req.params;
     const user_id = req.user.userId || req.user.id;
 
+    // Verificar que la sesión existe y pertenece al usuario
     const sessionCheck = await client.query(
       'SELECT * FROM app.home_training_sessions WHERE id = $1 AND user_id = $2',
       [sessionId, user_id]
@@ -185,20 +250,28 @@ router.post('/complete/home/:sessionId', authenticateToken, async (req, res) => 
 
     if (sessionCheck.rows.length === 0) {
       await client.query('ROLLBACK');
-      return res.status(404).json({ success: false, message: 'Sesión no encontrada' });
+      return res.status(404).json({
+        success: false,
+        message: 'Sesión no encontrada'
+      });
     }
 
+    // Actualizar estado de la sesión a completada
     await client.query(
       `UPDATE app.home_training_sessions
-       SET status = 'completed', completed_at = NOW(), updated_at = NOW()
+       SET status = 'completed',
+           completed_at = NOW(),
+           updated_at = NOW()
        WHERE id = $1`,
       [sessionId]
     );
 
+    // Obtener resumen de la sesión
     const summaryResult = await client.query(
-      `SELECT COUNT(*) as total_exercises,
-              COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_exercises,
-              SUM(COALESCE(duration_seconds, 0)) as total_duration
+      `SELECT
+         COUNT(*) as total_exercises,
+         COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_exercises,
+         SUM(COALESCE(duration_seconds, 0)) as total_duration
        FROM app.home_exercise_progress
        WHERE home_training_session_id = $1`,
       [sessionId]
@@ -221,138 +294,18 @@ router.post('/complete/home/:sessionId', authenticateToken, async (req, res) => 
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error completing home training session:', error);
-    res.status(500).json({ success: false, message: 'Error al completar la sesión' });
+    res.status(500).json({
+      success: false,
+      message: 'Error al completar la sesión'
+    });
   } finally {
     client.release();
   }
 });
 
-// =============================================================================
-// POST /handle-abandon/:sessionId - Manejar abandono de sesión
-// =============================================================================
-router.post('/handle-abandon/:sessionId', authenticateToken, async (req, res) => {
-  const { sessionId } = req.params;
-  const { currentProgress, reason, session_type = 'home' } = req.body;
-  const user_id = req.user.userId || req.user.id;
 
-  console.log(`🚪 Usuario ${user_id} abandonando sesión ${sessionId}, motivo: ${reason}`);
-
-  try {
-    if (session_type === 'home') {
-      const sessionCheck = await pool.query(
-        'SELECT * FROM app.home_training_sessions WHERE id = $1 AND user_id = $2',
-        [sessionId, user_id]
-      );
-
-      if (sessionCheck.rows.length === 0) {
-        return res.status(404).json({ success: false, message: 'Sesión no encontrada' });
-      }
-
-      if (currentProgress) {
-        for (const [exerciseIndex, progress] of Object.entries(currentProgress)) {
-          if (progress.series_completed > 0) {
-            await pool.query(`
-              UPDATE app.home_exercise_progress
-              SET series_completed = $1, status = $2, duration_seconds = COALESCE($3, duration_seconds)
-              WHERE home_training_session_id = $4 AND exercise_order = $5
-            `, [
-              progress.series_completed,
-              progress.status || 'in_progress',
-              progress.duration_seconds,
-              sessionId,
-              parseInt(exerciseIndex)
-            ]);
-          }
-        }
-      }
-
-      const progressCheck = await pool.query(`
-        SELECT COUNT(*) as total_exercises,
-               COUNT(*) FILTER (WHERE status IN ('completed', 'skipped')) as finished_exercises,
-               COUNT(*) FILTER (WHERE series_completed > 0 OR status IN ('completed', 'skipped', 'in_progress')) as exercises_with_progress
-        FROM app.home_exercise_progress
-        WHERE home_training_session_id = $1
-      `, [sessionId]);
-
-      const { total_exercises, finished_exercises, exercises_with_progress } = progressCheck.rows[0];
-      const allFinished = parseInt(finished_exercises) === parseInt(total_exercises) && parseInt(total_exercises) > 0;
-      const hasProgress = parseInt(exercises_with_progress) > 0;
-
-      let finalStatus;
-      if (allFinished) finalStatus = 'completed';
-      else if (hasProgress) finalStatus = 'in_progress';
-      else finalStatus = 'cancelled';
-
-      await pool.query(`
-        UPDATE app.home_training_sessions
-        SET abandoned_at = NOW(), abandon_reason = $2, status = $3,
-            completed_at = CASE WHEN $3 = 'completed' THEN NOW() ELSE completed_at END
-        WHERE id = $1
-      `, [sessionId, reason, finalStatus]);
-
-      return res.json({
-        success: true,
-        message: 'Progreso guardado antes de abandono',
-        finalStatus,
-        progress: { total: parseInt(total_exercises), finished: parseInt(finished_exercises), canResume: finalStatus === 'in_progress' }
-      });
-    }
-
-    res.json({ success: true, message: 'Progreso guardado antes de abandono' });
-
-  } catch (error) {
-    console.error('❌ Error manejando abandono:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// =============================================================================
-// PUT /close-active - Cerrar sesiones activas
-// =============================================================================
-router.put('/close-active', authenticateToken, async (req, res) => {
-  try {
-    const user_id = req.user.userId || req.user.id;
-    const { session_type = 'all' } = req.body;
-
-    let totalClosed = 0;
-
-    if (session_type === 'home' || session_type === 'all') {
-      const homeResult = await pool.query(
-        `UPDATE app.home_training_sessions
-         SET status = 'cancelled', completed_at = NOW(), updated_at = NOW()
-         WHERE user_id = $1 AND status = 'in_progress'
-         RETURNING id`,
-        [user_id]
-      );
-      totalClosed += homeResult.rows.length;
-    }
-
-    if (session_type === 'methodology' || session_type === 'all') {
-      const methodologyResult = await pool.query(
-        `UPDATE app.methodology_exercise_sessions
-         SET session_status = 'cancelled', updated_at = NOW()
-         WHERE user_id = $1 AND session_status = 'in_progress'
-         RETURNING id`,
-        [user_id]
-      );
-      totalClosed += methodologyResult.rows.length;
-    }
-
-    res.json({
-      success: true,
-      message: `${totalClosed} sesión${totalClosed !== 1 ? 'es' : ''} cerrada${totalClosed !== 1 ? 's' : ''}`,
-      closedSessions: totalClosed
-    });
-
-  } catch (error) {
-    console.error('Error closing active sessions:', error);
-    res.status(500).json({ success: false, message: 'Error al cerrar sesiones activas' });
-  }
-});
-
-// =============================================================================
-// DELETE /cancel/methodology/:sessionId - Cancelar sesión de metodología
-// =============================================================================
+// DELETE /api/training-session/cancel/methodology/:sessionId
+// Cancelar sesión de metodología (incluyendo sesiones weekend)
 router.delete('/cancel/methodology/:sessionId', authenticateToken, async (req, res) => {
   const client = await pool.connect();
   try {
@@ -363,6 +316,7 @@ router.delete('/cancel/methodology/:sessionId', authenticateToken, async (req, r
 
     console.log(`🗑️ Cancelando sesión metodología ${sessionId} para usuario ${userId}`);
 
+    // Verificar que la sesión pertenece al usuario
     const sessionCheck = await client.query(
       `SELECT id, session_type, methodology_plan_id
        FROM app.methodology_exercise_sessions
@@ -381,24 +335,35 @@ router.delete('/cancel/methodology/:sessionId', authenticateToken, async (req, r
     const session = sessionCheck.rows[0];
     const isWeekend = session.session_type === 'weekend-extra';
 
-    await client.query(
-      `DELETE FROM app.exercise_session_tracking WHERE methodology_session_id = $1`,
+    // 🗑️ ELIMINAR ejercicios de la sesión
+    const deleteExercisesResult = await client.query(
+      `DELETE FROM app.exercise_session_tracking
+       WHERE methodology_session_id = $1`,
       [sessionId]
     );
+    console.log(`🗑️ ${deleteExercisesResult.rowCount} ejercicios eliminados de sesión ${sessionId}`);
 
+    // 🗑️ ELIMINAR la sesión
     await client.query(
-      `DELETE FROM app.methodology_exercise_sessions WHERE id = $1`,
+      `DELETE FROM app.methodology_exercise_sessions
+       WHERE id = $1`,
       [sessionId]
     );
+    console.log(`🗑️ Sesión ${sessionId} eliminada`);
 
+    // 🗑️ Si es sesión weekend, también ELIMINAR el plan
     if (isWeekend && session.methodology_plan_id) {
-      await client.query(
-        `DELETE FROM app.methodology_plans WHERE id = $1`,
+      const deletePlanResult = await client.query(
+        `DELETE FROM app.methodology_plans
+         WHERE id = $1`,
         [session.methodology_plan_id]
       );
+      console.log(`🗑️ Plan weekend ${session.methodology_plan_id} eliminado (${deletePlanResult.rowCount} filas)`);
     }
 
     await client.query('COMMIT');
+
+    console.log(`✅ Sesión ${sessionId} cancelada exitosamente`);
 
     res.json({
       success: true,
@@ -410,11 +375,13 @@ router.delete('/cancel/methodology/:sessionId', authenticateToken, async (req, r
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('❌ Error cancelando sesión:', error);
-    res.status(500).json({ success: false, message: 'Error al cancelar la sesión' });
+    res.status(500).json({
+      success: false,
+      message: 'Error al cancelar la sesión'
+    });
   } finally {
     client.release();
   }
 });
 
 export default router;
-

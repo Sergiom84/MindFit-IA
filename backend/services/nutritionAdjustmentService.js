@@ -2,23 +2,14 @@ import { pool } from "../db.js";
 import { ensureWorkoutScheduleV3 } from "../utils/ensureScheduleV3.js";
 import { logNutritionChange } from "./nutritionAuditLogger.js";
 import { generateNutritionPlanWithKcalOverride } from "./nutritionCalculator.js";
+import { isIsoDate, formatLocalDate } from './nutritionUtils.js';
 
 const MODES = new Set(["quincenal", "seguridad"]);
 const SOURCES = new Set(["auto", "manual"]);
 
-function isIsoDate(value) {
-  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
-}
 
-function formatLocalDate(value) {
-  if (!value) return null;
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+
+
 
 function mapMethodologyToTrainingType(value) {
   if (!value) return null;

@@ -3,12 +3,20 @@
  * @module routineGeneration/methodologies/CrossFitService
  */
 
+import { pool } from '../../../db.js';
 import { AI_MODULES } from '../../../config/aiConfigs.js';
 import { getModuleOpenAI } from '../../../lib/openaiClient.js';
 import { logger } from '../logger.js';
 import { parseAIResponse } from '../ai/aiResponseParser.js';
 import { getUserFullProfile } from '../database/userRepository.js';
 import { normalizeUserProfile } from '../validators.js';
+import {
+  buildExercisePicker,
+  buildTemplates,
+  buildSemanas,
+  persistPlanDraft,
+  buildPlanResult
+} from './planEngine.js';
 import {
   logSeparator,
   logAPICall,
@@ -129,21 +137,146 @@ FORMATO EXACTO:
   }
 }
 
+// Niveles acumulativos de CrossFit (la tabla tiene Principiante/Intermedio/Avanzado/Elite).
+const CROSSFIT_LEVEL_ORDER = ['Principiante', 'Intermedio', 'Avanzado', 'Elite'];
+
+function allowedCrossFitLevels(levelKey) {
+  const idx = { principiante: 0, intermedio: 1, avanzado: 2, elite: 3 }[levelKey] ?? 0;
+  return CROSSFIT_LEVEL_ORDER.slice(0, idx + 1);
+}
+
+function normalizeCrossFitLevel(raw) {
+  const lvl = String(raw || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (lvl.includes('elite')) return 'elite';
+  if (lvl.includes('avanz')) return 'avanzado';
+  if (lvl.includes('inter')) return 'intermedio';
+  return 'principiante';
+}
+
+// Plantillas de sesión tipo WOD; cada `[dominio, n]` toma n movimientos de ese dominio.
+const CROSSFIT_SESSION_TEMPLATES = [
+  { nombre: 'WOD Fuerza + Metcon', plan: [['Weightlifting', 1], ['Gymnastic', 1], ['Monostructural', 1], ['Accesorios', 1]] },
+  { nombre: 'WOD Gymnastic', plan: [['Gymnastic', 2], ['Monostructural', 1], ['Accesorios', 1]] },
+  { nombre: 'WOD Weightlifting', plan: [['Weightlifting', 2], ['Monostructural', 1], ['Gymnastic', 1]] },
+  { nombre: 'WOD Mixto (Chipper)', plan: [['Weightlifting', 1], ['Gymnastic', 1], ['Monostructural', 2]] },
+  { nombre: 'WOD AMRAP', plan: [['Gymnastic', 1], ['Weightlifting', 1], ['Monostructural', 1], ['Accesorios', 1]] },
+  { nombre: 'WOD EMOM', plan: [['Weightlifting', 1], ['Gymnastic', 1], ['Monostructural', 1], ['Accesorios', 1]] }
+];
+
+function repsObjetivoFromWod(ex) {
+  switch (String(ex.tipo_wod || '').toLowerCase()) {
+    case 'amrap': return 'Máximas reps en el tiempo';
+    case 'emom': return 'Reps fijas por minuto';
+    case 'for time': return 'Completar reps lo antes posible';
+    case 'for distance': return 'Máxima distancia';
+    case 'strength': return ex.rx_carga_sugerida || 'Carga progresiva';
+    default: return ex.intensidad || 'Según WOD';
+  }
+}
+
 /**
- * Generar plan de entrenamiento de CrossFit
- * @param {string} userId - ID del usuario
- * @param {object} planData - Datos del plan
- * @returns {Promise<object>} Plan generado
+ * Mapea una fila de Ejercicios_CrossFit a un ejercicio del plan.
  */
-export async function generateCrossFitPlan(userId, planData) {
-  // Esta función será implementada en la siguiente fase
-  // Por ahora retornamos un placeholder
-  logger.info('Generando plan de CrossFit para usuario:', userId);
+function toCrossFitExercise(ex, orden, sessionId) {
   return {
-    success: true,
-    message: 'Generación de plan de CrossFit - Pendiente de implementación completa',
-    planData
+    id: `${sessionId}-E${orden}`,
+    orden,
+    exercise_id: ex.exercise_id,
+    nombre: ex.nombre,
+    categoria: ex.categoria,
+    dominio: ex.dominio,
+    equipamiento: ex.equipamiento || null,
+    tipo_ejercicio: 'crossfit',
+    tipo_wod: ex.tipo_wod || null,
+    intensidad: ex.intensidad || null,
+    series: '1',
+    reps_objetivo: repsObjetivoFromWod(ex),
+    duracion_seg: ex.duracion_seg ?? null,
+    descanso_seg: ex.descanso_seg ?? 60,
+    rx_carga_sugerida: ex.rx_carga_sugerida || null,
+    escalamiento: ex.escalamiento || null,
+    como_hacerlo: ex.como_hacerlo || null,
+    notas: ex.notas || ''
   };
+}
+
+/**
+ * Generar plan de entrenamiento de CrossFit (motor determinista v1).
+ * Fuente: tabla viva "Ejercicios_CrossFit". Estructura: WODs que mezclan dominios.
+ */
+export async function generateCrossFitPlan(userId, planData = {}) {
+  const startedAt = Date.now();
+  logSeparator('CROSSFIT PLAN GENERATION');
+  logAPICall('/specialist/crossfit/generate', 'POST', userId);
+
+  const levelKey = normalizeCrossFitLevel(
+    planData.selectedLevel || planData.level || planData.aiEvaluation?.recommended_level || 'principiante'
+  );
+  const levels = getCrossFitLevels();
+  const levelConfig = levels[levelKey] || levels.principiante;
+  const nivelLabel = levelConfig.name;
+  const frecuencia = levelConfig.sessions_per_week;
+  const totalWeeks = levelConfig.duration_weeks;
+
+  logger.info(`🏋️ [CROSSFIT] Nivel: ${nivelLabel}, ${frecuencia} días/sem, ${totalWeeks} semanas`);
+
+  // Cargar ejercicios de los niveles permitidos (tabla viva con columnas acentuadas).
+  const { rows: exercises } = await pool.query(`
+    SELECT exercise_id, nombre, nivel, dominio, categoria, equipamiento,
+           tipo_wod, intensidad, duracion_seg, descanso_seg,
+           escalamiento, notas, rx_carga_sugerida,
+           "Cómo_hacerlo" AS como_hacerlo
+      FROM "Ejercicios_CrossFit"
+     WHERE nivel = ANY($1::text[])
+     ORDER BY RANDOM()
+  `, [allowedCrossFitLevels(levelKey)]);
+
+  if (!exercises || exercises.length === 0) {
+    throw new Error('No se encontraron ejercicios de CrossFit para el nivel seleccionado');
+  }
+
+  const poolByDomain = {};
+  for (const ex of exercises) (poolByDomain[ex.dominio] ||= []).push(ex);
+
+  const pick = buildExercisePicker(poolByDomain);
+  const templateSpecs = CROSSFIT_SESSION_TEMPLATES.slice(0, frecuencia);
+  const templates = buildTemplates(templateSpecs, pick, exercises);
+
+  const semanas = buildSemanas({
+    templates,
+    totalWeeks,
+    frecuencia,
+    objetivo: levelConfig.description,
+    coachTip: 'Calienta bien, escala el WOD a tu nivel y prioriza la mecánica antes que la intensidad.',
+    toExercise: toCrossFitExercise
+  });
+
+  const plan = {
+    metodologia: 'CrossFit',
+    version: 'crossfit_v1',
+    nivel: nivelLabel,
+    total_weeks: totalWeeks,
+    duracion_total_semanas: totalWeeks,
+    frecuencia_semanal: frecuencia,
+    fecha_inicio: new Date().toISOString(),
+    objetivo: planData.goals || levelConfig.description,
+    benchmark_targets: levelConfig.benchmark_targets || {},
+    configuracion: {
+      progression_type: 'wod_rotation',
+      sessions_per_week: frecuencia,
+      duration_weeks: totalWeeks,
+      source: 'crossfit_v1_deterministic'
+    },
+    semanas
+  };
+
+  const planId = await persistPlanDraft(userId, 'CrossFit', plan);
+  logger.info(`✅ [CROSSFIT] Plan generado con ID: ${planId}`);
+
+  return buildPlanResult({
+    plan, planId, methodology: 'crossfit', startedAt,
+    extraMeta: { level: nivelLabel, total_exercises_pool: exercises.length }
+  });
 }
 
 /**

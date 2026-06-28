@@ -4,6 +4,7 @@
  */
 
 import pool from '../../db.js';
+import { HIPERTROFIA_COLUMNS } from '../exerciseRepository.js';
 
 /**
  * Filtra ejercicios según restricciones menstruales
@@ -101,8 +102,8 @@ async function getExerciseRestriction(exerciseId) {
       menstrual_restriction_reason,
       alternative_exercise_id,
       menstrual_notes
-    FROM app."Ejercicios_Hipertrofia"
-    WHERE exercise_id = $1
+    FROM app.ejercicios
+    WHERE disciplina = 'hipertrofia' AND source_exercise_id = $1::text
   `;
 
   try {
@@ -134,24 +135,9 @@ async function findAlternativeExercise(originalExercise, restriction) {
       console.log(`🔍 [MenstrualFilter] Buscando alternativa predefinida ID: ${restriction.alternative_exercise_id}`);
 
       const query = `
-        SELECT
-          exercise_id,
-          nombre,
-          nivel,
-          categoria,
-          tipo_ejercicio,
-          patron_movimiento,
-          orden_recomendado,
-          patron,
-          equipamiento,
-          series_reps_objetivo,
-          descanso_seg,
-          notas,
-          "Cómo_hacerlo" as como_hacerlo,
-          "Consejos" as consejos,
-          "Errores_comunes" as errores_comunes
-        FROM app."Ejercicios_Hipertrofia"
-        WHERE exercise_id = $1
+        SELECT ${HIPERTROFIA_COLUMNS}
+        FROM app.ejercicios
+        WHERE disciplina = 'hipertrofia' AND source_exercise_id = $1::text
       `;
 
       const result = await pool.query(query, [restriction.alternative_exercise_id]);
@@ -177,27 +163,13 @@ async function findAlternativeExercise(originalExercise, restriction) {
     console.log(`🔍 [MenstrualFilter] Buscando alternativa automática para categoría: ${originalExercise.categoria}`);
 
     const autoQuery = `
-      SELECT
-        exercise_id,
-        nombre,
-        nivel,
-        categoria,
-        tipo_ejercicio,
-        patron_movimiento,
-        orden_recomendado,
-        patron,
-        equipamiento,
-        series_reps_objetivo,
-        descanso_seg,
-        notas,
-        "Cómo_hacerlo" as como_hacerlo,
-        "Consejos" as consejos,
-        "Errores_comunes" as errores_comunes
-      FROM app."Ejercicios_Hipertrofia"
-      WHERE categoria = $1
+      SELECT ${HIPERTROFIA_COLUMNS}
+      FROM app.ejercicios
+      WHERE disciplina = 'hipertrofia'
+        AND categoria = $1
         AND tipo_ejercicio = $2
         AND (menstrual_restriction = 'none' OR menstrual_restriction IS NULL)
-        AND exercise_id != $3
+        AND source_exercise_id != $3::text
       ORDER BY RANDOM()
       LIMIT 1
     `;
@@ -228,26 +200,12 @@ async function findAlternativeExercise(originalExercise, restriction) {
     console.log(`🔍 [MenstrualFilter] Buscando alternativa flexible (misma categoría, cualquier tipo)`);
 
     const flexibleQuery = `
-      SELECT
-        exercise_id,
-        nombre,
-        nivel,
-        categoria,
-        tipo_ejercicio,
-        patron_movimiento,
-        orden_recomendado,
-        patron,
-        equipamiento,
-        series_reps_objetivo,
-        descanso_seg,
-        notas,
-        "Cómo_hacerlo" as como_hacerlo,
-        "Consejos" as consejos,
-        "Errores_comunes" as errores_comunes
-      FROM app."Ejercicios_Hipertrofia"
-      WHERE categoria = $1
+      SELECT ${HIPERTROFIA_COLUMNS}
+      FROM app.ejercicios
+      WHERE disciplina = 'hipertrofia'
+        AND categoria = $1
         AND (menstrual_restriction = 'none' OR menstrual_restriction IS NULL)
-        AND exercise_id != $2
+        AND source_exercise_id != $2::text
       ORDER BY RANDOM()
       LIMIT 1
     `;

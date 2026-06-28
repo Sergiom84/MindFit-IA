@@ -1,289 +1,286 @@
 /**
- * @fileoverview Endpoints de estado y estadísticas de sesiones
- * 
- * Endpoints:
- * - GET /today-status - Estado de sesión del día actual
- * - GET /weekend-status - Estado de sesión de fin de semana
- * - GET /stats/progress-data - Datos de progreso agregados
- * - GET /stats/historical - Estadísticas históricas
- * 
- * @module routes/trainingSession/stats
+ * Rutas de training-session - dominio: stats (extraidas del monolito).
  */
 
 import express from 'express';
 import authenticateToken from '../../middleware/auth.js';
-import { pool } from '../../db.js';
-import { normalizeDayAbbrev, isWeekend as checkIsWeekend } from '../../utils/shared/dayNormalizer.js';
+import {
+  pool
+} from '../../db.js';
+import {
+  findWeekInPlan
+} from '../../utils/shared/planHelpers.js';
 
 const router = express.Router();
 
-// =============================================================================
-// GET /today-status - Estado de sesión del día actual
-// =============================================================================
-router.get('/today-status', authenticateToken, async (req, res) => {
+
+// ===============================================
+// ESTADÍSTICAS Y DATOS HISTÓRICOS
+// ===============================================
+
+/**
+ * GET /api/training-session/stats/progress-data
+ * Obtener datos de progreso histórico para el ProgressTab
+ */
+router.get('/stats/progress-data', authenticateToken, async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id;
-    const { methodology_plan_id, week_number, day_name, session_date } = req.query;
+    const { methodology_plan_id, home_training_plan_id } = req.query;
+
+    if (!methodology_plan_id && !home_training_plan_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Se requiere methodology_plan_id o home_training_plan_id'
+      });
+    }
 
     if (methodology_plan_id) {
-      if (!week_number || !day_name) {
-        return res.status(400).json({
+      // Datos de progreso para metodología
+      const planQuery = await pool.query(
+        'SELECT methodology_type, plan_data FROM app.methodology_plans WHERE id = $1 AND user_id = $2',
+        [methodology_plan_id, userId]
+      );
+
+      if (planQuery.rowCount === 0) {
+        return res.status(404).json({
           success: false,
-          error: 'Parámetros requeridos para metodología: week_number, day_name'
+          error: 'Plan de metodología no encontrado'
         });
       }
 
-      const normalizedDay = normalizeDayAbbrev(day_name);
-      let sessionQuery;
+      const plan = planQuery.rows[0];
+      const planData = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
 
-      if (session_date) {
-        sessionQuery = await pool.query(
-          `SELECT * FROM app.methodology_exercise_sessions
-           WHERE user_id = $1 AND methodology_plan_id = $2 AND session_date::date = $3::date
-           ORDER BY created_at DESC LIMIT 1`,
-          [userId, methodology_plan_id, session_date]
-        );
-      } else {
-        sessionQuery = await pool.query(
-          `SELECT * FROM app.methodology_exercise_sessions
-           WHERE user_id = $1 AND methodology_plan_id = $2 AND week_number = $3 AND day_name = $4
-           ORDER BY created_at DESC LIMIT 1`,
-          [userId, methodology_plan_id, week_number, normalizedDay]
-        );
+      // Obtener información del plan para calcular semana actual
+      const planInfoQuery = await pool.query(
+        'SELECT created_at, confirmed_at FROM app.methodology_plans WHERE id = $1 AND user_id = $2',
+        [methodology_plan_id, userId]
+      );
+      const planInfo = planInfoQuery.rows[0];
+      const planStartDate = planInfo?.confirmed_at || planInfo?.created_at;
+
+      // Calcular semana actual basada en fecha de inicio del plan
+      let currentWeek = 1;
+      if (planStartDate) {
+        const daysSinceStart = Math.floor((new Date() - new Date(planStartDate)) / (1000 * 60 * 60 * 24));
+        currentWeek = Math.max(1, Math.floor(daysSinceStart / 7) + 1);
       }
 
-      if (sessionQuery.rowCount === 0) {
-        // 🎯 FIX: Si no hay sesión iniciada, verificar si hay un día programado en workout_schedule
-        // Normalizar el día para buscar en workout_schedule (usa nombres completos: "Lunes", "Martes", etc.)
-        const dayFullNameMap = {
-          'Lun': 'Lunes', 'Mar': 'Martes', 'Mie': 'Miercoles', 'Miércoles': 'Miercoles',
-          'Jue': 'Jueves', 'Vie': 'Viernes', 'Sab': 'Sabado', 'Sábado': 'Sabado', 'Dom': 'Domingo'
-        };
-        const dayFullName = dayFullNameMap[normalizedDay] || normalizedDay;
-        
-        const scheduleQuery = await pool.query(
-          `SELECT id, exercises, scheduled_date, day_name
-           FROM app.workout_schedule 
-           WHERE methodology_plan_id = $1 AND week_number = $2 
-             AND (day_name = $3 OR day_name = $4)
-           LIMIT 1`,
-          [methodology_plan_id, week_number, normalizedDay, dayFullName]
-        );
-        
-        if (scheduleQuery.rowCount === 0) {
-          // No hay día programado - es un día de descanso
-          return res.status(200).json({ 
-            success: true, 
-            session_type: 'methodology',
-            session: null,
-            exercises: [],
-            isRestDay: true,
-            message: 'Día de descanso - no hay entrenamiento programado para este día'
-          });
-        }
-        
-        // Hay un día programado pero la sesión aún no se ha iniciado
-        const scheduleData = scheduleQuery.rows[0];
-        const scheduledExercises = scheduleData.exercises || [];
-        
-        // Formatear ejercicios para el frontend
-        const formattedExercises = scheduledExercises.map((ex, idx) => ({
-          exercise_order: idx + 1,
-          exercise_name: ex.nombre || ex.name || `Ejercicio ${idx + 1}`,
-          series_total: ex.series || 3,
-          series_completed: 0,
-          repeticiones: ex.repeticiones || ex.reps || '8-12',
-          descanso_seg: ex.descanso_seg || ex.descanso || 90,
-          intensidad: ex.intensidad || null,
-          tempo: ex.tempo || null,
-          status: 'pending',
-          notas: ex.notas || ''
-        }));
-        
-        return res.status(200).json({
-          success: true,
-          session_type: 'methodology',
-          session: null, // No hay sesión iniciada aún
-          sessionNotStarted: true,
-          scheduledDate: scheduleData.scheduled_date,
-          exercises: formattedExercises,
-          summary: {
-            total: formattedExercises.length,
-            completed: 0,
-            skipped: 0,
-            cancelled: 0,
-            pending: formattedExercises.length,
-            isComplete: false,
-            canRetry: false
-          },
-          message: 'Sesión programada pero no iniciada. Pulsa "Comenzar Entrenamiento" para empezar.'
+      // Obtener resumen general de progreso
+      const generalStatsQuery = await pool.query(
+        `SELECT
+           COUNT(DISTINCT mes.id) FILTER (WHERE mes.session_status = 'completed') as total_sessions_completed,
+           COUNT(DISTINCT mes.id) as total_sessions_started,
+           COUNT(DISTINCT mep.id) FILTER (WHERE mep.status = 'completed') as total_exercises_completed,
+           COUNT(DISTINCT mep.id) as total_exercises_attempted,
+           SUM(CASE WHEN mep.status = 'completed' THEN mep.series_completed ELSE 0 END) as total_series_completed,
+           SUM(CASE WHEN mep.status = 'completed' THEN COALESCE(mep.time_spent_seconds, 0) ELSE 0 END) +
+           SUM(CASE WHEN mes.status = 'completed' THEN COALESCE(mes.warmup_time_seconds, 0) ELSE 0 END) as total_time_seconds,
+           MIN(mes.started_at) as first_session_date,
+           MAX(mes.completed_at) as last_session_date
+         FROM app.methodology_exercise_sessions mes
+         LEFT JOIN app.methodology_exercise_progress mep ON mep.methodology_session_id = mes.id
+         WHERE mes.user_id = $1 AND mes.methodology_plan_id = $2`,
+        [userId, methodology_plan_id]
+      );
+
+      // Obtener progreso por semanas
+      const weeklyProgressQuery = await pool.query(
+        `SELECT
+           mes.week_number,
+           COUNT(DISTINCT mes.id) FILTER (WHERE mes.session_status = 'completed') as sessions_completed,
+           COUNT(DISTINCT mes.id) as total_sessions,
+           COUNT(DISTINCT mep.id) FILTER (WHERE mep.status = 'completed') as exercises_completed,
+           COUNT(DISTINCT mep.id) as total_exercises,
+           SUM(CASE WHEN mep.status = 'completed' THEN mep.series_completed ELSE 0 END) as series_completed,
+           SUM(CASE WHEN mep.status = 'completed' THEN COALESCE(mep.time_spent_seconds, 0) ELSE 0 END) +
+           COALESCE(mes.warmup_time_seconds, 0) as time_spent_seconds
+         FROM app.methodology_exercise_sessions mes
+         LEFT JOIN app.methodology_exercise_progress mep ON mep.methodology_session_id = mes.id
+         WHERE mes.user_id = $1 AND mes.methodology_plan_id = $2
+         GROUP BY mes.week_number
+         ORDER BY mes.week_number ASC`,
+        [userId, methodology_plan_id]
+      );
+
+      // Calcular totales del plan
+      const totalWeeks = planData?.semanas?.length || 0;
+      const totalSessionsInPlan = planData?.semanas?.reduce((acc, semana) =>
+        acc + (semana.sesiones?.length || 0), 0) || 0;
+      const totalExercisesInPlan = planData?.semanas?.reduce((acc, semana) =>
+        acc + semana.sesiones?.reduce((sessAcc, sesion) =>
+          sessAcc + (sesion.ejercicios?.length || 0), 0) || 0, 0) || 0;
+
+      const generalStats = generalStatsQuery.rows[0];
+      const weeklyProgress = weeklyProgressQuery.rows;
+
+      // Construir progreso por semanas con datos reales
+      const weeklyProgressData = [];
+      for (let week = 1; week <= totalWeeks; week++) {
+        const weekData = weeklyProgress.find(w => w.week_number === week);
+        const weekInPlan = findWeekInPlan(planData?.semanas, week);
+        const weekSessions = weekInPlan?.sesiones?.length || 0;
+        const weekExercises = weekInPlan?.sesiones?.reduce(
+          (acc, ses) => acc + (ses.ejercicios?.length || 0), 0) || 0;
+
+        weeklyProgressData.push({
+          week,
+          sessions: Math.max(weekSessions, weekData?.total_sessions || 0),
+          completed: weekData?.sessions_completed || 0,
+          exercises: Math.max(weekExercises, weekData?.total_exercises || 0),
+          exercisesCompleted: weekData?.exercises_completed || 0,
+          seriesCompleted: weekData?.series_completed || 0,
+          timeSpentSeconds: weekData?.time_spent_seconds || 0
         });
       }
 
-      const session = sessionQuery.rows[0];
+      const responseData = {
+        totalWeeks,
+        currentWeek,
+        totalSessions: Math.max(totalSessionsInPlan, parseInt(generalStats.total_sessions_started) || 0),
+        completedSessions: parseInt(generalStats.total_sessions_completed) || 0,
+        totalExercises: Math.max(totalExercisesInPlan, parseInt(generalStats.total_exercises_attempted) || 0),
+        completedExercises: parseInt(generalStats.total_exercises_completed) || 0,
+        totalSeriesCompleted: parseInt(generalStats.total_series_completed) || 0,
+        totalTimeSpentSeconds: parseInt(generalStats.total_time_seconds) || 0,
+        firstSessionDate: generalStats.first_session_date,
+        lastSessionDate: generalStats.last_session_date,
+        weeklyProgress: weeklyProgressData
+      };
 
-      const exercisesQuery = await pool.query(
-        `SELECT p.exercise_order, p.exercise_name, p.series_total, p.series_completed,
-                p.repeticiones, p.descanso_seg, p.intensidad, p.tempo, p.status,
-                p.time_spent_seconds, p.notas, p.exercise_id, f.sentiment, f.comment
-         FROM app.methodology_exercise_progress p
-         LEFT JOIN app.methodology_exercise_feedback f
-           ON p.methodology_session_id = f.methodology_session_id AND p.exercise_order = f.exercise_order
-         WHERE p.methodology_session_id = $1 ORDER BY p.exercise_order ASC`,
-        [session.id]
+      res.json({ success: true, data: responseData });
+
+    } else {
+      // Datos de progreso para entrenamiento en casa
+      const statsResult = await pool.query(
+        'SELECT * FROM app.user_home_training_stats WHERE user_id = $1',
+        [userId]
       );
 
-      const setLogsQuery = await pool.query(
-        `SELECT exercise_id, exercise_name, set_number, weight_used, reps_completed,
-                rir_reported, estimated_1rm, rpe_calculated, volume_load, is_effective
-         FROM app.hypertrophy_set_logs WHERE session_id = $1
-         ORDER BY exercise_id, set_number ASC`,
-        [session.id]
+      let stats = statsResult.rows[0];
+
+      if (!stats) {
+        // Crear estadísticas iniciales si no existen
+        const createResult = await pool.query(
+          `INSERT INTO app.user_home_training_stats (user_id)
+           VALUES ($1)
+           RETURNING *`,
+          [userId]
+        );
+        stats = createResult.rows[0];
+      }
+
+      // Agregar métricas basadas en ejercicios completados
+      const exAgg = await pool.query(
+        `SELECT COUNT(*)::int AS total_exercises_completed,
+                COALESCE(SUM(duration_seconds), 0)::int AS total_exercise_duration_seconds
+         FROM app.home_exercise_history
+         WHERE user_id = $1`,
+        [userId]
       );
-
-      const setLogsByExercise = {};
-      setLogsQuery.rows.forEach(set => {
-        if (!setLogsByExercise[set.exercise_id]) setLogsByExercise[set.exercise_id] = [];
-        setLogsByExercise[set.exercise_id].push(set);
-      });
-
-      const exercisesWithSets = exercisesQuery.rows.map(ex => ({
-        ...ex,
-        sets: setLogsByExercise[ex.exercise_id] || []
-      }));
-
-      const totalExercises = exercisesQuery.rowCount;
-      const completedExercises = exercisesQuery.rows.filter(ex => ex.status === 'completed').length;
-      const skippedExercises = exercisesQuery.rows.filter(ex => ex.status === 'skipped').length;
-      const cancelledExercises = exercisesQuery.rows.filter(ex => ex.status === 'cancelled').length;
-
-      const hasRealProgress = exercisesQuery.rows.some(ex => ex.status !== 'pending');
-      let canResume = session.session_status !== 'completed' && hasRealProgress;
+      const ex = exAgg.rows[0] || { total_exercises_completed: 0, total_exercise_duration_seconds: 0 };
 
       res.json({
         success: true,
-        session_type: 'methodology',
-        session: { ...session, canResume },
-        exercises: exercisesWithSets,
-        summary: {
-          total: totalExercises,
-          completed: completedExercises,
-          skipped: skippedExercises,
-          cancelled: cancelledExercises,
-          pending: totalExercises - completedExercises - skippedExercises - cancelledExercises,
-          isComplete: session.session_status === 'completed',
-          canRetry: (skippedExercises > 0 || cancelledExercises > 0) && session.session_status === 'completed'
+        data: {
+          ...stats,
+          total_exercises_completed: ex.total_exercises_completed,
+          total_exercise_duration_seconds: ex.total_exercise_duration_seconds,
         }
       });
-      return;
     }
 
-    // Home training status
-    const { home_training_plan_id } = req.query;
-    if (!home_training_plan_id) {
-      return res.status(400).json({ success: false, error: 'Se requiere methodology_plan_id o home_training_plan_id' });
-    }
-
-    const homeSessionQuery = await pool.query(
-      `SELECT * FROM app.home_training_sessions
-       WHERE user_id = $1 AND home_training_plan_id = $2 AND status IN ('pending', 'in_progress')
-       ORDER BY created_at DESC LIMIT 1`,
-      [userId, home_training_plan_id]
-    );
-
-    if (homeSessionQuery.rowCount === 0) {
-      return res.json({ success: true, session_type: 'home', session: null, message: 'No hay sesión activa' });
-    }
-
-    const homeSession = homeSessionQuery.rows[0];
-    const homeExercises = await pool.query(
-      `SELECT * FROM app.home_exercise_progress WHERE home_training_session_id = $1 ORDER BY exercise_order`,
-      [homeSession.id]
-    );
-
-    res.json({
-      success: true,
-      session_type: 'home',
-      session: homeSession,
-      exercises: homeExercises.rows
+  } catch (error) {
+    console.error('Error obteniendo datos de progreso:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno del servidor'
     });
-
-  } catch (e) {
-    console.error('Error in today-status:', e);
-    res.status(500).json({ success: false, error: 'Error interno' });
   }
 });
 
-// =============================================================================
-// GET /weekend-status - Estado de sesión de fin de semana
-// =============================================================================
-router.get('/weekend-status', authenticateToken, async (req, res) => {
-  const client = await pool.connect();
+
+/**
+ * GET /api/training-session/stats/historical
+ * Obtener datos históricos completos del usuario
+ */
+router.get('/stats/historical', authenticateToken, async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const sessionResult = await client.query(
-      `SELECT id, methodology_plan_id, session_status, session_type, exercises_completed,
-              exercises_skipped, exercises_cancelled, total_exercises, exercises_data,
-              session_metadata, started_at, completed_at
-       FROM app.methodology_exercise_sessions
-       WHERE user_id = $1 AND session_type = 'weekend-extra'
-         AND session_date >= $2 AND session_date < $3
-       ORDER BY id DESC LIMIT 1`,
-      [userId, today, tomorrow]
+    // Obtener estadísticas generales históricas (todas las rutinas del usuario)
+    const totalStatsQuery = await pool.query(
+      `SELECT
+         COUNT(DISTINCT mp.id) as total_routines_completed,
+         COUNT(DISTINCT mes.id) as total_sessions_ever,
+         COUNT(DISTINCT mep.id) as total_exercises_ever,
+         SUM(CASE WHEN mep.status = 'completed' THEN mep.series_completed ELSE 0 END) as total_series_ever,
+         SUM(CASE WHEN mep.status = 'completed' THEN COALESCE(mep.time_spent_seconds, 0) ELSE 0 END) +
+         SUM(CASE WHEN mes.status = 'completed' THEN COALESCE(mes.warmup_time_seconds, 0) ELSE 0 END) as total_time_spent_ever,
+         MIN(mes.started_at) as first_workout_date,
+         MAX(mes.completed_at) as last_workout_date
+       FROM app.methodology_plans mp
+       LEFT JOIN app.methodology_exercise_sessions mes ON mes.methodology_plan_id = mp.id
+       LEFT JOIN app.methodology_exercise_progress mep ON mep.methodology_session_id = mes.id
+       WHERE mp.user_id = $1 AND mp.status = 'active'`,
+      [userId]
     );
 
-    if (sessionResult.rows.length === 0) {
-      return res.json({ success: true, hasWeekendSession: false, message: 'No hay sesión de fin de semana para hoy' });
-    }
-
-    const session = sessionResult.rows[0];
-
-    const exercisesResult = await client.query(
-      `SELECT est.exercise_order, est.exercise_name, est.status, est.exercise_data,
-              est.actual_sets, est.planned_sets, est.actual_reps, est.planned_reps,
-              est.completed_at, f.sentiment, f.comment
-       FROM app.exercise_session_tracking est
-       LEFT JOIN app.methodology_exercise_feedback f
-         ON est.methodology_session_id = f.methodology_session_id AND est.exercise_order = f.exercise_order
-       WHERE est.methodology_session_id = $1 ORDER BY est.exercise_order`,
-      [session.id]
+    // Agregar estadísticas de entrenamiento en casa
+    const homeStatsQuery = await pool.query(
+      `SELECT
+         COUNT(DISTINCT hts.id) as home_sessions,
+         COUNT(DISTINCT hep.id) as home_exercises,
+         SUM(CASE WHEN hep.status = 'completed' THEN hep.series_completed ELSE 0 END) as home_series,
+         SUM(CASE WHEN hep.status = 'completed' THEN COALESCE(hep.duration_seconds, 0) ELSE 0 END) as home_time
+       FROM app.home_training_sessions hts
+       LEFT JOIN app.home_exercise_progress hep ON hep.home_training_session_id = hts.id
+       WHERE hts.user_id = $1 AND hts.status = 'completed'`,
+      [userId]
     );
 
-    const total = exercisesResult.rows.length;
-    const completed = exercisesResult.rows.filter(ex => String(ex.status).toLowerCase() === 'completed').length;
-    const skipped = exercisesResult.rows.filter(ex => String(ex.status).toLowerCase() === 'skipped').length;
-    const cancelled = exercisesResult.rows.filter(ex => String(ex.status).toLowerCase() === 'cancelled').length;
-    const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const methodologyStats = totalStatsQuery.rows[0] || {};
+    const homeStats = homeStatsQuery.rows[0] || {};
 
-    res.json({
-      success: true,
-      hasWeekendSession: true,
-      session: {
-        id: session.id,
-        methodology_plan_id: session.methodology_plan_id,
-        session_status: session.session_status,
-        session_type: session.session_type,
-        started_at: session.started_at,
-        completed_at: session.completed_at,
-        exercises_data: session.exercises_data
-      },
-      exercises: exercisesResult.rows,
-      summary: { completed, skipped, cancelled, total, pending: total - (completed + skipped + cancelled), progress, canRetry: completed < total && total > 0, isCompleted: session.session_status === 'completed' }
+    // Combinar estadísticas
+    const responseData = {
+      totalRoutinesCompleted: parseInt(methodologyStats.total_routines_completed) || 0,
+      totalSessionsEver: (parseInt(methodologyStats.total_sessions_ever) || 0) + (parseInt(homeStats.home_sessions) || 0),
+      totalExercisesEver: (parseInt(methodologyStats.total_exercises_ever) || 0) + (parseInt(homeStats.home_exercises) || 0),
+      totalSeriesEver: (parseInt(methodologyStats.total_series_ever) || 0) + (parseInt(homeStats.home_series) || 0),
+      totalTimeSpentEver: (parseInt(methodologyStats.total_time_spent_ever) || 0) + (parseInt(homeStats.home_time) || 0),
+      firstWorkoutDate: methodologyStats.first_workout_date,
+      lastWorkoutDate: methodologyStats.last_workout_date,
+      breakdown: {
+        methodology: {
+          sessions: parseInt(methodologyStats.total_sessions_ever) || 0,
+          exercises: parseInt(methodologyStats.total_exercises_ever) || 0,
+          series: parseInt(methodologyStats.total_series_ever) || 0,
+          time: parseInt(methodologyStats.total_time_spent_ever) || 0
+        },
+        home: {
+          sessions: parseInt(homeStats.home_sessions) || 0,
+          exercises: parseInt(homeStats.home_exercises) || 0,
+          series: parseInt(homeStats.home_series) || 0,
+          time: parseInt(homeStats.home_time) || 0
+        }
+      }
+    };
+
+    console.log('✅ Datos históricos obtenidos:', {
+      totalSessions: responseData.totalSessionsEver,
+      totalExercises: responseData.totalExercisesEver
     });
 
+    res.json({ success: true, data: responseData });
+
   } catch (error) {
-    console.error('Error obteniendo estado de sesión de fin de semana:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener estado de sesión' });
-  } finally {
-    client.release();
+    console.error('❌ Error obteniendo datos históricos:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno del servidor'
+    });
   }
 });
 
 export default router;
-

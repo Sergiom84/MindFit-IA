@@ -24,6 +24,10 @@ backend/.env.local
 .render/
 **/.render/
 
+# Database backups (contienen datos personales reales - NEVER commit)
+_supabase_backup_*/
+*.dump
+
 # Claude Code settings with credentials (NEVER commit)
 .claude/mcp_settings.json
 .claude/settings.local.json
@@ -42,3 +46,6 @@ backend/.env.local
 *.sln
 *.sw?
 # Hooks corregidos y funcionales
+
+# Backups de migración con secretos del proyecto viejo
+*.bak-old-project

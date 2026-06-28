@@ -15,6 +15,7 @@
 import express from 'express';
 import authenticateToken from '../middleware/auth.js';
 import { pool } from '../db.js';
+import { findBySourceId, findByIdOrSlug } from '../services/exerciseRepository.js';
 
 const router = express.Router();
 
@@ -193,19 +194,19 @@ router.get('/search', authenticateToken, async (req, res) => {
     if (source === 'all' || source === 'calistenia') {
       let calisteniaQuery = `
         SELECT
-          exercise_id as id,
+          source_exercise_id as id,
           nombre as name,
           categoria,
           nivel,
-          equipamiento,
+          array_to_string(equipamiento, ', ') as equipamiento,
           patron,
           series_reps_objetivo,
           criterio_de_progreso,
           progresion_desde,
           progresion_hacia,
           notas
-        FROM app."Ejercicios_Calistenia"
-        WHERE 1=1
+        FROM app.ejercicios
+        WHERE disciplina = 'calistenia'
       `;
 
       const params = [];
@@ -232,7 +233,7 @@ router.get('/search', authenticateToken, async (req, res) => {
 
       if (equipamiento) {
         paramCount++;
-        calisteniaQuery += ` AND LOWER(equipamiento) = $${paramCount}`;
+        calisteniaQuery += ` AND EXISTS (SELECT 1 FROM unnest(equipamiento) eq WHERE LOWER(eq) = $${paramCount})`;
         params.push(equipamiento.toLowerCase());
       }
 
@@ -283,16 +284,20 @@ router.get('/search/by-name/:name', authenticateToken, async (req, res) => {
 
     // Buscar en calistenia BD
     const calisteniaResult = await pool.query(
-      `SELECT * FROM app."Ejercicios_Calistenia"
-       WHERE LOWER(nombre) = $1 OR LOWER(exercise_id::text) = $1
+      `SELECT *, array_to_string(equipamiento, ', ') as equipamiento
+         FROM app.ejercicios
+       WHERE disciplina = 'calistenia'
+         AND (LOWER(nombre) = $1 OR LOWER(source_exercise_id) = $1)
        LIMIT 1`,
       [searchName]
     );
 
     // Buscar en hipertrofia BD
     const hipertrofiaResult = await pool.query(
-      `SELECT * FROM app."Ejercicios_Hipertrofia"
-       WHERE LOWER(nombre) = $1 OR LOWER(exercise_id::text) = $1
+      `SELECT *, array_to_string(equipamiento, ', ') as equipamiento
+         FROM app.ejercicios
+       WHERE disciplina = 'hipertrofia'
+         AND (LOWER(nombre) = $1 OR LOWER(source_exercise_id) = $1)
        LIMIT 1`,
       [searchName]
     );
@@ -350,7 +355,7 @@ router.get('/categories', authenticateToken, async (req, res) => {
 
     // Categorías de calistenia
     const calisteniaResult = await pool.query(
-      'SELECT DISTINCT categoria FROM app."Ejercicios_Calistenia" WHERE categoria IS NOT NULL'
+      "SELECT DISTINCT categoria FROM app.ejercicios WHERE disciplina = 'calistenia' AND categoria IS NOT NULL"
     );
     const calisteniaCategories = calisteniaResult.rows.map(row => row.categoria);
 
@@ -384,8 +389,9 @@ router.get('/categories/:category', authenticateToken, async (req, res) => {
 
     // Ejercicios de calistenia de la categoría
     const calisteniaResult = await pool.query(
-      `SELECT * FROM app."Ejercicios_Calistenia"
-       WHERE LOWER(categoria) = $1
+      `SELECT *, array_to_string(equipamiento, ', ') as equipamiento
+         FROM app.ejercicios
+       WHERE disciplina = 'calistenia' AND LOWER(categoria) = $1
        ORDER BY nombre
        LIMIT $2`,
       [category.toLowerCase(), parseInt(limit)]
@@ -428,20 +434,16 @@ router.get('/details/:id', authenticateToken, async (req, res) => {
     // Buscar en mock data
     const mockExercise = EXERCISES_DB.find(ex => ex.id === id || ex.slug === id);
 
-    // Buscar en calistenia BD
-    const calisteniaResult = await pool.query(
-      'SELECT * FROM app."Ejercicios_Calistenia" WHERE exercise_id = $1 OR id = $2 LIMIT 1',
-      [id, id]
-    );
+    // Buscar en calistenia BD (repositorio unificado)
+    const calistenia = await findByIdOrSlug(pool, 'calistenia', id);
 
     let exercise = null;
 
     if (mockExercise) {
       exercise = { ...mockExercise, source: 'general' };
-    } else if (calisteniaResult.rows[0]) {
-      const calistenia = calisteniaResult.rows[0];
+    } else if (calistenia) {
       exercise = {
-        id: calistenia.exercise_id,
+        id: calistenia.id,
         name: calistenia.nombre,
         categoria: calistenia.categoria,
         nivel: calistenia.nivel,
@@ -486,13 +488,17 @@ router.get('/details/:id/progressions', authenticateToken, async (req, res) => {
     // Buscar progresiones desde este ejercicio
     const progressionsResult = await pool.query(
       `SELECT
+         source_exercise_id as exercise_id,
          progresion_hacia as next_exercise,
          progresion_desde as previous_exercise,
+         progresion_hacia,
+         progresion_desde,
          nombre,
          nivel,
          criterio_de_progreso
-       FROM app."Ejercicios_Calistenia"
-       WHERE exercise_id = $1 OR progresion_desde = $1 OR progresion_hacia = $1`,
+       FROM app.ejercicios
+       WHERE disciplina = 'calistenia'
+         AND (source_exercise_id = $1 OR progresion_desde = $1 OR progresion_hacia = $1)`,
       [id]
     );
 
@@ -556,21 +562,17 @@ router.get('/corrections/:exerciseId', authenticateToken, async (req, res) => {
       });
     }
 
-    // Si no está en mock data, buscar en calistenia
-    const calisteniaResult = await pool.query(
-      'SELECT nombre, notas, nivel, patron FROM app."Ejercicios_Calistenia" WHERE exercise_id = $1',
-      [exerciseId]
-    );
+    // Si no está en mock data, buscar en calistenia (repositorio unificado)
+    const calistenia = await findBySourceId(pool, 'calistenia', exerciseId);
 
-    if (calisteniaResult.rows[0]) {
-      const exercise = calisteniaResult.rows[0];
+    if (calistenia) {
       return res.json({
         success: true,
-        exercise: exercise.nombre,
+        exercise: calistenia.nombre,
         technique_analysis: {
-          notas: exercise.notas,
-          patron_movimiento: exercise.patron,
-          nivel: exercise.nivel,
+          notas: calistenia.notas,
+          patron_movimiento: calistenia.patron,
+          nivel: calistenia.nivel,
           source: 'calistenia'
         }
       });
@@ -616,21 +618,22 @@ router.get('/stats', authenticateToken, async (req, res) => {
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE categoria IS NOT NULL) as with_category,
         COUNT(*) FILTER (WHERE nivel IS NOT NULL) as with_level
-      FROM app."Ejercicios_Calistenia"
+      FROM app.ejercicios
+      WHERE disciplina = 'calistenia'
     `);
 
     const calisteniaCategoryResult = await pool.query(`
       SELECT categoria, COUNT(*) as count
-      FROM app."Ejercicios_Calistenia"
-      WHERE categoria IS NOT NULL
+      FROM app.ejercicios
+      WHERE disciplina = 'calistenia' AND categoria IS NOT NULL
       GROUP BY categoria
       ORDER BY count DESC
     `);
 
     const calisteniaLevelResult = await pool.query(`
       SELECT nivel, COUNT(*) as count
-      FROM app."Ejercicios_Calistenia"
-      WHERE nivel IS NOT NULL
+      FROM app.ejercicios
+      WHERE disciplina = 'calistenia' AND nivel IS NOT NULL
       GROUP BY nivel
       ORDER BY count DESC
     `);

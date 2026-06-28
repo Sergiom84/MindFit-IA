@@ -1,10 +1,9 @@
 import { pool } from "../db.js";
+import { isIsoDate } from './nutritionUtils.js';
 
 const DAY_TYPES = new Set(["normal", "libre", "cheat", "diet_break"]);
 
-function isIsoDate(value) {
-  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
-}
+
 
 function toNumberOrNull(value) {
   if (value === null || value === undefined || value === "") return null;

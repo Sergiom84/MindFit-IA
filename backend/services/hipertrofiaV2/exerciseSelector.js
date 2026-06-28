@@ -3,6 +3,8 @@
  * Consolida la lógica de selección que estaba duplicada en múltiples endpoints
  */
 
+import { HIPERTROFIA_COLUMNS } from '../exerciseRepository.js';
+
 /**
  * Selecciona ejercicios de la base de datos con filtros opcionales
  * @param {object} dbClient - Cliente de base de datos (pool o transaction)
@@ -34,24 +36,9 @@ export async function selectExercises(dbClient, filters) {
   }
 
   const query = `
-    SELECT
-      exercise_id,
-      nombre,
-      nivel,
-      categoria,
-      tipo_ejercicio,
-      patron_movimiento,
-      orden_recomendado,
-      patron,
-      equipamiento,
-      series_reps_objetivo,
-      descanso_seg,
-      notas,
-      "Cómo_hacerlo" as como_hacerlo,
-      "Consejos" as consejos,
-      "Errores_comunes" as errores_comunes
-    FROM app."Ejercicios_Hipertrofia"
-    WHERE ${whereConditions.join(' AND ')}
+    SELECT ${HIPERTROFIA_COLUMNS}
+    FROM app.ejercicios
+    WHERE disciplina = 'hipertrofia' AND ${whereConditions.join(' AND ')}
     ORDER BY RANDOM()
     LIMIT $${paramCount + 1}
   `;

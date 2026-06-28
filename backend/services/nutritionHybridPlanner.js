@@ -1,4 +1,5 @@
 import { getOpenAIClient } from "../lib/openaiClient.js";
+import { parseJsonObject, normalizeFoodName } from './nutritionUtils.js';
 
 const DEFAULT_NUTRITION_HYBRID_MODEL = process.env.NUTRITION_HYBRID_MODEL || "gpt-5.2";
 const DEFAULT_MAX_PLANNER_FOODS = 36;
@@ -25,31 +26,9 @@ function parseNumeric(value) {
   return 0;
 }
 
-function parseJsonObject(value, fallback = {}) {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return value;
-  }
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        return parsed;
-      }
-    } catch {
-      return fallback;
-    }
-  }
-  return fallback;
-}
 
-function normalizeFoodName(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ");
-}
+
+
 
 function inferMealType(meal) {
   const mealName = String(meal?.nombre || "").toLowerCase();
