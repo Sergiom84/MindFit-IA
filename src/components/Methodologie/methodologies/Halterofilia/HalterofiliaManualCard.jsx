@@ -92,7 +92,7 @@ const initialState = {
 };
 
 // Importar configuraciones modulares
-import { HALTEROFILIA_LEVELS, getAllLevels, getLevelConfig } from './HalterofíliaLevels';
+import { HALTEROFILIA_LEVELS, getAllLevels, getLevelConfig } from './HalterofiliaLevels';
 import { HALTEROFILIA_MUSCLE_GROUPS, getAllMuscleGroups } from './HalterofiliaMuscleGroups';
 
 // Importar contextos

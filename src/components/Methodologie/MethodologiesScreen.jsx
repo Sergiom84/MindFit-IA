@@ -25,7 +25,7 @@ import AdaptationTrackingBadge from './methodologies/HipertrofiaV2/components/Ad
 import PowerliftingManualCard from './methodologies/Powerlifting/PowerliftingManualCard.jsx';
 import CrossFitManualCard from './methodologies/CrossFit/CrossFitManualCard.jsx';
 import FuncionalManualCard from './methodologies/Funcional/FuncionalManualCard.jsx';
-import HalterofíliaManualCard from './methodologies/Halterofilia/HalterofíliaManualCard.jsx';
+import HalterofiliaManualCard from './methodologies/Halterofilia/HalterofiliaManualCard.jsx';
 import CasaManualCard from './methodologies/Casa/CasaManualCard.jsx';
 import { useTrace } from '@/contexts/TraceContext';
 import { useNavigate } from 'react-router-dom';
@@ -1619,7 +1619,7 @@ export default function MethodologiesScreen() {
             <DialogHeader className="sr-only">
               <DialogTitle>Halterofilia Manual</DialogTitle>
             </DialogHeader>
-            <HalterofíliaManualCard
+            <HalterofiliaManualCard
               onGenerate={handleHalterofíliaManualGenerate}
               isLoading={ui.isLoading}
               error={ui.error}
