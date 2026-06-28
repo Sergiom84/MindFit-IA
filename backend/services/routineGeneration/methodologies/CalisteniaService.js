@@ -271,6 +271,32 @@ function progressedReps(range, microIndex, totalMicro) {
   return `${value}${range.suffix}`;
 }
 
+// Carga el ruleset MindFeed de calistenia desde app.mindfeed_rulesets (BD),
+// con fallback a las constantes locales si no está disponible. Esto generaliza
+// el motor de reglas por metodología (mismo mecanismo que HipertrofiaV2).
+async function loadCalisteniaRuleset(dbClient) {
+  const fallback = {
+    deloadEvery: DELOAD_EVERY,
+    volumeFactor: DELOAD_VOLUME_FACTOR,
+    restDefault: DEFAULT_REST_SECONDS
+  };
+  try {
+    const result = await dbClient.query(
+      'SELECT app.get_active_mindfeed_ruleset($1) AS rules',
+      ['calistenia_v2']
+    );
+    const rules = result.rows[0]?.rules || {};
+    return {
+      deloadEvery: Number(rules?.deloadRules?.deloadEvery) || fallback.deloadEvery,
+      volumeFactor: Number(rules?.deloadRules?.volumeFactor) || fallback.volumeFactor,
+      restDefault: Number(rules?.restSecondsDefault) || fallback.restDefault
+    };
+  } catch (error) {
+    logger.warn(`⚠️ [CALISTENIA] No se pudo cargar ruleset calistenia_v2, usando fallback: ${error.message}`);
+    return fallback;
+  }
+}
+
 /**
  * Selector con baraja + cursor por categoría: entrega ejercicios sin repetir
  * dentro de una misma sesión; entre sesiones puede reciclar si el pool es pequeño.
@@ -304,7 +330,9 @@ function buildExercisePicker(exercisesByCategory) {
  *
  * @param {object} progression - { weekNumber, microIndex, totalMicro, isDeload }
  */
-function toPlanExercise(ex, orden, sessionId, progression = null) {
+function toPlanExercise(ex, orden, sessionId, progression = null, ruleset = null) {
+  const volumeFactor = ruleset?.volumeFactor ?? DELOAD_VOLUME_FACTOR;
+  const restDefault = ruleset?.restDefault ?? DEFAULT_REST_SECONDS;
   const { series: seriesRaw, reps_objetivo: repsRaw } = parseSeriesReps(ex.series_reps_objetivo);
   const range = parseRepRange(repsRaw);
   const baseSeries = parseSeriesCount(seriesRaw);
@@ -320,7 +348,7 @@ function toPlanExercise(ex, orden, sessionId, progression = null) {
     if (isDeload) {
       // Descarga: menos volumen (series), reps al extremo bajo del rango.
       esDeload = true;
-      series = Math.max(1, Math.round(baseSeries * DELOAD_VOLUME_FACTOR));
+      series = Math.max(1, Math.round(baseSeries * volumeFactor));
       repsObjetivo = range.min != null ? `${range.min}${range.suffix}` : repsRaw;
       notas = 'Semana de descarga: reduce el volumen y prioriza técnica.';
     } else {
@@ -348,7 +376,7 @@ function toPlanExercise(ex, orden, sessionId, progression = null) {
     reps_objetivo: repsObjetivo,
     series_reps_objetivo: ex.series_reps_objetivo || null,
     rep_range: range.min != null ? { min: range.min, max: range.max, suffix: range.suffix } : null,
-    descanso_seg: ex.descanso_seg ?? DEFAULT_REST_SECONDS,
+    descanso_seg: ex.descanso_seg ?? restDefault,
     tempo: ex.tempo || null,
     como_hacerlo: ex.como_hacerlo || null,
     criterio_de_progreso: ex.criterio_de_progreso || null,
@@ -436,10 +464,12 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
   });
 
   // 4) Expandir plantillas a semanas/sesiones aplicando progresión MindFeed.
+  // Reglas (deload, descanso) cargadas desde app.mindfeed_rulesets (scope calistenia_v2).
+  const ruleset = await loadCalisteniaRuleset(pool);
   const dayLabels = DEFAULT_DAY_LABELS[frecuencia] || DEFAULT_DAY_LABELS[3];
   const semanas = [];
-  // Semanas de descarga (cada DELOAD_EVERY) y total de microciclos de entrenamiento.
-  const isDeloadWeek = (w) => w % DELOAD_EVERY === 0;
+  // Semanas de descarga (cada deloadEvery) y total de microciclos de entrenamiento.
+  const isDeloadWeek = (w) => w % ruleset.deloadEvery === 0;
   const totalMicro = Array.from({ length: totalWeeks }, (_, i) => i + 1).filter((w) => !isDeloadWeek(w)).length;
   let microIndex = 0;
 
@@ -462,7 +492,7 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
           : 'Prioriza la técnica y el control del movimiento; sube reps según el objetivo de la semana.',
         grupos_musculares: tpl.grupos_musculares,
         es_deload: deload,
-        ejercicios: tpl.ejercicios.map((ex, eIdx) => toPlanExercise(ex, eIdx + 1, sessionId, progression))
+        ejercicios: tpl.ejercicios.map((ex, eIdx) => toPlanExercise(ex, eIdx + 1, sessionId, progression, ruleset))
       };
     });
 
@@ -492,11 +522,12 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
     configuracion: {
       progression_type: 'microcycle_reps',
       progression_model: 'reps_to_variant',
-      deload_every_weeks: DELOAD_EVERY,
-      deload_volume_factor: DELOAD_VOLUME_FACTOR,
+      deload_every_weeks: ruleset.deloadEvery,
+      deload_volume_factor: ruleset.volumeFactor,
       sessions_per_week: frecuencia,
       duration_weeks: totalWeeks,
-      rest_default_seconds: DEFAULT_REST_SECONDS,
+      rest_default_seconds: ruleset.restDefault,
+      ruleset_scope: 'calistenia_v2',
       source: 'calistenia_v2_progressive'
     },
     semanas
