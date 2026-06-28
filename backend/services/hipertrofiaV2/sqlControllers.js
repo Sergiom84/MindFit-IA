@@ -893,7 +893,9 @@ export const progressionControllers = {
    */
   async updateProgression(req, res) {
     try {
-      const { userId, exerciseId, exerciseName } = req.body;
+      // Seguridad: el usuario sale del token, no del body (anti-IDOR).
+      const userId = req.user?.userId || req.user?.id;
+      const { exerciseId, exerciseName } = req.body;
 
       logger.info(`📊 [PROGRESSION] Actualizando ${exerciseName} para usuario ${userId}`);
 

@@ -507,8 +507,10 @@ export const sessionControllers = {
     try {
       logger.debug('🔍 [SET] Guardando serie');
 
+      // Seguridad: el usuario SIEMPRE sale del token, nunca del body (anti-IDOR).
+      const userId = req.user?.userId || req.user?.id;
+
       const {
-        userId,
         methodologyPlanId,
         sessionId,
         exerciseId,
@@ -583,6 +585,8 @@ export const sessionControllers = {
   async getSessionSummary(req, res) {
     try {
       const { sessionId } = req.params;
+      // Seguridad: limita el resumen a sesiones del propio usuario (anti-IDOR).
+      const userId = req.user?.userId || req.user?.id;
 
       const result = await pool.query(`
         SELECT
@@ -593,10 +597,10 @@ export const sessionControllers = {
           MAX(estimated_1rm) as best_pr,
           AVG(CASE WHEN is_effective THEN 1.0 ELSE 0.0 END) * 100 as effective_percentage
         FROM app.hypertrophy_set_logs
-        WHERE session_id = $1
+        WHERE session_id = $1 AND user_id = $2
         GROUP BY exercise_name
         ORDER BY exercise_name
-      `, [sessionId]);
+      `, [sessionId, userId]);
 
       res.json({
         success: true,

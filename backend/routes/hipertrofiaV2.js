@@ -38,6 +38,18 @@ import { cleanupUserStaleSessions } from '../services/sessionCleanupService.js';
 
 const router = express.Router();
 
+// 🛡️ Anti-IDOR: si la ruta lleva :userId, debe coincidir con el del token.
+// Evita que un usuario autenticado consulte/mute datos de otro por la URL.
+// Usar SIEMPRE después de authenticateToken.
+const enforceSelfParam = (req, res, next) => {
+  const paramUserId = req.params?.userId;
+  const tokenUserId = req.user?.userId ?? req.user?.id;
+  if (paramUserId && tokenUserId && Number(paramUserId) !== Number(tokenUserId)) {
+    return res.status(403).json({ success: false, error: 'No autorizado' });
+  }
+  next();
+};
+
 // ============================================================
 // GENERACIÓN DE PLANES
 // ============================================================
@@ -339,17 +351,17 @@ router.get('/session-summary/:sessionId', authenticateToken, sessionControllers.
 // CICLO Y PROGRESIÓN
 // ============================================================
 
-router.get('/cycle-status/:userId', authenticateToken, cycleControllers.getCycleStatus);
+router.get('/cycle-status/:userId', authenticateToken, enforceSelfParam, cycleControllers.getCycleStatus);
 router.post('/advance-cycle', authenticateToken, cycleControllers.advanceCycle);
 router.post('/apply-progression', authenticateToken, progressionControllers.applyProgression);
-router.get('/progression/:userId/:exerciseId', authenticateToken, progressionControllers.getProgression);
+router.get('/progression/:userId/:exerciseId', authenticateToken, enforceSelfParam, progressionControllers.getProgression);
 router.post('/update-progression', authenticateToken, progressionControllers.updateProgression);
 
 // ============================================================
 // DELOAD
 // ============================================================
 
-router.get('/check-deload/:userId', authenticateToken, deloadControllers.checkDeload);
+router.get('/check-deload/:userId', authenticateToken, enforceSelfParam, deloadControllers.checkDeload);
 router.post('/activate-deload', authenticateToken, deloadControllers.activateDeload);
 router.post('/deactivate-deload', authenticateToken, deloadControllers.deactivateDeload);
 
@@ -359,37 +371,37 @@ router.post('/deactivate-deload', authenticateToken, deloadControllers.deactivat
 
 router.post('/activate-priority', authenticateToken, priorityControllers.activatePriority);
 router.post('/deactivate-priority', authenticateToken, priorityControllers.deactivatePriority);
-router.get('/priority-status/:userId', authenticateToken, priorityControllers.getPriorityStatus);
+router.get('/priority-status/:userId', authenticateToken, enforceSelfParam, priorityControllers.getPriorityStatus);
 
 // ============================================================
 // SOLAPAMIENTO NEURAL
 // ============================================================
 
 router.post('/check-neural-overlap', authenticateToken, overlapControllers.checkNeuralOverlap);
-router.get('/current-session-with-adjustments/:userId/:cycleDay', authenticateToken, overlapControllers.getCurrentSessionWithAdjustments);
+router.get('/current-session-with-adjustments/:userId/:cycleDay', authenticateToken, enforceSelfParam, overlapControllers.getCurrentSessionWithAdjustments);
 
 // ============================================================
 // FATIGA
 // ============================================================
 
 router.post('/submit-fatigue-report', authenticateToken, fatigueControllers.submitFatigueReport);
-router.get('/fatigue-status/:userId', authenticateToken, fatigueControllers.getFatigueStatus);
+router.get('/fatigue-status/:userId', authenticateToken, enforceSelfParam, fatigueControllers.getFatigueStatus);
 router.post('/apply-fatigue-adjustments', authenticateToken, fatigueControllers.applyFatigueAdjustments);
 router.post('/detect-auto-fatigue', authenticateToken, fatigueControllers.detectAutoFatigue);
-router.get('/fatigue-history/:userId', authenticateToken, fatigueControllers.getFatigueHistory);
+router.get('/fatigue-history/:userId', authenticateToken, enforceSelfParam, fatigueControllers.getFatigueHistory);
 
 // ============================================================
 // WARMUP
 // ============================================================
 
 router.post('/save-warmup-completion', authenticateToken, warmupControllers.saveWarmupCompletion);
-router.get('/check-warmup-reminder/:userId/:exerciseId/:sessionId', warmupControllers.checkWarmupReminder);
+router.get('/check-warmup-reminder/:userId/:exerciseId/:sessionId', authenticateToken, enforceSelfParam, warmupControllers.checkWarmupReminder);
 
 // ============================================================
 // REEVALUACIÓN
 // ============================================================
 
-router.get('/check-reevaluation/:userId', reevaluationControllers.checkReevaluation);
+router.get('/check-reevaluation/:userId', authenticateToken, enforceSelfParam, reevaluationControllers.checkReevaluation);
 router.post('/accept-reevaluation', authenticateToken, reevaluationControllers.acceptReevaluation);
 router.post('/trigger-reevaluation', authenticateToken, reevaluationControllers.triggerReevaluation);
 

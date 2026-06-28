@@ -7,6 +7,7 @@ import {
   CardTitle
 } from '@/components/ui/card'
 import { FileText, Upload, Eye, Trash2, Download, AlertCircle } from 'lucide-react'
+import tokenManager from '@/utils/tokenManager'
 
 export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
   const [uploading, setUploading] = useState(false)
@@ -18,8 +19,9 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
   const fileInputRef = useRef(null)
 
   // El usuario se identifica por el token (el backend lo deriva de req.user).
+  // El token principal se guarda como 'authToken' vía tokenManager.
   const authHeaders = () => {
-    const token = localStorage.getItem('token')
+    const token = tokenManager.getToken()
     return token ? { Authorization: `Bearer ${token}` } : {}
   }
 
@@ -44,6 +46,13 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
   React.useEffect(() => {
     fetchDocs()
   }, [])
+
+  // Libera el blob URL al cambiar de documento o al desmontar (evita fugas).
+  React.useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    }
+  }, [previewUrl])
 
   const handleFileSelect = async (event) => {
     const file = event.target.files[0]
@@ -118,10 +127,8 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
 
   const closePreview = () => {
     setShowPreview(false)
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl)
-      setPreviewUrl(null)
-    }
+    // El useEffect de previewUrl se encarga de revocar el blob.
+    setPreviewUrl(null)
   }
 
   const handleDelete = async (docId) => {
@@ -198,7 +205,7 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
               {uploading ? 'Subiendo...' : 'Seleccionar Archivo'}
             </Button>
             <p className="text-xs text-gray-300/60 mt-2">
-              Máximo 10MB por archivo
+              Máximo 25MB por archivo
             </p>
           </div>
 
