@@ -178,6 +178,32 @@ const HALTEROFILIA_TEMPLATES = {
   ]
 };
 
+// Heavy Duty (Mike Mentzer): baja frecuencia y mucho descanso entre sesiones.
+const HEAVY_DUTY_LEVELS = {
+  principiante: { name: 'Principiante', sessions_per_week: 2, duration_weeks: 8 },
+  intermedio:   { name: 'Intermedio',   sessions_per_week: 3, duration_weeks: 10 },
+  avanzado:     { name: 'Avanzado',     sessions_per_week: 3, duration_weeks: 12 }
+};
+
+// Sesiones cortas (3 ejercicios) tipo cuerpo completo / torso-pierna; el bajo
+// volumen real se aplica con 1-2 series al fallo vía exerciseOverrides.
+const HEAVY_DUTY_TEMPLATES = {
+  2: [
+    { nombre: 'Cuerpo completo A', plan: [['PUSH', 1], ['PULL', 1], ['LEGS', 1]] },
+    { nombre: 'Cuerpo completo B', plan: [['LEGS', 1], ['PUSH', 1], ['PULL', 1]] }
+  ],
+  3: [
+    { nombre: 'Torso (empuje/tirón)', plan: [['PUSH', 1], ['PULL', 1], ['CORE', 1]] },
+    { nombre: 'Pierna', plan: [['LEGS', 2], ['CORE', 1]] },
+    { nombre: 'Cuerpo completo', plan: [['PUSH', 1], ['PULL', 1], ['LEGS', 1]] }
+  ],
+  5: [
+    { nombre: 'Torso (empuje/tirón)', plan: [['PUSH', 1], ['PULL', 1], ['CORE', 1]] },
+    { nombre: 'Pierna', plan: [['LEGS', 2], ['CORE', 1]] },
+    { nombre: 'Cuerpo completo', plan: [['PUSH', 1], ['PULL', 1], ['LEGS', 1]] }
+  ]
+};
+
 const METHOD_CONFIGS = {
   hipertrofia: {
     disciplina: 'hipertrofia',
@@ -220,9 +246,17 @@ const METHOD_CONFIGS = {
     methodologyType: 'Heavy Duty',
     displayName: 'Heavy Duty',
     version: 'heavy_duty_v1',
-    templates: GYM_TEMPLATES,
+    templates: HEAVY_DUTY_TEMPLATES,
+    levels: HEAVY_DUTY_LEVELS,
     bucketFn: muscleBucket,
-    coachTip: 'Trabaja con pocas series efectivas, máxima calidad técnica y recuperación suficiente.'
+    coachTip: 'Pocas series llevadas al fallo muscular absoluto, técnica impecable y mucha recuperación entre sesiones.',
+    // Filosofía Heavy Duty: 1-2 series al fallo (RIR 0) y descanso amplio.
+    exerciseOverrides: {
+      series: '1-2',
+      rir_target: 0,
+      descanso_seg: 180,
+      notas: 'Al fallo muscular absoluto (RIR 0). 1-2 series efectivas.'
+    }
   },
   powerlifting: {
     disciplina: 'powerlifting',
@@ -254,9 +288,10 @@ function normalizeLevel3(raw) {
 }
 
 function toGymExercise(methodConfig) {
+  const ov = methodConfig.exerciseOverrides || {};
   return (ex, orden, sessionId) => {
     const { series, reps_objetivo } = parseSeriesReps(ex.series_reps_objetivo);
-    return {
+    const exercise = {
       id: `${sessionId}-E${orden}`,
       orden,
       exercise_id: ex.exercise_id,
@@ -265,16 +300,18 @@ function toGymExercise(methodConfig) {
       patron: ex.patron || null,
       patron_movimiento: ex.patron_movimiento || ex.patron || null,
       tipo_ejercicio: methodConfig.disciplina,
-      series,
+      series: ov.series ?? series,
       reps_objetivo,
       series_reps_objetivo: ex.series_reps_objetivo || null,
-      descanso_seg: ex.descanso_seg ?? 75,
+      descanso_seg: ov.descanso_seg ?? ex.descanso_seg ?? 75,
       tempo: ex.tempo || null,
       como_hacerlo: ex.como_hacerlo || null,
       criterio_de_progreso: ex.criterio_de_progreso || null,
-      notas: ex.notas || '',
+      notas: ov.notas ?? (ex.notas || ''),
       metodologia: methodConfig.displayName
     };
+    if (ov.rir_target !== undefined) exercise.rir_target = ov.rir_target;
+    return exercise;
   };
 }
 
@@ -305,7 +342,8 @@ export async function generateGymRoutine(userId, routineData = {}) {
     } catch { /* perfil opcional */ }
   }
   const levelKey = normalizeLevel3(levelRaw);
-  const levelConfig = GYM_LEVELS[levelKey];
+  const levelsTable = methodConfig.levels || GYM_LEVELS;
+  const levelConfig = levelsTable[levelKey] || levelsTable.principiante;
   const nivelLabel = levelConfig.name;
   const frecuencia = levelConfig.sessions_per_week;
   const totalWeeks = levelConfig.duration_weeks;

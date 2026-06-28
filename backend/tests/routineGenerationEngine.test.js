@@ -87,12 +87,13 @@ function assertValidGeneratedPlan(result, expected) {
   assert.equal(result.plan.metodologia, expected.displayName);
   assert.equal(result.plan.nivel, expected.levelLabel || "Intermedio");
   assert.equal(result.plan.objetivo, expected.goals);
-  assert.equal(result.plan.frecuencia_semanal, 4);
-  assert.equal(result.plan.semanas.length, 10);
+  const expectedFreq = expected.frecuencia ?? 4;
+  assert.equal(result.plan.frecuencia_semanal, expectedFreq);
+  assert.equal(result.plan.semanas.length, expected.semanas ?? 10);
   assert.ok(result.plan.methodologyPlanId);
 
   for (const semana of result.plan.semanas) {
-    assert.equal(semana.sesiones.length, 4);
+    assert.equal(semana.sesiones.length, expectedFreq);
     for (const sesion of semana.sesiones) {
       assert.ok(Array.isArray(sesion.ejercicios));
       assert.ok(sesion.ejercicios.length > 0);
@@ -138,6 +139,8 @@ test("motor genera planes válidos desde payloads anidados del frontend", async 
       expectedDisciplina: "heavy_duty",
       displayName: "Heavy Duty",
       categories: ["Pecho", "Espalda", "Piernas (cuádriceps)", "Core"],
+      // Heavy Duty: baja frecuencia (3 días intermedio) por filosofía Mentzer.
+      frecuencia: 3,
     },
     {
       methodology: "powerlifting",
@@ -190,6 +193,8 @@ test("motor genera planes válidos desde payloads anidados del frontend", async 
       methodology: item.methodology,
       displayName: item.displayName,
       goals,
+      frecuencia: item.frecuencia,
+      semanas: item.semanas,
     });
   }
 });
