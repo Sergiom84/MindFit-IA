@@ -22,7 +22,11 @@ export const METODOLOGIAS = {
   HIPERTROFIA: 'hipertrofia',
   CROSSFIT: 'crossfit',
   FUNCIONAL: 'funcional',
-  GIMNASIO: 'gimnasio'
+  GIMNASIO: 'gimnasio',
+  CASA: 'casa',
+  HEAVY_DUTY: 'heavy-duty',
+  POWERLIFTING: 'powerlifting',
+  HALTEROFILIA: 'halterofilia'
 };
 
 export const PLAN_STATUS = {

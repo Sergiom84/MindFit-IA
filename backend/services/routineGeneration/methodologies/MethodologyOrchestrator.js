@@ -10,6 +10,85 @@ import * as CalisteniaService from './CalisteniaService.js';
 import * as CrossFitService from './CrossFitService.js';
 import * as GymRoutineService from './GymRoutineService.js';
 
+const METHODOLOGY_DATA_KEYS = {
+  [METODOLOGIAS.CALISTENIA]: ['calisteniaData'],
+  [METODOLOGIAS.CROSSFIT]: ['crossfitData'],
+  [METODOLOGIAS.HIPERTROFIA]: ['hipertrofiaData'],
+  [METODOLOGIAS.GIMNASIO]: ['gymData', 'gimnasioData'],
+  [METODOLOGIAS.FUNCIONAL]: ['funcionalData'],
+  [METODOLOGIAS.CASA]: ['casaData'],
+  [METODOLOGIAS.HEAVY_DUTY]: ['heavyDutyData'],
+  [METODOLOGIAS.POWERLIFTING]: ['powerliftingData'],
+  [METODOLOGIAS.HALTEROFILIA]: ['halterofiliaData', 'halterofíliaData']
+};
+
+function stripDiacritics(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+export function normalizeMethodologyId(methodology) {
+  const value = stripDiacritics(methodology)
+    .toLowerCase()
+    .replace(/_/g, '-')
+    .trim();
+
+  if (value.includes('calistenia')) return METODOLOGIAS.CALISTENIA;
+  if (value.includes('crossfit') || value.includes('cross-fit')) return METODOLOGIAS.CROSSFIT;
+  if (value.includes('hipertrofia') && !value.includes('v2')) return METODOLOGIAS.HIPERTROFIA;
+  if (value.includes('funcional')) return METODOLOGIAS.FUNCIONAL;
+  if (value.includes('powerlifting') || value.includes('power-lifting')) return METODOLOGIAS.POWERLIFTING;
+  if (value.includes('heavy-duty') || value.includes('heavy duty') || value.includes('heavyduty')) {
+    return METODOLOGIAS.HEAVY_DUTY;
+  }
+  if (value.includes('halterofilia')) return METODOLOGIAS.HALTEROFILIA;
+  if (value.includes('entrenamiento-casa') || value.includes('entrenamiento casa') || value.includes('casa')) {
+    return METODOLOGIAS.CASA;
+  }
+  if (value.includes('gimnasio') || value.includes('gym')) return METODOLOGIAS.GIMNASIO;
+
+  return value;
+}
+
+function getNestedPlanData(methodology, planData) {
+  const keys = METHODOLOGY_DATA_KEYS[methodology] || [];
+  return keys
+    .map((key) => planData?.[key])
+    .find((value) => value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function normalizePlanData(methodology, planData = {}) {
+  const nestedData = getNestedPlanData(methodology, planData);
+  const merged = nestedData ? { ...planData, ...nestedData } : { ...planData };
+  const selectedLevel =
+    merged.selectedLevel ||
+    merged.level ||
+    merged.nivel ||
+    merged.aiEvaluation?.recommended_level ||
+    merged.aiEvaluation?.level ||
+    merged.evaluation?.level;
+
+  return {
+    ...merged,
+    methodology,
+    ...(selectedLevel ? { selectedLevel, level: merged.level || selectedLevel } : {})
+  };
+}
+
+function defaultEvaluation(methodology) {
+  return {
+    success: true,
+    evaluation: {
+      recommended_level: 'intermedio',
+      confidence: 0.5,
+      reasoning: `Nivel por defecto para ${methodology}; la selección manual puede ajustarlo antes de generar el plan.`,
+      key_indicators: [],
+      suggested_focus_areas: []
+    }
+  };
+}
+
 /**
  * Evaluar nivel del usuario según la metodología
  * @param {string} methodology - Tipo de metodología
@@ -19,7 +98,7 @@ import * as GymRoutineService from './GymRoutineService.js';
 export async function evaluateUserLevel(methodology, userId) {
   logger.info(`Evaluando nivel de usuario para metodología: ${methodology}`);
 
-  const normalizedMethodology = methodology.toLowerCase();
+  const normalizedMethodology = normalizeMethodologyId(methodology);
 
   switch (normalizedMethodology) {
     case METODOLOGIAS.CALISTENIA:
@@ -31,18 +110,13 @@ export async function evaluateUserLevel(methodology, userId) {
     case METODOLOGIAS.HIPERTROFIA:
     case METODOLOGIAS.GIMNASIO:
     case METODOLOGIAS.FUNCIONAL:
-      // Por ahora, estas metodologías no tienen evaluación automática
+    case METODOLOGIAS.CASA:
+    case METODOLOGIAS.HEAVY_DUTY:
+    case METODOLOGIAS.POWERLIFTING:
+    case METODOLOGIAS.HALTEROFILIA:
+      // Por ahora, estas metodologías usan selección manual con fallback seguro.
       logger.info(`Metodología ${methodology} no tiene evaluación automática`);
-      return {
-        success: true,
-        evaluation: {
-          recommended_level: 'intermedio',
-          confidence: 0.5,
-          reasoning: 'Nivel por defecto - evaluación manual requerida',
-          key_indicators: [],
-          suggested_focus_areas: []
-        }
-      };
+      return defaultEvaluation(normalizedMethodology);
 
     default:
       throw new Error(`Metodología no soportada: ${methodology}`);
@@ -59,19 +133,24 @@ export async function evaluateUserLevel(methodology, userId) {
 export async function generateMethodologyPlan(methodology, userId, planData) {
   logger.info(`Generando plan para metodología: ${methodology}`);
 
-  const normalizedMethodology = methodology.toLowerCase();
+  const normalizedMethodology = normalizeMethodologyId(methodology);
+  const normalizedPlanData = normalizePlanData(normalizedMethodology, planData);
 
   switch (normalizedMethodology) {
     case METODOLOGIAS.CALISTENIA:
-      return await CalisteniaService.generateCalisteniaPlan(userId, planData);
+      return await CalisteniaService.generateCalisteniaPlan(userId, normalizedPlanData);
 
     case METODOLOGIAS.CROSSFIT:
-      return await CrossFitService.generateCrossFitPlan(userId, planData);
+      return await CrossFitService.generateCrossFitPlan(userId, normalizedPlanData);
 
     case METODOLOGIAS.HIPERTROFIA:
     case METODOLOGIAS.GIMNASIO:
     case METODOLOGIAS.FUNCIONAL:
-      return await GymRoutineService.generateGymRoutine(userId, planData);
+    case METODOLOGIAS.CASA:
+    case METODOLOGIAS.HEAVY_DUTY:
+    case METODOLOGIAS.POWERLIFTING:
+    case METODOLOGIAS.HALTEROFILIA:
+      return await GymRoutineService.generateGymRoutine(userId, normalizedPlanData);
 
     default:
       throw new Error(`Metodología no soportada: ${methodology}`);
@@ -84,7 +163,7 @@ export async function generateMethodologyPlan(methodology, userId, planData) {
  * @returns {object} Niveles disponibles
  */
 export function getMethodologyLevels(methodology) {
-  const normalizedMethodology = methodology.toLowerCase();
+  const normalizedMethodology = normalizeMethodologyId(methodology);
 
   switch (normalizedMethodology) {
     case METODOLOGIAS.CALISTENIA:
@@ -96,6 +175,10 @@ export function getMethodologyLevels(methodology) {
     case METODOLOGIAS.HIPERTROFIA:
     case METODOLOGIAS.GIMNASIO:
     case METODOLOGIAS.FUNCIONAL:
+    case METODOLOGIAS.CASA:
+    case METODOLOGIAS.HEAVY_DUTY:
+    case METODOLOGIAS.POWERLIFTING:
+    case METODOLOGIAS.HALTEROFILIA:
       return GymRoutineService.getGymRoutineTypes();
 
     default:
@@ -141,6 +224,34 @@ export function getSupportedMethodologies() {
       id: METODOLOGIAS.FUNCIONAL,
       name: 'Funcional',
       description: 'Entrenamiento funcional y movimientos naturales',
+      hasAutoEvaluation: false,
+      levels: ['principiante', 'intermedio', 'avanzado']
+    },
+    {
+      id: METODOLOGIAS.CASA,
+      name: 'Entrenamiento en Casa',
+      description: 'Rutinas adaptadas para entrenar en casa',
+      hasAutoEvaluation: false,
+      levels: ['principiante', 'intermedio', 'avanzado']
+    },
+    {
+      id: METODOLOGIAS.HEAVY_DUTY,
+      name: 'Heavy Duty',
+      description: 'Entrenamiento de alta intensidad y bajo volumen',
+      hasAutoEvaluation: false,
+      levels: ['principiante', 'intermedio', 'avanzado']
+    },
+    {
+      id: METODOLOGIAS.POWERLIFTING,
+      name: 'Powerlifting',
+      description: 'Fuerza máxima en sentadilla, banca y peso muerto',
+      hasAutoEvaluation: false,
+      levels: ['principiante', 'intermedio', 'avanzado']
+    },
+    {
+      id: METODOLOGIAS.HALTEROFILIA,
+      name: 'Halterofilia',
+      description: 'Técnica olímpica, potencia y fuerza base',
       hasAutoEvaluation: false,
       levels: ['principiante', 'intermedio', 'avanzado']
     }

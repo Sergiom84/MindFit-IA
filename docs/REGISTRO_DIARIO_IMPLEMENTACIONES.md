@@ -3,6 +3,7 @@
 ## 28.06.2026
 
 - Diagnóstico entrenamiento/calistenia: añadido `scripts/test-calistenia-generation.mjs` para verificar el contrato de generación de calistenia (`plan.semanas[]`) y permitir smoke API con token sin arrancar servidores desde el script.
+- Motor de generación de entrenamientos: el orquestador normaliza nombres legacy/de UI y payloads anidados, y el motor determinista cubre Calistenia, CrossFit, Funcional, Casa, Heavy Duty, Powerlifting, Halterofilia, Hipertrofia y Gimnasio con contrato `plan.semanas[]`; añadido test backend de contrato, smoke real transaccional con rollback en BD y verificación con `npm run test:backend` + `npm run lint`.
 
 ## 06.03.2026
 
