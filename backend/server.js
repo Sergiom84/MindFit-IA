@@ -338,16 +338,18 @@ app.post('/api/methodology/generate', authenticateToken, (req, res, next) => {
       console.log('💪 Heavy Duty manual detectada - specialist/heavy-duty/generate');
       req.url = '/api/routine-generation/specialist/heavy-duty/generate';
     } else if (methodology === 'hipertrofiav2') {
-      console.log('🏋️‍♂️ HipertrofiaV2 manual detectada - hipertrofiav2/generate');
-      req.url = '/api/hipertrofiav2/generate';
-      // Reestructurar el body para que coincida con lo esperado
-      if (req.body && !req.body.planData) {
-        // Extraer planData del body si existe, si no, usar todo el body
-        const { mode, methodology, metodologia_solicitada, ...restData } = req.body;
-        req.body = {
-          planData: restData.planData || restData
-        };
-      }
+      // El router de hipertrofiav2 NO expone '/generate' (solo generate-d1d5,
+      // generate-fullbody, generate-single-day). Redirigimos al motor D1-D5 con
+      // el body PLANO que espera (nivel, totalWeeks, startConfig, includeWeek0).
+      console.log('🏋️‍♂️ HipertrofiaV2 manual detectada - hipertrofiav2/generate-d1d5');
+      req.url = '/api/hipertrofiav2/generate-d1d5';
+      const src = req.body?.planData || req.body || {};
+      req.body = {
+        nivel: src.nivel || src.selectedLevel || 'Principiante',
+        totalWeeks: src.totalWeeks,
+        startConfig: src.startConfig,
+        includeWeek0: src.includeWeek0 !== undefined ? src.includeWeek0 : true
+      };
     } else if (methodology === 'hipertrofia') {
       console.log('🏋️ Hipertrofia manual detectada - specialist/hipertrofia/generate');
       req.url = '/api/routine-generation/specialist/hipertrofia/generate';

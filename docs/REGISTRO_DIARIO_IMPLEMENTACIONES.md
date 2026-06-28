@@ -1,5 +1,9 @@
 # Registro diario de implementaciones
 
+## 28.06.2026
+
+- Diagnóstico entrenamiento/calistenia: añadido `scripts/test-calistenia-generation.mjs` para verificar el contrato de generación de calistenia (`plan.semanas[]`) y permitir smoke API con token sin arrancar servidores desde el script.
+
 ## 06.03.2026
 
 - Auditoría y limpieza de documentación raíz: se reescriben `IMPLEMENTATION_SUMMARY.md`, `roadmap.md`, `MCP_SUPABASE_SETUP.md`, `START_DEBUGGING.md`, `TESTING_ADAPTATION_SYSTEM.md`, `CLAUDE.md`, `WARP.md` y `AGENTS.md` para reflejar el estado real del código; además se eliminan o reducen documentos raíz obsoletos que inducían a error.

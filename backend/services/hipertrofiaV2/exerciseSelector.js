@@ -18,13 +18,15 @@ import { HIPERTROFIA_COLUMNS } from '../exerciseRepository.js';
 export async function selectExercises(dbClient, filters) {
   const { nivel, categoria, tipo_ejercicio, cantidad = 1, excludeNames = [] } = filters;
 
-  let whereConditions = ['nivel = $1', 'categoria = $2'];
+  // Comparación case-insensitive: los datos están capitalizados (Pecho, Principiante)
+  // pero los callers/clientes pueden enviar minúsculas (pecho) → LOWER en ambos lados.
+  let whereConditions = ['LOWER(nivel) = LOWER($1)', 'LOWER(categoria) = LOWER($2)'];
   let params = [nivel, categoria];
   let paramCount = 2;
 
   if (tipo_ejercicio) {
     paramCount++;
-    whereConditions.push(`tipo_ejercicio = $${paramCount}`);
+    whereConditions.push(`LOWER(tipo_ejercicio) = LOWER($${paramCount})`);
     params.push(tipo_ejercicio);
   }
 
