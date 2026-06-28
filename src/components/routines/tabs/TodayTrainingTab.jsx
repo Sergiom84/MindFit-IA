@@ -52,7 +52,7 @@ import { getTodayName, isWeekend, computeDayId, formatDateForDisplay } from '@/u
 import { findTodaySession } from '@/utils/training/sessionFinders';
 
 // 🎯 API HELPER - Usar el mismo helper robusto que CalendarTab
-import { getTodaySessionStatus } from '../api.js';
+import { getTodaySessionStatus, getWeekendStatus } from '../api.js';
 
 // 🎯 COMPONENTES MODULARES - Refactorización incremental
 import { ExerciseList, RestDayCard, StartSessionCard } from './TodayTrainingTab/components';
@@ -182,46 +182,8 @@ export default function TodayTrainingTab({
   const currentTodayName = todayName || getTodayName();
 
 
-  // Función para cargar estado de sesión de fin de semana
-  const fetchWeekendStatus = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        console.log('⚠️ No token para fetchWeekendStatus');
-        return null;
-      }
-
-      console.log('🌐 Llamando a /api/training-session/weekend-status...');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/training-session/weekend-status`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      console.log('📡 Response status:', response.status);
-
-      if (!response.ok) {
-        console.error('❌ Error obteniendo estado de fin de semana:', response.status);
-        return null;
-      }
-
-      const data = await response.json();
-      console.log('📦 Weekend status data completa:', data);
-
-      if (data.hasWeekendSession) {
-        console.log('✅ Sesión de fin de semana encontrada:', data);
-        return data;
-      }
-
-      console.log('⚠️ No hay weekend session en la respuesta');
-      return null;
-    } catch (error) {
-      console.error('❌ Error cargando estado de fin de semana:', error);
-      return null;
-    }
-  }, []);
+  // Estado de sesión de fin de semana (helper en ../api.js).
+  const fetchWeekendStatus = useCallback(() => getWeekendStatus(), []);
 
   // Estado de adaptación (mostrar badge cuando hay bloque activo y aún no D1-D5)
   const fetchAdaptationProgress = useCallback(async () => {

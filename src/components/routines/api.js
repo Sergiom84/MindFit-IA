@@ -116,6 +116,23 @@ export async function getTodaySessionStatus({ methodology_plan_id, week_number, 
   return data; // { session, exercises, summary }
 }
 
+// Estado de sesión de fin de semana. Devuelve los datos si hay sesión, o null.
+export async function getWeekendStatus() {
+  try {
+    const token = getToken();
+    if (!token) return null;
+    const resp = await fetch('/api/training-session/weekend-status', {
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json().catch(() => ({}));
+    return data?.hasWeekendSession ? data : null;
+  } catch (error) {
+    console.error('Error cargando estado de fin de semana:', error);
+    return null;
+  }
+}
+
 export async function getProgressData({ methodology_plan_id }) {
   const token = getToken();
   const resp = await fetch(`/api/routines/progress-data?methodology_plan_id=${encodeURIComponent(methodology_plan_id)}`, {
