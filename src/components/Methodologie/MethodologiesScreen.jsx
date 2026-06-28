@@ -1302,7 +1302,13 @@ export default function MethodologiesScreen() {
   };
 
   const handleHipertrofiaWeekendLater = () => {
+    // "Prefiero volver el lunes a por un plan completo": en vez de solo cerrar,
+    // abrir el configurador de plan completo de la metodología (calendario semanal).
+    const methodology = localState.pendingMethodology;
     closeHipertrofiaWeekendModals();
+    if (methodology) {
+      proceedWithMethodologySelection(methodology);
+    }
   };
 
   const handleHipertrofiaFullBodyAdvanced = () => {
