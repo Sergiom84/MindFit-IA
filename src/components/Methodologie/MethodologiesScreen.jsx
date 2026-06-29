@@ -37,6 +37,7 @@ import HipertrofiaFocusModal from '../routines/modals/HipertrofiaFocusModal.jsx'
 import CalisteniaEffortModal from '../routines/modals/CalisteniaEffortModal.jsx';
 import CrossFitEffortModal from '../routines/modals/CrossFitEffortModal.jsx';
 import HalterofiliaEffortModal from '../routines/modals/HalterofiliaEffortModal.jsx';
+import FuncionalEffortModal from '../routines/modals/FuncionalEffortModal.jsx';
 import CasaEquipmentModal from '../routines/modals/CasaEquipmentModal.jsx';
 import apiClient from '@/lib/apiClient';
 
@@ -1343,6 +1344,37 @@ export default function MethodologiesScreen() {
     navigate('/routines', { state: { activeTab: 'today' } });
   };
 
+  // ── Autorregulación Funcional (series×reps×RIR, mismo modelo que Calistenia) ──
+  const handleFuncionalEffortSubmit = async ({ avgRir, targetMet }) => {
+    const planId = localState.pendingSessionData?.methodology_plan_id
+      ?? localState.pendingSessionData?.planId
+      ?? null;
+    updateLocalState({ isSavingEffort: true });
+    try {
+      const resp = await apiClient.post('/methodology-session/funcional/session-result', {
+        methodologyPlanId: planId,
+        avgRir,
+        targetMet
+      });
+      const data = resp?.data || resp;
+      updateLocalState({ funcionalDecision: data?.decision || 'hold' });
+    } catch (err) {
+      console.warn('⚠️ No se pudo registrar la autorregulación Funcional:', err?.message);
+      updateLocalState({ funcionalDecision: 'hold' });
+    } finally {
+      updateLocalState({ isSavingEffort: false });
+    }
+  };
+
+  const finishFuncionalEffort = () => {
+    updateLocalState({
+      showFuncionalEffort: false,
+      funcionalDecision: null,
+      pendingSessionData: null
+    });
+    navigate('/routines', { state: { activeTab: 'today' } });
+  };
+
   // ── Autorregulación CrossFit: registrar resultado del WOD y mostrar decisión ──
   const handleCrossfitEffortSubmit = async ({ rpe, completed, scale }) => {
     const planId = localState.pendingSessionData?.methodology_plan_id
@@ -1949,6 +1981,16 @@ export default function MethodologiesScreen() {
         onContinue={finishHalterofiliaEffort}
       />
 
+      {/* Autorregulación Funcional: auto-evaluación de esfuerzo (RIR/cumplimiento) al completar la sesión */}
+      <FuncionalEffortModal
+        isOpen={localState.showFuncionalEffort}
+        isLoading={localState.isSavingEffort}
+        result={localState.funcionalDecision}
+        onSubmit={handleFuncionalEffortSubmit}
+        onSkip={finishFuncionalEffort}
+        onContinue={finishFuncionalEffort}
+      />
+
       {/* Modal de calentamiento para entrenamiento de fin de semana */}
       {localState.showWarmupModal && localState.pendingSessionData && (
         <WarmupModal
@@ -2124,6 +2166,13 @@ export default function MethodologiesScreen() {
                 showRoutineSessionModal: false,
                 showHalterofiliaEffort: true,
                 halterofiliaDecision: null
+              });
+            } else if (methodologyName === 'Funcional') {
+              // Autorregulación: pedir RIR/cumplimiento antes de cerrar (mantener pendingSessionData).
+              updateLocalState({
+                showRoutineSessionModal: false,
+                showFuncionalEffort: true,
+                funcionalDecision: null
               });
             } else {
               updateLocalState({ showRoutineSessionModal: false, pendingSessionData: null });
