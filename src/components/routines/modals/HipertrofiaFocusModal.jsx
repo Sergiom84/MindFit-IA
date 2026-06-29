@@ -1,6 +1,6 @@
 import { BadgeCheck, ChevronRight, Dumbbell, Target } from 'lucide-react';
 
-const MUSCLE_GROUPS = [
+const DEFAULT_MUSCLE_GROUPS = [
   { id: 'Pecho', label: 'Pecho' },
   { id: 'Espalda', label: 'Espalda' },
   { id: 'Piernas', label: 'Pierna' },
@@ -20,9 +20,12 @@ export default function HipertrofiaFocusModal({
   onFullBody,
   onSelectGroup,
   onClose,
-  isLoading = false
+  isLoading = false,
+  muscleGroups = DEFAULT_MUSCLE_GROUPS
 }) {
   if (!isOpen) return null;
+
+  const MUSCLE_GROUPS = muscleGroups;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">

@@ -9,7 +9,8 @@ export default function HipertrofiaWeekendModal({
   onAccept,
   onLater,
   onClose,
-  isLoading = false
+  isLoading = false,
+  methodologyName = 'HipertrofiaV2'
 }) {
   if (!isOpen) return null;
 
@@ -27,7 +28,7 @@ export default function HipertrofiaWeekendModal({
               Hoy es {readableDay}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Sabemos que te quieres poner fuerte. Podemos generarte una rutina solo para hoy de HipertrofiaV2.
+              Sabemos que te quieres poner fuerte. Podemos generarte una rutina solo para hoy de {methodologyName}.
             </p>
           </div>
         </div>

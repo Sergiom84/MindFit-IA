@@ -56,6 +56,7 @@ export default function RoutineSessionModal({
     // Normalizar ids y orden para evitar desfaces entre UI y API (usamos el índice como fuente de verdad)
     return base.map((ex, idx) => ({
       ...ex,
+      nombre: ex.nombre ?? ex.exercise_name ?? ex.name,
       // Índice estable para llamadas a la API (0-based)
       originalIndex: Number.isFinite(ex.originalIndex)
         ? Number(ex.originalIndex)

@@ -51,6 +51,7 @@ export const ExerciseSessionView = ({
   ]
 }) => {
   const [exerciseGif, setExerciseGif] = useState(null);
+  const exerciseName = exercise?.nombre || exercise?.exercise_name || exercise?.name;
 
   // 🎬 Actualizar video/GIF cuando cambia ejercicio
   // Usa la configuración centralizada de src/config/exerciseVideos.js
@@ -69,9 +70,9 @@ export const ExerciseSessionView = ({
       setExerciseGif(videoUrl);
     } else {
       // Fallback final: GIF por defecto
-      setExerciseGif(getExerciseGifUrl(exercise.nombre));
+      setExerciseGif(getExerciseGifUrl(exerciseName));
     }
-  }, [exercise]);
+  }, [exercise, exerciseName]);
 
   if (!exercise) return null;
 
@@ -117,7 +118,7 @@ export const ExerciseSessionView = ({
       {/* Header del ejercicio - Nueva estructura unificada */}
       <div className="flex items-center justify-between mb-4 gap-4">
         <h4 className="text-white font-semibold font-urbanist text-lg flex-1">
-          {formatExerciseName(exercise.nombre)}
+          {formatExerciseName(exerciseName)}
           {/* 🎯 Indicador de volumen ajustado */}
           {exercise?.intensity_adjusted && (
             <span className="inline-flex items-center gap-1 px-2 py-1 ml-2 bg-orange-500/15 text-orange-200 rounded-md text-xs font-normal border border-orange-400/30">
@@ -439,7 +440,7 @@ export const ExerciseSessionView = ({
             ) : (
               <img
                 src={exerciseGif}
-                alt={formatExerciseName(exercise.nombre)}
+                alt={formatExerciseName(exerciseName)}
                 className="mx-auto max-h-64 rounded-xl shadow-lg border border-white/10 bg-black/40"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';

@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 
 import RoutineSessionModal from '../RoutineSessionModal';
+import CalisteniaEffortModal from '../modals/CalisteniaEffortModal';
 import WarmupModal from '../WarmupModal';
 import { useWorkout } from '@/contexts/WorkoutContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -166,6 +167,8 @@ export default function TodayTrainingTab({
   // 🎯 FASE 2: Estado para modal de prioridad muscular
   const [showPriorityModal, setShowPriorityModal] = useState(false);
   const [currentPriority, setCurrentPriority] = useState(null);
+  // Autorregulación Calistenia: auto-evaluación de esfuerzo al completar sesión
+  const [calisteniaEffort, setCalisteniaEffort] = useState({ show: false, decision: null, saving: false });
 
   // 🎯 ADAPTACIÓN: Hook para evaluación de transición
   const {
@@ -952,6 +955,15 @@ export default function TodayTrainingTab({
 
         showSuccess('¡Entrenamiento completado exitosamente!');
 
+        // 🤸 AUTORREGULACIÓN CALISTENIA: pedir auto-evaluación de esfuerzo (RIR)
+        const planMethod = String(
+          plan?.metodologia || plan?.methodology_type || plan?.methodologyType ||
+          routinePlan?.metodologia || routinePlan?.methodology_type || ''
+        ).toLowerCase();
+        if (planMethod.includes('calistenia')) {
+          setCalisteniaEffort({ show: true, decision: null, saving: false });
+        }
+
         // 🎯 ADAPTACIÓN: Evaluar semana si hay bloque activo
         console.log('📊 Iniciando evaluación de adaptación...');
         setTimeout(() => {
@@ -966,6 +978,27 @@ export default function TodayTrainingTab({
       setError(`Error finalizando sesión: ${error.message}`);
     }
   }, [hasActiveSession, completeSession, session.sessionId, sessionStartTime, exerciseProgress, track, onProgressUpdate, showSuccess, setError, localState.pendingSessionData?.sessionId, fetchTodayStatus, evaluateAdaptationWeek]);
+
+  // Autorregulación Calistenia: registra el resultado y muestra la decisión.
+  const handleCalisteniaEffortSubmit = useCallback(async ({ avgRir, targetMet }) => {
+    setCalisteniaEffort(prev => ({ ...prev, saving: true }));
+    try {
+      const resp = await apiClient.post('/methodology-session/calistenia/session-result', {
+        methodologyPlanId: methodologyPlanId || null,
+        avgRir,
+        targetMet
+      });
+      const data = resp?.data || resp;
+      setCalisteniaEffort({ show: true, decision: data?.decision || 'hold', saving: false });
+    } catch (e) {
+      console.warn('⚠️ Autorregulación calistenia falló:', e?.message);
+      setCalisteniaEffort({ show: true, decision: 'hold', saving: false });
+    }
+  }, [methodologyPlanId]);
+
+  const handleCalisteniaEffortClose = useCallback(() => {
+    setCalisteniaEffort({ show: false, decision: null, saving: false });
+  }, []);
 
   const handleExerciseUpdate = useCallback(async (exerciseIndex, progressData) => {
     // 🎯 CORRECCIÓN: exerciseIndex YA ES el originalIndex (viene desde useExerciseProgress)
@@ -2238,6 +2271,16 @@ export default function TodayTrainingTab({
           </div>
         </div>
       )}
+
+      {/* 🤸 Autorregulación Calistenia: auto-evaluación de esfuerzo */}
+      <CalisteniaEffortModal
+        isOpen={calisteniaEffort.show}
+        isLoading={calisteniaEffort.saving}
+        result={calisteniaEffort.decision}
+        onSubmit={handleCalisteniaEffortSubmit}
+        onSkip={handleCalisteniaEffortClose}
+        onContinue={handleCalisteniaEffortClose}
+      />
 
       {/* 🎯 FASE 2: Modal de Prioridad Muscular */}
       <MusclePriorityModal

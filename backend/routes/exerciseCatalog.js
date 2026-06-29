@@ -204,7 +204,8 @@ router.get('/search', authenticateToken, async (req, res) => {
           criterio_de_progreso,
           progresion_desde,
           progresion_hacia,
-          notas
+          notas,
+          gif_url
         FROM app.ejercicios
         WHERE disciplina = 'calistenia'
       `;
@@ -454,6 +455,7 @@ router.get('/details/:id', authenticateToken, async (req, res) => {
         progresion_desde: calistenia.progresion_desde,
         progresion_hacia: calistenia.progresion_hacia,
         notas: calistenia.notas,
+        gif_url: calistenia.gif_url,
         dificultad: calistenia.nivel,
         source: 'calistenia'
       };
