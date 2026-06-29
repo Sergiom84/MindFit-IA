@@ -242,6 +242,7 @@ const METHOD_CONFIGS = {
     methodologyType: 'Heavy Duty',
     displayName: 'Heavy Duty',
     version: 'heavy_duty_v1',
+    rulesetScope: 'heavy_duty_v1',
     templates: HEAVY_DUTY_TEMPLATES,
     levels: HEAVY_DUTY_LEVELS,
     bucketFn: muscleBucket,
