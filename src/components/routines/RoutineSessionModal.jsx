@@ -123,8 +123,15 @@ export default function RoutineSessionModal({
     if (!exerciseId) return null;
 
     try {
-      const token = localStorage.getItem('authToken');
-      const userId = JSON.parse(localStorage.getItem('userProfile'))?.id;
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      let userId = null;
+      try {
+        userId = JSON.parse(localStorage.getItem('user'))?.id
+          ?? JSON.parse(localStorage.getItem('userProfile'))?.id
+          ?? null;
+      } catch {
+        userId = null;
+      }
 
       if (!userId || !token) return null;
 
@@ -212,8 +219,15 @@ export default function RoutineSessionModal({
 
     const loadAdjustedSession = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+        const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+        let userProfile = {};
+        try {
+          userProfile = JSON.parse(localStorage.getItem('user'))
+            || JSON.parse(localStorage.getItem('userProfile') || '{}')
+            || {};
+        } catch {
+          userProfile = {};
+        }
         if (!token || !userProfile?.id) return;
 
         const resp = await fetch(
@@ -422,8 +436,18 @@ export default function RoutineSessionModal({
       console.log('💾 Guardando tracking RIR:', trackingData);
       console.log('🔍 DEBUG - trackingData.exercise_id:', trackingData.exercise_id);
 
-      const token = localStorage.getItem('authToken');
-      const userId = JSON.parse(localStorage.getItem('userProfile'))?.id;
+      // Claves canónicas de la app: el token se guarda como 'token' y el usuario
+      // como 'user'. (Antes se leían 'authToken'/'userProfile', que ya no existen,
+      // por lo que userId/token salían null y el guardado fallaba antes del fetch.)
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      let userId = null;
+      try {
+        userId = JSON.parse(localStorage.getItem('user'))?.id
+          ?? JSON.parse(localStorage.getItem('userProfile'))?.id
+          ?? null;
+      } catch {
+        userId = null;
+      }
 
       if (!userId || !sessionId || !token) {
         throw new Error('Faltan datos para guardar tracking');
@@ -666,6 +690,14 @@ export default function RoutineSessionModal({
         const exerciseId = progressState.currentExercise?.exercise_id || progressState.currentExercise?.id;
         console.log('🔍 DEBUG - exerciseId final:', exerciseId);
 
+        // Calistenia (peso corporal): el peso/lastre es opcional, no obligatorio.
+        const bodyweightExercise = /calist/i.test(String(
+          sourceSession?.metodologia
+          || sourceSession?.methodology_type
+          || sourceSession?.methodology
+          || ''
+        )) || progressState.currentExercise?.tipo_ejercicio === 'calistenia';
+
         return (
           <SeriesTrackingModal
             exerciseName={formatExerciseName(progressState.currentExercise?.nombre)}
@@ -678,6 +710,7 @@ export default function RoutineSessionModal({
             onClose={() => setShowSeriesTracking(false)}
             neuralOverlap={neuralOverlapInfo}
             isMandatory={requiresSeriesTracking}
+            bodyweight={bodyweightExercise}
           />
         );
       })()}

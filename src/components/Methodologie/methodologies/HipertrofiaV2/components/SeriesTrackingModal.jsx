@@ -24,7 +24,8 @@ export default function SeriesTrackingModal({
   onSave,
   onClose,
   neuralOverlap = null,
-  isMandatory = false
+  isMandatory = false,
+  bodyweight = false
 }) {
   const [weight, setWeight] = useState(suggestedWeight ? String(suggestedWeight) : '');
   const [reps, setReps] = useState('');
@@ -63,12 +64,20 @@ export default function SeriesTrackingModal({
   }, [weight, reps, rir]);
 
   const handleSave = () => {
-    // Validar datos
-    const validation = validateSetData(
-      parseFloat(weight),
-      parseInt(reps),
-      rir
-    );
+    const repsNum = parseInt(reps);
+    // En calistenia el peso es opcional (peso corporal). Si va vacío, 0.
+    const weightNum = weight !== '' ? parseFloat(weight) : (bodyweight ? 0 : NaN);
+
+    // Validar datos. Para calistenia no se exige peso > 0.
+    const validation = bodyweight
+      ? {
+          errors: [
+            ...(repsNum > 0 ? [] : ['Las repeticiones deben ser mayores a 0']),
+            ...(rir >= 0 && rir <= 4 ? [] : ['El RIR debe estar entre 0 y 4'])
+          ],
+          get isValid() { return this.errors.length === 0; }
+        }
+      : validateSetData(weightNum, repsNum, rir);
 
     if (!validation.isValid) {
       setErrors(validation.errors);
@@ -84,8 +93,8 @@ export default function SeriesTrackingModal({
       exercise_id: exerciseId,
       exercise_name: exerciseName,
       set_number: seriesNumber,
-      weight_used: parseFloat(weight),
-      reps_completed: parseInt(reps),
+      weight_used: Number.isFinite(weightNum) ? weightNum : 0,
+      reps_completed: repsNum,
       rir_reported: rir,
       ...calculations
     };
@@ -164,10 +173,10 @@ export default function SeriesTrackingModal({
           );
         })()}
 
-          {/* Input: Peso */}
+          {/* Input: Peso (en calistenia es lastre opcional sobre el peso corporal) */}
           <div>
             <label className="block text-sm font-semibold text-gray-300 mb-2">
-              Peso Utilizado (kg)
+              {bodyweight ? 'Lastre adicional (kg) — opcional' : 'Peso Utilizado (kg)'}
             </label>
             <input
               type="number"
@@ -175,8 +184,8 @@ export default function SeriesTrackingModal({
               value={weight}
               onChange={(e) => setWeight(e.target.value)}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none text-lg"
-              placeholder="75.0"
-              autoFocus
+              placeholder={bodyweight ? '0 (peso corporal)' : '75.0'}
+              autoFocus={!bodyweight}
             />
           </div>
 
@@ -276,7 +285,7 @@ export default function SeriesTrackingModal({
             )}
             <button
               onClick={handleSave}
-              disabled={!weight || !reps}
+              disabled={!reps || (!bodyweight && !weight)}
               className="flex-1 py-3 bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 text-gray-900 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)] flex items-center justify-center gap-2"
             >
               <Check className="w-5 h-5" />
