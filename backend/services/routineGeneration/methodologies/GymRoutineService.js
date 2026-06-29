@@ -7,6 +7,7 @@ import { pool } from '../../../db.js';
 import { logger } from '../logger.js';
 import { getUserFullProfile } from '../database/userRepository.js';
 import { getRandomByLevel } from '../../exerciseRepository.js';
+import { materialsForEquipmentLevel, buildAllowedMaterials } from '../../singleDay/casaEquipment.js';
 import {
   parseSeriesReps,
   buildExercisePicker,
@@ -231,7 +232,9 @@ const METHOD_CONFIGS = {
     version: 'casa_v1',
     templates: CASA_TEMPLATES,
     bucketFn: casaBucket,
-    coachTip: 'Ajusta el ritmo al espacio disponible y deja margen técnico en cada serie.'
+    coachTip: 'Ajusta el ritmo al espacio disponible y deja margen técnico en cada serie.',
+    // RIR objetivo por defecto, coherente con el flujo single-day de casa.
+    exerciseOverrides: { rir_target: '2-3' }
   },
   'heavy-duty': {
     disciplina: 'heavy_duty',
@@ -387,12 +390,24 @@ export async function generateGymRoutine(userId, routineData = {}) {
   const frecuencia = levelConfig.sessions_per_week;
   const totalWeeks = levelConfig.duration_weeks;
 
+  // Entrenamiento en Casa: filtrar el catálogo por el material disponible, de
+  // forma coherente con el flujo single-day. Acepta `equipment[]` (claves del
+  // selector) o `equipmentLevel` ('minimo'|'basico'|'avanzado') del formulario.
+  let equipmentFilter;
+  if (disciplina === 'casa') {
+    equipmentFilter = Array.isArray(routineData.equipment) && routineData.equipment.length > 0
+      ? buildAllowedMaterials(routineData.equipment)
+      : materialsForEquipmentLevel(routineData.equipmentLevel);
+    logger.info(`🏠 [GYM] Casa: filtrando por ${equipmentFilter.length} materiales (equipmentLevel=${routineData.equipmentLevel || 'n/d'})`);
+  }
+
   // Cargar ejercicios de la disciplina (nivel acumulativo) y clasificar en buckets.
   const exercises = await getRandomByLevel(pool, {
     disciplina,
     level: levelKey,
     limit: 500,
-    columns: GYM_COLUMNS
+    columns: GYM_COLUMNS,
+    ...(equipmentFilter ? { equipment: equipmentFilter } : {})
   });
   if (!exercises || exercises.length === 0) {
     throw new Error(`No se encontraron ejercicios de ${disciplina} para el nivel seleccionado`);

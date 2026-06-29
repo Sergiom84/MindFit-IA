@@ -11,23 +11,8 @@
  */
 
 import { persistSingleDaySession } from './persistSingleDaySession.js';
+import { buildAllowedMaterials } from './casaEquipment.js';
 import { logger } from '../hipertrofiaV2/logger.js';
-
-// Material siempre disponible en casa: peso corporal + enseres domésticos
-// comunes (no se ofrecen en el selector porque casi todo el mundo los tiene).
-const ALWAYS_AVAILABLE = [
-  'Peso corporal', 'Esterilla', 'Pared', 'Silla', 'Sillas', 'Silla robusta',
-  'Toalla', 'Toallas', 'Mesa', 'Escalón', 'Banco', 'Paralelas'
-];
-
-// Material opcional que el usuario declara tener. Cada clave del selector mapea
-// a uno o más valores reales de `equipamiento` en app.ejercicios.
-const EQUIPMENT_ALIASES = {
-  mancuernas: ['Mancuernas', 'Peso ligero'],
-  kettlebell: ['Kettlebell'],
-  banda: ['Banda elástica'],
-  barra: ['Barra', 'Barra dominadas']
-};
 
 // Buckets de casa → categorías reales en app.ejercicios (disciplina='casa').
 // Las categorías reales son: Fuerza, Funcional, Cardio, HIIT, Movilidad.
@@ -96,25 +81,6 @@ function normalizeFocus(focusGroup) {
   if (f.includes('cardio') || f.includes('hiit')) return 'CARDIO';
   if (f.includes('movilidad')) return 'MOVILIDAD';
   return null;
-}
-
-/**
- * Construye la lista de materiales permitidos = enseres domésticos + el material
- * opcional que el usuario haya declarado. `equipment` es un array de claves del
- * selector ('mancuernas', 'banda'…) o, por compatibilidad, strings de material.
- */
-function buildAllowedMaterials(equipment) {
-  const allowed = new Set(ALWAYS_AVAILABLE);
-  for (const raw of Array.isArray(equipment) ? equipment : []) {
-    const key = String(raw || '').toLowerCase().trim();
-    if (EQUIPMENT_ALIASES[key]) {
-      for (const mat of EQUIPMENT_ALIASES[key]) allowed.add(mat);
-    } else if (raw) {
-      // Permitir pasar el nombre de material literal (p.ej. 'Mancuernas').
-      allowed.add(String(raw));
-    }
-  }
-  return Array.from(allowed);
 }
 
 /**

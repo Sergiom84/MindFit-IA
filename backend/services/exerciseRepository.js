@@ -80,18 +80,29 @@ export function allowedLevels(level) {
  * @param {string} [opts.level='principiante']
  * @param {number} [opts.limit=6]
  * @param {string} [opts.columns] - proyección SQL alternativa
+ * @param {string[]} [opts.equipment] - materiales permitidos; si se pasa, solo
+ *   devuelve ejercicios cuyo `equipamiento` esté contenido en la lista (filtro
+ *   por material disponible, usado por Entrenamiento en Casa).
  * @returns {Promise<Array>}
  */
-export async function getRandomByLevel(client, { disciplina, level = 'principiante', limit = 6, columns } = {}) {
+export async function getRandomByLevel(client, { disciplina, level = 'principiante', limit = 6, columns, equipment } = {}) {
   const db = client || pool;
   const cols = columns || 'nombre, series_reps_objetivo, criterio_de_progreso, notas, gif_url';
+  const params = [disciplina, allowedLevels(level)];
+  let equipmentFilter = '';
+  if (Array.isArray(equipment) && equipment.length > 0) {
+    params.push(equipment);
+    equipmentFilter = `AND equipamiento <@ $${params.length}::text[]`;
+  }
+  params.push(limit);
   const { rows } = await db.query(
     `SELECT ${cols}
        FROM app.ejercicios
       WHERE disciplina = $1 AND nivel = ANY($2::text[])
+      ${equipmentFilter}
       ORDER BY RANDOM()
-      LIMIT $3`,
-    [disciplina, allowedLevels(level), limit]
+      LIMIT $${params.length}`,
+    params
   );
   return rows || [];
 }
