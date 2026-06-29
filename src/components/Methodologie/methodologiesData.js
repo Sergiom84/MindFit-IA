@@ -15,7 +15,7 @@
  * @version 4.0.0 - Role-Separated Architecture
  */
 
-import { Zap, Trophy, Dumbbell, Activity, Target, User, Home, Shield, Flame, TrendingUp } from 'lucide-react';
+import { Zap, Trophy, Activity, Target, User, Home, Shield, Flame, TrendingUp } from 'lucide-react';
 import methodologyMapping from '../../config/methodologyMapping.js';
 
 // Configuraciones centralizadas
@@ -396,38 +396,6 @@ export const METHODOLOGIES = [
     targetAudience: 'Intermedios y avanzados con buena técnica y experiencia en fallo muscular',
     duration: '45-60 minutos por sesión',
     scientificBasis: 'Basado en la teoría de supercompensación, adaptación específica y el principio de sobrecarga progresiva de Arthur Jones',
-    videoPlaceholder: true
-  },
-  {
-    id: 'hipertrofia',
-    name: 'Hipertrofia',
-    description: 'Entrenamiento orientado al crecimiento muscular con volumen moderado-alto',
-    detailedDescription: 'Metodología científicamente respaldada para maximizar el crecimiento muscular. Combina tensión mecánica, estrés metabólico y daño muscular controlado para estimular la síntesis proteica y el desarrollo de masa muscular magra.',
-    focus: 'Volumen muscular',
-    level: formatLevelRange([METHODOLOGIES_CONFIG.LEVELS.BEGINNER, METHODOLOGIES_CONFIG.LEVELS.ADVANCED]),
-    homeCompatible: METHODOLOGIES_CONFIG.HOME_COMPATIBILITY.FULL,
-    icon: Dumbbell,
-    programDuration: formatDuration(METHODOLOGIES_CONFIG.DURATIONS.MEDIUM),
-    frequency: formatFrequency(METHODOLOGIES_CONFIG.FREQUENCIES.HIGH),
-    volume: METHODOLOGIES_CONFIG.VOLUMES.HIGH,
-    intensity: METHODOLOGIES_CONFIG.INTENSITIES.HIGH,
-    principles: [
-      'Volumen de entrenamiento optimizado (10-20 series por grupo muscular/semana)',
-      'Rango de repeticiones 6-20 con énfasis en 8-15',
-      'Tensión mecánica sostenida y tiempo bajo tensión controlado',
-      'Frecuencia de 2-3 veces por semana por grupo muscular',
-      'Progresión en volumen, intensidad o densidad'
-    ],
-    benefits: [
-      'Aumento significativo y visible de masa muscular',
-      'Mejora del metabolismo basal y composición corporal',
-      'Fortalecimiento de articulaciones y tejido conectivo',
-      'Mejor definición muscular y simetría corporal',
-      'Aumento de la autoestima y confianza personal'
-    ],
-    targetAudience: 'Desde principiantes hasta avanzados que buscan maximizar el crecimiento muscular',
-    duration: '60-90 minutos por sesión',
-    scientificBasis: 'Basado en investigación sobre síntesis proteica muscular, mTOR, tensión mecánica y adaptaciones metabólicas',
     videoPlaceholder: true
   },
   {

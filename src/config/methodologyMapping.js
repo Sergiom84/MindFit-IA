@@ -33,11 +33,6 @@ export const METHODOLOGY_ID_MAPPING = {
     displayName: 'Powerlifting',
     category: 'fuerza'
   },
-  'HIPERTROFIA': {
-    frontendId: 'hipertrofia',
-    displayName: 'Hipertrofia',
-    category: 'volumen'
-  },
   'FUNCIONAL': {
     frontendId: 'funcional',
     displayName: 'Funcional',

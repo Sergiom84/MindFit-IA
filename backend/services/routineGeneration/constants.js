@@ -19,7 +19,6 @@ export const NIVELES_ENTRENAMIENTO = {
 
 export const METODOLOGIAS = {
   CALISTENIA: 'calistenia',
-  HIPERTROFIA: 'hipertrofia',
   CROSSFIT: 'crossfit',
   FUNCIONAL: 'funcional',
   GIMNASIO: 'gimnasio',

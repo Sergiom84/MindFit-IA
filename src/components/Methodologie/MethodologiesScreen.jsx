@@ -19,7 +19,6 @@ import WarmupModal from '../routines/WarmupModal.jsx';
 import MethodologyVersionSelectionModal from './shared/MethodologyVersionSelectionModal.jsx';
 import CalisteniaManualCard from './methodologies/CalisteniaManual/CalisteniaManualCard.jsx';
 import HeavyDutyManualCard from './methodologies/HeavyDuty/HeavyDutyManualCard.jsx';
-import HipertrofiaManualCard from './methodologies/Hipertrofia/HipertrofiaManualCard.jsx';
 import HipertrofiaV2ManualCard from './methodologies/HipertrofiaV2/HipertrofiaV2ManualCard.jsx';
 import AdaptationTrackingBadge from './methodologies/HipertrofiaV2/components/AdaptationTrackingBadge.jsx';
 import PowerliftingManualCard from './methodologies/Powerlifting/PowerliftingManualCard.jsx';
@@ -466,12 +465,6 @@ export default function MethodologiesScreen() {
       return;
     }
 
-    // Si es Hipertrofia, mostrar el modal específico
-    if (methodology.name === 'Hipertrofia') {
-      ui.showModal('hipertrofiaManual');
-      return;
-    }
-
     // Si es HipertrofiaV2, verificar si necesita modal de distribución
     if (methodology.name === 'HipertrofiaV2') {
       // Detectar día de la semana
@@ -719,53 +712,6 @@ export default function MethodologiesScreen() {
 
   const handleHeavyDutyManualGenerate = (heavyDutyData) =>
     runManualGenerate({ trackId: 'generate_heavy_duty', methodology: 'heavy-duty', dataKey: 'heavyDutyData', hideModalName: 'heavyDutyManual', data: heavyDutyData });
-
-  const handleHipertrofiaManualGenerate = async (hipertrofiaData) => {
-    try { track('ACTION', { id: 'generate_hipertrofia' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
-
-    // 🛡️ Prevenir múltiples clicks estableciendo loading inmediatamente
-    if (ui.isLoading) {
-      console.warn('⚠️ Ya hay una generación en curso, ignorando click...');
-      return;
-    }
-
-    await runWithActivePlanGuard(async () => {
-      ui.setLoading(true);
-
-      try {
-        console.log('🏋️ Generando plan de Hipertrofia...');
-
-        // Usar generatePlan del WorkoutContext
-        const result = await generatePlan({
-          mode: 'manual',
-          methodology: 'hipertrofia',
-          hipertrofiaData
-        });
-
-        if (result.success) {
-          console.log('✅ Plan de Hipertrofia generado exitosamente');
-          ui.hideModal('hipertrofiaManual');
-
-          // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
-          const validation = validatePlanData(result.plan);
-          if (validation.isValid) {
-            ui.showModal('planConfirmation');
-          } else {
-            console.error('❌ Plan inválido:', validation.error);
-            ui.setError(`Plan generado incorrectamente: ${validation.error}`);
-          }
-        } else {
-          throw new Error(result.error || 'Error al generar el plan de Hipertrofia');
-        }
-
-      } catch (error) {
-        console.error('❌ Error generando plan de Hipertrofia:', error);
-        ui.setError(error.message || 'Error al generar el plan de Hipertrofia');
-      } finally {
-        ui.setLoading(false);
-      }
-    });
-  };
 
   const handleHipertrofiaV2ManualGenerate = async (hipertrofiaV2Data) => {
     try { track('ACTION', { id: 'generate_hipertrofiav2' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
@@ -1585,22 +1531,6 @@ export default function MethodologiesScreen() {
             </DialogHeader>
             <HeavyDutyManualCard
               onGenerate={handleHeavyDutyManualGenerate}
-              isLoading={ui.isLoading}
-              error={ui.error}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Modal de Hipertrofia Manual */}
-      {ui.showHipertrofiaManual && (
-        <Dialog open={ui.showHipertrofiaManual} onOpenChange={() => ui.hideModal('hipertrofiaManual')}>
-          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader className="sr-only">
-              <DialogTitle>Hipertrofia Manual</DialogTitle>
-            </DialogHeader>
-            <HipertrofiaManualCard
-              onGenerate={handleHipertrofiaManualGenerate}
               isLoading={ui.isLoading}
               error={ui.error}
             />

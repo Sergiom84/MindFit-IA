@@ -13,7 +13,6 @@ import * as GymRoutineService from './GymRoutineService.js';
 const METHODOLOGY_DATA_KEYS = {
   [METODOLOGIAS.CALISTENIA]: ['calisteniaData'],
   [METODOLOGIAS.CROSSFIT]: ['crossfitData'],
-  [METODOLOGIAS.HIPERTROFIA]: ['hipertrofiaData'],
   [METODOLOGIAS.GIMNASIO]: ['gymData', 'gimnasioData'],
   [METODOLOGIAS.FUNCIONAL]: ['funcionalData'],
   [METODOLOGIAS.CASA]: ['casaData'],
@@ -36,7 +35,10 @@ export function normalizeMethodologyId(methodology) {
 
   if (value.includes('calistenia')) return METODOLOGIAS.CALISTENIA;
   if (value.includes('crossfit') || value.includes('cross-fit')) return METODOLOGIAS.CROSSFIT;
-  if (value.includes('hipertrofia') && !value.includes('v2')) return METODOLOGIAS.HIPERTROFIA;
+  // 'hipertrofia' (sin V2) era una metodología redundante con HipertrofiaV2 y se
+  // retiró. Cualquier valor heredado se trata como 'gimnasio' (mismo motor
+  // GymRoutineService sobre disciplina='hipertrofia') para no romper datos antiguos.
+  if (value.includes('hipertrofia') && !value.includes('v2')) return METODOLOGIAS.GIMNASIO;
   if (value.includes('funcional')) return METODOLOGIAS.FUNCIONAL;
   if (value.includes('powerlifting') || value.includes('power-lifting')) return METODOLOGIAS.POWERLIFTING;
   if (value.includes('heavy-duty') || value.includes('heavy duty') || value.includes('heavyduty')) {
@@ -107,7 +109,6 @@ export async function evaluateUserLevel(methodology, userId) {
     case METODOLOGIAS.CROSSFIT:
       return await CrossFitService.evaluateCrossFitLevel(userId);
 
-    case METODOLOGIAS.HIPERTROFIA:
     case METODOLOGIAS.GIMNASIO:
     case METODOLOGIAS.FUNCIONAL:
     case METODOLOGIAS.CASA:
@@ -143,7 +144,6 @@ export async function generateMethodologyPlan(methodology, userId, planData) {
     case METODOLOGIAS.CROSSFIT:
       return await CrossFitService.generateCrossFitPlan(userId, normalizedPlanData);
 
-    case METODOLOGIAS.HIPERTROFIA:
     case METODOLOGIAS.GIMNASIO:
     case METODOLOGIAS.FUNCIONAL:
     case METODOLOGIAS.CASA:
@@ -172,7 +172,6 @@ export function getMethodologyLevels(methodology) {
     case METODOLOGIAS.CROSSFIT:
       return CrossFitService.getCrossFitLevels();
 
-    case METODOLOGIAS.HIPERTROFIA:
     case METODOLOGIAS.GIMNASIO:
     case METODOLOGIAS.FUNCIONAL:
     case METODOLOGIAS.CASA:
@@ -205,13 +204,6 @@ export function getSupportedMethodologies() {
       description: 'Acondicionamiento funcional de alta intensidad',
       hasAutoEvaluation: true,
       levels: ['principiante', 'intermedio', 'avanzado', 'elite']
-    },
-    {
-      id: METODOLOGIAS.HIPERTROFIA,
-      name: 'Hipertrofia',
-      description: 'Entrenamiento para ganancia de masa muscular',
-      hasAutoEvaluation: false,
-      levels: ['principiante', 'intermedio', 'avanzado']
     },
     {
       id: METODOLOGIAS.GIMNASIO,

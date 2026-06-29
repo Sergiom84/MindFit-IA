@@ -205,15 +205,6 @@ const HEAVY_DUTY_TEMPLATES = {
 };
 
 const METHOD_CONFIGS = {
-  hipertrofia: {
-    disciplina: 'hipertrofia',
-    methodologyType: 'Hipertrofia',
-    displayName: 'Hipertrofia',
-    version: 'hipertrofia_v1',
-    templates: GYM_TEMPLATES,
-    bucketFn: muscleBucket,
-    coachTip: 'Controla la técnica y progresa la carga cuando completes el rango de reps con buena forma.'
-  },
   gimnasio: {
     disciplina: 'hipertrofia',
     methodologyType: 'Gimnasio',
@@ -416,12 +407,6 @@ export function getGymRoutineTypes() {
     gimnasio: {
       name: 'Gimnasio',
       description: 'Rutina general de sala basada en patrones de fuerza e hipertrofia',
-      typical_rep_range: '8-12',
-      rest_time: '60-90s'
-    },
-    hipertrofia: {
-      name: 'Hipertrofia',
-      description: 'Enfocado en ganancia de masa muscular',
       typical_rep_range: '8-12',
       rest_time: '60-90s'
     },

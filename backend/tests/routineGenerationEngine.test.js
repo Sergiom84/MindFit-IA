@@ -108,6 +108,11 @@ test("normaliza nombres legacy/de UI a ids de metodología", () => {
   assert.equal(normalizeMethodologyId("Entrenamiento en Casa"), "casa");
   assert.equal(normalizeMethodologyId("Heavy Duty Manual"), "heavy-duty");
   assert.equal(normalizeMethodologyId("Halterofília Specialist"), "halterofilia");
+  // 'Hipertrofia' (sin V2) se retiró como metodología: queda como alias de
+  // compatibilidad hacia 'gimnasio' (mismo motor GymRoutineService).
+  assert.equal(normalizeMethodologyId("Hipertrofia"), "gimnasio");
+  assert.equal(normalizeMethodologyId("hipertrofia manual"), "gimnasio");
+  assert.equal(normalizeMethodologyId("HipertrofiaV2"), "hipertrofiav2");
 });
 
 test("motor genera planes válidos desde payloads anidados del frontend", async () => {
@@ -155,13 +160,6 @@ test("motor genera planes válidos desde payloads anidados del frontend", async 
       expectedDisciplina: "halterofilia",
       displayName: "Halterofilia",
       categories: ["Snatch", "Clean & Jerk", "Fuerza Base", "Técnica", "Accesorios"],
-    },
-    {
-      methodology: "hipertrofia",
-      dataKey: "hipertrofiaData",
-      expectedDisciplina: "hipertrofia",
-      displayName: "Hipertrofia",
-      categories: ["Pecho", "Espalda", "Piernas (cuádriceps)", "Core"],
     },
     {
       methodology: "gimnasio",
