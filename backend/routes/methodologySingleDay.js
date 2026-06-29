@@ -16,6 +16,7 @@ import { generateCrossFitSingleDay } from '../services/singleDay/crossfitSingleD
 import { generateCasaSingleDay } from '../services/singleDay/casaSingleDay.js';
 import { generateFuncionalSingleDay } from '../services/singleDay/funcionalSingleDay.js';
 import { generateHalterofiliaSingleDay } from '../services/singleDay/halterofiliaSingleDay.js';
+import { generatePowerliftingSingleDay } from '../services/singleDay/powerliftingSingleDay.js';
 import { generateHeavyDutySingleDay } from '../services/singleDay/heavyDutySingleDay.js';
 import { logger } from '../services/hipertrofiaV2/logger.js';
 import { cleanupUserStaleSessions } from '../services/sessionCleanupService.js';
@@ -30,6 +31,7 @@ function normalizeMethodology(raw) {
   if (m.includes('casa')) return 'casa';
   if (m.includes('funcional') || m.includes('functional')) return 'funcional';
   if (m.includes('halterofilia') || m.includes('halterofília') || m.includes('weightlifting')) return 'halterofilia';
+  if (m.includes('powerlifting') || m.includes('power-lifting')) return 'powerlifting';
   if (m.includes('heavy') || m.includes('heavy_duty') || m.includes('heavy-duty')) return 'heavy_duty';
   if (m.includes('hipertrofia')) return 'hipertrofia';
   return m;
@@ -86,6 +88,11 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
       });
     } else if (method === 'halterofilia') {
       result = await generateHalterofiliaSingleDay(dbClient, userId, nivel, isWeekendExtra, {
+        selectionMode,
+        focusGroup
+      });
+    } else if (method === 'powerlifting') {
+      result = await generatePowerliftingSingleDay(dbClient, userId, nivel, isWeekendExtra, {
         selectionMode,
         focusGroup
       });
@@ -301,6 +308,78 @@ router.post('/halterofilia/session-result', authenticateToken, async (req, res) 
     res.json({ success: true, ...result.rows[0].result });
   } catch (error) {
     logger.error('❌ [HALTEROFILIA-AUTOREG] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error registrando el resultado de la sesión',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/methodology-session/powerlifting/session-result
+ * Autorregulación de Powerlifting (disciplina de FUERZA MÁXIMA): registra el
+ * resultado de una sesión completada (RPE 1-10 + si se alcanzó la CARGA objetivo
+ * + si la TÉCNICA de competición fue sólida) y devuelve la decisión de ajuste de
+ * CARGA para la próxima sesión ('progress' | 'hold' | 'deload').
+ * Body: { methodologyPlanId?, rpe, targetMet, goodTechnique }
+ */
+router.post('/powerlifting/session-result', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    const { methodologyPlanId = null, rpe, targetMet, goodTechnique = true } = req.body;
+
+    if (rpe == null || typeof targetMet !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        error: 'rpe (número 1-10) y targetMet (booleano) son requeridos'
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT app.powerlifting_register_session_result($1, $2, $3, $4, $5) AS result`,
+      [userId, methodologyPlanId, Number(rpe), targetMet, Boolean(goodTechnique)]
+    );
+
+    res.json({ success: true, ...result.rows[0].result });
+  } catch (error) {
+    logger.error('❌ [POWERLIFTING-AUTOREG] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error registrando el resultado de la sesión',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/methodology-session/heavy-duty/session-result
+ * Autorregulación de Heavy Duty (HIT/Mentzer, disciplina de INTENSIDAD/FALLO):
+ * registra si la serie se llevó al FALLO muscular y si se alcanzó el TOPE del
+ * rango de repeticiones, y devuelve la decisión de ajuste de CARGA por doble
+ * progresión reps→carga ('progress' | 'hold' | 'deload').
+ * Body: { methodologyPlanId?, reachedFailure, targetMet }
+ */
+router.post('/heavy-duty/session-result', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    const { methodologyPlanId = null, reachedFailure, targetMet } = req.body;
+
+    if (typeof reachedFailure !== 'boolean' || typeof targetMet !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        error: 'reachedFailure (booleano) y targetMet (booleano) son requeridos'
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT app.heavy_duty_register_session_result($1, $2, $3, $4) AS result`,
+      [userId, methodologyPlanId, Boolean(reachedFailure), Boolean(targetMet)]
+    );
+
+    res.json({ success: true, ...result.rows[0].result });
+  } catch (error) {
+    logger.error('❌ [HEAVY-DUTY-AUTOREG] Error:', error);
     res.status(500).json({
       success: false,
       error: 'Error registrando el resultado de la sesión',

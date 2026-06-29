@@ -39,6 +39,8 @@ import CrossFitEffortModal from '../routines/modals/CrossFitEffortModal.jsx';
 import HalterofiliaEffortModal from '../routines/modals/HalterofiliaEffortModal.jsx';
 import FuncionalEffortModal from '../routines/modals/FuncionalEffortModal.jsx';
 import CasaEffortModal from '../routines/modals/CasaEffortModal.jsx';
+import HeavyDutyEffortModal from '../routines/modals/HeavyDutyEffortModal.jsx';
+import PowerliftingEffortModal from '../routines/modals/PowerliftingEffortModal.jsx';
 import CasaEquipmentModal from '../routines/modals/CasaEquipmentModal.jsx';
 import apiClient from '@/lib/apiClient';
 
@@ -51,7 +53,7 @@ import { useMethodologyValidation } from './hooks/useMethodologyValidation';
 
 // Metodologías que usan el flujo "single-day" in-app (modal fin de semana →
 // elección de foco → calentamiento → reproductor de ejercicios).
-const SINGLE_DAY_METHODOLOGIES = ['HipertrofiaV2', 'Calistenia', 'CrossFit', 'Entrenamiento en Casa', 'Funcional', 'Halterofilia', 'Heavy Duty'];
+const SINGLE_DAY_METHODOLOGIES = ['HipertrofiaV2', 'Calistenia', 'CrossFit', 'Entrenamiento en Casa', 'Funcional', 'Halterofilia', 'Powerlifting', 'Heavy Duty'];
 
 // Grupos focales por metodología para el modal de "¿Qué prefieres entrenar?".
 const CALISTENIA_FOCUS_GROUPS = [
@@ -100,6 +102,14 @@ const HALTEROFILIA_FOCUS_GROUPS = [
   { id: 'Fuerza Base', label: 'Fuerza' }
 ];
 
+// Para Powerlifting el "foco" es uno de los 3 básicos de competición (mapea a
+// categorías reales del catálogo disciplina='powerlifting').
+const POWERLIFTING_FOCUS_GROUPS = [
+  { id: 'Sentadilla', label: 'Sentadilla' },
+  { id: 'Press Banca', label: 'Press Banca' },
+  { id: 'Peso Muerto', label: 'Peso Muerto' }
+];
+
 // Para Heavy Duty (HIT/Mentzer) el "foco" es el grupo muscular (agrupa las
 // categorías reales del catálogo disciplina='heavy_duty' por ILIKE en backend).
 const HEAVY_DUTY_FOCUS_GROUPS = [
@@ -118,6 +128,7 @@ const methodologyApiKey = (name) => {
   if (name === 'Entrenamiento en Casa') return 'casa';
   if (name === 'Funcional') return 'funcional';
   if (name === 'Halterofilia') return 'halterofilia';
+  if (name === 'Powerlifting') return 'powerlifting';
   if (name === 'Heavy Duty') return 'heavy_duty';
   return 'hipertrofia';
 };
@@ -1484,6 +1495,69 @@ export default function MethodologiesScreen() {
     navigate('/routines', { state: { activeTab: 'today' } });
   };
 
+  // ── Autorregulación Powerlifting (fuerza máxima): registrar resultado y mostrar decisión ──
+  const handlePowerliftingEffortSubmit = async ({ rpe, targetMet, goodTechnique }) => {
+    const planId = localState.pendingSessionData?.methodology_plan_id
+      ?? localState.pendingSessionData?.planId
+      ?? null;
+    updateLocalState({ isSavingEffort: true });
+    try {
+      const resp = await apiClient.post('/methodology-session/powerlifting/session-result', {
+        methodologyPlanId: planId,
+        rpe,
+        targetMet,
+        goodTechnique
+      });
+      const data = resp?.data || resp;
+      updateLocalState({ powerliftingDecision: data?.decision || 'hold' });
+    } catch (err) {
+      console.warn('⚠️ No se pudo registrar la autorregulación Powerlifting:', err?.message);
+      updateLocalState({ powerliftingDecision: 'hold' });
+    } finally {
+      updateLocalState({ isSavingEffort: false });
+    }
+  };
+
+  const finishPowerliftingEffort = () => {
+    updateLocalState({
+      showPowerliftingEffort: false,
+      powerliftingDecision: null,
+      pendingSessionData: null
+    });
+    navigate('/routines', { state: { activeTab: 'today' } });
+  };
+
+  // ── Autorregulación Heavy Duty (HIT/fallo): registrar resultado y mostrar decisión ──
+  const handleHeavyDutyEffortSubmit = async ({ reachedFailure, targetMet }) => {
+    const planId = localState.pendingSessionData?.methodology_plan_id
+      ?? localState.pendingSessionData?.planId
+      ?? null;
+    updateLocalState({ isSavingEffort: true });
+    try {
+      const resp = await apiClient.post('/methodology-session/heavy-duty/session-result', {
+        methodologyPlanId: planId,
+        reachedFailure,
+        targetMet
+      });
+      const data = resp?.data || resp;
+      updateLocalState({ heavyDutyDecision: data?.decision || 'hold' });
+    } catch (err) {
+      console.warn('⚠️ No se pudo registrar la autorregulación Heavy Duty:', err?.message);
+      updateLocalState({ heavyDutyDecision: 'hold' });
+    } finally {
+      updateLocalState({ isSavingEffort: false });
+    }
+  };
+
+  const finishHeavyDutyEffort = () => {
+    updateLocalState({
+      showHeavyDutyEffort: false,
+      heavyDutyDecision: null,
+      pendingSessionData: null
+    });
+    navigate('/routines', { state: { activeTab: 'today' } });
+  };
+
   // ===============================================
   // 🎨 RENDER
   // ===============================================
@@ -1966,6 +2040,7 @@ export default function MethodologiesScreen() {
             : localState.pendingMethodology?.name === 'Entrenamiento en Casa' ? 'Entrenamiento en Casa'
             : localState.pendingMethodology?.name === 'Funcional' ? 'Funcional'
             : localState.pendingMethodology?.name === 'Halterofilia' ? 'Halterofilia'
+            : localState.pendingMethodology?.name === 'Powerlifting' ? 'Powerlifting'
             : localState.pendingMethodology?.name === 'Heavy Duty' ? 'Heavy Duty'
             : 'Hipertrofia'
         }
@@ -1983,6 +2058,7 @@ export default function MethodologiesScreen() {
             : localState.pendingMethodology?.name === 'Entrenamiento en Casa' ? CASA_FOCUS_GROUPS
             : localState.pendingMethodology?.name === 'Funcional' ? FUNCIONAL_FOCUS_GROUPS
             : localState.pendingMethodology?.name === 'Halterofilia' ? HALTEROFILIA_FOCUS_GROUPS
+            : localState.pendingMethodology?.name === 'Powerlifting' ? POWERLIFTING_FOCUS_GROUPS
             : localState.pendingMethodology?.name === 'Heavy Duty' ? HEAVY_DUTY_FOCUS_GROUPS
             : undefined
         }
@@ -2025,6 +2101,26 @@ export default function MethodologiesScreen() {
         onSubmit={handleHalterofiliaEffortSubmit}
         onSkip={finishHalterofiliaEffort}
         onContinue={finishHalterofiliaEffort}
+      />
+
+      {/* Autorregulación Powerlifting: auto-evaluación de esfuerzo (RPE/carga/técnica) al completar la sesión */}
+      <PowerliftingEffortModal
+        isOpen={localState.showPowerliftingEffort}
+        isLoading={localState.isSavingEffort}
+        result={localState.powerliftingDecision}
+        onSubmit={handlePowerliftingEffortSubmit}
+        onSkip={finishPowerliftingEffort}
+        onContinue={finishPowerliftingEffort}
+      />
+
+      {/* Autorregulación Heavy Duty: auto-evaluación de esfuerzo (fallo + tope de rango) al completar la sesión */}
+      <HeavyDutyEffortModal
+        isOpen={localState.showHeavyDutyEffort}
+        isLoading={localState.isSavingEffort}
+        result={localState.heavyDutyDecision}
+        onSubmit={handleHeavyDutyEffortSubmit}
+        onSkip={finishHeavyDutyEffort}
+        onContinue={finishHeavyDutyEffort}
       />
 
       {/* Autorregulación Funcional: auto-evaluación de esfuerzo (RIR/cumplimiento) al completar la sesión */}
@@ -2223,6 +2319,13 @@ export default function MethodologiesScreen() {
                 showHalterofiliaEffort: true,
                 halterofiliaDecision: null
               });
+            } else if (methodologyName === 'Powerlifting') {
+              // Autorregulación de fuerza máxima: pedir RPE/carga/técnica antes de cerrar.
+              updateLocalState({
+                showRoutineSessionModal: false,
+                showPowerliftingEffort: true,
+                powerliftingDecision: null
+              });
             } else if (methodologyName === 'Funcional') {
               // Autorregulación: pedir RIR/cumplimiento antes de cerrar (mantener pendingSessionData).
               updateLocalState({
@@ -2236,6 +2339,13 @@ export default function MethodologiesScreen() {
                 showRoutineSessionModal: false,
                 showCasaEffort: true,
                 casaDecision: null
+              });
+            } else if (methodologyName === 'Heavy Duty') {
+              // Autorregulación HIT (fallo/carga): pedir fallo + tope de rango antes de cerrar.
+              updateLocalState({
+                showRoutineSessionModal: false,
+                showHeavyDutyEffort: true,
+                heavyDutyDecision: null
               });
             } else {
               updateLocalState({ showRoutineSessionModal: false, pendingSessionData: null });
