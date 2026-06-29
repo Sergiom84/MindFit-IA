@@ -34,6 +34,7 @@ import StartDayConfirmationModal from '../routines/modals/StartDayConfirmationMo
 import SessionDistributionModal from '../routines/modals/SessionDistributionModal.jsx';
 import HipertrofiaWeekendModal from '../routines/modals/HipertrofiaWeekendModal.jsx';
 import HipertrofiaFocusModal from '../routines/modals/HipertrofiaFocusModal.jsx';
+import CalisteniaEffortModal from '../routines/modals/CalisteniaEffortModal.jsx';
 import apiClient from '@/lib/apiClient';
 
 // 🎯 HOOKS MODULARES - Refactorización incremental
@@ -1319,6 +1320,37 @@ export default function MethodologiesScreen() {
     startHipertrofiaSingleDay({ selectionMode: 'focus', focusGroup: group });
   };
 
+  // ── Autorregulación Calistenia: registrar resultado de sesión y mostrar decisión ──
+  const handleCalisteniaEffortSubmit = async ({ avgRir, targetMet }) => {
+    const planId = localState.pendingSessionData?.methodology_plan_id
+      ?? localState.pendingSessionData?.planId
+      ?? null;
+    updateLocalState({ isSavingEffort: true });
+    try {
+      const resp = await apiClient.post('/methodology-session/calistenia/session-result', {
+        methodologyPlanId: planId,
+        avgRir,
+        targetMet
+      });
+      const data = resp?.data || resp;
+      updateLocalState({ autoregDecision: data?.decision || 'hold' });
+    } catch (err) {
+      console.warn('⚠️ No se pudo registrar la autorregulación:', err?.message);
+      updateLocalState({ autoregDecision: 'hold' });
+    } finally {
+      updateLocalState({ isSavingEffort: false });
+    }
+  };
+
+  const finishCalisteniaEffort = () => {
+    updateLocalState({
+      showCalisteniaEffort: false,
+      autoregDecision: null,
+      pendingSessionData: null
+    });
+    navigate('/routines', { state: { activeTab: 'today' } });
+  };
+
   // ===============================================
   // 🎨 RENDER
   // ===============================================
@@ -1823,6 +1855,16 @@ export default function MethodologiesScreen() {
         muscleGroups={localState.pendingMethodology?.name === 'Calistenia' ? CALISTENIA_FOCUS_GROUPS : undefined}
       />
 
+      {/* Autorregulación Calistenia: auto-evaluación de esfuerzo al completar sesión */}
+      <CalisteniaEffortModal
+        isOpen={localState.showCalisteniaEffort}
+        isLoading={localState.isSavingEffort}
+        result={localState.autoregDecision}
+        onSubmit={handleCalisteniaEffortSubmit}
+        onSkip={finishCalisteniaEffort}
+        onContinue={finishCalisteniaEffort}
+      />
+
       {/* Modal de calentamiento para entrenamiento de fin de semana */}
       {localState.showWarmupModal && localState.pendingSessionData && (
         <WarmupModal
@@ -1943,12 +1985,18 @@ export default function MethodologiesScreen() {
           }}
           onCompleteSession={(sessionSummary) => {
             console.log('🎉 Sesión completada:', sessionSummary);
-            updateLocalState({
-              showRoutineSessionModal: false,
-              pendingSessionData: null
-            });
-            // Navegar a la pestaña de Hoy en rutinas
-            navigate('/routines', { state: { activeTab: 'today' } });
+            const isCalistenia = localState.pendingMethodology?.name === 'Calistenia';
+            if (isCalistenia) {
+              // Autorregulación: pedir RIR/cumplimiento antes de cerrar (mantener pendingSessionData).
+              updateLocalState({
+                showRoutineSessionModal: false,
+                showCalisteniaEffort: true,
+                autoregDecision: null
+              });
+            } else {
+              updateLocalState({ showRoutineSessionModal: false, pendingSessionData: null });
+              navigate('/routines', { state: { activeTab: 'today' } });
+            }
           }}
         />
       )}
