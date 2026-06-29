@@ -63,6 +63,8 @@ const methodologyApiKey = (name) => (name === 'Calistenia' ? 'calistenia' : 'hip
 // 🎨 MethodologyCard (nivel de módulo: referencia estable, sin remontajes)
 // ===============================================
 function MethodologyCard({ methodology, manualActive, onDetails, onSelect }) {
+  // Nombre visible (puede diferir del identificador interno `name`).
+  const label = methodology.displayName || methodology.name;
   return (
     <Card
       className={`bg-neutral-900/70 border border-white/10 border-l-2 border-l-yellow-400/30 ring-1 ring-white/5 backdrop-blur-lg transition-all duration-300 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] ${
@@ -70,14 +72,14 @@ function MethodologyCard({ methodology, manualActive, onDetails, onSelect }) {
           ? 'hover:border-yellow-400/40 hover:border-l-yellow-400/60 hover:shadow-[0_25px_60px_-45px_rgba(250,204,21,0.35)]'
           : 'hover:border-white/20 hover:border-l-yellow-400/50'
       }`}
-      aria-label={`Tarjeta de metodología ${methodology.name}`}
+      aria-label={`Tarjeta de metodología ${label}`}
     >
       <div className="p-4 pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
             {methodology.icon && <methodology.icon className="w-7 h-7 text-yellow-300" />}
             <h3 className="text-white text-base sm:text-xl font-semibold font-urbanist leading-tight break-words">
-              {methodology.name}
+              {label}
             </h3>
           </div>
           <span className="text-xs px-2 py-1 border border-white/10 bg-white/5 text-gray-200 rounded">
@@ -107,7 +109,7 @@ function MethodologyCard({ methodology, manualActive, onDetails, onSelect }) {
               e.stopPropagation();
               onDetails(methodology);
             }}
-            aria-label={`Ver detalles de ${methodology.name}`}
+            aria-label={`Ver detalles de ${label}`}
           >
             Ver Detalles
           </Button>
@@ -121,7 +123,7 @@ function MethodologyCard({ methodology, manualActive, onDetails, onSelect }) {
               // Activar modo manual (si hace falta) y seleccionar en un solo clic.
               onSelect(methodology, !manualActive);
             }}
-            aria-label={`Seleccionar metodología ${methodology.name}`}
+            aria-label={`Seleccionar metodología ${label}`}
           >
             Seleccionar
           </Button>
@@ -772,7 +774,7 @@ export default function MethodologiesScreen() {
 
       } catch (error) {
         console.error('❌ Error generando plan de Hipertrofia V2:', error);
-        ui.setError(error.message || 'Error al generar el plan de Hipertrofia V2');
+        ui.setError(error.message || 'Error al generar el plan de Hipertrofia');
       } finally {
         ui.setLoading(false);
       }
@@ -1543,7 +1545,7 @@ export default function MethodologiesScreen() {
         <Dialog open={ui.showHipertrofiaV2Manual} onOpenChange={() => ui.hideModal('hipertrofiaV2Manual')}>
           <DialogContent className="w-[95vw] max-w-[95vw] mx-auto sm:max-w-4xl max-h-[90vh] overflow-y-auto pb-[calc(7rem+env(safe-area-inset-bottom))] sm:pb-6">
             <DialogHeader className="sr-only">
-              <DialogTitle>Hipertrofia V2 - Tracking RIR</DialogTitle>
+              <DialogTitle>Hipertrofia - Tracking RIR</DialogTitle>
             </DialogHeader>
             <HipertrofiaV2ManualCard
               onGenerate={handleHipertrofiaV2ManualGenerate}
@@ -1773,7 +1775,7 @@ export default function MethodologiesScreen() {
         onLater={handleHipertrofiaWeekendLater}
         onClose={closeHipertrofiaWeekendModals}
         isLoading={localState.isGeneratingSingleDay}
-        methodologyName={localState.pendingMethodology?.name || 'HipertrofiaV2'}
+        methodologyName={localState.pendingMethodology?.name === 'Calistenia' ? 'Calistenia' : 'Hipertrofia'}
       />
       <HipertrofiaFocusModal
         isOpen={localState.showHpv2FocusModal}

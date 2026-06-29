@@ -10,7 +10,7 @@ export default function HipertrofiaWeekendModal({
   onLater,
   onClose,
   isLoading = false,
-  methodologyName = 'HipertrofiaV2'
+  methodologyName = 'Hipertrofia'
 }) {
   if (!isOpen) return null;
 

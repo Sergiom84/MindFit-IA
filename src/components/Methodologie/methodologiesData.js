@@ -400,7 +400,11 @@ export const METHODOLOGIES = [
   },
   {
     id: 'hipertrofiaV2',
+    // `name` es el identificador interno cableado (lógica, BD, endpoint); NO cambiar.
+    // `displayName` es lo que ve el usuario: tras retirar la Hipertrofia legacy,
+    // HipertrofiaV2 ocupa su lugar y se muestra simplemente como "Hipertrofia".
     name: 'HipertrofiaV2',
+    displayName: 'Hipertrofia',
     description: 'Sistema Full Body con tracking RIR y autorregulación automática',
     detailedDescription: 'Metodología avanzada de hipertrofia con tracking de RIR (Reps In Reserve) por serie. Incorpora autorregulación automática basada en datos reales del usuario, selección aleatoria de ejercicios y calendario adaptativo. Sistema inteligente que ajusta cargas según el esfuerzo real reportado.',
     focus: 'Hipertrofia inteligente',

@@ -24,12 +24,16 @@ export const getMethodologyDescription = (methodology) => {
  * Obtiene el nombre principal de la metodología desde múltiples fuentes
  */
 export const getMethodologyName = (plan, session) => {
-  return plan?.selected_style ||
+  const raw = plan?.selected_style ||
          plan?.metodologia ||
          plan?.methodologyType ||      // camelCase del WorkoutContext
          plan?.methodology_type ||     // snake_case de BD
          session?.methodology_type ||
          'Entrenamiento de Hoy';
+  // Display: el identificador interno 'HipertrofiaV2' (y su variante MindFeed)
+  // se muestra al usuario simplemente como "Hipertrofia".
+  if (raw === 'HipertrofiaV2' || raw === 'HipertrofiaV2_MindFeed') return 'Hipertrofia';
+  return raw;
 };
 
 /**

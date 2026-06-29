@@ -393,7 +393,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
           <Dumbbell className="w-8 h-8 text-yellow-300" />
           <div>
             <h2 className="text-2xl font-bold text-white">
-              Hipertrofia V2 - MindFeed
+              Hipertrofia - MindFeed
             </h2>
             <p className="text-gray-300/70 text-sm">
               Sistema de Periodización Inteligente D1-D5

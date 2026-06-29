@@ -660,7 +660,7 @@ const AdaptationDashboard = ({
                     </p>
                     <p className="text-sm text-green-700 mt-1">
                       Has cumplido todos los criterios de adaptación.
-                      Puedes transicionar al ciclo D1-D5 de HipertrofiaV2.
+                      Puedes transicionar al ciclo D1-D5 de Hipertrofia.
                     </p>
                     <button
                       onClick={() => {
@@ -728,7 +728,7 @@ const AdaptationDashboard = ({
               </h2>
               <p className="text-gray-600 mb-6">
                 Has cumplido todos los criterios necesarios. 
-                Ahora estás listo para comenzar el programa completo de HipertrofiaV2 con el ciclo D1-D5.
+                Ahora estás listo para comenzar el programa completo de Hipertrofia con el ciclo D1-D5.
               </p>
               
               <div className="bg-blue-50 rounded-lg p-4 mb-6">

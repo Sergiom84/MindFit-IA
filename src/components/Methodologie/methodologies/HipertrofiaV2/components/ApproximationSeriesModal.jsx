@@ -27,7 +27,7 @@ export default function ApproximationSeriesModal({ show, onClose, exerciseName }
         </p>
 
         <div className="bg-gray-800/60 border border-gray-700 rounded-lg p-3 space-y-2 text-sm text-gray-100">
-          <p className="font-semibold">Principiante (HipertrofiaV2):</p>
+          <p className="font-semibold">Principiante (Hipertrofia):</p>
           <ul className="list-disc list-inside space-y-1">
             <li>1) 40% del primer peso efectivo → 8 repeticiones</li>
             <li>2) 60% del primer peso efectivo → 5 repeticiones</li>

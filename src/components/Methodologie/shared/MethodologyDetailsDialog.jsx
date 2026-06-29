@@ -146,7 +146,7 @@ export default function MethodologyDetailsDialog(props) {
         {detailsMethod?.icon && React.createElement(detailsMethod.icon, {
           className: `w-6 h-6 mr-3 text-${DIALOG_CONFIG.THEME.PRIMARY}`
         })}
-        {detailsMethod?.name || 'Detalles'}
+        {detailsMethod?.displayName || detailsMethod?.name || 'Detalles'}
       </DialogTitle>
       <DialogDescription className={`text-${DIALOG_CONFIG.THEME.TEXT.MUTED}`}>
         Información completa de la metodología seleccionada.
@@ -179,7 +179,7 @@ export default function MethodologyDetailsDialog(props) {
           Video Explicativo
         </h4>
         <p className={`text-${DIALOG_CONFIG.THEME.TEXT.MUTED} text-sm`}>
-          Próximamente: Video detallado sobre la metodología {detailsMethod.name}
+          Próximamente: Video detallado sobre la metodología {detailsMethod.displayName || detailsMethod.name}
         </p>
       </div>
     );
