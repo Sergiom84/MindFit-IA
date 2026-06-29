@@ -50,7 +50,7 @@ import { useMethodologyValidation } from './hooks/useMethodologyValidation';
 
 // Metodologías que usan el flujo "single-day" in-app (modal fin de semana →
 // elección de foco → calentamiento → reproductor de ejercicios).
-const SINGLE_DAY_METHODOLOGIES = ['HipertrofiaV2', 'Calistenia', 'CrossFit', 'Entrenamiento en Casa', 'Funcional', 'Halterofilia'];
+const SINGLE_DAY_METHODOLOGIES = ['HipertrofiaV2', 'Calistenia', 'CrossFit', 'Entrenamiento en Casa', 'Funcional', 'Halterofilia', 'Heavy Duty'];
 
 // Grupos focales por metodología para el modal de "¿Qué prefieres entrenar?".
 const CALISTENIA_FOCUS_GROUPS = [
@@ -99,6 +99,17 @@ const HALTEROFILIA_FOCUS_GROUPS = [
   { id: 'Fuerza Base', label: 'Fuerza' }
 ];
 
+// Para Heavy Duty (HIT/Mentzer) el "foco" es el grupo muscular (agrupa las
+// categorías reales del catálogo disciplina='heavy_duty' por ILIKE en backend).
+const HEAVY_DUTY_FOCUS_GROUPS = [
+  { id: 'Pecho', label: 'Pecho' },
+  { id: 'Espalda', label: 'Espalda' },
+  { id: 'Piernas', label: 'Piernas' },
+  { id: 'Hombros', label: 'Hombros' },
+  { id: 'Brazos', label: 'Brazos' },
+  { id: 'Core', label: 'Core' }
+];
+
 // Mapea el nombre de metodología del frontend a la clave de API single-day.
 const methodologyApiKey = (name) => {
   if (name === 'Calistenia') return 'calistenia';
@@ -106,6 +117,7 @@ const methodologyApiKey = (name) => {
   if (name === 'Entrenamiento en Casa') return 'casa';
   if (name === 'Funcional') return 'funcional';
   if (name === 'Halterofilia') return 'halterofilia';
+  if (name === 'Heavy Duty') return 'heavy_duty';
   return 'hipertrofia';
 };
 
@@ -1922,6 +1934,7 @@ export default function MethodologiesScreen() {
             : localState.pendingMethodology?.name === 'Entrenamiento en Casa' ? 'Entrenamiento en Casa'
             : localState.pendingMethodology?.name === 'Funcional' ? 'Funcional'
             : localState.pendingMethodology?.name === 'Halterofilia' ? 'Halterofilia'
+            : localState.pendingMethodology?.name === 'Heavy Duty' ? 'Heavy Duty'
             : 'Hipertrofia'
         }
       />
@@ -1938,6 +1951,7 @@ export default function MethodologiesScreen() {
             : localState.pendingMethodology?.name === 'Entrenamiento en Casa' ? CASA_FOCUS_GROUPS
             : localState.pendingMethodology?.name === 'Funcional' ? FUNCIONAL_FOCUS_GROUPS
             : localState.pendingMethodology?.name === 'Halterofilia' ? HALTEROFILIA_FOCUS_GROUPS
+            : localState.pendingMethodology?.name === 'Heavy Duty' ? HEAVY_DUTY_FOCUS_GROUPS
             : undefined
         }
       />

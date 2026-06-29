@@ -16,6 +16,7 @@ import { generateCrossFitSingleDay } from '../services/singleDay/crossfitSingleD
 import { generateCasaSingleDay } from '../services/singleDay/casaSingleDay.js';
 import { generateFuncionalSingleDay } from '../services/singleDay/funcionalSingleDay.js';
 import { generateHalterofiliaSingleDay } from '../services/singleDay/halterofiliaSingleDay.js';
+import { generateHeavyDutySingleDay } from '../services/singleDay/heavyDutySingleDay.js';
 import { logger } from '../services/hipertrofiaV2/logger.js';
 import { cleanupUserStaleSessions } from '../services/sessionCleanupService.js';
 
@@ -29,6 +30,7 @@ function normalizeMethodology(raw) {
   if (m.includes('casa')) return 'casa';
   if (m.includes('funcional') || m.includes('functional')) return 'funcional';
   if (m.includes('halterofilia') || m.includes('halterofília') || m.includes('weightlifting')) return 'halterofilia';
+  if (m.includes('heavy') || m.includes('heavy_duty') || m.includes('heavy-duty')) return 'heavy_duty';
   if (m.includes('hipertrofia')) return 'hipertrofia';
   return m;
 }
@@ -84,6 +86,11 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
       });
     } else if (method === 'halterofilia') {
       result = await generateHalterofiliaSingleDay(dbClient, userId, nivel, isWeekendExtra, {
+        selectionMode,
+        focusGroup
+      });
+    } else if (method === 'heavy_duty') {
+      result = await generateHeavyDutySingleDay(dbClient, userId, nivel, isWeekendExtra, {
         selectionMode,
         focusGroup
       });
