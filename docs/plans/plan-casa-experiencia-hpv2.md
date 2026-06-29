@@ -59,3 +59,41 @@ Lo que define el entrenamiento en casa es "¿qué material tienes?" (nada / band
 
 - `npm run test:backend` (caso casa en el test del orquestador/generador).
 - Navegador: Métodos → Entrenamiento en Casa → equipamiento → reproductor con RIR → plan completo → calendario.
+
+---
+
+## Fase 5 — DECISIÓN (2026-06-30): dejar `/home-training` como DEUDA DOCUMENTADA
+
+Tras completar Fases 1-4 (single-day + plan completo con equipamiento/RIR, ruleset `casa_v1` con deload y autorregulación `casa_autoreg`), se evaluó retirar/absorber la pantalla legacy `/home-training`. **Decisión: NO retirar ni tocar ahora; registrar como deuda técnica.**
+
+### Por qué NO se retira (a diferencia de la Hipertrofia legacy)
+
+`/home-training` **no es** redundante con el flujo de metodología casa: es un sistema maduro con capacidades que las Fases 1-4 **no cubren**:
+
+- **Generación por IA (OpenAI)** del plan de casa: `routes/IAHomeTraining.js` / `routes/homeTraining/plans.js` (`POST /api/ia-home-training/generate`). El flujo de metodología casa es determinista (motor `GymRoutineService`/`planEngine`), no usa OpenAI.
+- **Inventario real de equipamiento del usuario**: `app.user_equipment` (13 usuarios lo configuraron), `app.user_custom_equipment`, catálogo `app.equipment_catalog`/`equipment_items`, modo `usar_este_equipamiento`. El flujo de metodología casa usa un selector simple (mínimo/básico/avanzado) → filtro `equipamiento <@ allowed`.
+- **Integración con Perfil > Mi equipamiento** (`EquipmentTab.jsx`), `/api/equipment`.
+- **Punto de entrada primario** en `HomePage.jsx` (botón "Entrenamiento en Casa" → `/home-training`) y opción `isHomeTraining` en `StartDayConfirmationModal`.
+- 12 componentes en `src/components/HomeTraining/*` + tablas `app.home_training_plans`, `home_training_sessions`, `home_exercise_history/progress/rejections`, `user_home_training_stats`.
+
+### Evidencia de uso (BD producción, 2026-06-30)
+
+| Tabla                      | Filas | Último   |
+| -------------------------- | ----- | -------- |
+| `home_training_plans`      | 10    | feb 2026 |
+| `home_training_sessions`   | 1     | ene 2026 |
+| `user_equipment`           | 13    | feb 2026 |
+| `user_home_training_stats` | 8     | jun 2026 |
+
+Feature mayormente **dormida** pero con datos reales (equipamiento de 13 usuarios). Retirarla sería **destructivo y una regresión**, dejando huérfanas tablas y la pestaña de equipamiento del Perfil.
+
+### Qué requeriría una consolidación real (futuro, fuera de MVP)
+
+1. Portar al flujo de metodología casa la **generación IA opcional** por inventario del usuario (o decidir descartarla).
+2. Conectar el **inventario `user_equipment`** al filtro de equipamiento de metodología (sustituir/complementar el selector mínimo/básico/avanzado).
+3. Migrar/retirar tablas `home_training_*` y reapuntar `HomePage`/`StartDayConfirmationModal` al flujo unificado.
+4. Solo entonces eliminar `src/components/HomeTraining/*` y `routes/homeTraining/*`.
+
+### Estado
+
+Deuda registrada. No se modifica código en esta fase. Reabrir cuando se priorice unificar los dos sistemas "casa".
