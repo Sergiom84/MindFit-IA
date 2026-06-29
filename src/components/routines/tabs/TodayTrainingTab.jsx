@@ -1728,24 +1728,22 @@ export default function TodayTrainingTab({
                   <div>
                     <h2 className="text-2xl font-semibold text-white font-urbanist">
                       Entrenamiento de Hoy
-                      {/* 🎯 NUEVO: Mostrar número de sesión si hay mapeo */}
-                      {planConfig?.day_mappings && (
-                        <span className="ml-3 text-lg font-normal text-yellow-400">
-                          (Sesión {
-                            (() => {
-                              const today = getTodayName();
-                              const todayAbbrev = today.substring(0, 3);
-                              const todayCapitalized = todayAbbrev.charAt(0).toUpperCase() + todayAbbrev.slice(1);
-                              const mapping = planConfig.day_mappings[todayCapitalized];
-                              if (mapping) {
-                                const sessionNum = mapping.replace('sesion_', '');
-                                return `${sessionNum} de ${planConfig.expected_sessions || 12}`;
-                              }
-                              return null;
-                            })()
-                          })
-                        </span>
-                      )}
+                      {/* 🎯 Mostrar número de sesión SOLO si hoy tiene mapeo
+                          (antes renderizaba "(Sesión )" vacío cuando no había). */}
+                      {(() => {
+                        if (!planConfig?.day_mappings) return null;
+                        const today = getTodayName();
+                        const todayAbbrev = today.substring(0, 3);
+                        const todayCapitalized = todayAbbrev.charAt(0).toUpperCase() + todayAbbrev.slice(1);
+                        const mapping = planConfig.day_mappings[todayCapitalized];
+                        if (!mapping) return null;
+                        const sessionNum = mapping.replace('sesion_', '');
+                        return (
+                          <span className="ml-3 text-lg font-normal text-yellow-400">
+                            (Sesión {sessionNum} de {planConfig.expected_sessions || 12})
+                          </span>
+                        );
+                      })()}
                     </h2>
                     <p className="text-gray-300/80">
                       {new Date().toLocaleDateString('es-ES', {

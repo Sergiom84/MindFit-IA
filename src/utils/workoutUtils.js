@@ -10,8 +10,14 @@ import {
  * Obtiene la descripción de una metodología
  */
 export const getMethodologyDescription = (methodology) => {
-  if (!methodology) return 'Entrenamiento personalizado adaptado a tu perfil';
-  return METHODOLOGY_DESCRIPTIONS[methodology] || 'Entrenamiento personalizado adaptado a tu perfil';
+  const fallback = 'Entrenamiento personalizado adaptado a tu perfil';
+  if (!methodology) return fallback;
+  const desc = METHODOLOGY_DESCRIPTIONS[methodology];
+  if (!desc) return fallback;
+  // Las descripciones pueden ser strings o objetos multiidioma { es, en }.
+  // Devolver siempre un string (antes se devolvía el objeto → "[object Object]").
+  if (typeof desc === 'string') return desc;
+  return desc.es || desc.en || fallback;
 };
 
 /**
