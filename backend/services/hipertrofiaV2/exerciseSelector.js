@@ -108,6 +108,7 @@ export function mapExercisesWithTrainingParams(exercises, sessionConfig, isFemal
     rir_target: sessionConfig.default_rir_target,
     descanso_seg: calculateRestTime(ex, isFemale, restSecondsByType),
     notas: ex.notas,
+    gif_url: ex.gif_url || null,
     intensidad_porcentaje: sessionConfig.intensity_percentage,
     ajuste_sexo: isFemale && (ex.tipo_ejercicio === 'unilateral' || ex.tipo_ejercicio === 'analitico')
       ? '-15% descanso (ajuste femenino)'

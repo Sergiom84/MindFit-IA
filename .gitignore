@@ -52,5 +52,9 @@ _supabase_backup_*/
 # Backups de migración con secretos del proyecto viejo
 *.bak-old-project
 
+# Generated exercise media mapping artifacts
+backend/scripts/.cache/
+backend/scripts/_out/
+
 # Codex CLI artifacts
 .codex/

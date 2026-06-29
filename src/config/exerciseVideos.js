@@ -92,31 +92,32 @@ export function hasLocalVideo(exerciseName) {
 }
 
 /**
- * Obtener URL de video (prioridad: BD > Local > Fallback único)
+ * Obtener URL de video/imagen (prioridad: video BD > gif BD > local/dev)
  *
  * @param {object} exercise - Objeto ejercicio con { nombre, video_url, gif_url }
  * @returns {string|null} - URL del video/gif o null
  */
 export function getExerciseVideoUrl(exercise) {
   if (!exercise) return null;
+  const exerciseName = exercise.nombre || exercise.exercise_name || exercise.name;
 
   // 1. Prioridad: video_url de BD (producción)
   if (exercise.video_url) {
     return exercise.video_url;
   }
 
-  // 2. Video local configurado (desarrollo/modo single/mapping)
-  const localVideo = getLocalVideo(exercise.nombre);
-  if (localVideo) {
-    return localVideo;
-  }
-
-  // 3. Fallback: gif_url de BD
+  // 2. GIF/imagen de BD
   if (exercise.gif_url) {
     return exercise.gif_url;
   }
 
-  // 4. ⚠️ NUEVO: Si DEV_VIDEO_MODE es 'single' y no hay video en BD,
+  // 3. Video local configurado (desarrollo/modo single/mapping)
+  const localVideo = getLocalVideo(exerciseName);
+  if (localVideo) {
+    return localVideo;
+  }
+
+  // 4. Si DEV_VIDEO_MODE es 'single' y no hay media en BD,
   //    usar el video único como fallback para pruebas
   if (DEV_VIDEO_MODE === 'single') {
     return DEV_SINGLE_VIDEO;

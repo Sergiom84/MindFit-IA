@@ -215,6 +215,7 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
             repeticiones: 10,
             descanso_seg: 60,
             notas: r.notas || null,
+            gif_url: r.gif_url || null
           }));
           console.log(`🛟 [start] Fallback ejercicios aleatorios aplicado (nivel=${levelNorm}) -> ${ejercicios.length} ejercicios`);
         } else {
@@ -245,16 +246,17 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
         `INSERT INTO app.methodology_exercise_progress (
            methodology_session_id, user_id, exercise_order, exercise_id, exercise_name,
            series_total, repeticiones, descanso_seg, intensidad, tempo, notas,
-           series_completed, status
+           gif_url, video_url, series_completed, status
          )
-         SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0, 'pending'
+         SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 0, 'pending'
          WHERE NOT EXISTS (
            SELECT 1 FROM app.methodology_exercise_progress
             WHERE methodology_session_id = $1 AND exercise_order = $3
          )`,
         [session.id, userId, order, exerciseId, ej.nombre || `Ejercicio ${i + 1}`,
          String(ej.series || '3'), String(repsTarget || '0'), restSeconds,
-         ej.intensidad || null, ej.tempo || null, ej.notas || null]
+         ej.intensidad || null, ej.tempo || null, ej.notas || null,
+         ej.gif_url || null, ej.video_url || null]
       );
     }
 
@@ -1017,9 +1019,9 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
     // Obtener progreso de ejercicios con feedback
     const exercisesQuery = await pool.query(
       `SELECT
-        p.exercise_order, p.exercise_name, p.series_total, p.series_completed,
+        p.exercise_order, p.exercise_id, p.exercise_name, p.series_total, p.series_completed,
         p.repeticiones, p.descanso_seg, p.intensidad, p.tempo, p.status,
-        p.time_spent_seconds, p.notas,
+        p.time_spent_seconds, p.notas, p.gif_url, p.video_url,
         f.sentiment, f.comment
        FROM app.methodology_exercise_progress p
        LEFT JOIN app.methodology_exercise_feedback f
@@ -1116,10 +1118,17 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
 
         if (progressData) {
           // Ejercicio con progreso guardado
-          return progressData;
+          return {
+            ...planEx,
+            ...progressData,
+            nombre: progressData.exercise_name || planEx.nombre,
+            gif_url: progressData.gif_url || planEx.gif_url || null,
+            video_url: progressData.video_url || planEx.video_url || null
+          };
         } else {
           // Ejercicio sin progreso = pending
           return {
+            ...planEx,
             exercise_order: index,
             exercise_name: planEx.nombre,
             series_total: planEx.series,
@@ -1131,6 +1140,8 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
             status: 'pending',
             time_spent_seconds: 0,
             notas: planEx.notas || null,
+            gif_url: planEx.gif_url || null,
+            video_url: planEx.video_url || null,
             sentiment: null,
             comment: null
           };
@@ -1141,7 +1152,10 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
       // Esto ocurre con Casa cuando los ejercicios ya fueron creados en la BD pero no están en workout_schedule
       console.log('📌 Using exercises from methodology_exercise_progress (Casa/methodology fallback)');
       console.log('📌 Exercises found:', exercisesQuery.rows.length);
-      completeExerciseList = exercisesQuery.rows;
+      completeExerciseList = exercisesQuery.rows.map((ex) => ({
+        ...ex,
+        nombre: ex.exercise_name
+      }));
     } else {
       // No exercises found anywhere
       console.log('⚠️ No exercises found in plan or progress table');
@@ -1222,7 +1236,7 @@ router.get('/sessions/:sessionId/progress', authenticateToken, async (req, res) 
        `SELECT
         mep.exercise_order, mep.exercise_id, mep.exercise_name, mep.series_total, mep.series_completed,
         mep.repeticiones, mep.descanso_seg, mep.intensidad, mep.tempo, mep.status,
-        mep.time_spent_seconds, mep.notas,
+        mep.time_spent_seconds, mep.notas, mep.gif_url, mep.video_url,
         mef.sentiment, mef.comment
        FROM app.methodology_exercise_progress mep
        LEFT JOIN app.methodology_exercise_feedback mef
@@ -1403,8 +1417,8 @@ router.get('/sessions/:sessionId/details', authenticateToken, async (req, res) =
     // Obtener progreso de ejercicios
     const exercisesQuery = await pool.query(
       `SELECT
-        exercise_order, exercise_name, series_total, series_completed,
-        status, time_spent_seconds, started_at, completed_at
+        exercise_order, exercise_id, exercise_name, series_total, series_completed,
+        status, time_spent_seconds, started_at, completed_at, gif_url, video_url
        FROM app.methodology_exercise_progress
        WHERE methodology_session_id = $1
        ORDER BY exercise_order ASC`,

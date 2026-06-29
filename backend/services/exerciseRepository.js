@@ -30,7 +30,8 @@ export const EXERCISE_COLUMNS = `
   notas,
   como_hacerlo,
   consejos,
-  errores_comunes
+  errores_comunes,
+  gif_url
 `;
 
 /**
@@ -53,7 +54,8 @@ export const HIPERTROFIA_COLUMNS = `
   notas,
   como_hacerlo,
   consejos,
-  errores_comunes
+  errores_comunes,
+  gif_url
 `;
 
 /**
@@ -82,7 +84,7 @@ export function allowedLevels(level) {
  */
 export async function getRandomByLevel(client, { disciplina, level = 'principiante', limit = 6, columns } = {}) {
   const db = client || pool;
-  const cols = columns || 'nombre, series_reps_objetivo, criterio_de_progreso, notas';
+  const cols = columns || 'nombre, series_reps_objetivo, criterio_de_progreso, notas, gif_url';
   const { rows } = await db.query(
     `SELECT ${cols}
        FROM app.ejercicios

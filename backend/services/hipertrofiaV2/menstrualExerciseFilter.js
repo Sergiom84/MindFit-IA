@@ -154,7 +154,8 @@ async function findAlternativeExercise(originalExercise, restriction) {
           notas: alt.notas,                  // Nuevas notas
           como_hacerlo: alt.como_hacerlo,    // Nueva descripción
           consejos: alt.consejos,
-          errores_comunes: alt.errores_comunes
+          errores_comunes: alt.errores_comunes,
+          gif_url: alt.gif_url || null
         };
       }
     }
@@ -192,6 +193,7 @@ async function findAlternativeExercise(originalExercise, restriction) {
         como_hacerlo: alt.como_hacerlo,
         consejos: alt.consejos,
         errores_comunes: alt.errores_comunes,
+        gif_url: alt.gif_url || null,
         auto_replacement: true  // Flag para indicar que fue reemplazo automático
       };
     }
@@ -228,6 +230,7 @@ async function findAlternativeExercise(originalExercise, restriction) {
         como_hacerlo: alt.como_hacerlo,
         consejos: alt.consejos,
         errores_comunes: alt.errores_comunes,
+        gif_url: alt.gif_url || null,
         auto_replacement: true,
         flexible_replacement: true  // Flag para indicar que cambió tipo de ejercicio
       };

@@ -4,6 +4,8 @@
 
 - Diagnóstico entrenamiento/calistenia: añadido `scripts/test-calistenia-generation.mjs` para verificar el contrato de generación de calistenia (`plan.semanas[]`) y permitir smoke API con token sin arrancar servidores desde el script.
 - Motor de generación de entrenamientos: el orquestador normaliza nombres legacy/de UI y payloads anidados, y el motor determinista cubre Calistenia, CrossFit, Funcional, Casa, Heavy Duty, Powerlifting, Halterofilia, Hipertrofia y Gimnasio con contrato `plan.semanas[]`; añadido test backend de contrato, smoke real transaccional con rollback en BD y verificación con `npm run test:backend` + `npm run lint`.
+- Ejercicios/media: añadida migración idempotente para `gif_url`/`video_url`, script `backend/scripts/map-exercise-gifs.mjs` con dry-run CSV contra free-exercise-db, propagación de `gif_url` por repositorio/API/planes/progreso de sesión, prioridad de render BD antes que vídeo de prueba e ignore de artefactos generados.
+- Ejercicios/media: aplicado en Supabase el mapeo automático seguro (`--apply`) de free-exercise-db, rellenando `gif_url` en 159 ejercicios con match de confianza alta y dejando `review`/`no_match` sin tocar.
 
 ## 06.03.2026
 

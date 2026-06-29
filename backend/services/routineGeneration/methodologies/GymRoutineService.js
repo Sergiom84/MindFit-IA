@@ -26,7 +26,7 @@ const GYM_LEVELS = {
 const GYM_COLUMNS = `
   source_exercise_id AS exercise_id,
   nombre, nivel, categoria, patron, patron_movimiento,
-  series_reps_objetivo, descanso_seg, tempo, criterio_de_progreso, como_hacerlo, notas, extra
+  series_reps_objetivo, descanso_seg, tempo, criterio_de_progreso, como_hacerlo, notas, gif_url, extra
 `;
 
 // Clasificadores de categoría → bucket macro.
@@ -307,6 +307,7 @@ function toGymExercise(methodConfig) {
       tempo: ex.tempo || null,
       como_hacerlo: ex.como_hacerlo || null,
       criterio_de_progreso: ex.criterio_de_progreso || null,
+      gif_url: ex.gif_url || null,
       notas: ov.notas ?? (ex.notas || ''),
       metodologia: methodConfig.displayName
     };
