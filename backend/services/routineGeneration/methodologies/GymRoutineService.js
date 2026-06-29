@@ -230,6 +230,7 @@ const METHOD_CONFIGS = {
     methodologyType: 'Entrenamiento en Casa',
     displayName: 'Entrenamiento en Casa',
     version: 'casa_v1',
+    rulesetScope: 'casa_v1',
     templates: CASA_TEMPLATES,
     bucketFn: casaBucket,
     coachTip: 'Ajusta el ritmo al espacio disponible y deja margen técnico en cada serie.',
