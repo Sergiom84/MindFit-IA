@@ -95,4 +95,39 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/methodology-session/calistenia/session-result
+ * Autorregulación de Calistenia: registra el resultado de una sesión completada
+ * (RIR medio + si se cumplió el objetivo de reps) y devuelve la decisión de
+ * ajuste para el próximo microciclo ('progress' | 'hold' | 'deload').
+ * Body: { methodologyPlanId?, avgRir, targetMet }
+ */
+router.post('/calistenia/session-result', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    const { methodologyPlanId = null, avgRir, targetMet } = req.body;
+
+    if (avgRir == null || typeof targetMet !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        error: 'avgRir (número) y targetMet (booleano) son requeridos'
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT app.calistenia_register_session_result($1, $2, $3, $4) AS result`,
+      [userId, methodologyPlanId, Number(avgRir), targetMet]
+    );
+
+    res.json({ success: true, ...result.rows[0].result });
+  } catch (error) {
+    logger.error('❌ [CALISTENIA-AUTOREG] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error registrando el resultado de la sesión',
+      details: error.message
+    });
+  }
+});
+
 export default router;
