@@ -203,6 +203,42 @@ router.post('/funcional/session-result', authenticateToken, async (req, res) => 
 });
 
 /**
+ * POST /api/methodology-session/casa/session-result
+ * Autorregulación de Entrenamiento en Casa (series×reps×RIR, mismo modelo que
+ * Calistenia/Funcional): registra el RIR medio + si se cumplió el objetivo y
+ * devuelve la decisión de ajuste del próximo microciclo
+ * ('progress' | 'hold' | 'deload').
+ * Body: { methodologyPlanId?, avgRir, targetMet }
+ */
+router.post('/casa/session-result', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    const { methodologyPlanId = null, avgRir, targetMet } = req.body;
+
+    if (avgRir == null || typeof targetMet !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        error: 'avgRir (número) y targetMet (booleano) son requeridos'
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT app.casa_register_session_result($1, $2, $3, $4) AS result`,
+      [userId, methodologyPlanId, Number(avgRir), targetMet]
+    );
+
+    res.json({ success: true, ...result.rows[0].result });
+  } catch (error) {
+    logger.error('❌ [CASA-AUTOREG] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error registrando el resultado de la sesión',
+      details: error.message
+    });
+  }
+});
+
+/**
  * POST /api/methodology-session/crossfit/wod-result
  * Autorregulación de CrossFit: registra el resultado de un WOD completado
  * (RPE 1-10 + si se completó dentro del time cap + escala usada) y devuelve la

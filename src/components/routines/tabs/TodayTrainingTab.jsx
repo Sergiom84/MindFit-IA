@@ -30,6 +30,7 @@ import {
 
 import RoutineSessionModal from '../RoutineSessionModal';
 import CalisteniaEffortModal from '../modals/CalisteniaEffortModal';
+import CasaEffortModal from '../modals/CasaEffortModal';
 import WarmupModal from '../WarmupModal';
 import { useWorkout } from '@/contexts/WorkoutContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -169,6 +170,8 @@ export default function TodayTrainingTab({
   const [currentPriority, setCurrentPriority] = useState(null);
   // Autorregulación Calistenia: auto-evaluación de esfuerzo al completar sesión
   const [calisteniaEffort, setCalisteniaEffort] = useState({ show: false, decision: null, saving: false });
+  // Autorregulación Casa: auto-evaluación de esfuerzo al completar sesión
+  const [casaEffort, setCasaEffort] = useState({ show: false, decision: null, saving: false });
 
   // 🎯 ADAPTACIÓN: Hook para evaluación de transición
   const {
@@ -962,6 +965,8 @@ export default function TodayTrainingTab({
         ).toLowerCase();
         if (planMethod.includes('calistenia')) {
           setCalisteniaEffort({ show: true, decision: null, saving: false });
+        } else if (planMethod.includes('casa')) {
+          setCasaEffort({ show: true, decision: null, saving: false });
         }
 
         // 🎯 ADAPTACIÓN: Evaluar semana si hay bloque activo
@@ -998,6 +1003,27 @@ export default function TodayTrainingTab({
 
   const handleCalisteniaEffortClose = useCallback(() => {
     setCalisteniaEffort({ show: false, decision: null, saving: false });
+  }, []);
+
+  // Autorregulación Casa: registra el resultado y muestra la decisión.
+  const handleCasaEffortSubmit = useCallback(async ({ avgRir, targetMet }) => {
+    setCasaEffort(prev => ({ ...prev, saving: true }));
+    try {
+      const resp = await apiClient.post('/methodology-session/casa/session-result', {
+        methodologyPlanId: methodologyPlanId || null,
+        avgRir,
+        targetMet
+      });
+      const data = resp?.data || resp;
+      setCasaEffort({ show: true, decision: data?.decision || 'hold', saving: false });
+    } catch (e) {
+      console.warn('⚠️ Autorregulación casa falló:', e?.message);
+      setCasaEffort({ show: true, decision: 'hold', saving: false });
+    }
+  }, [methodologyPlanId]);
+
+  const handleCasaEffortClose = useCallback(() => {
+    setCasaEffort({ show: false, decision: null, saving: false });
   }, []);
 
   const handleExerciseUpdate = useCallback(async (exerciseIndex, progressData) => {
@@ -2278,6 +2304,16 @@ export default function TodayTrainingTab({
         onSubmit={handleCalisteniaEffortSubmit}
         onSkip={handleCalisteniaEffortClose}
         onContinue={handleCalisteniaEffortClose}
+      />
+
+      {/* 🏠 Autorregulación Casa: auto-evaluación de esfuerzo */}
+      <CasaEffortModal
+        isOpen={casaEffort.show}
+        isLoading={casaEffort.saving}
+        result={casaEffort.decision}
+        onSubmit={handleCasaEffortSubmit}
+        onSkip={handleCasaEffortClose}
+        onContinue={handleCasaEffortClose}
       />
 
       {/* 🎯 FASE 2: Modal de Prioridad Muscular */}

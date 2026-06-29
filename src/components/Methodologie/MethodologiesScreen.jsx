@@ -38,6 +38,7 @@ import CalisteniaEffortModal from '../routines/modals/CalisteniaEffortModal.jsx'
 import CrossFitEffortModal from '../routines/modals/CrossFitEffortModal.jsx';
 import HalterofiliaEffortModal from '../routines/modals/HalterofiliaEffortModal.jsx';
 import FuncionalEffortModal from '../routines/modals/FuncionalEffortModal.jsx';
+import CasaEffortModal from '../routines/modals/CasaEffortModal.jsx';
 import CasaEquipmentModal from '../routines/modals/CasaEquipmentModal.jsx';
 import apiClient from '@/lib/apiClient';
 
@@ -1387,6 +1388,37 @@ export default function MethodologiesScreen() {
     navigate('/routines', { state: { activeTab: 'today' } });
   };
 
+  // ── Autorregulación Casa (series×reps×RIR, mismo modelo que Calistenia) ──
+  const handleCasaEffortSubmit = async ({ avgRir, targetMet }) => {
+    const planId = localState.pendingSessionData?.methodology_plan_id
+      ?? localState.pendingSessionData?.planId
+      ?? null;
+    updateLocalState({ isSavingEffort: true });
+    try {
+      const resp = await apiClient.post('/methodology-session/casa/session-result', {
+        methodologyPlanId: planId,
+        avgRir,
+        targetMet
+      });
+      const data = resp?.data || resp;
+      updateLocalState({ casaDecision: data?.decision || 'hold' });
+    } catch (err) {
+      console.warn('⚠️ No se pudo registrar la autorregulación Casa:', err?.message);
+      updateLocalState({ casaDecision: 'hold' });
+    } finally {
+      updateLocalState({ isSavingEffort: false });
+    }
+  };
+
+  const finishCasaEffort = () => {
+    updateLocalState({
+      showCasaEffort: false,
+      casaDecision: null,
+      pendingSessionData: null
+    });
+    navigate('/routines', { state: { activeTab: 'today' } });
+  };
+
   // ── Autorregulación CrossFit: registrar resultado del WOD y mostrar decisión ──
   const handleCrossfitEffortSubmit = async ({ rpe, completed, scale }) => {
     const planId = localState.pendingSessionData?.methodology_plan_id
@@ -2005,6 +2037,16 @@ export default function MethodologiesScreen() {
         onContinue={finishFuncionalEffort}
       />
 
+      {/* Autorregulación Casa: auto-evaluación de esfuerzo al completar sesión */}
+      <CasaEffortModal
+        isOpen={localState.showCasaEffort}
+        isLoading={localState.isSavingEffort}
+        result={localState.casaDecision}
+        onSubmit={handleCasaEffortSubmit}
+        onSkip={finishCasaEffort}
+        onContinue={finishCasaEffort}
+      />
+
       {/* Modal de calentamiento para entrenamiento de fin de semana */}
       {localState.showWarmupModal && localState.pendingSessionData && (
         <WarmupModal
@@ -2187,6 +2229,13 @@ export default function MethodologiesScreen() {
                 showRoutineSessionModal: false,
                 showFuncionalEffort: true,
                 funcionalDecision: null
+              });
+            } else if (methodologyName === 'Entrenamiento en Casa') {
+              // Autorregulación: pedir RIR/cumplimiento antes de cerrar (mantener pendingSessionData).
+              updateLocalState({
+                showRoutineSessionModal: false,
+                showCasaEffort: true,
+                casaDecision: null
               });
             } else {
               updateLocalState({ showRoutineSessionModal: false, pendingSessionData: null });
