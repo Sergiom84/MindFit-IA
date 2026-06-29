@@ -15,6 +15,7 @@ import { useMousePosition } from './hooks/useMousePosition.js';
 import MethodologyDetailsDialog from './shared/MethodologyDetailsDialog.jsx';
 import TrainingPlanConfirmationModal from '../routines/TrainingPlanConfirmationModal.jsx';
 import RoutineSessionModal from '../routines/RoutineSessionModal.jsx';
+import WodSessionModal from '../routines/WodSessionModal.jsx';
 import WarmupModal from '../routines/WarmupModal.jsx';
 import MethodologyVersionSelectionModal from './shared/MethodologyVersionSelectionModal.jsx';
 import CalisteniaManualCard from './methodologies/CalisteniaManual/CalisteniaManualCard.jsx';
@@ -34,6 +35,9 @@ import SessionDistributionModal from '../routines/modals/SessionDistributionModa
 import HipertrofiaWeekendModal from '../routines/modals/HipertrofiaWeekendModal.jsx';
 import HipertrofiaFocusModal from '../routines/modals/HipertrofiaFocusModal.jsx';
 import CalisteniaEffortModal from '../routines/modals/CalisteniaEffortModal.jsx';
+import CrossFitEffortModal from '../routines/modals/CrossFitEffortModal.jsx';
+import HalterofiliaEffortModal from '../routines/modals/HalterofiliaEffortModal.jsx';
+import CasaEquipmentModal from '../routines/modals/CasaEquipmentModal.jsx';
 import apiClient from '@/lib/apiClient';
 
 // 🎯 HOOKS MODULARES - Refactorización incremental
@@ -45,7 +49,7 @@ import { useMethodologyValidation } from './hooks/useMethodologyValidation';
 
 // Metodologías que usan el flujo "single-day" in-app (modal fin de semana →
 // elección de foco → calentamiento → reproductor de ejercicios).
-const SINGLE_DAY_METHODOLOGIES = ['HipertrofiaV2', 'Calistenia'];
+const SINGLE_DAY_METHODOLOGIES = ['HipertrofiaV2', 'Calistenia', 'CrossFit', 'Entrenamiento en Casa', 'Funcional', 'Halterofilia'];
 
 // Grupos focales por metodología para el modal de "¿Qué prefieres entrenar?".
 const CALISTENIA_FOCUS_GROUPS = [
@@ -56,8 +60,53 @@ const CALISTENIA_FOCUS_GROUPS = [
   { id: 'Equilibrio/Soporte', label: 'Equilibrio' }
 ];
 
+// Para CrossFit el "foco" es el formato de WOD o el dominio principal.
+const CROSSFIT_FOCUS_GROUPS = [
+  { id: 'amrap', label: 'AMRAP' },
+  { id: 'for_time', label: 'For Time' },
+  { id: 'emom', label: 'EMOM' },
+  { id: 'chipper', label: 'Chipper' },
+  { id: 'Weightlifting', label: 'Halterofilia' },
+  { id: 'Gymnastic', label: 'Gimnásticos' }
+];
+
+// Para Entrenamiento en Casa el "foco" es el tipo de trabajo (mapea a categorías
+// reales del catálogo disciplina='casa').
+const CASA_FOCUS_GROUPS = [
+  { id: 'Fuerza', label: 'Fuerza' },
+  { id: 'Funcional', label: 'Funcional' },
+  { id: 'Cardio', label: 'Cardio' },
+  { id: 'Movilidad', label: 'Movilidad' }
+];
+
+// Para Funcional el "foco" es el patrón de movimiento (mapea a categorías
+// reales del catálogo disciplina='funcional').
+const FUNCIONAL_FOCUS_GROUPS = [
+  { id: 'Empuje', label: 'Empuje' },
+  { id: 'Tracción', label: 'Tracción' },
+  { id: 'Piernas', label: 'Piernas' },
+  { id: 'Core', label: 'Core' },
+  { id: 'Movilidad', label: 'Movilidad' }
+];
+
+// Para Halterofilia el "foco" es la categoría olímpica (mapea a categorías
+// reales del catálogo disciplina='halterofilia').
+const HALTEROFILIA_FOCUS_GROUPS = [
+  { id: 'Snatch', label: 'Snatch' },
+  { id: 'Clean & Jerk', label: 'Clean & Jerk' },
+  { id: 'Técnica', label: 'Técnica' },
+  { id: 'Fuerza Base', label: 'Fuerza' }
+];
+
 // Mapea el nombre de metodología del frontend a la clave de API single-day.
-const methodologyApiKey = (name) => (name === 'Calistenia' ? 'calistenia' : 'hipertrofia');
+const methodologyApiKey = (name) => {
+  if (name === 'Calistenia') return 'calistenia';
+  if (name === 'CrossFit') return 'crossfit';
+  if (name === 'Entrenamiento en Casa') return 'casa';
+  if (name === 'Funcional') return 'funcional';
+  if (name === 'Halterofilia') return 'halterofilia';
+  return 'hipertrofia';
+};
 
 // ===============================================
 // 🎨 MethodologyCard (nivel de módulo: referencia estable, sin remontajes)
@@ -787,52 +836,8 @@ export default function MethodologiesScreen() {
   const handleCrossFitManualGenerate = (crossfitData) =>
     runManualGenerate({ trackId: 'generate_crossfit', methodology: 'crossfit', dataKey: 'crossfitData', hideModalName: 'crossfitManual', data: crossfitData });
 
-  const handleFuncionalManualGenerate = async (funcionalData) => {
-    try { track('ACTION', { id: 'generate_funcional' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
-
-    // 🛡️ Prevenir múltiples clicks estableciendo loading inmediatamente
-    if (ui.isLoading) {
-      console.warn('⚠️ Ya hay una generación en curso, ignorando click...');
-      return;
-    }
-
-    await runWithActivePlanGuard(async () => {
-      ui.setLoading(true);
-
-      try {
-        console.log('⚙️ Generando plan de Entrenamiento Funcional...');
-
-        // Usar generatePlan del WorkoutContext
-        const result = await generatePlan({
-          mode: 'manual',
-          methodology: 'funcional',
-          funcionalData
-        });
-
-        if (result.success) {
-          console.log('✅ Plan de Funcional generado exitosamente');
-          ui.hideModal('funcionalManual');
-
-          // 🛡️ VALIDAR DATOS ANTES DE MOSTRAR MODAL
-          const validation = validatePlanData(result.plan);
-          if (validation.isValid) {
-            ui.showModal('planConfirmation');
-          } else {
-            console.error('❌ Plan inválido:', validation.error);
-            ui.setError(`Plan generado incorrectamente: ${validation.error}`);
-          }
-        } else {
-          throw new Error(result.error || 'Error al generar el plan de Funcional');
-        }
-
-      } catch (error) {
-        console.error('❌ Error generando plan de Funcional:', error);
-        ui.setError(error.message || 'Error al generar el plan de Funcional');
-      } finally {
-        ui.setLoading(false);
-      }
-    });
-  };
+  const handleFuncionalManualGenerate = (funcionalData) =>
+    runManualGenerate({ trackId: 'generate_funcional', methodology: 'funcional', dataKey: 'funcionalData', hideModalName: 'funcionalManual', data: funcionalData });
 
   const handleHalterofíliaManualGenerate = async (halterofíliaData) => {
     try { track('ACTION', { id: 'generate_halterofilia' }, { component: 'MethodologiesScreen' }); } catch (e) { console.warn('Track error:', e); }
@@ -1184,14 +1189,18 @@ export default function MethodologiesScreen() {
     updateLocalState({
       showHpv2WeekendModal: false,
       showHpv2FocusModal: false,
+      showCasaEquipmentModal: false,
       isGeneratingSingleDay: false,
-      pendingFocusGroup: null
+      pendingFocusGroup: null,
+      pendingEquipment: null
     });
   };
 
-  const startHipertrofiaSingleDay = async ({ selectionMode = 'full_body', focusGroup = null, nivelOverride = null }) => {
+  const startHipertrofiaSingleDay = async ({ selectionMode = 'full_body', focusGroup = null, nivelOverride = null, equipment = null }) => {
     const nivel = nivelOverride || localState.pendingLevel || getUserLevel();
     const methodologyName = localState.pendingMethodology?.name || 'HipertrofiaV2';
+    // Material disponible (solo aplica a Entrenamiento en Casa).
+    const equipmentList = equipment ?? localState.pendingEquipment ?? null;
     updateLocalState({ isGeneratingSingleDay: true });
 
     try {
@@ -1200,7 +1209,8 @@ export default function MethodologiesScreen() {
         nivel,
         isWeekendExtra: true,
         selectionMode,
-        focusGroup
+        focusGroup,
+        ...(equipmentList ? { equipment: equipmentList } : {})
       });
 
       const data = response.data || response;
@@ -1209,13 +1219,19 @@ export default function MethodologiesScreen() {
       }
 
       const workout = data.workout || {};
+      const discipline = workout.discipline || methodologyApiKey(methodologyName);
+      const isCrossFit = discipline === 'crossfit';
       const sessionData = {
         dia: new Date().toLocaleDateString('es-ES', { weekday: 'long' }),
-        tipo: selectionMode === 'focus' && focusGroup ? `Foco: ${focusGroup}` : 'Full Body',
+        tipo: isCrossFit
+          ? (workout.wod?.label || 'WOD del Día')
+          : (selectionMode === 'focus' && focusGroup ? `Foco: ${focusGroup}` : 'Full Body'),
         ejercicios: workout.exercises || [],
         isWeekendExtra: true,
         sessionId: data.sessionId,
-        nivel
+        nivel,
+        discipline,
+        wod: workout.wod || null
       };
 
       updateLocalState({
@@ -1235,6 +1251,16 @@ export default function MethodologiesScreen() {
   };
 
   const handleHipertrofiaWeekendAccept = () => {
+    // Entrenamiento en Casa: antes de nada, preguntar el material disponible.
+    if (localState.pendingMethodology?.name === 'Entrenamiento en Casa') {
+      updateLocalState({
+        showHpv2WeekendModal: false,
+        showCasaEquipmentModal: true,
+        pendingLevel: getUserLevel()
+      });
+      return;
+    }
+
     const level = getUserLevel();
     // Intermedio/Avanzado → ofrecer elección Full Body vs. foco muscular
     if (level === 'Intermedio' || level === 'Avanzado') {
@@ -1248,6 +1274,24 @@ export default function MethodologiesScreen() {
 
     // Principiante → Full Body directo
     startHipertrofiaSingleDay({ selectionMode: 'full_body', nivelOverride: level });
+  };
+
+  // Casa: tras elegir el material, seguir con el mismo reparto por nivel
+  // (Intermedio/Avanzado → elección de foco; Principiante → Full Body directo).
+  const handleCasaEquipmentConfirm = (equipment) => {
+    const level = getUserLevel();
+    updateLocalState({
+      pendingEquipment: equipment,
+      showCasaEquipmentModal: false,
+      pendingLevel: level
+    });
+
+    if (level === 'Intermedio' || level === 'Avanzado') {
+      updateLocalState({ showHpv2FocusModal: true });
+      return;
+    }
+
+    startHipertrofiaSingleDay({ selectionMode: 'full_body', nivelOverride: level, equipment });
   };
 
   const handleHipertrofiaWeekendLater = () => {
@@ -1294,6 +1338,71 @@ export default function MethodologiesScreen() {
     updateLocalState({
       showCalisteniaEffort: false,
       autoregDecision: null,
+      pendingSessionData: null
+    });
+    navigate('/routines', { state: { activeTab: 'today' } });
+  };
+
+  // ── Autorregulación CrossFit: registrar resultado del WOD y mostrar decisión ──
+  const handleCrossfitEffortSubmit = async ({ rpe, completed, scale }) => {
+    const planId = localState.pendingSessionData?.methodology_plan_id
+      ?? localState.pendingSessionData?.planId
+      ?? null;
+    updateLocalState({ isSavingEffort: true });
+    try {
+      const resp = await apiClient.post('/methodology-session/crossfit/wod-result', {
+        methodologyPlanId: planId,
+        rpe,
+        completed,
+        scale
+      });
+      const data = resp?.data || resp;
+      updateLocalState({ crossfitDecision: data?.decision || 'hold' });
+    } catch (err) {
+      console.warn('⚠️ No se pudo registrar la autorregulación CrossFit:', err?.message);
+      updateLocalState({ crossfitDecision: 'hold' });
+    } finally {
+      updateLocalState({ isSavingEffort: false });
+    }
+  };
+
+  const finishCrossfitEffort = () => {
+    updateLocalState({
+      showCrossfitEffort: false,
+      crossfitDecision: null,
+      crossfitWodScale: 'rx',
+      pendingSessionData: null
+    });
+    navigate('/routines', { state: { activeTab: 'today' } });
+  };
+
+  // ── Autorregulación Halterofilia (fuerza): registrar resultado y mostrar decisión ──
+  const handleHalterofiliaEffortSubmit = async ({ rpe, targetMet, goodTechnique }) => {
+    const planId = localState.pendingSessionData?.methodology_plan_id
+      ?? localState.pendingSessionData?.planId
+      ?? null;
+    updateLocalState({ isSavingEffort: true });
+    try {
+      const resp = await apiClient.post('/methodology-session/halterofilia/session-result', {
+        methodologyPlanId: planId,
+        rpe,
+        targetMet,
+        goodTechnique
+      });
+      const data = resp?.data || resp;
+      updateLocalState({ halterofiliaDecision: data?.decision || 'hold' });
+    } catch (err) {
+      console.warn('⚠️ No se pudo registrar la autorregulación Halterofilia:', err?.message);
+      updateLocalState({ halterofiliaDecision: 'hold' });
+    } finally {
+      updateLocalState({ isSavingEffort: false });
+    }
+  };
+
+  const finishHalterofiliaEffort = () => {
+    updateLocalState({
+      showHalterofiliaEffort: false,
+      halterofiliaDecision: null,
       pendingSessionData: null
     });
     navigate('/routines', { state: { activeTab: 'today' } });
@@ -1775,7 +1884,14 @@ export default function MethodologiesScreen() {
         onLater={handleHipertrofiaWeekendLater}
         onClose={closeHipertrofiaWeekendModals}
         isLoading={localState.isGeneratingSingleDay}
-        methodologyName={localState.pendingMethodology?.name === 'Calistenia' ? 'Calistenia' : 'Hipertrofia'}
+        methodologyName={
+          localState.pendingMethodology?.name === 'Calistenia' ? 'Calistenia'
+            : localState.pendingMethodology?.name === 'CrossFit' ? 'CrossFit'
+            : localState.pendingMethodology?.name === 'Entrenamiento en Casa' ? 'Entrenamiento en Casa'
+            : localState.pendingMethodology?.name === 'Funcional' ? 'Funcional'
+            : localState.pendingMethodology?.name === 'Halterofilia' ? 'Halterofilia'
+            : 'Hipertrofia'
+        }
       />
       <HipertrofiaFocusModal
         isOpen={localState.showHpv2FocusModal}
@@ -1784,7 +1900,22 @@ export default function MethodologiesScreen() {
         onSelectGroup={handleHipertrofiaFocusGroup}
         onClose={closeHipertrofiaWeekendModals}
         isLoading={localState.isGeneratingSingleDay}
-        muscleGroups={localState.pendingMethodology?.name === 'Calistenia' ? CALISTENIA_FOCUS_GROUPS : undefined}
+        muscleGroups={
+          localState.pendingMethodology?.name === 'Calistenia' ? CALISTENIA_FOCUS_GROUPS
+            : localState.pendingMethodology?.name === 'CrossFit' ? CROSSFIT_FOCUS_GROUPS
+            : localState.pendingMethodology?.name === 'Entrenamiento en Casa' ? CASA_FOCUS_GROUPS
+            : localState.pendingMethodology?.name === 'Funcional' ? FUNCIONAL_FOCUS_GROUPS
+            : localState.pendingMethodology?.name === 'Halterofilia' ? HALTEROFILIA_FOCUS_GROUPS
+            : undefined
+        }
+      />
+
+      {/* Selección de material para Entrenamiento en Casa (single-day) */}
+      <CasaEquipmentModal
+        isOpen={localState.showCasaEquipmentModal}
+        isLoading={localState.isGeneratingSingleDay}
+        onConfirm={handleCasaEquipmentConfirm}
+        onClose={closeHipertrofiaWeekendModals}
       />
 
       {/* Autorregulación Calistenia: auto-evaluación de esfuerzo al completar sesión */}
@@ -1795,6 +1926,27 @@ export default function MethodologiesScreen() {
         onSubmit={handleCalisteniaEffortSubmit}
         onSkip={finishCalisteniaEffort}
         onContinue={finishCalisteniaEffort}
+      />
+
+      {/* Autorregulación CrossFit: auto-evaluación de esfuerzo al completar el WOD */}
+      <CrossFitEffortModal
+        isOpen={localState.showCrossfitEffort}
+        isLoading={localState.isSavingEffort}
+        result={localState.crossfitDecision}
+        defaultScale={localState.crossfitWodScale || 'rx'}
+        onSubmit={handleCrossfitEffortSubmit}
+        onSkip={finishCrossfitEffort}
+        onContinue={finishCrossfitEffort}
+      />
+
+      {/* Autorregulación Halterofilia: auto-evaluación de esfuerzo (RPE/carga/técnica) al completar la sesión */}
+      <HalterofiliaEffortModal
+        isOpen={localState.showHalterofiliaEffort}
+        isLoading={localState.isSavingEffort}
+        result={localState.halterofiliaDecision}
+        onSubmit={handleHalterofiliaEffortSubmit}
+        onSkip={finishHalterofiliaEffort}
+        onContinue={finishHalterofiliaEffort}
       />
 
       {/* Modal de calentamiento para entrenamiento de fin de semana */}
@@ -1826,8 +1978,49 @@ export default function MethodologiesScreen() {
         />
       )}
 
+      {/* Reproductor de WOD (CrossFit) para entrenamiento de fin de semana */}
+      {localState.showRoutineSessionModal && localState.pendingSessionData && localState.pendingSessionData.discipline === 'crossfit' && (
+        <WodSessionModal
+          isOpen={localState.showRoutineSessionModal}
+          session={localState.pendingSessionData}
+          sessionId={localState.pendingSessionData.sessionId}
+          onClose={() => updateLocalState({ showRoutineSessionModal: false, pendingSessionData: null })}
+          onFinishExercise={async (exerciseIndex, progressData) => {
+            const sid = localState.pendingSessionData?.sessionId;
+            if (!sid) return;
+            const exerciseOrder = exerciseIndex + 1;
+            try {
+              await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  status: progressData.status || 'completed',
+                  series_completed: progressData.series_completed || 0,
+                  time_spent_seconds: progressData.time_spent_seconds || 0
+                })
+              });
+            } catch (error) {
+              console.error('❌ Error guardando movimiento WOD:', error);
+            }
+          }}
+          onCompleteSession={(summary) => {
+            console.log('🎉 WOD completado:', summary);
+            // Autorregulación: pedir RPE/escala/resultado antes de cerrar (mantener pendingSessionData).
+            updateLocalState({
+              showRoutineSessionModal: false,
+              showCrossfitEffort: true,
+              crossfitDecision: null,
+              crossfitWodScale: summary?.escala || 'rx'
+            });
+          }}
+        />
+      )}
+
       {/* Modal de sesión de rutina para entrenamiento de fin de semana */}
-      {localState.showRoutineSessionModal && localState.pendingSessionData && (
+      {localState.showRoutineSessionModal && localState.pendingSessionData && localState.pendingSessionData.discipline !== 'crossfit' && (
         <RoutineSessionModal
           isOpen={localState.showRoutineSessionModal}
           session={localState.pendingSessionData}
@@ -1917,13 +2110,20 @@ export default function MethodologiesScreen() {
           }}
           onCompleteSession={(sessionSummary) => {
             console.log('🎉 Sesión completada:', sessionSummary);
-            const isCalistenia = localState.pendingMethodology?.name === 'Calistenia';
-            if (isCalistenia) {
+            const methodologyName = localState.pendingMethodology?.name;
+            if (methodologyName === 'Calistenia') {
               // Autorregulación: pedir RIR/cumplimiento antes de cerrar (mantener pendingSessionData).
               updateLocalState({
                 showRoutineSessionModal: false,
                 showCalisteniaEffort: true,
                 autoregDecision: null
+              });
+            } else if (methodologyName === 'Halterofilia') {
+              // Autorregulación de fuerza: pedir RPE/carga/técnica antes de cerrar.
+              updateLocalState({
+                showRoutineSessionModal: false,
+                showHalterofiliaEffort: true,
+                halterofiliaDecision: null
               });
             } else {
               updateLocalState({ showRoutineSessionModal: false, pendingSessionData: null });

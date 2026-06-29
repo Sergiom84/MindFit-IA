@@ -690,13 +690,14 @@ export default function RoutineSessionModal({
         const exerciseId = progressState.currentExercise?.exercise_id || progressState.currentExercise?.id;
         console.log('🔍 DEBUG - exerciseId final:', exerciseId);
 
-        // Calistenia (peso corporal): el peso/lastre es opcional, no obligatorio.
-        const bodyweightExercise = /calist/i.test(String(
+        // Calistenia y Entrenamiento en Casa (peso corporal / material doméstico):
+        // el peso/lastre es opcional, no obligatorio.
+        const bodyweightExercise = /calist|casa/i.test(String(
           sourceSession?.metodologia
           || sourceSession?.methodology_type
           || sourceSession?.methodology
           || ''
-        )) || progressState.currentExercise?.tipo_ejercicio === 'calistenia';
+        )) || ['calistenia', 'casa'].includes(progressState.currentExercise?.tipo_ejercicio);
 
         return (
           <SeriesTrackingModal

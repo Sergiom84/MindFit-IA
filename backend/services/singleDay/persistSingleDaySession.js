@@ -26,6 +26,7 @@ import { DAY_NAMES, MONTH_NAMES } from '../hipertrofiaV2/constants.js';
  * @param {string} params.sessionLabel
  * @param {string} params.planLabel
  * @param {boolean} [params.isWeekendExtra=true]
+ * @param {object} [params.extraSessionMetadata=null] - Metadatos extra fusionados en session_metadata (p.ej. { wod } en CrossFit)
  * @param {Date}   [params.currentDate=new Date()]
  * @returns {Promise<{sessionId:number, planId:number}>}
  */
@@ -40,6 +41,7 @@ export async function persistSingleDaySession(dbClient, {
   sessionLabel,
   planLabel,
   isWeekendExtra = true,
+  extraSessionMetadata = null,
   currentDate = new Date()
 }) {
   // Crear plan temporal
@@ -116,7 +118,8 @@ export async function persistSingleDaySession(dbClient, {
       methodology: methodologyType,
       weekend_extra: isWeekendExtra,
       selection_mode: selectionMode,
-      focus_group: focusGroup
+      focus_group: focusGroup,
+      ...(extraSessionMetadata || {})
     })
   ]);
 

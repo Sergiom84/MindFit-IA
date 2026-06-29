@@ -174,10 +174,38 @@ function repsObjetivoFromWod(ex) {
   }
 }
 
+// Carga el ruleset MindFeed de CrossFit desde app.mindfeed_rulesets (BD), con
+// fallback a valores locales si no está disponible. Generaliza el motor de
+// reglas por metodología (mismo mecanismo que HipertrofiaV2 / calistenia_v2).
+async function loadCrossFitRuleset(client = pool) {
+  const fallback = {
+    restDefault: 60,
+    deloadEvery: 4,
+    volumeFactor: 0.6,
+    scales: ['scaled', 'rx', 'rxplus']
+  };
+  try {
+    const result = await client.query(
+      'SELECT app.get_active_mindfeed_ruleset($1) AS rules',
+      ['crossfit_v1']
+    );
+    const rules = result.rows[0]?.rules || {};
+    return {
+      restDefault: Number(rules?.restSecondsDefault) || fallback.restDefault,
+      deloadEvery: Number(rules?.deloadRules?.deloadEvery) || fallback.deloadEvery,
+      volumeFactor: Number(rules?.deloadRules?.volumeFactor) || fallback.volumeFactor,
+      scales: Array.isArray(rules?.progression?.scales) ? rules.progression.scales : fallback.scales
+    };
+  } catch (error) {
+    logger.warn(`⚠️ [CROSSFIT] No se pudo cargar ruleset crossfit_v1, usando fallback: ${error.message}`);
+    return fallback;
+  }
+}
+
 /**
  * Mapea una fila de Ejercicios_CrossFit a un ejercicio del plan.
  */
-function toCrossFitExercise(ex, orden, sessionId) {
+function toCrossFitExercise(ex, orden, sessionId, restDefault = 60) {
   return {
     id: `${sessionId}-E${orden}`,
     orden,
@@ -192,7 +220,7 @@ function toCrossFitExercise(ex, orden, sessionId) {
     series: '1',
     reps_objetivo: repsObjetivoFromWod(ex),
     duracion_seg: ex.duracion_seg ?? null,
-    descanso_seg: ex.descanso_seg ?? 60,
+    descanso_seg: ex.descanso_seg ?? restDefault,
     rx_carga_sugerida: ex.rx_carga_sugerida || null,
     escalamiento: ex.escalamiento || null,
     como_hacerlo: ex.como_hacerlo || null,
@@ -238,6 +266,9 @@ export async function generateCrossFitPlan(userId, planData = {}) {
   const poolByDomain = {};
   for (const ex of exercises) (poolByDomain[ex.dominio] ||= []).push(ex);
 
+  // Reglas (descanso, deload, escalas) cargadas desde app.mindfeed_rulesets (scope crossfit_v1).
+  const ruleset = await loadCrossFitRuleset(pool);
+
   const pick = buildExercisePicker(poolByDomain);
   const templateSpecs = CROSSFIT_SESSION_TEMPLATES.slice(0, frecuencia);
   const templates = buildTemplates(templateSpecs, pick, exercises);
@@ -248,7 +279,7 @@ export async function generateCrossFitPlan(userId, planData = {}) {
     frecuencia,
     objetivo: levelConfig.description,
     coachTip: 'Calienta bien, escala el WOD a tu nivel y prioriza la mecánica antes que la intensidad.',
-    toExercise: toCrossFitExercise
+    toExercise: (ex, orden, sid) => toCrossFitExercise(ex, orden, sid, ruleset.restDefault)
   });
 
   const plan = {
@@ -262,10 +293,15 @@ export async function generateCrossFitPlan(userId, planData = {}) {
     objetivo: planData.goals || levelConfig.description,
     benchmark_targets: levelConfig.benchmark_targets || {},
     configuracion: {
-      progression_type: 'wod_rotation',
+      progression_type: 'scale_progression',
       sessions_per_week: frecuencia,
       duration_weeks: totalWeeks,
-      source: 'crossfit_v1_deterministic'
+      source: 'crossfit_v1_deterministic',
+      ruleset: 'crossfit_v1',
+      rest_default: ruleset.restDefault,
+      deload_every: ruleset.deloadEvery,
+      volume_factor: ruleset.volumeFactor,
+      scales: ruleset.scales
     },
     semanas
   };

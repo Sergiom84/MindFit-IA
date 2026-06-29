@@ -219,6 +219,7 @@ const METHOD_CONFIGS = {
     methodologyType: 'Funcional',
     displayName: 'Funcional',
     version: 'funcional_v1',
+    rulesetScope: 'funcional_v1',
     templates: FUNCTIONAL_TEMPLATES,
     bucketFn: functionalBucket,
     coachTip: 'Prioriza patrones limpios, estabilidad y control antes de subir la intensidad.'
@@ -278,7 +279,7 @@ function normalizeLevel3(raw) {
   return 'principiante';
 }
 
-function toGymExercise(methodConfig) {
+function toGymExercise(methodConfig, restDefault = 75) {
   const ov = methodConfig.exerciseOverrides || {};
   return (ex, orden, sessionId) => {
     const { series, reps_objetivo } = parseSeriesReps(ex.series_reps_objetivo);
@@ -294,7 +295,7 @@ function toGymExercise(methodConfig) {
       series: ov.series ?? series,
       reps_objetivo,
       series_reps_objetivo: ex.series_reps_objetivo || null,
-      descanso_seg: ov.descanso_seg ?? ex.descanso_seg ?? 75,
+      descanso_seg: ov.descanso_seg ?? ex.descanso_seg ?? restDefault,
       tempo: ex.tempo || null,
       como_hacerlo: ex.como_hacerlo || null,
       criterio_de_progreso: ex.criterio_de_progreso || null,
@@ -305,6 +306,52 @@ function toGymExercise(methodConfig) {
     if (ov.rir_target !== undefined) exercise.rir_target = ov.rir_target;
     return exercise;
   };
+}
+
+// Carga un ruleset MindFeed desde app.mindfeed_rulesets (BD) con fallback a las
+// constantes locales si no está disponible o si la metodología no define scope.
+// Mismo mecanismo que loadCalisteniaRuleset (CalisteniaService), generalizado.
+async function loadGymRuleset(scope, fallback) {
+  if (!scope) return fallback;
+  try {
+    const result = await pool.query('SELECT app.get_active_mindfeed_ruleset($1) AS rules', [scope]);
+    const rules = result.rows[0]?.rules || {};
+    return {
+      deloadEvery: Number(rules?.deloadRules?.deloadEvery) || fallback.deloadEvery,
+      volumeFactor: Number(rules?.deloadRules?.volumeFactor) || fallback.volumeFactor,
+      restDefault: Number(rules?.restSecondsDefault) || fallback.restDefault
+    };
+  } catch (error) {
+    logger.warn(`⚠️ [GYM] No se pudo cargar ruleset ${scope}, usando fallback: ${error.message}`);
+    return fallback;
+  }
+}
+
+// Aplica deload por volumen: cada `deloadEvery` semanas reduce el número de
+// series por volumeFactor y marca la semana como descarga. Aditivo y puro
+// (devuelve nuevas semanas); solo se invoca para metodologías con rulesetScope.
+function applyDeload(semanas, { deloadEvery, volumeFactor }) {
+  if (!deloadEvery || deloadEvery < 1 || !(volumeFactor > 0 && volumeFactor < 1)) return semanas;
+  return semanas.map((sem) => {
+    if (sem.numero % deloadEvery !== 0) return sem;
+    return {
+      ...sem,
+      tipo: 'descarga',
+      objetivo: `Semana de descarga · ${sem.objetivo}`,
+      sesiones: sem.sesiones.map((ses) => ({
+        ...ses,
+        ejercicios: ses.ejercicios.map((ex) => {
+          const base = Number(ex.series);
+          if (!Number.isFinite(base) || base <= 1) return ex;
+          return {
+            ...ex,
+            series: Math.max(1, Math.round(base * volumeFactor)),
+            notas: [ex.notas, 'Descarga: reduce volumen y prioriza técnica.'].filter(Boolean).join(' ')
+          };
+        })
+      }))
+    };
+  });
 }
 
 /**
@@ -355,19 +402,33 @@ export async function generateGymRoutine(userId, routineData = {}) {
   const poolByBucket = {};
   for (const ex of exercises) (poolByBucket[bucketFn(ex.categoria)] ||= []).push(ex);
 
+  // Reglas (descanso, deload) cargadas desde app.mindfeed_rulesets cuando la
+  // metodología define un scope (p.ej. funcional → funcional_v1). El resto de
+  // metodologías mantienen el comportamiento previo (fallback, sin deload).
+  const ruleset = await loadGymRuleset(methodConfig.rulesetScope, {
+    deloadEvery: 4,
+    volumeFactor: 0.6,
+    restDefault: 75
+  });
+
   const pick = buildExercisePicker(poolByBucket);
   const templateSet = methodConfig.templates;
   const templateSpecs = templateSet[frecuencia] || templateSet[3];
   const templates = buildTemplates(templateSpecs, pick, exercises);
 
-  const semanas = buildSemanas({
+  let semanas = buildSemanas({
     templates,
     totalWeeks,
     frecuencia,
     objetivo: routineData.goals || `Rutina de ${methodConfig.displayName} nivel ${nivelLabel}`,
     coachTip: methodConfig.coachTip,
-    toExercise: toGymExercise(methodConfig)
+    toExercise: toGymExercise(methodConfig, ruleset.restDefault)
   });
+
+  // Deload por volumen, solo para metodologías con ruleset (aislado).
+  if (methodConfig.rulesetScope) {
+    semanas = applyDeload(semanas, ruleset);
+  }
 
   const plan = {
     metodologia: methodConfig.displayName,

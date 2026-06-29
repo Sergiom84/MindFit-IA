@@ -12,6 +12,10 @@ import { authenticateToken } from '../middleware/auth.js';
 
 import { generateSingleDayWorkout } from '../services/hipertrofiaV2/extraWorkoutService.js';
 import { generateCalisteniaSingleDay } from '../services/singleDay/calisteniaSingleDay.js';
+import { generateCrossFitSingleDay } from '../services/singleDay/crossfitSingleDay.js';
+import { generateCasaSingleDay } from '../services/singleDay/casaSingleDay.js';
+import { generateFuncionalSingleDay } from '../services/singleDay/funcionalSingleDay.js';
+import { generateHalterofiliaSingleDay } from '../services/singleDay/halterofiliaSingleDay.js';
 import { logger } from '../services/hipertrofiaV2/logger.js';
 import { cleanupUserStaleSessions } from '../services/sessionCleanupService.js';
 
@@ -21,6 +25,10 @@ const router = express.Router();
 function normalizeMethodology(raw) {
   const m = String(raw || '').toLowerCase().trim();
   if (m.includes('calistenia')) return 'calistenia';
+  if (m.includes('crossfit') || m.includes('cross-fit')) return 'crossfit';
+  if (m.includes('casa')) return 'casa';
+  if (m.includes('funcional') || m.includes('functional')) return 'funcional';
+  if (m.includes('halterofilia') || m.includes('halterofília') || m.includes('weightlifting')) return 'halterofilia';
   if (m.includes('hipertrofia')) return 'hipertrofia';
   return m;
 }
@@ -38,7 +46,8 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
       nivel = 'Principiante',
       isWeekendExtra = false,
       selectionMode = 'full_body',
-      focusGroup = null
+      focusGroup = null,
+      equipment = null
     } = req.body;
 
     const method = normalizeMethodology(methodology);
@@ -54,6 +63,27 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
     let result;
     if (method === 'calistenia') {
       result = await generateCalisteniaSingleDay(dbClient, userId, nivel, isWeekendExtra, {
+        selectionMode,
+        focusGroup
+      });
+    } else if (method === 'crossfit') {
+      result = await generateCrossFitSingleDay(dbClient, userId, nivel, isWeekendExtra, {
+        selectionMode,
+        focusGroup
+      });
+    } else if (method === 'casa') {
+      result = await generateCasaSingleDay(dbClient, userId, nivel, isWeekendExtra, {
+        selectionMode,
+        focusGroup,
+        equipment
+      });
+    } else if (method === 'funcional') {
+      result = await generateFuncionalSingleDay(dbClient, userId, nivel, isWeekendExtra, {
+        selectionMode,
+        focusGroup
+      });
+    } else if (method === 'halterofilia') {
+      result = await generateHalterofiliaSingleDay(dbClient, userId, nivel, isWeekendExtra, {
         selectionMode,
         focusGroup
       });
@@ -122,6 +152,77 @@ router.post('/calistenia/session-result', authenticateToken, async (req, res) =>
     res.json({ success: true, ...result.rows[0].result });
   } catch (error) {
     logger.error('❌ [CALISTENIA-AUTOREG] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error registrando el resultado de la sesión',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/methodology-session/crossfit/wod-result
+ * Autorregulación de CrossFit: registra el resultado de un WOD completado
+ * (RPE 1-10 + si se completó dentro del time cap + escala usada) y devuelve la
+ * decisión de ajuste ('progress' | 'hold' | 'deload').
+ * Body: { methodologyPlanId?, rpe, completed, scale }
+ */
+router.post('/crossfit/wod-result', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    const { methodologyPlanId = null, rpe, completed, scale = 'rx' } = req.body;
+
+    if (rpe == null || typeof completed !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        error: 'rpe (número 1-10) y completed (booleano) son requeridos'
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT app.crossfit_register_wod_result($1, $2, $3, $4, $5) AS result`,
+      [userId, methodologyPlanId, Number(rpe), completed, String(scale)]
+    );
+
+    res.json({ success: true, ...result.rows[0].result });
+  } catch (error) {
+    logger.error('❌ [CROSSFIT-AUTOREG] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error registrando el resultado del WOD',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/methodology-session/halterofilia/session-result
+ * Autorregulación de Halterofilia (disciplina de FUERZA): registra el resultado
+ * de una sesión completada (RPE 1-10 + si se alcanzó la carga objetivo + si la
+ * técnica fue sólida) y devuelve la decisión de ajuste de CARGA para la próxima
+ * sesión ('progress' | 'hold' | 'deload').
+ * Body: { methodologyPlanId?, rpe, targetMet, goodTechnique }
+ */
+router.post('/halterofilia/session-result', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    const { methodologyPlanId = null, rpe, targetMet, goodTechnique = true } = req.body;
+
+    if (rpe == null || typeof targetMet !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        error: 'rpe (número 1-10) y targetMet (booleano) son requeridos'
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT app.halterofilia_register_session_result($1, $2, $3, $4, $5) AS result`,
+      [userId, methodologyPlanId, Number(rpe), targetMet, Boolean(goodTechnique)]
+    );
+
+    res.json({ success: true, ...result.rows[0].result });
+  } catch (error) {
+    logger.error('❌ [HALTEROFILIA-AUTOREG] Error:', error);
     res.status(500).json({
       success: false,
       error: 'Error registrando el resultado de la sesión',
