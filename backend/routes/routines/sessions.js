@@ -1017,13 +1017,18 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
     }
 
     // Obtener progreso de ejercicios con feedback
+    // COALESCE: si la fila progress no tiene gif_url (plan generado antes de poblar la BD),
+    // se coge el valor actual de app.ejercicios como fallback
     const exercisesQuery = await pool.query(
       `SELECT
         p.exercise_order, p.exercise_id, p.exercise_name, p.series_total, p.series_completed,
         p.repeticiones, p.descanso_seg, p.intensidad, p.tempo, p.status,
-        p.time_spent_seconds, p.notas, p.gif_url, p.video_url,
+        p.time_spent_seconds, p.notas,
+        COALESCE(p.gif_url, e.gif_url) AS gif_url,
+        COALESCE(p.video_url, e.video_url) AS video_url,
         f.sentiment, f.comment
        FROM app.methodology_exercise_progress p
+       LEFT JOIN app.ejercicios e ON e.id = p.exercise_id
        LEFT JOIN app.methodology_exercise_feedback f
          ON p.methodology_session_id = f.methodology_session_id
          AND p.exercise_order = f.exercise_order
