@@ -1025,7 +1025,7 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
         p.repeticiones, p.descanso_seg, p.intensidad, p.tempo, p.status,
         p.time_spent_seconds, p.notas,
         COALESCE(p.gif_url, e.gif_url) AS gif_url,
-        COALESCE(p.video_url, e.video_url) AS video_url,
+        p.video_url AS video_url,
         f.sentiment, f.comment
        FROM app.methodology_exercise_progress p
        LEFT JOIN app.ejercicios e ON e.id = p.exercise_id
