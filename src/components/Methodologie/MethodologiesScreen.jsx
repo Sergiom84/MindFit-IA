@@ -1446,7 +1446,7 @@ export default function MethodologiesScreen() {
   };
 
   // ── Autorregulación CrossFit: registrar resultado del WOD y mostrar decisión ──
-  const handleCrossfitEffortSubmit = async ({ rpe, completed, scale }) => {
+  const handleCrossfitEffortSubmit = async ({ rpe, completed, scale, feeling = null }) => {
     const planId = localState.pendingSessionData?.methodology_plan_id
       ?? localState.pendingSessionData?.planId
       ?? null;
@@ -1456,7 +1456,8 @@ export default function MethodologiesScreen() {
         methodologyPlanId: planId,
         rpe,
         completed,
-        scale
+        scale,
+        feeling // 'facil' | 'normal' | 'dificil' (opcional, matiza la autorreg)
       });
       const data = resp?.data || resp;
       updateLocalState({ crossfitDecision: data?.decision || 'hold' });
