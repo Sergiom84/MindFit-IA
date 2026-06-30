@@ -15,7 +15,6 @@
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { Suspense, lazy, useState, useEffect, useMemo } from 'react';
 import { useTrace } from './contexts/TraceContext';
-import TraceConsole from './components/dev/TraceConsole';
 
 // =============================================================================
 // 🏗️ CORE COMPONENTS & PROVIDERS
@@ -390,7 +389,6 @@ function App() {
       {/* 🔍 AppProviders: Envuelve TODOS los contextos + debugging automático */}
       <AppProviders>
         <AppContent />
-        {import.meta.env.DEV && <TraceConsole />}
       </AppProviders>
     </ErrorBoundary>
   )
