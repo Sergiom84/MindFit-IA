@@ -112,26 +112,42 @@ plan: {
 
 #### Tabla comparativa Hipertrofia ↔ Calistenia
 
-| Aspecto                   | HipertrofiaV2                                              | Calistenia                                                                         |
-| ------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Endpoint generación       | `/api/hipertrofiav2/generate-d1d5` (**dedicado**)          | `/api/methodology/generate` (**consolidado** planEngine)                           |
-| Modal eval/config         | "Evaluación de Perfil" (simple)                            | "Evaluación IA v6.0" (confianza %, focus areas, factores)                          |
-| Modelo de plan            | Rotativo **D1-D5** (`sessions[]`) + `semanas[]` expandidas | Multisemana puro (`semanas[]`, 8 sem × 3) con **días fijos** L/X/V                 |
-| "Hoy" en martes           | Da sesión (rotativo, "entrena cuando quieras")             | Adapta patrón para arrancar hoy; banner explicativo                                |
-| ids en respuesta generate | No top-level (se asigna al confirmar)                      | **`planId` + `methodologyPlanId` top-level** ✅                                    |
-| Progresión                | +2.5%/microciclo, intensidad %                             | reps/variante (`progresion_hacia`, `criterio_de_progreso`, `listo_para_progresar`) |
-| Deload                    | cada 6 microciclos (motor)                                 | `es_deload` marcado por semana en el plan                                          |
-| Tracking                  | RIR + peso + reps (`rir_target`)                           | reps + variante (sin `rir_target` obligatorio)                                     |
-| Cierre/autoreg            | Subsistema propio (registro microciclo)                    | Familia común `POST /methodology-session/calistenia/session-result`                |
-| Confirmación              | `TrainingPlanConfirmationModal` (compartido)               | `TrainingPlanConfirmationModal` (compartido) ✅                                    |
-| Duración en header        | "12 semanas" (mal, son 11) ⚠️                              | "8 semanas" (correcto) ✅                                                          |
+| Aspecto                   | HipertrofiaV2                                                         | Calistenia                                                                         |
+| ------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Endpoint generación       | `/api/hipertrofiav2/generate-d1d5` (**dedicado**)                     | `/api/methodology/generate` (**consolidado** planEngine)                           |
+| Modal eval/config         | "Evaluación de Perfil" (simple)                                       | "Evaluación IA v6.0" (confianza %, focus areas, factores)                          |
+| Modelo de plan            | Rotativo **D1-D5** (`sessions[]`) + `semanas[]` expandidas            | Multisemana puro (`semanas[]`, 8 sem × 3) con **días fijos** L/X/V                 |
+| "Hoy" en martes           | Da sesión (rotativo, "entrena cuando quieras")                        | Adapta patrón para arrancar hoy; banner explicativo                                |
+| ids en respuesta generate | **`planId`+`methodologyPlanId` top-level** ✅ (tras el objeto `plan`) | **`planId` + `methodologyPlanId` top-level** ✅                                    |
+| Progresión                | +2.5%/microciclo, intensidad %                                        | reps/variante (`progresion_hacia`, `criterio_de_progreso`, `listo_para_progresar`) |
+| Deload                    | cada 6 microciclos (motor)                                            | `es_deload` marcado por semana en el plan                                          |
+| Tracking                  | RIR + peso + reps (`rir_target`)                                      | reps + variante (sin `rir_target` obligatorio)                                     |
+| Cierre/autoreg            | Subsistema propio (registro microciclo)                               | Familia común `POST /methodology-session/calistenia/session-result`                |
+| Confirmación              | `TrainingPlanConfirmationModal` (compartido)                          | `TrainingPlanConfirmationModal` (compartido) ✅                                    |
+| Duración en header        | "12 semanas" (mal, son 11) ⚠️                                         | "8 semanas" (correcto) ✅                                                          |
 
 **Lectura para el contrato común:**
 
 - **Campos núcleo compartidos** (ya presentes en ambos): `orden, exercise_id, nombre, categoria, tipo_ejercicio, patron_movimiento, series, reps_objetivo, descanso_seg, coach_tip, grupos_musculares`. Esa es la base del contrato.
 - **Divergencias legítimas** (métricas específicas): Hipertrofia añade `rir_target, intensidad_porcentaje`; Calistenia añade `rep_range, criterio_de_progreso, progresion_hacia, variante_sugerida, listo_para_progresar`. → Confirma el modelo "tracking común + métricas específicas" de tu Fase 4.
 - **Dos contenedores de plan coexisten**: `sessions[].cycle_day` (rotativo) vs `semanas[].sesiones[]` (multisemana). El contrato debe aceptar ambos; Hipertrofia ya emite los dos, lo que facilita una **normalización a `semanas[]`** como forma canónica de calendario.
-- **Inconsistencia de fuente de verdad de ids**: Calistenia devuelve `planId`/`methodologyPlanId` en la respuesta de generate; Hipertrofia no (depende del confirm). Estandarizar.
+- **Ids ya consistentes** (corregido): AMBAS devuelven `planId`/`methodologyPlanId` en la respuesta de generate (`hipertrofiav2/generate-d1d5` líneas 99-100; Calistenia top-level). La impresión inicial de que Hipertrofia no lo hacía fue un falso positivo por captura truncada de los 143 KB de respuesta.
+
+### Convergencia Hipertrofia ↔ Calistenia ("lo mejor de cada uno") — resultado
+
+Objetivo: dejar ambas "cerradas" tomando lo mejor de cada una, **sin homogeneizar el modelo de entrenamiento** (rotativo vs días fijos son ambos correctos) y **sin romper el buque insignia**.
+
+| Ítem                                                | Riesgo | Resultado                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| --------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dedupe `plan-config` en Hoy                         | 🟢     | ✅ Hecho (`FirstWeekWarning` acepta `config` por prop; 4→2 fetches, 1 en prod). Commit `17904e9`.                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Ids explícitos en generación                        | 🟢     | ✅ Ya cumplido por ambas (falso positivo corregido).                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| "Duración 12 vs 11 semanas"                         | 🟢     | Cosmético: el header muestra `calendarPlan.semanas.length`; el calendario D1-D5 se expande a 12 al arrancar a media semana. No es display puro → no se fuerza para no alterar la expansión correcta.                                                                                                                                                                                                                                                                                                                   |
+| Banner de patrón semanal en Hipertrofia             | 🟢     | N/A por diseño: el banner es para metodologías de días fijos; Hipertrofia es rotativa ("entrena cualquier día"), así que correctamente no lo muestra.                                                                                                                                                                                                                                                                                                                                                                  |
+| **Unificar cierre de Hipertrofia en familia común** | 🟡→❌  | **DESACONSEJADO.** El cierre de Hipertrofia NO es una costura pobre: es el motor más avanzado (`save-set` con RIR, `advance-cycle`, `apply-progression`, `check-deload`/`activate-deload`, `priority`, `neural-overlap`, `submit-fatigue-report`, `reevaluation`). La familia común es un único endpoint `{rir/rpe,targetMet}`+ruleset. Forzar la unificación = downgrade que rompe el buque insignia. Además Hipertrofia YA persiste `methodology_plan_id` (`hypertrophy_set_logs`, `additionalControllers.saveSet`). |
+
+**Convergencia correcta del cierre (recomendada):** no unificar el endpoint, sino el **contrato/interfaz** que ambos cumplen — (1) registrar `methodology_plan_id` ≠ null, (2) producir resultado de autorregulación + ajuste futuro. Validar con **tests de contrato**, dejando a Hipertrofia su motor intacto. Es el "contrato fino + tests" acordado para la capa transversal.
+
+**Endurecimiento opcional (bajo riesgo):** que `saveSet` y los `/methodology-session/*/session-result` rechacen explícitamente `methodology_plan_id` nulo (hoy se confía en que el frontend lo envíe).
 
 ---
 
