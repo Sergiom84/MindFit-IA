@@ -143,7 +143,7 @@ async function selectMovements(dbClient, { niveles, count, focusDomain = null })
       SELECT exercise_id, nombre, nivel, dominio, categoria, equipamiento,
              tipo_wod, intensidad, duracion_seg, descanso_seg,
              escalamiento, notas, rx_carga_sugerida,
-             "Cómo_hacerlo" AS como_hacerlo
+             "Cómo_hacerlo" AS como_hacerlo, gif_url
         FROM "Ejercicios_CrossFit"
        WHERE dominio = $1
          AND nivel = ANY($2::text[])
@@ -186,7 +186,8 @@ function toWodMovement(row, orden, formato) {
     series_reps_objetivo: reps,
     descanso_seg: row.descanso_seg ?? 0,
     como_hacerlo: row.como_hacerlo || null,
-    notas: row.notas || ''
+    notas: row.notas || '',
+    gif_url: row.gif_url || null
   };
 }
 
@@ -232,7 +233,7 @@ export async function generateCrossFitSingleDay(dbClient, userId, rawNivel, isWe
       SELECT exercise_id, nombre, nivel, dominio, categoria, equipamiento,
              tipo_wod, intensidad, duracion_seg, descanso_seg,
              escalamiento, notas, rx_carga_sugerida,
-             "Cómo_hacerlo" AS como_hacerlo
+             "Cómo_hacerlo" AS como_hacerlo, gif_url
         FROM "Ejercicios_CrossFit"
        WHERE nivel = ANY($1::text[])
          ${exclude}

@@ -40,7 +40,7 @@ export const LOCAL_VIDEO_MAPPING = {
  *
  * PRODUCCIÓN: Siempre usa 'single' para mostrar el mismo video en todos los ejercicios
  */
-export const DEV_VIDEO_MODE = 'single'; // 'single' | 'mapping' | 'off'
+export const DEV_VIDEO_MODE = 'off'; // 'single' | 'mapping' | 'off'
 
 /**
  * Video a usar en modo 'single'
