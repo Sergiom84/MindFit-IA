@@ -29,8 +29,14 @@ import {
 } from 'lucide-react';
 
 import RoutineSessionModal from '../RoutineSessionModal';
+import WodSessionModal from '../WodSessionModal.jsx';
 import CalisteniaEffortModal from '../modals/CalisteniaEffortModal';
 import CasaEffortModal from '../modals/CasaEffortModal';
+import CrossFitEffortModal from '../modals/CrossFitEffortModal.jsx';
+import FuncionalEffortModal from '../modals/FuncionalEffortModal.jsx';
+import HalterofiliaEffortModal from '../modals/HalterofiliaEffortModal.jsx';
+import HeavyDutyEffortModal from '../modals/HeavyDutyEffortModal.jsx';
+import PowerliftingEffortModal from '../modals/PowerliftingEffortModal.jsx';
 import WarmupModal from '../WarmupModal';
 import { useWorkout } from '@/contexts/WorkoutContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -63,6 +69,33 @@ import { ExerciseList, RestDayCard, StartSessionCard } from './TodayTrainingTab/
 import AdaptationProgressPanel from '../../Methodologie/methodologies/HipertrofiaV2/components/AdaptationProgressPanel';
 import AdaptationTransitionModal from '../../Methodologie/methodologies/HipertrofiaV2/components/AdaptationTransitionModal';
 import { useAdaptationEvaluation } from '@/hooks/useAdaptationEvaluation';
+
+// 🎯 CONTRATO COMÚN DE CIERRE — endpoint de autorregulación por metodología.
+// Hipertrofia queda fuera a propósito (tiene su propio subsistema D1-D5).
+const EFFORT_ENDPOINTS = {
+  calistenia: '/methodology-session/calistenia/session-result',
+  casa: '/methodology-session/casa/session-result',
+  funcional: '/methodology-session/funcional/session-result',
+  crossfit: '/methodology-session/crossfit/wod-result',
+  halterofilia: '/methodology-session/halterofilia/session-result',
+  powerlifting: '/methodology-session/powerlifting/session-result',
+  'heavy-duty': '/methodology-session/heavy-duty/session-result'
+};
+
+// Normaliza la cadena de metodología del plan a una clave de cierre.
+// Tolerante a variantes ('Heavy Duty'/'heavy_duty', 'Gimnasio'→funcional, etc.).
+function resolveEffortMethodKey(raw) {
+  const m = String(raw || '').toLowerCase();
+  if (!m) return null;
+  if (m.includes('calistenia')) return 'calistenia';
+  if (m.includes('crossfit') || m.includes('cross-fit') || m.includes('cross fit')) return 'crossfit';
+  if (m.includes('halterofilia') || m.includes('weightlifting')) return 'halterofilia';
+  if (m.includes('powerlifting') || m.includes('power lifting')) return 'powerlifting';
+  if (m.includes('heavy')) return 'heavy-duty';
+  if (m.includes('funcional') || m.includes('functional') || m.includes('gimnasio')) return 'funcional';
+  if (m.includes('casa') || m.includes('home')) return 'casa';
+  return null; // hipertrofia y desconocidos: sin modal de esfuerzo común
+}
 
 export default function TodayTrainingTab({
   routinePlan,
@@ -168,10 +201,27 @@ export default function TodayTrainingTab({
   // 🎯 FASE 2: Estado para modal de prioridad muscular
   const [showPriorityModal, setShowPriorityModal] = useState(false);
   const [currentPriority, setCurrentPriority] = useState(null);
-  // Autorregulación Calistenia: auto-evaluación de esfuerzo al completar sesión
-  const [calisteniaEffort, setCalisteniaEffort] = useState({ show: false, decision: null, saving: false });
-  // Autorregulación Casa: auto-evaluación de esfuerzo al completar sesión
-  const [casaEffort, setCasaEffort] = useState({ show: false, decision: null, saving: false });
+  // 🎯 Autorregulación común: un único estado de modal de esfuerzo por metodología.
+  // method = clave de EFFORT_ENDPOINTS (o null); scale solo aplica a CrossFit.
+  const [effortModal, setEffortModal] = useState({
+    method: null,
+    show: false,
+    decision: null,
+    saving: false,
+    scale: 'rx'
+  });
+
+  // 🎯 Metodología del plan activo (para elegir player y modal de cierre correctos).
+  const activeMethodKey = useMemo(() => resolveEffortMethodKey(
+    plan?.metodologia || plan?.methodology_type || plan?.methodologyType ||
+    routinePlan?.metodologia || routinePlan?.methodology_type || ''
+  ), [plan?.metodologia, plan?.methodology_type, plan?.methodologyType, routinePlan?.metodologia, routinePlan?.methodology_type]);
+
+  // 🎯 Guarda para no abrir dos veces el modal de esfuerzo de la misma sesión.
+  // RoutineSessionModal filtra los ejercicios completados, así que se cierra tras
+  // cada ejercicio y nunca llega a su EndModal→onEndSession; la apertura del modal
+  // de esfuerzo se gestiona al detectar el cierre real en handleExerciseUpdate.
+  const effortClosureHandledRef = useRef(new Set());
 
   // 🎯 ADAPTACIÓN: Hook para evaluación de transición
   const {
@@ -909,7 +959,9 @@ export default function TodayTrainingTab({
     });
   }, [todaySessionData, hasActiveSession, handleStartSession, currentExerciseIndex, session.sessionId, localState.pendingSessionData?.sessionId, todayStatus, track, fetchTodayStatus]);
 
-  const handleCompleteSession = useCallback(async () => {
+  const handleCompleteSession = useCallback(async (options = {}) => {
+    // options.scale solo lo aporta el WodSessionModal de CrossFit; el resto pasa un evento → 'rx'.
+    const closingScale = (options && typeof options.scale === 'string') ? options.scale : 'rx';
     const sid = localState.pendingSessionData?.sessionId || session.sessionId;
     if (!sid) return;
 
@@ -958,15 +1010,20 @@ export default function TodayTrainingTab({
 
         showSuccess('¡Entrenamiento completado exitosamente!');
 
-        // 🤸 AUTORREGULACIÓN CALISTENIA: pedir auto-evaluación de esfuerzo (RIR)
-        const planMethod = String(
+        // 🎯 DISPATCHER COMÚN DE CIERRE: abrir el modal de esfuerzo de la metodología activa.
+        // Lo objetivo (RIR/RPE/fallo/técnica) manda; el feeling solo matiza en el backend.
+        const methodKey = resolveEffortMethodKey(
           plan?.metodologia || plan?.methodology_type || plan?.methodologyType ||
           routinePlan?.metodologia || routinePlan?.methodology_type || ''
-        ).toLowerCase();
-        if (planMethod.includes('calistenia')) {
-          setCalisteniaEffort({ show: true, decision: null, saving: false });
-        } else if (planMethod.includes('casa')) {
-          setCasaEffort({ show: true, decision: null, saving: false });
+        );
+        if (methodKey) {
+          setEffortModal({
+            method: methodKey,
+            show: true,
+            decision: null,
+            saving: false,
+            scale: closingScale
+          });
         }
 
         // 🎯 ADAPTACIÓN: Evaluar semana si hay bloque activo
@@ -984,46 +1041,29 @@ export default function TodayTrainingTab({
     }
   }, [hasActiveSession, completeSession, session.sessionId, sessionStartTime, exerciseProgress, track, onProgressUpdate, showSuccess, setError, localState.pendingSessionData?.sessionId, fetchTodayStatus, evaluateAdaptationWeek]);
 
-  // Autorregulación Calistenia: registra el resultado y muestra la decisión.
-  const handleCalisteniaEffortSubmit = useCallback(async ({ avgRir, targetMet }) => {
-    setCalisteniaEffort(prev => ({ ...prev, saving: true }));
+  // 🎯 Autorregulación común: registra el resultado en el endpoint de la metodología activa.
+  // El payload llega tal cual del modal (avgRir/rpe/targetMet/goodTechnique/reachedFailure/
+  // completed/scale + feeling); aquí solo se añade el methodologyPlanId.
+  const handleEffortSubmit = useCallback(async (payload = {}) => {
+    const method = effortModal.method;
+    const endpoint = method ? EFFORT_ENDPOINTS[method] : null;
+    if (!endpoint) return;
+    setEffortModal(prev => ({ ...prev, saving: true }));
     try {
-      const resp = await apiClient.post('/methodology-session/calistenia/session-result', {
+      const resp = await apiClient.post(endpoint, {
         methodologyPlanId: methodologyPlanId || null,
-        avgRir,
-        targetMet
+        ...payload // incluye feeling: 'facil' | 'normal' | 'dificil' cuando el modal lo aporta
       });
       const data = resp?.data || resp;
-      setCalisteniaEffort({ show: true, decision: data?.decision || 'hold', saving: false });
+      setEffortModal(prev => ({ ...prev, decision: data?.decision || 'hold', saving: false }));
     } catch (e) {
-      console.warn('⚠️ Autorregulación calistenia falló:', e?.message);
-      setCalisteniaEffort({ show: true, decision: 'hold', saving: false });
+      console.warn(`⚠️ Autorregulación ${method} falló:`, e?.message);
+      setEffortModal(prev => ({ ...prev, decision: 'hold', saving: false }));
     }
-  }, [methodologyPlanId]);
+  }, [effortModal.method, methodologyPlanId]);
 
-  const handleCalisteniaEffortClose = useCallback(() => {
-    setCalisteniaEffort({ show: false, decision: null, saving: false });
-  }, []);
-
-  // Autorregulación Casa: registra el resultado y muestra la decisión.
-  const handleCasaEffortSubmit = useCallback(async ({ avgRir, targetMet }) => {
-    setCasaEffort(prev => ({ ...prev, saving: true }));
-    try {
-      const resp = await apiClient.post('/methodology-session/casa/session-result', {
-        methodologyPlanId: methodologyPlanId || null,
-        avgRir,
-        targetMet
-      });
-      const data = resp?.data || resp;
-      setCasaEffort({ show: true, decision: data?.decision || 'hold', saving: false });
-    } catch (e) {
-      console.warn('⚠️ Autorregulación casa falló:', e?.message);
-      setCasaEffort({ show: true, decision: 'hold', saving: false });
-    }
-  }, [methodologyPlanId]);
-
-  const handleCasaEffortClose = useCallback(() => {
-    setCasaEffort({ show: false, decision: null, saving: false });
+  const handleEffortClose = useCallback(() => {
+    setEffortModal({ method: null, show: false, decision: null, saving: false, scale: 'rx' });
   }, []);
 
   const handleExerciseUpdate = useCallback(async (exerciseIndex, progressData) => {
@@ -1074,12 +1114,32 @@ export default function TodayTrainingTab({
         if (typeof onProgressUpdate === 'function') {
           onProgressUpdate();
         }
+
+        // 🎯 CIERRE DE AUTORREGULACIÓN: tras completar un ejercicio, refrescar la
+        // verdad del backend y, si la sesión queda completada, abrir el modal de
+        // esfuerzo de la metodología. RoutineSessionModal filtra los completados y
+        // se cierra tras cada ejercicio, por lo que nunca alcanza su
+        // EndModal→onEndSession→handleCompleteSession. CrossFit queda fuera: su
+        // WodSessionModal ya dispara el cierre vía onCompleteSession.
+        const isCompletion = String(progressData.status || 'completed').toLowerCase() === 'completed';
+        if (isCompletion && activeMethodKey && activeMethodKey !== 'crossfit') {
+          const fresh = await fetchTodayStatus();
+          const fsid = fresh?.session?.id;
+          const total = Number(fresh?.summary?.total) || 0;
+          const done = Number(fresh?.summary?.completed) || 0;
+          const finished = fresh?.session?.session_status === 'completed' || (total > 0 && done >= total);
+          if (finished && fsid && !effortClosureHandledRef.current.has(fsid)) {
+            effortClosureHandledRef.current.add(fsid);
+            updateLocalState({ showSessionModal: false, pendingSessionData: null });
+            setEffortModal({ method: activeMethodKey, show: true, decision: null, saving: false, scale: 'rx' });
+          }
+        }
       }
     } catch (error) {
       console.error('❌ Error actualizando ejercicio:', error);
       setError(`Error actualizando ejercicio: ${error.message}`);
     }
-  }, [updateExercise, setError, onProgressUpdate, session.sessionId, localState.pendingSessionData?.sessionId]);
+  }, [updateExercise, setError, onProgressUpdate, session.sessionId, localState.pendingSessionData?.sessionId, activeMethodKey, fetchTodayStatus]);
 
   // Handlers de calentamiento
   const handleWarmupComplete = async () => {
@@ -1582,6 +1642,7 @@ export default function TodayTrainingTab({
     todaySessionData?.ejercicios?.length > 0 ||
     (todayStatus?.session && todayStatus?.summary?.total > 0)
   );
+
 
   // Progreso para header (completados/total/skip/cancel)
   const headerProgressStats = useMemo(() => {
@@ -2229,24 +2290,42 @@ export default function TodayTrainingTab({
         />
       )}
 
-      {/* Modal de Entrenamiento */}
+      {/* Modal de Entrenamiento — player según metodología activa */}
       {/* 🎯 FIX: Simplificada condición - mostrar si showSessionModal=true y hay effectiveSession */}
       {(localState.showSessionModal || ui.showRoutineSession) &&
        effectiveSession && (
-        <RoutineSessionModal
-          session={effectiveSession}
-          sessionId={effectiveSessionId}
-          onClose={() => {
-            updateLocalState({ showSessionModal: false, pendingSessionData: null });
-            ui.hideModal?.('routineSession');
-          }}
-          onFinishExercise={handleExerciseUpdate}
-          onSkipExercise={(exerciseIndex) => handleExerciseUpdate(exerciseIndex, { status: 'skipped' })}
-          onCancelExercise={(exerciseIndex) => handleExerciseUpdate(exerciseIndex, { status: 'cancelled' })}
-          onEndSession={handleCompleteSession}
-          navigateToRoutines={() => navigate('/routines')}
-          onProgressUpdate={onProgressUpdate}
-        />
+        activeMethodKey === 'crossfit' ? (
+          /* CrossFit: WOD player (cronómetro, rondas, escala, time cap) también desde el plan/calendario */
+          <WodSessionModal
+            isOpen
+            session={effectiveSession}
+            sessionId={effectiveSessionId}
+            onClose={() => {
+              updateLocalState({ showSessionModal: false, pendingSessionData: null });
+              ui.hideModal?.('routineSession');
+            }}
+            onFinishExercise={handleExerciseUpdate}
+            onCompleteSession={(summary) => {
+              // Cierre común + apertura del modal de esfuerzo CrossFit con la escala usada en el WOD.
+              handleCompleteSession({ scale: summary?.escala || 'rx' });
+            }}
+          />
+        ) : (
+          <RoutineSessionModal
+            session={effectiveSession}
+            sessionId={effectiveSessionId}
+            onClose={() => {
+              updateLocalState({ showSessionModal: false, pendingSessionData: null });
+              ui.hideModal?.('routineSession');
+            }}
+            onFinishExercise={handleExerciseUpdate}
+            onSkipExercise={(exerciseIndex) => handleExerciseUpdate(exerciseIndex, { status: 'skipped' })}
+            onCancelExercise={(exerciseIndex) => handleExerciseUpdate(exerciseIndex, { status: 'cancelled' })}
+            onEndSession={handleCompleteSession}
+            navigateToRoutines={() => navigate('/routines')}
+            onProgressUpdate={onProgressUpdate}
+          />
+        )
       )}
 
       {/* Modal de Confirmación de Cancelación */}
@@ -2297,24 +2376,71 @@ export default function TodayTrainingTab({
         </div>
       )}
 
-      {/* 🤸 Autorregulación Calistenia: auto-evaluación de esfuerzo */}
+      {/* 🎯 AUTORREGULACIÓN COMÚN — 7/7 metodologías.
+          Un único estado (effortModal) decide cuál se muestra; todos comparten
+          handleEffortSubmit (incluye feeling) y handleEffortClose. */}
       <CalisteniaEffortModal
-        isOpen={calisteniaEffort.show}
-        isLoading={calisteniaEffort.saving}
-        result={calisteniaEffort.decision}
-        onSubmit={handleCalisteniaEffortSubmit}
-        onSkip={handleCalisteniaEffortClose}
-        onContinue={handleCalisteniaEffortClose}
+        isOpen={effortModal.method === 'calistenia' && effortModal.show}
+        isLoading={effortModal.saving}
+        result={effortModal.decision}
+        onSubmit={handleEffortSubmit}
+        onSkip={handleEffortClose}
+        onContinue={handleEffortClose}
       />
 
-      {/* 🏠 Autorregulación Casa: auto-evaluación de esfuerzo */}
       <CasaEffortModal
-        isOpen={casaEffort.show}
-        isLoading={casaEffort.saving}
-        result={casaEffort.decision}
-        onSubmit={handleCasaEffortSubmit}
-        onSkip={handleCasaEffortClose}
-        onContinue={handleCasaEffortClose}
+        isOpen={effortModal.method === 'casa' && effortModal.show}
+        isLoading={effortModal.saving}
+        result={effortModal.decision}
+        onSubmit={handleEffortSubmit}
+        onSkip={handleEffortClose}
+        onContinue={handleEffortClose}
+      />
+
+      <FuncionalEffortModal
+        isOpen={effortModal.method === 'funcional' && effortModal.show}
+        isLoading={effortModal.saving}
+        result={effortModal.decision}
+        onSubmit={handleEffortSubmit}
+        onSkip={handleEffortClose}
+        onContinue={handleEffortClose}
+      />
+
+      <CrossFitEffortModal
+        isOpen={effortModal.method === 'crossfit' && effortModal.show}
+        isLoading={effortModal.saving}
+        result={effortModal.decision}
+        defaultScale={effortModal.scale || 'rx'}
+        onSubmit={handleEffortSubmit}
+        onSkip={handleEffortClose}
+        onContinue={handleEffortClose}
+      />
+
+      <HalterofiliaEffortModal
+        isOpen={effortModal.method === 'halterofilia' && effortModal.show}
+        isLoading={effortModal.saving}
+        result={effortModal.decision}
+        onSubmit={handleEffortSubmit}
+        onSkip={handleEffortClose}
+        onContinue={handleEffortClose}
+      />
+
+      <PowerliftingEffortModal
+        isOpen={effortModal.method === 'powerlifting' && effortModal.show}
+        isLoading={effortModal.saving}
+        result={effortModal.decision}
+        onSubmit={handleEffortSubmit}
+        onSkip={handleEffortClose}
+        onContinue={handleEffortClose}
+      />
+
+      <HeavyDutyEffortModal
+        isOpen={effortModal.method === 'heavy-duty' && effortModal.show}
+        isLoading={effortModal.saving}
+        result={effortModal.decision}
+        onSubmit={handleEffortSubmit}
+        onSkip={handleEffortClose}
+        onContinue={handleEffortClose}
       />
 
       {/* 🎯 FASE 2: Modal de Prioridad Muscular */}
