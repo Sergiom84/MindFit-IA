@@ -1353,7 +1353,7 @@ export default function MethodologiesScreen() {
   };
 
   // ── Autorregulación Calistenia: registrar resultado de sesión y mostrar decisión ──
-  const handleCalisteniaEffortSubmit = async ({ avgRir, targetMet }) => {
+  const handleCalisteniaEffortSubmit = async ({ avgRir, targetMet, feeling = null }) => {
     const planId = localState.pendingSessionData?.methodology_plan_id
       ?? localState.pendingSessionData?.planId
       ?? null;
@@ -1362,7 +1362,8 @@ export default function MethodologiesScreen() {
       const resp = await apiClient.post('/methodology-session/calistenia/session-result', {
         methodologyPlanId: planId,
         avgRir,
-        targetMet
+        targetMet,
+        feeling // 'facil' | 'normal' | 'dificil' (opcional, matiza la autorreg)
       });
       const data = resp?.data || resp;
       updateLocalState({ autoregDecision: data?.decision || 'hold' });

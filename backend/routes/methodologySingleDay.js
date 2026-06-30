@@ -37,6 +37,20 @@ function normalizeMethodology(raw) {
   return m;
 }
 
+// Feedback subjetivo OPCIONAL ("aporte") para la autorregulación. Acepta un número
+// directo (-1..+1) o un 'feeling' ('facil'|'normal'|'dificil'). Devuelve un score
+// acotado en [-1, 1] o null si no aplica. Lo objetivo manda; esto solo matiza.
+const FEELING_MAP = { facil: 1, easy: 1, me_gusta: 1, normal: 0, justo: 0, dificil: -1, hard: -1, me_cuesta: -1 };
+function resolveSubjective(subjective = null, feeling = null) {
+  let score = subjective;
+  if (score == null && feeling != null) {
+    score = FEELING_MAP[String(feeling).toLowerCase()] ?? null;
+  }
+  if (score == null) return null;
+  score = Math.max(-1, Math.min(1, Number(score)));
+  return Number.isNaN(score) ? null : score;
+}
+
 /**
  * POST /api/methodology-session/generate-single-day
  * Body: { methodology, nivel, isWeekendExtra, selectionMode, focusGroup }
@@ -149,7 +163,7 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
 router.post('/calistenia/session-result', authenticateToken, async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id;
-    const { methodologyPlanId = null, avgRir, targetMet } = req.body;
+    const { methodologyPlanId = null, avgRir, targetMet, subjective = null, feeling = null } = req.body;
 
     if (avgRir == null || typeof targetMet !== 'boolean') {
       return res.status(400).json({
@@ -158,9 +172,11 @@ router.post('/calistenia/session-result', authenticateToken, async (req, res) =>
       });
     }
 
+    const subjectiveScore = resolveSubjective(subjective, feeling);
+
     const result = await pool.query(
-      `SELECT app.calistenia_register_session_result($1, $2, $3, $4) AS result`,
-      [userId, methodologyPlanId, Number(avgRir), targetMet]
+      `SELECT app.calistenia_register_session_result($1, $2, $3, $4, $5) AS result`,
+      [userId, methodologyPlanId, Number(avgRir), targetMet, subjectiveScore]
     );
 
     res.json({ success: true, ...result.rows[0].result });
@@ -264,18 +280,7 @@ router.post('/crossfit/wod-result', authenticateToken, async (req, res) => {
       });
     }
 
-    // Feedback subjetivo OPCIONAL (-1..+1). Acepta un número directo o un
-    // 'feeling' ('facil'|'normal'|'dificil'). Lo objetivo (rpe/completed/scale)
-    // manda; esto solo matiza la autorregulación. Si no llega → null = sin efecto.
-    const FEELING_MAP = { facil: 1, easy: 1, me_gusta: 1, normal: 0, justo: 0, dificil: -1, hard: -1, me_cuesta: -1 };
-    let subjectiveScore = subjective;
-    if (subjectiveScore == null && feeling != null) {
-      subjectiveScore = FEELING_MAP[String(feeling).toLowerCase()] ?? null;
-    }
-    if (subjectiveScore != null) {
-      subjectiveScore = Math.max(-1, Math.min(1, Number(subjectiveScore)));
-      if (Number.isNaN(subjectiveScore)) subjectiveScore = null;
-    }
+    const subjectiveScore = resolveSubjective(subjective, feeling);
 
     const result = await pool.query(
       `SELECT app.crossfit_register_wod_result($1, $2, $3, $4, $5, $6) AS result`,

@@ -13,6 +13,13 @@ const RIR_OPTIONS = [
   { value: 3, label: '3+', hint: 'Con margen' }
 ];
 
+// Feedback subjetivo OPCIONAL ("aporte"): matiza la autorregulación sin mandar.
+const FEELING_OPTIONS = [
+  { value: 'facil', label: 'Me gustó', emoji: '😀' },
+  { value: 'normal', label: 'Normal', emoji: '😐' },
+  { value: 'dificil', label: 'Me costó', emoji: '😣' }
+];
+
 const RESULT_COPY = {
   progress: { title: '¡Progreso desbloqueado! 💪', msg: 'Lo bordaste: subiremos la dificultad en tu próximo entrenamiento.' },
   deload: { title: 'Toca recuperar 🧘', msg: 'Has acumulado sesiones duras: la próxima será de descarga para recuperar.' },
@@ -22,6 +29,7 @@ const RESULT_COPY = {
 export default function CalisteniaEffortModal({ isOpen, onSubmit, onSkip, onContinue, result = null, isLoading = false }) {
   const [targetMet, setTargetMet] = useState(null);
   const [avgRir, setAvgRir] = useState(null);
+  const [feeling, setFeeling] = useState(null); // opcional
 
   if (!isOpen) return null;
 
@@ -105,6 +113,28 @@ export default function CalisteniaEffortModal({ isOpen, onSubmit, onSkip, onCont
               ))}
             </div>
           </div>
+
+          <div>
+            <p className="mb-2 text-sm font-semibold text-gray-200">
+              ¿Cómo lo sentiste? <span className="text-xs font-normal text-gray-500">(opcional)</span>
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {FEELING_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setFeeling(feeling === opt.value ? null : opt.value)}
+                  className={`rounded-xl border px-2 py-2.5 text-sm transition ${
+                    feeling === opt.value
+                      ? 'border-yellow-400/60 bg-yellow-400/15 text-yellow-200'
+                      : 'border-white/10 bg-white/5 text-gray-200 hover:border-yellow-400/30'
+                  }`}
+                >
+                  <span className="mr-1">{opt.emoji}</span>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-white/10 px-6 py-4">
@@ -115,7 +145,7 @@ export default function CalisteniaEffortModal({ isOpen, onSubmit, onSkip, onCont
             <X className="h-4 w-4" /> Omitir
           </button>
           <button
-            onClick={() => canSubmit && onSubmit({ avgRir, targetMet })}
+            onClick={() => canSubmit && onSubmit({ avgRir, targetMet, feeling })}
             disabled={!canSubmit}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 px-5 py-2.5 text-sm font-semibold text-black transition hover:from-yellow-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
