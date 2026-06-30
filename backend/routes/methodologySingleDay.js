@@ -200,7 +200,7 @@ router.post('/calistenia/session-result', authenticateToken, async (req, res) =>
 router.post('/funcional/session-result', authenticateToken, async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id;
-    const { methodologyPlanId = null, avgRir, targetMet } = req.body;
+    const { methodologyPlanId = null, avgRir, targetMet, subjective = null, feeling = null } = req.body;
 
     if (avgRir == null || typeof targetMet !== 'boolean') {
       return res.status(400).json({
@@ -209,9 +209,11 @@ router.post('/funcional/session-result', authenticateToken, async (req, res) => 
       });
     }
 
+    const subjectiveScore = resolveSubjective(subjective, feeling);
+
     const result = await pool.query(
-      `SELECT app.funcional_register_session_result($1, $2, $3, $4) AS result`,
-      [userId, methodologyPlanId, Number(avgRir), targetMet]
+      `SELECT app.funcional_register_session_result($1, $2, $3, $4, $5) AS result`,
+      [userId, methodologyPlanId, Number(avgRir), targetMet, subjectiveScore]
     );
 
     res.json({ success: true, ...result.rows[0].result });
@@ -236,7 +238,7 @@ router.post('/funcional/session-result', authenticateToken, async (req, res) => 
 router.post('/casa/session-result', authenticateToken, async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id;
-    const { methodologyPlanId = null, avgRir, targetMet } = req.body;
+    const { methodologyPlanId = null, avgRir, targetMet, subjective = null, feeling = null } = req.body;
 
     if (avgRir == null || typeof targetMet !== 'boolean') {
       return res.status(400).json({
@@ -245,9 +247,11 @@ router.post('/casa/session-result', authenticateToken, async (req, res) => {
       });
     }
 
+    const subjectiveScore = resolveSubjective(subjective, feeling);
+
     const result = await pool.query(
-      `SELECT app.casa_register_session_result($1, $2, $3, $4) AS result`,
-      [userId, methodologyPlanId, Number(avgRir), targetMet]
+      `SELECT app.casa_register_session_result($1, $2, $3, $4, $5) AS result`,
+      [userId, methodologyPlanId, Number(avgRir), targetMet, subjectiveScore]
     );
 
     res.json({ success: true, ...result.rows[0].result });

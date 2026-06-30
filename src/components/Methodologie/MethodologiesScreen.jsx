@@ -1385,7 +1385,7 @@ export default function MethodologiesScreen() {
   };
 
   // ── Autorregulación Funcional (series×reps×RIR, mismo modelo que Calistenia) ──
-  const handleFuncionalEffortSubmit = async ({ avgRir, targetMet }) => {
+  const handleFuncionalEffortSubmit = async ({ avgRir, targetMet, feeling = null }) => {
     const planId = localState.pendingSessionData?.methodology_plan_id
       ?? localState.pendingSessionData?.planId
       ?? null;
@@ -1394,7 +1394,8 @@ export default function MethodologiesScreen() {
       const resp = await apiClient.post('/methodology-session/funcional/session-result', {
         methodologyPlanId: planId,
         avgRir,
-        targetMet
+        targetMet,
+        feeling
       });
       const data = resp?.data || resp;
       updateLocalState({ funcionalDecision: data?.decision || 'hold' });
@@ -1416,7 +1417,7 @@ export default function MethodologiesScreen() {
   };
 
   // ── Autorregulación Casa (series×reps×RIR, mismo modelo que Calistenia) ──
-  const handleCasaEffortSubmit = async ({ avgRir, targetMet }) => {
+  const handleCasaEffortSubmit = async ({ avgRir, targetMet, feeling = null }) => {
     const planId = localState.pendingSessionData?.methodology_plan_id
       ?? localState.pendingSessionData?.planId
       ?? null;
@@ -1425,7 +1426,8 @@ export default function MethodologiesScreen() {
       const resp = await apiClient.post('/methodology-session/casa/session-result', {
         methodologyPlanId: planId,
         avgRir,
-        targetMet
+        targetMet,
+        feeling
       });
       const data = resp?.data || resp;
       updateLocalState({ casaDecision: data?.decision || 'hold' });
