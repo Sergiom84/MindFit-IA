@@ -54,6 +54,18 @@ Leyenda: ✅ ok · ⚠️ parcial/con peros · ❌ falta · — n/a
 
 ---
 
+## ✅ BUG-003 — RESUELTO — "Hay que dar dos veces" al botón de generar plan
+
+**Síntoma:** al pulsar "Generar Plan ... con IA" a veces "no hace nada" y hay que clicar 2-3 veces.
+
+**Causa raíz (confirmada en código):** `apiClient` enruta TODAS las peticiones por `connectionManager.executeRequest` (`src/lib/apiClient.js:260`). Si `connectionManager.isOnline === false`, `executeRequest` **encola** la petición y lanza `OfflineQueuedError` → el POST nunca sale → el click "no hace nada". Y `checkConnection` hacía **`this.isOnline = response.ok`** (`connectionManager.js`), de modo que un `HEAD /api/health` con **503 transitorio marcaba la app OFFLINE**. Al siguiente check (200) volvía online → de ahí el "dale dos veces". (Se observó el health parpadear a 503 en el navegador aunque `curl` daba 200 consistente — blips bajo ráfagas de peticiones.)
+
+**Fix (`src/utils/connectionManager.js`):** `isOnline` ahora refleja **conectividad real**, no la salud del backend. Recibir cualquier respuesta HTTP (incluido 503) cuenta como online; solo un fallo de red real (fetch lanza timeout/abort) y **tras 3 fallos consecutivos** marca offline. Commit `46e036b`.
+
+**Pendiente:** verificación end-to-end en navegador (la sesión se deslogueó durante la prueba; no puedo introducir credenciales). A confirmar en uso real. Además, investigar **por qué `HEAD /api/health` devuelve 503 intermitente** bajo ráfagas (posible saturación del pooler de Supabase o artefacto); con este fix ya no bloquea los clicks, pero conviene entenderlo.
+
+---
+
 ## Las 6 restantes — captura de contrato + coherencia (vía `/api/methodology/generate`)
 
 El proxy `/api/methodology/generate` (`server.js:324`) con `{mode:'manual', methodology}` enruta a `/api/routine-generation/specialist/<met>/generate` para las 6. **Todas comparten el motor consolidado** y devuelven el mismo contrato:
