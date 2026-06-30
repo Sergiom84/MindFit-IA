@@ -35,13 +35,13 @@ sbp_TU_TOKEN_AQUI
 
 ## Credenciales Supabase Completas
 
-| Campo            | Valor                                                                                              |
-| ---------------- | -------------------------------------------------------------------------------------------------- |
-| **Access Token** | `sbp_TU_TOKEN_AQUI`                                                                                |
-| **Project ID**   | `lhsnmjgdtjalfcsurxvg`                                                                             |
-| **Project URL**  | `https://lhsnmjgdtjalfcsurxvg.supabase.co`                                                         |
-| **Database URL** | `postgresql://postgres.<project-ref>:<DB_PASSWORD>@aws-<region>.pooler.supabase.com:6543/postgres` |
-| **Anon Key**     | `TU_ANON_O_PUBLISHABLE_KEY_AQUI`                                                                   |
+| Campo            | Valor                                                                                                   |
+| ---------------- | ------------------------------------------------------------------------------------------------------- |
+| **Access Token** | `sbp_TU_TOKEN_AQUI`                                                                                     |
+| **Project ID**   | `lhsnmjgdtjalfcsurxvg`                                                                                  |
+| **Project URL**  | `https://lhsnmjgdtjalfcsurxvg.supabase.co`                                                              |
+| **Database URL** | `postgresql://postgres.<project-ref>:REDACTED_ROTATE_ME@aws-<region>.pooler.supabase.com:6543/postgres` |
+| **Anon Key**     | `TU_ANON_O_PUBLISHABLE_KEY_AQUI`                                                                        |
 
 ## Estado de Sincronización
 

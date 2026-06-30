@@ -77,7 +77,7 @@ Si no quieres instalar GitHub CLI:
 
 **Necesito que me proporciones las siguientes credenciales:**
 
-1. **DATABASE_URL** de Supabase (formato: `postgresql://user:password@host:port/db`)
+1. **DATABASE_URL** de Supabase (formato: `postgresql://user:REDACTED_ROTATE_ME@host:port/db`)
 2. **OPENAI_API_KEY** (tu clave de OpenAI)
 3. **JWT_SECRET** (cualquier string secreto para tokens)
 
@@ -87,7 +87,7 @@ Una vez las proporciones, crearé el archivo `.env` automáticamente.
 
 - Ve a: https://supabase.com/dashboard/project/lhsnmjgdtjalfcsurxvg/settings/database
 - Copia la "Connection string" (URI)
-- Debe verse como: `postgresql://postgres.xxx:password@aws-xxx.pooler.supabase.com:5432/postgres`
+- Debe verse como: `postgresql://postgres.xxx:REDACTED_ROTATE_ME@aws-xxx.pooler.supabase.com:5432/postgres`
 
 ---
 

@@ -132,7 +132,7 @@ const BASE = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/ex
 
 async function main() {
   const pool = new Pool({
-    connectionString: 'postgresql://postgres.sbqcnlwpvjavmljzkmfy:b9yQWIYCcBCHxwCq@aws-0-eu-west-1.pooler.supabase.com:5432/postgres',
+    connectionString: 'postgresql://postgres.sbqcnlwpvjavmljzkmfy:REDACTED_ROTATE_ME@aws-0-eu-west-1.pooler.supabase.com:5432/postgres',
     ssl: { rejectUnauthorized: false }
   });
 
