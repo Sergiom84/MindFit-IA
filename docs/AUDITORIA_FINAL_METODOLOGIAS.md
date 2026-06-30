@@ -147,7 +147,12 @@ Objetivo: dejar ambas "cerradas" tomando lo mejor de cada una, **sin homogeneiza
 
 **Convergencia correcta del cierre (recomendada):** no unificar el endpoint, sino el **contrato/interfaz** que ambos cumplen — (1) registrar `methodology_plan_id` ≠ null, (2) producir resultado de autorregulación + ajuste futuro. Validar con **tests de contrato**, dejando a Hipertrofia su motor intacto. Es el "contrato fino + tests" acordado para la capa transversal.
 
-**Endurecimiento opcional (bajo riesgo):** que `saveSet` y los `/methodology-session/*/session-result` rechacen explícitamente `methodology_plan_id` nulo (hoy se confía en que el frontend lo envíe).
+**Endurecimiento del cierre — revisado, NO trivial (item de contrato):**
+
+- Hallazgo: TODAS las rutas comunes (`/methodology-session/<met>/(session-result|wod-result)`) declaran `const { methodologyPlanId = null, ... }` → **el id es opcional por diseño**, porque el mismo router sirve también al **single-day** (`generate-single-day`), donde `methodology_plan_id = null` es legítimo.
+- ⚠️ Por tanto un guard naíf `if(!methodology_plan_id) 400` **rompería el single-day** de las 7 metodologías. NO hacer.
+- **Riesgo real (frontend):** los handlers de cierre en `MethodologiesScreen` usan `pendingSessionData?.methodology_plan_id ?? pendingSessionData?.planId ?? null`. Si una sesión DE PLAN no resuelve su id, se guarda como `null` → indistinguible de single-day → se pierde vinculación al plan y la autorregulación no se aplica. Ese es el agujero a cerrar.
+- **Fix correcto (contrato, no parche):** flag explícito `isSingleDay`/`source` desde el frontend; el backend exige `methodology_plan_id` solo cuando NO es single-day. Diseñar una vez en la capa transversal + tests de contrato. Verificar por metodología, en la auditoría de las 6, si el cierre de sesión-de-plan transporta siempre el id de forma fiable.
 
 ---
 
