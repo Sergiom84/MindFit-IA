@@ -224,7 +224,8 @@ function toCrossFitExercise(ex, orden, sessionId, restDefault = 60) {
     rx_carga_sugerida: ex.rx_carga_sugerida || null,
     escalamiento: ex.escalamiento || null,
     como_hacerlo: ex.como_hacerlo || null,
-    notas: ex.notas || ''
+    notas: ex.notas || '',
+    gif_url: ex.gif_url || null
   };
 }
 
@@ -253,7 +254,7 @@ export async function generateCrossFitPlan(userId, planData = {}) {
     SELECT exercise_id, nombre, nivel, dominio, categoria, equipamiento,
            tipo_wod, intensidad, duracion_seg, descanso_seg,
            escalamiento, notas, rx_carga_sugerida,
-           "Cómo_hacerlo" AS como_hacerlo
+           "Cómo_hacerlo" AS como_hacerlo, gif_url
       FROM "Ejercicios_CrossFit"
      WHERE nivel = ANY($1::text[])
      ORDER BY RANDOM()

@@ -10,19 +10,29 @@ import { AlertTriangle, Info, Zap, Calendar } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import apiClient from '@/lib/apiClient';
 
-export function FirstWeekWarning({ methodologyPlanId, onClose }) {
-  const [config, setConfig] = useState(null);
-  const [warnings, setWarnings] = useState([]);
-  const [loading, setLoading] = useState(true);
+export function FirstWeekWarning({ methodologyPlanId, onClose, config: configProp = null }) {
+  // Si el padre ya cargó la config (usePlanConfig), la reutilizamos por prop y
+  // evitamos un segundo GET /routines/plan-config/:id (dedupe del fetch redundante).
+  const [config, setConfig] = useState(configProp);
+  const [warnings, setWarnings] = useState(configProp?.warnings || []);
+  const [loading, setLoading] = useState(!configProp);
 
   useEffect(() => {
+    // Config provista por prop: sin fetch propio.
+    if (configProp) {
+      setConfig(configProp);
+      setWarnings(configProp?.warnings || []);
+      setLoading(false);
+      return;
+    }
+
     if (!methodologyPlanId) {
       setLoading(false);
       return;
     }
 
     fetchPlanConfig();
-  }, [methodologyPlanId]);
+  }, [methodologyPlanId, configProp]);
 
   const fetchPlanConfig = async () => {
     try {

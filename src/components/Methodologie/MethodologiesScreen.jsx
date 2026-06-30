@@ -380,7 +380,22 @@ export default function MethodologiesScreen() {
     pendingPlanActionRef.current = null;
 
     try {
-      await cancelPlan();
+      // El plan activo vive en BD, no en WorkoutContext.state.plan (que está vacío al
+      // entrar directo a /methodologies). Recuperamos su methodology_plan_id de la
+      // fuente canónica para no llamar a cancel-routine con body vacío (→ 400 y bucle).
+      let activePlanId = null;
+      try {
+        const { getActivePlan } = await import('@/components/routines/api');
+        const activeData = await getActivePlan();
+        activePlanId = activeData?.methodology_plan_id ?? activeData?.planId ?? null;
+      } catch (lookupError) {
+        console.warn('⚠️ No se pudo recuperar el plan activo para cancelar:', lookupError);
+      }
+
+      const result = await cancelPlan(activePlanId);
+      if (result && result.success === false) {
+        throw new Error(result.error || 'No se pudo cancelar el plan activo');
+      }
       await syncWithDatabase();
     } catch (error) {
       console.error('❌ Error cancelando plan activo:', error);

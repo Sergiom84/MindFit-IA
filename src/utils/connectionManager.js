@@ -22,6 +22,11 @@ class ConnectionManager {
     this.retryTimers = new Map();
     this.connectionCheckInterval = null;
 
+    // Fallos de red consecutivos del health-check. Solo se considera "offline"
+    // tras varios fallos seguidos para evitar falsos positivos por blips.
+    this.connectionFailures = 0;
+    this.connectionFailureThreshold = 3;
+
     // Callbacks
     this.onConnectionChange = null;
     this.onOfflineRequestQueued = null;
@@ -94,6 +99,7 @@ class ConnectionManager {
   handleOnline() {
     console.log('Connection restored');
     this.isOnline = true;
+    this.connectionFailures = 0;
 
     // Procesar queue offline
     if (this.offlineQueue.length > 0) {
@@ -139,25 +145,29 @@ class ConnectionManager {
 
       clearTimeout(timeoutId);
 
+      // Recibir CUALQUIER respuesta HTTP (incluido 503) significa que hay
+      // conectividad real con el servidor. El estado online/offline debe
+      // reflejar conectividad, NO la salud del backend: si el health devuelve
+      // 503 transitorio, seguimos "online" y NO encolamos las peticiones del
+      // usuario (esto causaba el "no hace nada"/doble-click al generar plan).
+      this.connectionFailures = 0;
       const wasOnline = this.isOnline;
-      this.isOnline = response.ok;
+      this.isOnline = true;
 
-      // Si cambió el estado, notificar
-      if (wasOnline !== this.isOnline) {
-        if (this.isOnline) {
-          this.handleOnline();
-        } else {
-          this.handleOffline();
-        }
+      if (!wasOnline) {
+        this.handleOnline();
       }
 
       return this.isOnline;
     } catch (error) {
-      // Si falla el ping, asumir offline
-      if (this.isOnline) {
+      // Solo un fallo de red REAL (fetch lanza: timeout/abort/DNS) puede indicar
+      // offline, y únicamente tras varios fallos consecutivos para evitar marcar
+      // offline por un blip puntual.
+      this.connectionFailures += 1;
+      if (this.connectionFailures >= this.connectionFailureThreshold && this.isOnline) {
         this.handleOffline();
       }
-      return false;
+      return this.isOnline;
     }
   }
 

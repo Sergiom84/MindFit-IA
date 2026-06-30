@@ -1743,6 +1743,7 @@ export default function TodayTrainingTab({
                 {!configLoading && planConfig && (
                   <FirstWeekWarning
                     methodologyPlanId={methodologyPlanId}
+                    config={planConfig}
                     onClose={(index) => {
                       // Opcional: Manejar cierre de warnings individuales
                       console.log('Warning cerrado:', index);
