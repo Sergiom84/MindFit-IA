@@ -51,6 +51,26 @@ function resolveSubjective(subjective = null, feeling = null) {
   return Number.isNaN(score) ? null : score;
 }
 
+// Tras la decisión base de autorregulación, aplica el deload por ESTANCAMIENTO
+// (meseta: demasiadas sesiones sin progresar) común a todas las metodologías.
+// Muta y devuelve el objeto de resultado con la decisión posiblemente ajustada.
+async function applyStallDeload(userId, methodology, result) {
+  try {
+    const q = await pool.query(
+      `SELECT app.apply_stall_deload($1, $2, $3) AS s`,
+      [userId, methodology, result?.decision || 'hold']
+    );
+    const s = q.rows[0].s;
+    result.decision = s.decision;
+    result.stall_streak = s.stall_streak;
+    result.plateau_deload = s.plateau_deload;
+    if (s.plateau_deload) result.deload_suggested = true;
+  } catch (e) {
+    logger.error('⚠️ [STALL-DELOAD] no aplicado:', e?.message);
+  }
+  return result;
+}
+
 /**
  * POST /api/methodology-session/generate-single-day
  * Body: { methodology, nivel, isWeekendExtra, selectionMode, focusGroup }
@@ -179,7 +199,8 @@ router.post('/calistenia/session-result', authenticateToken, async (req, res) =>
       [userId, methodologyPlanId, Number(avgRir), targetMet, subjectiveScore]
     );
 
-    res.json({ success: true, ...result.rows[0].result });
+    const decision = await applyStallDeload(userId, 'calistenia', result.rows[0].result);
+    res.json({ success: true, ...decision });
   } catch (error) {
     logger.error('❌ [CALISTENIA-AUTOREG] Error:', error);
     res.status(500).json({
@@ -216,7 +237,8 @@ router.post('/funcional/session-result', authenticateToken, async (req, res) => 
       [userId, methodologyPlanId, Number(avgRir), targetMet, subjectiveScore]
     );
 
-    res.json({ success: true, ...result.rows[0].result });
+    const decision = await applyStallDeload(userId, 'funcional', result.rows[0].result);
+    res.json({ success: true, ...decision });
   } catch (error) {
     logger.error('❌ [FUNCIONAL-AUTOREG] Error:', error);
     res.status(500).json({
@@ -254,7 +276,8 @@ router.post('/casa/session-result', authenticateToken, async (req, res) => {
       [userId, methodologyPlanId, Number(avgRir), targetMet, subjectiveScore]
     );
 
-    res.json({ success: true, ...result.rows[0].result });
+    const decision = await applyStallDeload(userId, 'casa', result.rows[0].result);
+    res.json({ success: true, ...decision });
   } catch (error) {
     logger.error('❌ [CASA-AUTOREG] Error:', error);
     res.status(500).json({
@@ -291,7 +314,8 @@ router.post('/crossfit/wod-result', authenticateToken, async (req, res) => {
       [userId, methodologyPlanId, Number(rpe), completed, String(scale), subjectiveScore]
     );
 
-    res.json({ success: true, ...result.rows[0].result });
+    const decision = await applyStallDeload(userId, 'crossfit', result.rows[0].result);
+    res.json({ success: true, ...decision });
   } catch (error) {
     logger.error('❌ [CROSSFIT-AUTOREG] Error:', error);
     res.status(500).json({
@@ -329,7 +353,8 @@ router.post('/halterofilia/session-result', authenticateToken, async (req, res) 
       [userId, methodologyPlanId, Number(rpe), targetMet, Boolean(goodTechnique), subjectiveScore]
     );
 
-    res.json({ success: true, ...result.rows[0].result });
+    const decision = await applyStallDeload(userId, 'halterofilia', result.rows[0].result);
+    res.json({ success: true, ...decision });
   } catch (error) {
     logger.error('❌ [HALTEROFILIA-AUTOREG] Error:', error);
     res.status(500).json({
@@ -367,7 +392,8 @@ router.post('/powerlifting/session-result', authenticateToken, async (req, res) 
       [userId, methodologyPlanId, Number(rpe), targetMet, Boolean(goodTechnique), subjectiveScore]
     );
 
-    res.json({ success: true, ...result.rows[0].result });
+    const decision = await applyStallDeload(userId, 'powerlifting', result.rows[0].result);
+    res.json({ success: true, ...decision });
   } catch (error) {
     logger.error('❌ [POWERLIFTING-AUTOREG] Error:', error);
     res.status(500).json({
@@ -405,7 +431,8 @@ router.post('/heavy-duty/session-result', authenticateToken, async (req, res) =>
       [userId, methodologyPlanId, Boolean(reachedFailure), Boolean(targetMet), subjectiveScore]
     );
 
-    res.json({ success: true, ...result.rows[0].result });
+    const decision = await applyStallDeload(userId, 'heavy-duty', result.rows[0].result);
+    res.json({ success: true, ...decision });
   } catch (error) {
     logger.error('❌ [HEAVY-DUTY-AUTOREG] Error:', error);
     res.status(500).json({
