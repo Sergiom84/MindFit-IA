@@ -18,18 +18,57 @@ Criterio de "hecho" por tarjeta: genera plan multisemana · aparece en calendari
 
 ## Matriz de estado (se rellena con hallazgos runtime)
 
-| Metodología   | Plan multisemana   | Calendario | Sesión hoy | Calentamiento | Player | Tracking         | Modal cierre | Autoreg (methodology_plan_id)        | Adaptación           | Notas                                                       |
-| ------------- | ------------------ | ---------- | ---------- | ------------- | ------ | ---------------- | ------------ | ------------------------------------ | -------------------- | ----------------------------------------------------------- |
-| HipertrofiaV2 | ✅ (D1-D5+semanas) | ✅         | ✅         | —             | —      | ✅ RIR           | —            | subsistema propio                    | ✅ +2.5%/microciclo  | 12 vs 11 sem (MINOR-H1); plan-config x4 (MINOR-H2)          |
-| Calistenia    | ✅ (8×3)           | ✅         | ✅         | —             | —      | ✅ reps/variante | —            | ✅ `/methodology-session/calistenia` | ✅ por variante/reps | Adapta patrón L/X/V; ids explícitos; plan-config redundante |
-| CrossFit      |                    |            |            |               |        |                  |              |                                      |                      |                                                             |
-| Casa          |                    |            |            |               |        |                  |              |                                      |                      |                                                             |
-| Funcional     |                    |            |            |               |        |                  |              |                                      |                      |                                                             |
-| Halterofilia  |                    |            |            |               |        |                  |              |                                      |                      |                                                             |
-| Heavy Duty    |                    |            |            |               |        |                  |              |                                      |                      |                                                             |
-| Powerlifting  |                    |            |            |               |        |                  |              |                                      |                      |                                                             |
+| Metodología   | Plan multisemana              | Calendario                 | Sesión hoy                 | Calentamiento | Player      | Tracking                           | Modal cierre                   | Autoreg (methodology_plan_id)        | Adaptación           | Notas                                                       |
+| ------------- | ----------------------------- | -------------------------- | -------------------------- | ------------- | ----------- | ---------------------------------- | ------------------------------ | ------------------------------------ | -------------------- | ----------------------------------------------------------- |
+| HipertrofiaV2 | ✅ (D1-D5+semanas)            | ✅                         | ✅                         | —             | —           | ✅ RIR                             | —                              | subsistema propio                    | ✅ +2.5%/microciclo  | 12 vs 11 sem (MINOR-H1); plan-config x4 (MINOR-H2)          |
+| Calistenia    | ✅ (8×3)                      | ✅                         | ✅                         | —             | —           | ✅ reps/variante                   | —                              | ✅ `/methodology-session/calistenia` | ✅ por variante/reps | Adapta patrón L/X/V; ids explícitos; plan-config redundante |
+| CrossFit      | ✅ (8×3, `crossfit_v1`)       | ✅ (calendar-schedule 200) | ❌ **start 500 (BUG-002)** | —             | ❌ no llega | WOD (tipo_wod/intensidad/escalado) | `/crossfit/wod-result`         | `{rpe,completed,scale}`              | ruleset              | **BLOQUEANTE**: hoy roto                                    |
+| Casa          | ✅ (8×3, `casa_v1`)           | contrato ✅                | ⚠️ no verif. runtime       | —             | —           | RIR+tempo+reps                     | `/casa/session-result`         | `{avgRir,targetMet}`                 | ruleset              | sin deload en plan                                          |
+| Funcional     | ✅ (8×3, `funcional_v1`)      | contrato ✅                | ⚠️ no verif. runtime       | —             | —           | reps/dificultad (sin RIR)          | `/funcional/session-result`    | `{avgRir,targetMet}`                 | ruleset              | sin deload en plan                                          |
+| Halterofilia  | ✅ (8×3, `halterofilia_v1`)   | contrato ✅                | ⚠️ no verif. runtime       | —             | —           | carga/RPE/técnica                  | `/halterofilia/session-result` | `{rpe,targetMet,goodTechnique}`      | ruleset              | snatch 5×3, coherente                                       |
+| Heavy Duty    | ✅ (8×**2**, `heavy_duty_v1`) | contrato ✅                | ⚠️ no verif. runtime       | —             | —           | fallo/reps                         | `/heavy-duty/session-result`   | `{reachedFailure,targetMet}`         | ruleset              | 2/sem, 1 serie al fallo                                     |
+| Powerlifting  | ✅ (8×3, `powerlifting_v1`)   | contrato ✅                | ⚠️ no verif. runtime       | —             | —           | carga/RPE/top-set (en cierre)      | `/powerlifting/session-result` | `{rpe,targetMet,goodTechnique}`      | ruleset              | COHER-PL1 (goblet squat)                                    |
 
 Leyenda: ✅ ok · ⚠️ parcial/con peros · ❌ falta · — n/a
+
+---
+
+## 🔴 BUG-002 — CrossFit: `sessions/start` devuelve 500 ("Error interno") → "Hoy" roto
+
+**Reproducción:** generar plan de CrossFit por UI → "Comenzar Entrenamiento" → `/routines` Hoy → **"Error cargando datos: Error interno"**. En red: `POST /api/routines/sessions/start` con `{methodology_plan_id:351, week_number:1, day_name:"Martes"}` → **500 `{"success":false,"error":"Error interno"}`**. El plan se activa y `today-status`/`calendar-schedule` dan 200, pero **iniciar la sesión falla**.
+
+**Hipótesis (no confirmada — el stack vive en el log del backend, que corre fuera de esta sesión):** en `backend/routes/routines/sessions.js` (~líneas 245-260) el INSERT en `app.methodology_exercise_progress` mete `intensidad` y `repeticiones` tal cual. CrossFit es la **única** metodología cuyos ejercicios traen `intensidad="50-60% 1RM"` y `reps_objetivo="Reps fijas por minuto"` (strings largos); el resto tienen `intensidad` null y reps cortas ("8-12"). Si esas columnas son `VARCHAR(n)` cortas → overflow → 500 solo en CrossFit.
+
+**Para confirmar (1 min):** mirar el terminal del backend la línea `Error starting routine session:` justo tras reproducir; dará el error exacto de Postgres (p.ej. `value too long for type character varying(N)`).
+
+**Fix probable:** ampliar las columnas afectadas a `TEXT` (migración) o normalizar/truncar esos campos en el handler `start`. **Bloqueante para CrossFit** (no se puede entrenar el día de hoy).
+
+**Alcance no verificado:** los borradores generados por API de Casa/Funcional/Halterofilia/Heavy Duty/Powerlifting NO se pudieron activar vía `confirm-plan` (404, requiere el contexto del flujo UI), así que su `sessions/start` quedó **sin verificar en runtime**. Contrato ✅, "Hoy/start" pendiente de confirmar por UI. Probable que funcionen (no tienen los strings largos de CrossFit), pero hay que verificarlo.
+
+---
+
+## Las 6 restantes — captura de contrato + coherencia (vía `/api/methodology/generate`)
+
+El proxy `/api/methodology/generate` (`server.js:324`) con `{mode:'manual', methodology}` enruta a `/api/routine-generation/specialist/<met>/generate` para las 6. **Todas comparten el motor consolidado** y devuelven el mismo contrato:
+`{ success, plan, planId, methodologyPlanId, methodology, metadata }` con `plan.semanas[].sesiones[].ejercicios[]`, `plan.version = <met>_vN` (ruleset).
+
+| Met          | planId | Ruleset           | Estructura | Frec      | Campos específicos de ejercicio                                                                                    | Cierre (familia común)                                         | Coherencia metodológica                                                 |
+| ------------ | ------ | ----------------- | ---------- | --------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| CrossFit     | 345    | `crossfit_v1`     | 8×3        | 3/sem     | `dominio, equipamiento, tipo_wod` (EMOM), `intensidad` (%1RM), `duracion_seg`, `rx_carga_sugerida`, `escalamiento` | `/crossfit/wod-result` `{rpe,completed,scale}`                 | ✅ WOD real (EMOM, escalado, RX)                                        |
+| Casa         | 346    | `casa_v1`         | 8×3        | 3/sem     | `patron, tempo, series_reps_objetivo, criterio_de_progreso, rir_target`                                            | `/casa/session-result` `{avgRir,targetMet}`                    | ✅ material mínimo, RIR + tempo                                         |
+| Funcional    | 347    | `funcional_v1`    | 8×3        | 3/sem     | `patron, tempo, criterio_de_progreso` ("Progresar a 2 mancuernas"), sin `rir_target`                               | `/funcional/session-result` `{avgRir,targetMet}`               | ✅ patrones (Push/empuje), progresión por dificultad                    |
+| Halterofilia | 348    | `halterofilia_v1` | 8×3        | 3/sem     | `patron` (Arrancada), `tempo` (Explosivo), series 5×3, descanso 150s                                               | `/halterofilia/session-result` `{rpe,targetMet,goodTechnique}` | ✅ olímpico real (snatch, bajas reps, alto descanso, explosivo)         |
+| Heavy Duty   | 349    | `heavy_duty_v1`   | 8×**2**    | **2/sem** | `rir_target`, series "1-2", descanso 180s, `criterio` "1 serie efectiva hasta fallo"                               | `/heavy-duty/session-result` `{reachedFailure,targetMet}`      | ✅ HIT/Mentzer real (baja frecuencia, 1 serie al fallo, descanso largo) |
+| Powerlifting | 350    | `powerlifting_v1` | 8×3        | 3/sem     | series 3-4×8-12, descanso 90s; métricas de fuerza (RPE/top-set/técnica) viven en el cierre                         | `/powerlifting/session-result` `{rpe,targetMet,goodTechnique}` | ⚠️ ver COHER-PL1                                                        |
+
+**Observaciones de coherencia (tu punto ciego, cubierto):**
+
+- ✅ Heavy Duty correctamente a **2 días/semana** y "1 serie efectiva hasta fallo" — fiel a Mentzer.
+- ✅ Halterofilia con snatch a 5×3 explosivo, descansos 150s — fiel al levantamiento olímpico.
+- ⚠️ **COHER-PL1 (Powerlifting):** el primer ejercicio para principiante es **"Goblet Squat" 3-4×8-12**, no la sentadilla con barra como levantamiento central con top set / %1RM / reps bajas. Para un principiante puro es defendible (técnica primero), pero **no es "powerlifting-específico"** en el día principal. Revisar si el día central debería anclar el básico con barra. Las métricas de fuerza (RPE, top set, back-off) sí existen, pero en el **cierre** (`session-result`), no en el plan.
+- ⚠️ **COHER-DELOAD:** marca `es_deload` en el plan estático solo se observó en **Calistenia y CrossFit**. En Casa/Funcional/Halterofilia/Heavy Duty/Powerlifting el plan generado no incluye semana de deload explícita (`anyDeload:false`). Verificar si el deload se gestiona a nivel de ruleset/autoreg (como Hipertrofia) o si falta en estas.
+
+**Cierre / id (revisión del endurecimiento, por metodología):** las 6 cierran por la familia común con `methodologyPlanId = null` por defecto (igual que Calistenia). El riesgo de id nulo es **idéntico y compartido** (frontend `?? null`), no específico de ninguna. → confirma que el endurecimiento es de contrato único, no por metodología.
 
 ---
 
