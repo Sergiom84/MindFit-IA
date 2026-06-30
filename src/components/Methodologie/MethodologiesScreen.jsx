@@ -1483,7 +1483,7 @@ export default function MethodologiesScreen() {
   };
 
   // ── Autorregulación Halterofilia (fuerza): registrar resultado y mostrar decisión ──
-  const handleHalterofiliaEffortSubmit = async ({ rpe, targetMet, goodTechnique }) => {
+  const handleHalterofiliaEffortSubmit = async ({ rpe, targetMet, goodTechnique, feeling = null }) => {
     const planId = localState.pendingSessionData?.methodology_plan_id
       ?? localState.pendingSessionData?.planId
       ?? null;
@@ -1493,7 +1493,8 @@ export default function MethodologiesScreen() {
         methodologyPlanId: planId,
         rpe,
         targetMet,
-        goodTechnique
+        goodTechnique,
+        feeling
       });
       const data = resp?.data || resp;
       updateLocalState({ halterofiliaDecision: data?.decision || 'hold' });
@@ -1515,7 +1516,7 @@ export default function MethodologiesScreen() {
   };
 
   // ── Autorregulación Powerlifting (fuerza máxima): registrar resultado y mostrar decisión ──
-  const handlePowerliftingEffortSubmit = async ({ rpe, targetMet, goodTechnique }) => {
+  const handlePowerliftingEffortSubmit = async ({ rpe, targetMet, goodTechnique, feeling = null }) => {
     const planId = localState.pendingSessionData?.methodology_plan_id
       ?? localState.pendingSessionData?.planId
       ?? null;
@@ -1525,7 +1526,8 @@ export default function MethodologiesScreen() {
         methodologyPlanId: planId,
         rpe,
         targetMet,
-        goodTechnique
+        goodTechnique,
+        feeling
       });
       const data = resp?.data || resp;
       updateLocalState({ powerliftingDecision: data?.decision || 'hold' });
@@ -1547,7 +1549,7 @@ export default function MethodologiesScreen() {
   };
 
   // ── Autorregulación Heavy Duty (HIT/fallo): registrar resultado y mostrar decisión ──
-  const handleHeavyDutyEffortSubmit = async ({ reachedFailure, targetMet }) => {
+  const handleHeavyDutyEffortSubmit = async ({ reachedFailure, targetMet, feeling = null }) => {
     const planId = localState.pendingSessionData?.methodology_plan_id
       ?? localState.pendingSessionData?.planId
       ?? null;
@@ -1556,7 +1558,8 @@ export default function MethodologiesScreen() {
       const resp = await apiClient.post('/methodology-session/heavy-duty/session-result', {
         methodologyPlanId: planId,
         reachedFailure,
-        targetMet
+        targetMet,
+        feeling
       });
       const data = resp?.data || resp;
       updateLocalState({ heavyDutyDecision: data?.decision || 'hold' });

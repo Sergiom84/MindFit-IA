@@ -8,6 +8,13 @@ import { Flame, Check, X } from 'lucide-react';
  * alimentan la autorregulación de carga por doble progresión reps→carga
  * (POST /methodology-session/heavy-duty/session-result).
  */
+// Feedback subjetivo OPCIONAL ("aporte"): solo frena el progreso si lo sintió duro.
+const FEELING_OPTIONS = [
+  { value: 'facil', label: 'Me gustó', emoji: '😀' },
+  { value: 'normal', label: 'Normal', emoji: '😐' },
+  { value: 'dificil', label: 'Me costó', emoji: '😣' }
+];
+
 const RESULT_COPY = {
   progress: { title: 'A subir carga 💪', msg: 'Llegaste al fallo en el tope del rango: subiremos el peso en tu próxima sesión.' },
   deload: { title: 'Toca recuperar 🧘', msg: 'No alcanzaste el fallo en varias sesiones: la próxima será de descarga para recuperar (la recuperación es parte del método).' },
@@ -24,6 +31,7 @@ export default function HeavyDutyEffortModal({
 }) {
   const [reachedFailure, setReachedFailure] = useState(null);
   const [targetMet, setTargetMet] = useState(null);
+  const [feeling, setFeeling] = useState(null); // opcional
 
   if (!isOpen) return null;
 
@@ -115,6 +123,28 @@ export default function HeavyDutyEffortModal({
               Doble progresión: subimos carga solo cuando llegas al fallo en el tope del rango con buena técnica.
             </p>
           </div>
+
+          <div>
+            <p className="mb-2 text-sm font-semibold text-gray-200">
+              ¿Cómo lo sentiste? <span className="text-xs font-normal text-gray-500">(opcional)</span>
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {FEELING_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setFeeling(feeling === opt.value ? null : opt.value)}
+                  className={`rounded-xl border px-2 py-2.5 text-sm transition ${
+                    feeling === opt.value
+                      ? 'border-red-500/60 bg-red-500/15 text-red-200'
+                      : 'border-white/10 bg-white/5 text-gray-200 hover:border-red-500/30'
+                  }`}
+                >
+                  <span className="mr-1">{opt.emoji}</span>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-white/10 px-6 py-4">
@@ -125,7 +155,7 @@ export default function HeavyDutyEffortModal({
             <X className="h-4 w-4" /> Omitir
           </button>
           <button
-            onClick={() => canSubmit && onSubmit({ reachedFailure, targetMet })}
+            onClick={() => canSubmit && onSubmit({ reachedFailure, targetMet, feeling })}
             disabled={!canSubmit}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 px-5 py-2.5 text-sm font-semibold text-black transition hover:from-red-400 disabled:cursor-not-allowed disabled:opacity-50"
           >

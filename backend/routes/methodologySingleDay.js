@@ -313,7 +313,7 @@ router.post('/crossfit/wod-result', authenticateToken, async (req, res) => {
 router.post('/halterofilia/session-result', authenticateToken, async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id;
-    const { methodologyPlanId = null, rpe, targetMet, goodTechnique = true } = req.body;
+    const { methodologyPlanId = null, rpe, targetMet, goodTechnique = true, subjective = null, feeling = null } = req.body;
 
     if (rpe == null || typeof targetMet !== 'boolean') {
       return res.status(400).json({
@@ -322,9 +322,11 @@ router.post('/halterofilia/session-result', authenticateToken, async (req, res) 
       });
     }
 
+    const subjectiveScore = resolveSubjective(subjective, feeling);
+
     const result = await pool.query(
-      `SELECT app.halterofilia_register_session_result($1, $2, $3, $4, $5) AS result`,
-      [userId, methodologyPlanId, Number(rpe), targetMet, Boolean(goodTechnique)]
+      `SELECT app.halterofilia_register_session_result($1, $2, $3, $4, $5, $6) AS result`,
+      [userId, methodologyPlanId, Number(rpe), targetMet, Boolean(goodTechnique), subjectiveScore]
     );
 
     res.json({ success: true, ...result.rows[0].result });
@@ -349,7 +351,7 @@ router.post('/halterofilia/session-result', authenticateToken, async (req, res) 
 router.post('/powerlifting/session-result', authenticateToken, async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id;
-    const { methodologyPlanId = null, rpe, targetMet, goodTechnique = true } = req.body;
+    const { methodologyPlanId = null, rpe, targetMet, goodTechnique = true, subjective = null, feeling = null } = req.body;
 
     if (rpe == null || typeof targetMet !== 'boolean') {
       return res.status(400).json({
@@ -358,9 +360,11 @@ router.post('/powerlifting/session-result', authenticateToken, async (req, res) 
       });
     }
 
+    const subjectiveScore = resolveSubjective(subjective, feeling);
+
     const result = await pool.query(
-      `SELECT app.powerlifting_register_session_result($1, $2, $3, $4, $5) AS result`,
-      [userId, methodologyPlanId, Number(rpe), targetMet, Boolean(goodTechnique)]
+      `SELECT app.powerlifting_register_session_result($1, $2, $3, $4, $5, $6) AS result`,
+      [userId, methodologyPlanId, Number(rpe), targetMet, Boolean(goodTechnique), subjectiveScore]
     );
 
     res.json({ success: true, ...result.rows[0].result });
@@ -385,7 +389,7 @@ router.post('/powerlifting/session-result', authenticateToken, async (req, res) 
 router.post('/heavy-duty/session-result', authenticateToken, async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id;
-    const { methodologyPlanId = null, reachedFailure, targetMet } = req.body;
+    const { methodologyPlanId = null, reachedFailure, targetMet, subjective = null, feeling = null } = req.body;
 
     if (typeof reachedFailure !== 'boolean' || typeof targetMet !== 'boolean') {
       return res.status(400).json({
@@ -394,9 +398,11 @@ router.post('/heavy-duty/session-result', authenticateToken, async (req, res) =>
       });
     }
 
+    const subjectiveScore = resolveSubjective(subjective, feeling);
+
     const result = await pool.query(
-      `SELECT app.heavy_duty_register_session_result($1, $2, $3, $4) AS result`,
-      [userId, methodologyPlanId, Boolean(reachedFailure), Boolean(targetMet)]
+      `SELECT app.heavy_duty_register_session_result($1, $2, $3, $4, $5) AS result`,
+      [userId, methodologyPlanId, Boolean(reachedFailure), Boolean(targetMet), subjectiveScore]
     );
 
     res.json({ success: true, ...result.rows[0].result });

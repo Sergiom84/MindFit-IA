@@ -15,6 +15,13 @@ const RPE_OPTIONS = [
   { value: 10, label: '10', hint: 'Máximo' }
 ];
 
+// Feedback subjetivo OPCIONAL ("aporte"): matiza la autorregulación sin mandar.
+const FEELING_OPTIONS = [
+  { value: 'facil', label: 'Me gustó', emoji: '😀' },
+  { value: 'normal', label: 'Normal', emoji: '😐' },
+  { value: 'dificil', label: 'Me costó', emoji: '😣' }
+];
+
 const RESULT_COPY = {
   progress: { title: 'A subir carga 🏋️', msg: 'Cerraste la carga objetivo con buena técnica: subiremos el peso en tu próxima sesión.' },
   deload: { title: 'Toca descargar 🧘', msg: 'Has acumulado sesiones exigentes: la próxima será de descarga/tapering para consolidar técnica.' },
@@ -32,6 +39,7 @@ export default function HalterofiliaEffortModal({
   const [targetMet, setTargetMet] = useState(null);
   const [rpe, setRpe] = useState(null);
   const [goodTechnique, setGoodTechnique] = useState(null);
+  const [feeling, setFeeling] = useState(null); // opcional
 
   if (!isOpen) return null;
 
@@ -143,6 +151,28 @@ export default function HalterofiliaEffortModal({
               La técnica manda: no subiremos carga si no se mantuvo sólida, aunque el RPE fuera bajo.
             </p>
           </div>
+
+          <div>
+            <p className="mb-2 text-sm font-semibold text-gray-200">
+              ¿Cómo lo sentiste? <span className="text-xs font-normal text-gray-500">(opcional)</span>
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {FEELING_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setFeeling(feeling === opt.value ? null : opt.value)}
+                  className={`rounded-xl border px-2 py-2.5 text-sm transition ${
+                    feeling === opt.value
+                      ? 'border-yellow-400/60 bg-yellow-400/15 text-yellow-200'
+                      : 'border-white/10 bg-white/5 text-gray-200 hover:border-yellow-400/30'
+                  }`}
+                >
+                  <span className="mr-1">{opt.emoji}</span>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-white/10 px-6 py-4">
@@ -153,7 +183,7 @@ export default function HalterofiliaEffortModal({
             <X className="h-4 w-4" /> Omitir
           </button>
           <button
-            onClick={() => canSubmit && onSubmit({ rpe, targetMet, goodTechnique })}
+            onClick={() => canSubmit && onSubmit({ rpe, targetMet, goodTechnique, feeling })}
             disabled={!canSubmit}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 px-5 py-2.5 text-sm font-semibold text-black transition hover:from-yellow-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
