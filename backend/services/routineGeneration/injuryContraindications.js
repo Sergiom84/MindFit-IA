@@ -57,8 +57,11 @@ export const INJURY_CONTRAINDICATIONS = [
   },
   {
     zona: 'codo',
+    // Codo (epicondilitis/tendinitis): fuera tracción/flexión y también la
+    // EXTENSIÓN de tríceps cargada (francesa/skull/patada/jalón/pushdown), que
+    // es un agravante clásico. 'press' ya cubre press francés/cerrado.
     match: /codo|elbow|epicondil/,
-    avoid: /muscle.?up|dip|fondos|pull.?up|dominad|chin.?up|press|hspu|handstand|pino|remo|row|curl|plancha|planche|front lever|crow|cuervo|elbow.?lever|palanca de codo/
+    avoid: /muscle.?up|dip|fondos|pull.?up|dominad|chin.?up|press|hspu|handstand|pino|remo|row|curl|plancha|planche|front lever|crow|cuervo|elbow.?lever|palanca de codo|extensi[oó]n francesa|extensi[oó]n .*tr[ií]ceps|tr[ií]ceps.*(polea|cuerda|barra|mancuerna)|patada.*tr[ií]ceps|jal[oó]n.*tr[ií]ceps|pushdown|kickback|skull/
   }
 ];
 
