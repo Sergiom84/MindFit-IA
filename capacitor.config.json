@@ -1,0 +1,10 @@
+{
+  "appId": "com.entrenaconia.app",
+  "appName": "Entrena con IA",
+  "webDir": "dist",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

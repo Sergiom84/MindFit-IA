@@ -58,3 +58,11 @@ backend/scripts/_out/
 
 # Codex CLI artifacts
 .codex/
+
+# Android signing (NEVER commit — llaves de subida a Google Play)
+android/keystore.properties
+*.jks
+*.keystore
+
+# Artefactos de build de la app (aab/apk) y capturas
+builds/
