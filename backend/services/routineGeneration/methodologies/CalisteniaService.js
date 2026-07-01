@@ -11,6 +11,7 @@ import { logger } from '../logger.js';
 import { parseAIResponse } from '../ai/aiResponseParser.js';
 import { getUserFullProfile } from '../database/userRepository.js';
 import { normalizeUserProfile } from '../validators.js';
+import { extractInjuryText, activeInjuryRules, isContraindicated } from '../injuryContraindications.js';
 import {
   logSeparator,
   logAPICall,
@@ -89,18 +90,22 @@ export async function evaluateCalisteniaLevel(userId) {
           role: 'system',
           content: `Eres un especialista en calistenia que evalúa perfiles de usuarios.
 
-INSTRUCCIONES:
-- Evalúa objetivamente la experiencia y condición física
-- Sé realista con la confianza (no siempre 100%)
+INSTRUCCIONES (OBLIGATORIAS):
+- Evalúa objetivamente basándote SOLO en los datos reales del perfil (experiencia declarada, objetivos, nivel). NO inventes ni asumas capacidades no evidenciadas (no afirmes que domina muscle-ups, planchas o handstands salvo que el perfil lo indique).
+- Ante ambigüedad o falta de datos, sé CONSERVADOR y baja un nivel (la seguridad prima sobre el rendimiento).
+- Sé realista con la confianza (no siempre 100%).
+- LESIONES/LIMITACIONES: revisa "limitaciones_fisicas". Si hay lesión (p.ej. muñeca, codo, hombro, lumbar, rodilla), NO subas el nivel por rendimiento; añade en "safety_considerations" y "contraindicated_movements" los patrones a evitar/escalar (muñeca → planchas/pino/fondos/flexiones en apoyo de manos; codo → dominadas/dips/muscle-up; hombro → pino/pike/HSPU/dips; lumbar → front lever/hollow/L-sit/elevaciones de piernas; rodilla → pistols/saltos/zancadas). "reasoning" debe mencionar la limitación.
 - RESPONDE SOLO EN JSON PURO, SIN MARKDOWN
 
 FORMATO DE RESPUESTA:
 {
   "recommended_level": "principiante|intermedio|avanzado",
   "confidence": 0.75,
-  "reasoning": "Explicación detallada",
+  "reasoning": "Explicación basada SOLO en datos reales; menciona cualquier lesión/limitación",
   "key_indicators": ["Factor 1", "Factor 2"],
   "suggested_focus_areas": ["Área 1", "Área 2"],
+  "safety_considerations": ["Advertencia por lesión/limitación 1"],
+  "contraindicated_movements": ["Movimiento a evitar/escalar por lesión"],
   "progression_timeline": "Tiempo estimado"
 }`
         },
@@ -139,6 +144,8 @@ FORMATO DE RESPUESTA:
         reasoning: evaluation.reasoning,
         key_indicators: evaluation.key_indicators || [],
         suggested_focus_areas: evaluation.suggested_focus_areas || [],
+        safety_considerations: evaluation.safety_considerations || [],
+        contraindicated_movements: evaluation.contraindicated_movements || [],
         progression_timeline: evaluation.progression_timeline || 'No especificado'
       },
       metadata: {
@@ -433,11 +440,41 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
     throw new Error('No se encontraron ejercicios de calistenia para el nivel seleccionado');
   }
 
+  // 🩹 SEGURIDAD POR LESIÓN: leer limitaciones físicas del perfil y excluir del
+  // pool los movimientos contraindicados (p.ej. muñeca → planchas/pino/fondos;
+  // codo → dominadas/dips/muscle-up; hombro → pino/pike/HSPU). El motor es
+  // determinista, así que este filtro es la única barrera real.
+  let injuryText = '';
+  try {
+    const profile = await getUserFullProfile(userId);
+    injuryText = extractInjuryText(profile);
+  } catch (profileError) {
+    logger.warn(`⚠️ [CALISTENIA] No se pudo leer el perfil para filtrar lesiones: ${profileError.message}`);
+  }
+  const injuryRules = activeInjuryRules(injuryText);
+  const injuryZones = injuryRules.map((r) => r.zona);
+
   const exercisesByCategory = {};
+  const excludedByInjury = [];
   for (const ex of exercises) {
+    if (isContraindicated(ex, injuryRules)) {
+      excludedByInjury.push(ex.nombre);
+      continue;
+    }
     (exercisesByCategory[ex.categoria] ||= []).push(ex);
   }
-  const allExercises = exercises;
+
+  // Pool SEGURO (solo ejercicios no contraindicados). NUNCA reintroducimos los
+  // excluidos: si una lesión vacía toda una categoría (p.ej. muñeca elimina todo
+  // "Empuje" por apoyo de manos), esa categoría se cubre luego con ejercicios
+  // seguros de otras categorías (ver relleno en la construcción de plantillas).
+  const allExercises = Object.values(exercisesByCategory).flat();
+  if (allExercises.length === 0) {
+    throw new Error('No hay ejercicios de calistenia seguros para las limitaciones indicadas');
+  }
+  if (injuryRules.length) {
+    logger.info(`🩹 [CALISTENIA] Filtro de lesiones activo (${injuryZones.join(', ') || 'ninguna'}). Excluidos: ${excludedByInjury.length} movimientos`);
+  }
   const pick = buildExercisePicker(exercisesByCategory);
 
   // 3) Construir plantillas de sesión (selección única, reutilizada por semana).
@@ -445,13 +482,30 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
     const sessionId = `T-D${idx + 1}`;
     const chosen = [];
     const grupos = new Set();
+    const chosenIds = new Set();
+    const expected = tpl.plan.reduce((sum, [, n]) => sum + n, 0);
     for (const [categoria, n] of tpl.plan) {
       for (const ex of pick(categoria, n)) {
+        if (chosenIds.has(ex.exercise_id)) continue;
         chosen.push(ex);
+        chosenIds.add(ex.exercise_id);
         grupos.add(ex.categoria);
       }
     }
-    // Garantía anti-vacío: si la plantilla no encontró nada, rellena del pool global.
+    // 🩹 Relleno con ejercicios SEGUROS de otras categorías: si una lesión vació
+    // la categoría objetivo (p.ej. "Empuje" con lesión de muñeca), la sesión se
+    // completa con movimientos permitidos en vez de quedarse corta o reintroducir
+    // los contraindicados. Mantiene el número de ejercicios de la sesión.
+    if (chosen.length < expected) {
+      for (const ex of allExercises) {
+        if (chosen.length >= expected) break;
+        if (chosenIds.has(ex.exercise_id)) continue;
+        chosen.push(ex);
+        chosenIds.add(ex.exercise_id);
+        grupos.add(ex.categoria);
+      }
+    }
+    // Garantía anti-vacío final.
     if (chosen.length === 0 && allExercises.length > 0) {
       chosen.push(allExercises[idx % allExercises.length]);
       grupos.add(chosen[0].categoria);
@@ -519,6 +573,11 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
     fecha_inicio: fechaInicio,
     sessions_per_week: frecuencia,
     objetivo: planData.goals || levelConfig.description,
+    restricciones_lesion: {
+      zonas: injuryZones,
+      limitaciones_texto: injuryText || null,
+      movimientos_excluidos: excludedByInjury
+    },
     configuracion: {
       progression_type: 'microcycle_reps',
       progression_model: 'reps_to_variant',

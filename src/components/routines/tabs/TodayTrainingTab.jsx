@@ -525,21 +525,28 @@ export default function TodayTrainingTab({
         setTodaySessionData(null);
         return;
       }
-      // Calcular dayId y semana actual a partir de la fecha de inicio del plan
-      const startISO = (plan.planStartDate || planStartDate || new Date().toISOString());
-      const dayId = computeDayId(startISO, 'Europe/Madrid');
-      const currentWeekIdx = Math.max(0, Math.ceil(dayId / 7) - 1);
+      // 🎯 FIX (sesión de hoy incoherente en arranques a media semana):
+      // El backend (today-status) es la fuente autoritativa y respeta la
+      // redistribución de días por fecha. findTodaySession() busca en plan_data
+      // por NOMBRE DE DÍA, que no coincide con la sesión programada por fecha
+      // cuando el plan empieza a media semana. Por eso solo usamos plan_data como
+      // PREVIEW inicial mientras el backend no ha respondido; una vez hay sesión
+      // del backend, no la sobrescribimos.
+      if (!todayStatus?.exercises?.length) {
+        const startISO = (plan.planStartDate || planStartDate || new Date().toISOString());
+        const dayId = computeDayId(startISO, 'Europe/Madrid');
+        const currentWeekIdx = Math.max(0, Math.ceil(dayId / 7) - 1);
 
-      const sessionData = findTodaySession(effectivePlan, currentTodayName, currentWeekIdx);
-      console.log('🔍 DEBUG sessionData encontrada:', {
-        sessionData,
-        todayName: currentTodayName,
-        currentWeekIdx,
-        dayId,
-        ejercicios: sessionData?.ejercicios,
-        cantidadEjercicios: sessionData?.ejercicios?.length
-      });
-      setTodaySessionData(sessionData);
+        const sessionData = findTodaySession(effectivePlan, currentTodayName, currentWeekIdx);
+        console.log('🔍 DEBUG sessionData (preview plan_data):', {
+          sessionData,
+          todayName: currentTodayName,
+          currentWeekIdx,
+          dayId,
+          cantidadEjercicios: sessionData?.ejercicios?.length
+        });
+        setTodaySessionData(sessionData);
+      }
 
       // Si hay sesión activa, cargar estado desde contexto
       if (hasActiveSession && session.sessionId) {
@@ -550,7 +557,7 @@ export default function TodayTrainingTab({
         loadExerciseProgress();
       }
     }
-  }, [hasActivePlan, routinePlan, plan.currentPlan, currentTodayName, hasActiveSession, session, plan.planStartDate, planStartDate, loadExerciseProgress, isPlanStartInFuture]);
+  }, [hasActivePlan, routinePlan, plan.currentPlan, currentTodayName, hasActiveSession, session, plan.planStartDate, planStartDate, loadExerciseProgress, isPlanStartInFuture, todayStatus?.exercises?.length]);
 
 
   // ===============================================

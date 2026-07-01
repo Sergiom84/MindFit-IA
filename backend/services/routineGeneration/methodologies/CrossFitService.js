@@ -10,6 +10,7 @@ import { logger } from '../logger.js';
 import { parseAIResponse } from '../ai/aiResponseParser.js';
 import { getUserFullProfile } from '../database/userRepository.js';
 import { normalizeUserProfile } from '../validators.js';
+import { extractInjuryText, activeInjuryRules, isContraindicated } from '../injuryContraindications.js';
 import {
   buildExercisePicker,
   buildTemplates,
@@ -161,45 +162,6 @@ function normalizeCrossFitLevel(raw) {
   return 'principiante';
 }
 
-// 🩹 Contraindicaciones por lesión/limitación física. Cada entrada mapea una zona
-// (regex sobre el texto de limitaciones_fisicas del perfil) a los patrones de
-// movimiento a EVITAR (regex sobre nombre/categoría/dominio del ejercicio).
-// Es conservador a propósito: ante una lesión declarada, mejor excluir de más.
-const CROSSFIT_INJURY_CONTRAINDICATIONS = [
-  { zona: 'hombro', match: /hombro|deltoid|manguito|rotador|shoulder|supraespinoso/i,
-    avoid: /overhead|sobre.?cabeza|snatch|arranc|jerk|press|thruster|hspu|handstand|pino|muscle.?up|kipping|wall.?ball|pull.?up|dominad|dip|fondos|push.?up|flexion/i },
-  { zona: 'lumbar', match: /lumbar|espalda baja|zona baja|hernia|columna|discal|ci[aá]tic/i,
-    avoid: /deadlift|peso muerto|good ?morning|buenos d[ií]as|clean|cargada|snatch|arranc|swing|kettlebell|box ?jump|salto al caj|thruster|overhead squat|sentadilla sobre|barbell row|remo con barra|hinge|bisagra/i },
-  { zona: 'rodilla', match: /rodilla|menisco|ligament|lca|lcp|patel|knee/i,
-    avoid: /box ?jump|salto|pistol|squat ?jump|sentadilla con salto|lunge|zancada|wall.?ball|thruster|running|carrera|double.?under|comba/i },
-  { zona: 'muñeca', match: /mu[ñn]eca|wrist/i,
-    avoid: /front squat|sentadilla frontal|clean|cargada|snatch|arranc|handstand|pino|hspu|press|push.?up|flexion|thruster/i },
-  { zona: 'tobillo', match: /tobillo|ankle|aquiles/i,
-    avoid: /box ?jump|salto|running|carrera|double.?under|comba|pistol|lunge|zancada/i },
-  { zona: 'codo', match: /codo|elbow|epicondil/i,
-    avoid: /muscle.?up|dip|fondos|pull.?up|dominad|press|hspu|handstand|pino/i }
-];
-
-// Extrae el texto de limitaciones/lesiones del perfil (array o string).
-function extractInjuryText(profile) {
-  const raw = profile?.limitaciones_fisicas ?? profile?.limitaciones ?? profile?.lesiones ?? null;
-  if (!raw) return '';
-  if (Array.isArray(raw)) return raw.filter(Boolean).join(' ');
-  return String(raw);
-}
-
-// Devuelve las zonas con contraindicación activas según el texto de lesiones.
-function activeInjuryRules(injuryText) {
-  if (!injuryText || !injuryText.trim()) return [];
-  return CROSSFIT_INJURY_CONTRAINDICATIONS.filter(r => r.match.test(injuryText));
-}
-
-// True si el ejercicio está contraindicado por alguna de las reglas activas.
-function isContraindicated(ex, rules) {
-  if (!rules.length) return false;
-  const hay = `${ex?.nombre || ''} ${ex?.categoria || ''} ${ex?.dominio || ''} ${ex?.tipo_wod || ''}`;
-  return rules.some(r => r.avoid.test(hay));
-}
 
 // Plantillas de sesión tipo WOD; cada `[dominio, n]` toma n movimientos de ese dominio.
 const CROSSFIT_SESSION_TEMPLATES = [
@@ -339,18 +301,14 @@ export async function generateCrossFitPlan(userId, planData = {}) {
     (poolByDomain[ex.dominio] ||= []).push(ex);
   }
 
-  // Salvaguarda: si un dominio queda vacío tras el filtro, restaurar sus
-  // movimientos pero marcados con nota de escalado por lesión (mejor un plan
-  // adaptado y avisado que ninguno). Evita que la generación falle.
+  // Pool SEGURO (solo no contraindicados). NUNCA reintroducimos los excluidos:
+  // si una lesión vacía un dominio, la sesión se completa con movimientos seguros
+  // de otros dominios (fallbackPool de buildTemplates), no con los peligrosos.
+  const safePool = Object.values(poolByDomain).flat();
+  if (safePool.length === 0) {
+    throw new Error('No hay ejercicios de CrossFit seguros para las limitaciones indicadas');
+  }
   if (injuryRules.length) {
-    for (const ex of exercises) {
-      if (!(poolByDomain[ex.dominio]?.length)) {
-        (poolByDomain[ex.dominio] ||= []).push({
-          ...ex,
-          escalamiento: `⚠️ Escalar/evitar por lesión (${injuryZones.join(', ')}): ${ex.escalamiento || 'reduce rango y carga, prioriza técnica'}`
-        });
-      }
-    }
     logger.info(`🩹 [CROSSFIT] Filtro de lesiones activo (${injuryZones.join(', ') || 'ninguna'}). Excluidos: ${excludedByInjury.length} movimientos`);
   }
 
@@ -359,7 +317,7 @@ export async function generateCrossFitPlan(userId, planData = {}) {
 
   const pick = buildExercisePicker(poolByDomain);
   const templateSpecs = CROSSFIT_SESSION_TEMPLATES.slice(0, frecuencia);
-  const templates = buildTemplates(templateSpecs, pick, exercises);
+  const templates = buildTemplates(templateSpecs, pick, safePool);
 
   const semanas = buildSemanas({
     templates,
