@@ -7,6 +7,7 @@ import { pool } from '../../../db.js';
 import { logger } from '../logger.js';
 import { getUserFullProfile } from '../database/userRepository.js';
 import { getRandomByLevel } from '../../exerciseRepository.js';
+import { extractInjuryText, activeInjuryRules, isContraindicated } from '../injuryContraindications.js';
 import { materialsForEquipmentLevel, buildAllowedMaterials } from '../../singleDay/casaEquipment.js';
 import {
   parseSeriesReps,
@@ -377,14 +378,19 @@ export async function generateGymRoutine(userId, routineData = {}) {
 
   logger.info(`🏋️ [GYM] Generando rutina '${methodology}' (disciplina=${disciplina}) para usuario ${userId}`);
 
+  // Perfil (para nivel de fallback y limitaciones/lesiones). Opcional.
+  let userProfile = null;
+  try {
+    userProfile = await getUserFullProfile(userId);
+  } catch { /* perfil opcional */ }
+
   // Nivel: explícito del frontend o, si no, el del perfil del usuario.
-  let levelRaw = routineData.selectedLevel || routineData.level || routineData.nivel;
-  if (!levelRaw) {
-    try {
-      const profile = await getUserFullProfile(userId);
-      levelRaw = profile?.nivel_entrenamiento;
-    } catch { /* perfil opcional */ }
-  }
+  const levelRaw = routineData.selectedLevel || routineData.level || routineData.nivel || userProfile?.nivel_entrenamiento;
+
+  // 🩹 Reglas de contraindicación por lesión (compartidas con Calistenia/CrossFit).
+  const injuryText = extractInjuryText(userProfile);
+  const injuryRules = activeInjuryRules(injuryText);
+  const injuryZones = injuryRules.map((r) => r.zona);
   const levelKey = normalizeLevel3(levelRaw);
   const levelsTable = methodConfig.levels || GYM_LEVELS;
   const levelConfig = levelsTable[levelKey] || levelsTable.principiante;
@@ -415,9 +421,27 @@ export async function generateGymRoutine(userId, routineData = {}) {
     throw new Error(`No se encontraron ejercicios de ${disciplina} para el nivel seleccionado`);
   }
 
+  // 🩹 SEGURIDAD POR LESIÓN: excluir del pool los movimientos contraindicados.
+  // El motor es determinista, así que este filtro es la única barrera real. Si
+  // una lesión vacía un bucket (p.ej. hombro → EMPUJE/PUSH), la sesión se
+  // completa con ejercicios seguros de otros buckets (relleno en buildTemplates).
   const bucketFn = methodConfig.bucketFn;
   const poolByBucket = {};
-  for (const ex of exercises) (poolByBucket[bucketFn(ex.categoria)] ||= []).push(ex);
+  const excludedByInjury = [];
+  for (const ex of exercises) {
+    if (isContraindicated(ex, injuryRules)) {
+      excludedByInjury.push(ex.nombre);
+      continue;
+    }
+    (poolByBucket[bucketFn(ex.categoria)] ||= []).push(ex);
+  }
+  const safePool = Object.values(poolByBucket).flat();
+  if (safePool.length === 0) {
+    throw new Error(`No hay ejercicios de ${disciplina} seguros para las limitaciones indicadas`);
+  }
+  if (injuryRules.length) {
+    logger.info(`🩹 [GYM] Filtro de lesiones activo (${injuryZones.join(', ') || 'ninguna'}). Excluidos: ${excludedByInjury.length} de ${exercises.length}`);
+  }
 
   // Reglas (descanso, deload) cargadas desde app.mindfeed_rulesets cuando la
   // metodología define un scope (p.ej. funcional → funcional_v1). El resto de
@@ -431,7 +455,7 @@ export async function generateGymRoutine(userId, routineData = {}) {
   const pick = buildExercisePicker(poolByBucket);
   const templateSet = methodConfig.templates;
   const templateSpecs = templateSet[frecuencia] || templateSet[3];
-  const templates = buildTemplates(templateSpecs, pick, exercises);
+  const templates = buildTemplates(templateSpecs, pick, safePool);
 
   let semanas = buildSemanas({
     templates,
@@ -457,6 +481,11 @@ export async function generateGymRoutine(userId, routineData = {}) {
     sessions_per_week: frecuencia,
     fecha_inicio: new Date().toISOString(),
     objetivo: routineData.goals || levelConfig.name,
+    restricciones_lesion: {
+      zonas: injuryZones,
+      limitaciones_texto: injuryText || null,
+      movimientos_excluidos: excludedByInjury
+    },
     configuracion: {
       progression_type: 'linear',
       sessions_per_week: frecuencia,

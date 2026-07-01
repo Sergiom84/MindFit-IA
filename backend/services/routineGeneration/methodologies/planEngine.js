@@ -72,10 +72,28 @@ export function buildTemplates(templateSpecs, pick, fallbackPool = []) {
   return templateSpecs.map((tpl, idx) => {
     const chosen = [];
     const grupos = new Set();
+    const chosenIds = new Set();
+    const expected = tpl.plan.reduce((sum, [, n]) => sum + n, 0);
     for (const [key, n] of tpl.plan) {
       for (const ex of pick(key, n)) {
+        if (ex.exercise_id != null && chosenIds.has(ex.exercise_id)) continue;
         chosen.push(ex);
+        if (ex.exercise_id != null) chosenIds.add(ex.exercise_id);
         grupos.add(ex.categoria || ex.dominio || key);
+      }
+    }
+    // 🩹 Relleno hasta el nº esperado desde el pool de reserva (que las
+    // metodologías pasan ya FILTRADO por lesión). Cubre el caso de que una
+    // lesión vacíe un bucket/dominio: la sesión mantiene su tamaño con
+    // ejercicios seguros en vez de quedarse corta. En perfiles sin lesión los
+    // buckets tienen material suficiente y este relleno no se dispara.
+    if (chosen.length < expected && fallbackPool.length > 0) {
+      for (const ex of fallbackPool) {
+        if (chosen.length >= expected) break;
+        if (ex.exercise_id != null && chosenIds.has(ex.exercise_id)) continue;
+        chosen.push(ex);
+        if (ex.exercise_id != null) chosenIds.add(ex.exercise_id);
+        grupos.add(ex.categoria || ex.dominio || 'general');
       }
     }
     if (chosen.length === 0 && fallbackPool.length > 0) {
