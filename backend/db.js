@@ -86,6 +86,19 @@ export const pool = new Pool({
   keepAliveInitialDelayMillis: 10000,
 });
 
+// --- 3.1) Manejo de errores de clientes ociosos ---
+// El pooler de Supabase cierra conexiones ociosas (ECONNRESET). node-postgres emite
+// entonces un evento 'error' en el Pool; SIN listener, Node lo trata como error no
+// capturado y TUMBA el proceso. Este handler lo registra y lo absorbe: el cliente
+// afectado se retira del pool y las próximas queries abren una conexión nueva.
+pool.on("error", (err) => {
+  console.error(
+    "⚠️  Error en cliente ocioso del pool PostgreSQL (recuperable):",
+    err?.code || "",
+    err?.message || err
+  );
+});
+
 // --- 4) search_path por conexión ---
 const DB_SEARCH_PATH = process.env.DB_SEARCH_PATH || "app,public";
 pool.on("connect", async (client) => {

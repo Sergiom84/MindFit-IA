@@ -270,15 +270,18 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
       await activateMethodologyPlan(userId, methodology_plan_id, client);
     }
 
-    if (resolvedStartDate) {
-      const startDateLocal = formatLocalDate(resolvedStartDate);
-      await client.query(
-        `UPDATE app.methodology_plans
-         SET plan_start_date = $1, updated_at = NOW()
-         WHERE id = $2 AND user_id = $3`,
-        [startDateLocal, methodology_plan_id, userId]
-      );
-    }
+    // 🎯 FIX: Persistir SIEMPRE plan_start_date. Si no llega startConfig con fecha,
+    // usar hoy como inicio. Sin esto quedaba NULL y el frontend ("Hoy") caía a
+    // new Date() como inicio en cada carga → dayId=1 permanente → la semana del
+    // plan nunca avanzaba y divergía del calendario (que usa confirmed_at).
+    const persistedStartDate = resolvedStartDate || new Date();
+    const startDateLocal = formatLocalDate(persistedStartDate);
+    await client.query(
+      `UPDATE app.methodology_plans
+       SET plan_start_date = $1, updated_at = NOW()
+       WHERE id = $2 AND user_id = $3`,
+      [startDateLocal, methodology_plan_id, userId]
+    );
 
     // 🎯 FASE 2: STORED PROCEDURE DESHABILITADO
     // El stored procedure create_methodology_exercise_sessions tiene varios problemas:

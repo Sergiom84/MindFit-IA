@@ -75,7 +75,7 @@ router.get('/stats/progress-data', authenticateToken, async (req, res) => {
            COUNT(DISTINCT mep.id) as total_exercises_attempted,
            SUM(CASE WHEN mep.status = 'completed' THEN mep.series_completed ELSE 0 END) as total_series_completed,
            SUM(CASE WHEN mep.status = 'completed' THEN COALESCE(mep.time_spent_seconds, 0) ELSE 0 END) +
-           SUM(CASE WHEN mes.status = 'completed' THEN COALESCE(mes.warmup_time_seconds, 0) ELSE 0 END) as total_time_seconds,
+           SUM(CASE WHEN mes.session_status = 'completed' THEN COALESCE(mes.warmup_time_seconds, 0) ELSE 0 END) as total_time_seconds,
            MIN(mes.started_at) as first_session_date,
            MAX(mes.completed_at) as last_session_date
          FROM app.methodology_exercise_sessions mes
@@ -216,7 +216,7 @@ router.get('/stats/historical', authenticateToken, async (req, res) => {
          COUNT(DISTINCT mep.id) as total_exercises_ever,
          SUM(CASE WHEN mep.status = 'completed' THEN mep.series_completed ELSE 0 END) as total_series_ever,
          SUM(CASE WHEN mep.status = 'completed' THEN COALESCE(mep.time_spent_seconds, 0) ELSE 0 END) +
-         SUM(CASE WHEN mes.status = 'completed' THEN COALESCE(mes.warmup_time_seconds, 0) ELSE 0 END) as total_time_spent_ever,
+         SUM(CASE WHEN mes.session_status = 'completed' THEN COALESCE(mes.warmup_time_seconds, 0) ELSE 0 END) as total_time_spent_ever,
          MIN(mes.started_at) as first_workout_date,
          MAX(mes.completed_at) as last_workout_date
        FROM app.methodology_plans mp
