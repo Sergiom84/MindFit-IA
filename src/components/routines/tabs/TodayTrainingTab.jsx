@@ -809,6 +809,23 @@ export default function TodayTrainingTab({
           });
         }
       } else {
+        // 🎯 Sesión ya activa para hoy: reanudarla (no es un error fatal).
+        const existingSid = result.session_id || todayStatus?.session?.id;
+        const msg = String(result.error || '').toLowerCase();
+        if (existingSid && (result.status === 400 || msg.includes('ya existe una sesi'))) {
+          console.log('[TodayTrainingTab] Sesión ya activa detectada, reanudando');
+          const sessionKey = String(existingSid);
+          warmupShownSessionsRef.current.add(sessionKey);
+          updateLocalState({
+            pendingSessionData: {
+              session: { ...todaySessionData, sessionId: existingSid },
+              sessionId: existingSid
+            },
+            showWarmupModal: true,
+            showSessionModal: false
+          });
+          return;
+        }
         throw new Error(result.error || 'Error iniciando la sesión');
       }
 
@@ -820,7 +837,7 @@ export default function TodayTrainingTab({
         const existingSid = todayStatus?.session?.id;
         const sid = error?.data?.session_id || existingSid;
         const msg = String(error?.message || '').toLowerCase();
-        if ((error?.status === 400 && sid) || (msg.includes('ya existe una sesion activa') && sid)) {
+        if ((error?.status === 400 && sid) || (msg.includes('ya existe una sesi') && sid)) {
           console.log('[TodayTrainingTab] Existing session detected, showing warmup modal');
           const sessionKey = sid != null ? String(sid) : null;
           if (sessionKey) {

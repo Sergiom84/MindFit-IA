@@ -401,7 +401,11 @@ const RoutineScreen = () => {
   // 🎨 RENDER CONDICIONAL PARA LOADING
   // ===============================================
 
-  if (ui.isLoading) {
+  // 🎯 Solo mostrar la pantalla de carga a pantalla completa en la carga INICIAL
+  // (aún no hay plan). Durante acciones puntuales como iniciar la sesión, el plan
+  // ya existe: mostrar el loader global aquí DESMONTABA TodayTrainingTab y perdía
+  // el estado del modal de calentamiento (el reproductor no llegaba a abrirse).
+  if (ui.isLoading && !effectivePlan) {
     return (
       <div className="min-h-screen bg-[#050506] text-white relative overflow-hidden flex items-center justify-center font-body">
         <div className="pointer-events-none absolute inset-0">

@@ -798,8 +798,19 @@ export function WorkoutProvider({ children }) {
 
       return { success: true, ...sessionData };
     } catch (error) {
-      dispatch({ type: WORKOUT_ACTIONS.SET_ERROR, payload: error.message });
-      return { success: false, error: error.message };
+      // Caso recuperable: ya existe una sesión activa para el día. El backend
+      // adjunta status 400 + session_id; la UI la reanuda, así que NO marcamos
+      // error global (evita el banner "Error cargando datos" espurio).
+      const isAlreadyActive = error?.status === 400 && error?.data?.session_id;
+      if (!isAlreadyActive) {
+        dispatch({ type: WORKOUT_ACTIONS.SET_ERROR, payload: error.message });
+      }
+      return {
+        success: false,
+        error: error.message,
+        status: error?.status,
+        session_id: error?.data?.session_id
+      };
     } finally {
       dispatch({ type: WORKOUT_ACTIONS.SET_LOADING, payload: false });
     }
