@@ -584,7 +584,14 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
 
         // El déficit es lo que falta para llegar al total esperado
         const deficit = Math.max(0, __fixedTotalExpectedSessions - sessionsProgrammedSoFar);
-        const sessionsInLastWeek = deficit;
+        // 🎯 FIX (semanas a la deriva): NO inflar la última semana por encima de su
+        // frecuencia normal. Al empezar a media semana, la semana 1 queda corta y el
+        // déficit hacía que la última semana absorbiera las sesiones que faltaban,
+        // desbordándolas a una semana de calendario EXTRA (plan de 12 → 13). Un plan
+        // de N semanas debe ocupar N semanas: una semana 1 más ligera es el precio
+        // honesto de empezar tarde. En arranques en lunes deficit == baseSessions y
+        // este Math.min no cambia nada.
+        const sessionsInLastWeek = Math.min(deficit, baseSessions.length);
 
         console.log('[ensureWorkoutScheduleV3] Calculando compensación para última semana:', {
           planId: methodologyPlanId,
@@ -688,7 +695,12 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
         });
       }
 
-      for (let dayInWeek = 0; dayInWeek < 7 || (isLastWeek && sessionsByDay.size > 0); dayInWeek++) {
+      // 🎯 FIX (semanas a la deriva): el bucle NO se extiende más allá de la semana
+      // de calendario (Lun→Dom). Antes, la última semana seguía iterando mientras
+      // quedaran sesiones sin asignar, creando días con effectiveWeekNumber = N+1
+      // (semana fantasma). Junto con el cap del déficit, el plan ocupa exactamente
+      // sus N semanas.
+      for (let dayInWeek = 0; dayInWeek < 7; dayInWeek++) {
         // Calcular fecha actual: lunes de la primera semana + offset de semana + día de la semana
         const currentDate = new Date(mondayOfStartWeek);
         currentDate.setDate(mondayOfStartWeek.getDate() + (weekIndex * 7) + dayInWeek);
