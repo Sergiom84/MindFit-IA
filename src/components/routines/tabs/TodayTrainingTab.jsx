@@ -30,6 +30,7 @@ import {
 
 import RoutineSessionModal from '../RoutineSessionModal';
 import WodSessionModal from '../WodSessionModal.jsx';
+import HipertrofiaSessionModal from '../HipertrofiaSessionModal.jsx';
 import CalisteniaEffortModal from '../modals/CalisteniaEffortModal';
 import CasaEffortModal from '../modals/CasaEffortModal';
 import CrossFitEffortModal from '../modals/CrossFitEffortModal.jsx';
@@ -1726,6 +1727,12 @@ export default function TodayTrainingTab({
     || routinePlan?.methodologyType
     || routinePlan?.methodology_type;
 
+  // 🧬 HipertrofiaV2 (MindFeed) usa su reproductor propio, alimentado por el
+  // backend (todayStatus), porque su plan_data etiqueta los días D1-D5 con nombres
+  // de semana y el reproductor común mostraría la sesión equivocada. No afecta al
+  // resto de metodologías (incluido Gimnasio, cuyo tipo es 'Gimnasio', no MindFeed).
+  const isHipertrofiaV2 = /hipertrofia|mindfeed/i.test(String(planMethodology || ''));
+
   const effectiveSession = localState.pendingSessionData?.session || (
     wantRoutineModal && (session.sessionId || localState.pendingSessionData?.sessionId) && filteredSessionData
       ? {
@@ -2293,41 +2300,62 @@ export default function TodayTrainingTab({
       )}
 
       {/* Modal de Entrenamiento — player según metodología activa */}
-      {/* 🎯 FIX: Simplificada condición - mostrar si showSessionModal=true y hay effectiveSession */}
-      {(localState.showSessionModal || ui.showRoutineSession) &&
-       effectiveSession && (
-        activeMethodKey === 'crossfit' ? (
-          /* CrossFit: WOD player (cronómetro, rondas, escala, time cap) también desde el plan/calendario */
-          <WodSessionModal
-            isOpen
-            session={effectiveSession}
-            sessionId={effectiveSessionId}
-            onClose={() => {
-              updateLocalState({ showSessionModal: false, pendingSessionData: null });
-              ui.hideModal?.('routineSession');
-            }}
-            onFinishExercise={handleExerciseUpdate}
-            onCompleteSession={(summary) => {
-              // Cierre común + apertura del modal de esfuerzo CrossFit con la escala usada en el WOD.
-              handleCompleteSession({ scale: summary?.escala || 'rx' });
-            }}
-          />
-        ) : (
-          <RoutineSessionModal
-            session={effectiveSession}
-            sessionId={effectiveSessionId}
-            onClose={() => {
-              updateLocalState({ showSessionModal: false, pendingSessionData: null });
-              ui.hideModal?.('routineSession');
-            }}
-            onFinishExercise={handleExerciseUpdate}
-            onSkipExercise={(exerciseIndex) => handleExerciseUpdate(exerciseIndex, { status: 'skipped' })}
-            onCancelExercise={(exerciseIndex) => handleExerciseUpdate(exerciseIndex, { status: 'cancelled' })}
-            onEndSession={handleCompleteSession}
-            navigateToRoutines={() => navigate('/routines')}
-            onProgressUpdate={onProgressUpdate}
-          />
-        )
+      {/* 🎯 HipertrofiaV2 usa su reproductor propio (fuente=backend); el resto sigue
+          usando effectiveSession sin cambios. */}
+      {(localState.showSessionModal || ui.showRoutineSession) && (
+        isHipertrofiaV2 ? (
+          (todayStatus?.exercises?.length > 0) && (
+            <HipertrofiaSessionModal
+              todayStatus={todayStatus}
+              sessionId={effectiveSessionId}
+              methodologyPlanId={methodologyPlanId}
+              metodologia={planMethodology}
+              onClose={() => {
+                updateLocalState({ showSessionModal: false, pendingSessionData: null });
+                ui.hideModal?.('routineSession');
+              }}
+              onFinishExercise={handleExerciseUpdate}
+              onSkipExercise={(exerciseIndex) => handleExerciseUpdate(exerciseIndex, { status: 'skipped' })}
+              onCancelExercise={(exerciseIndex) => handleExerciseUpdate(exerciseIndex, { status: 'cancelled' })}
+              onEndSession={handleCompleteSession}
+              navigateToRoutines={() => navigate('/routines')}
+              onProgressUpdate={onProgressUpdate}
+            />
+          )
+        ) : effectiveSession ? (
+          activeMethodKey === 'crossfit' ? (
+            /* CrossFit: WOD player (cronómetro, rondas, escala, time cap) también desde el plan/calendario */
+            <WodSessionModal
+              isOpen
+              session={effectiveSession}
+              sessionId={effectiveSessionId}
+              onClose={() => {
+                updateLocalState({ showSessionModal: false, pendingSessionData: null });
+                ui.hideModal?.('routineSession');
+              }}
+              onFinishExercise={handleExerciseUpdate}
+              onCompleteSession={(summary) => {
+                // Cierre común + apertura del modal de esfuerzo CrossFit con la escala usada en el WOD.
+                handleCompleteSession({ scale: summary?.escala || 'rx' });
+              }}
+            />
+          ) : (
+            <RoutineSessionModal
+              session={effectiveSession}
+              sessionId={effectiveSessionId}
+              onClose={() => {
+                updateLocalState({ showSessionModal: false, pendingSessionData: null });
+                ui.hideModal?.('routineSession');
+              }}
+              onFinishExercise={handleExerciseUpdate}
+              onSkipExercise={(exerciseIndex) => handleExerciseUpdate(exerciseIndex, { status: 'skipped' })}
+              onCancelExercise={(exerciseIndex) => handleExerciseUpdate(exerciseIndex, { status: 'cancelled' })}
+              onEndSession={handleCompleteSession}
+              navigateToRoutines={() => navigate('/routines')}
+              onProgressUpdate={onProgressUpdate}
+            />
+          )
+        ) : null
       )}
 
       {/* Modal de Confirmación de Cancelación */}
