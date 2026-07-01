@@ -65,20 +65,27 @@ RESPONDE SOLO EN JSON PURO, SIN MARKDOWN.
 
 Niveles válidos: principiante, intermedio, avanzado, elite
 
-Criterios basados en las 10 habilidades físicas y experiencia:
-- Principiante (Scaled): 0-12 meses de CrossFit, aprendiendo movimientos base, necesita scaling
-- Intermedio (RX): 1-3 años, completa WODs RX, pull-ups, double-unders, cargas estándar (95/65 thrusters)
-- Avanzado (RX+): 3-5 años, muscle-ups, HSPUs, cargas pesadas, tiempos competitivos
-- Elite: 5+ años competitivo, Open/Quarterfinals, domina movimientos avanzados, levantamientos élite
+REGLAS DE EVALUACIÓN (OBLIGATORIAS):
+1. Básate SOLO en los datos reales del perfil (experiencia declarada, objetivos, nivel indicado). NO inventes ni asumas capacidades no evidenciadas: no afirmes que el usuario "completa WODs RX", "hace muscle-ups" o "domina HSPU" salvo que el perfil lo indique explícitamente.
+2. Ante ambigüedad o falta de datos, sé CONSERVADOR y baja un nivel (la seguridad prima sobre el rendimiento).
+3. Los descriptores de nivel son PERFILES TÍPICOS de referencia, NO afirmaciones sobre este usuario.
+4. LESIONES/LIMITACIONES: revisa "limitaciones_fisicas" del perfil. Si hay lesión (p.ej. hombro, lumbar, rodilla), NO subas el nivel por rendimiento; añade en "safety_considerations" y "contraindicated_movements" los patrones a evitar/escalar (hombro → overhead/press/kipping/muscle-up/HSPU; lumbar → peso muerto/swing/box jump; rodilla → saltos/pistols/zancadas). El campo "reasoning" debe mencionar explícitamente la limitación.
+
+Perfiles típicos de referencia (NO asumir que el usuario los cumple):
+- Principiante (Scaled): típico de 0-12 meses, aprendiendo movimientos base, requiere scaling
+- Intermedio (RX): típico de 1-3 años, suele manejar pull-ups/double-unders y cargas estándar (95/65 thrusters)
+- Avanzado (RX+): típico de 3-5 años, suele tener muscle-ups/HSPU y cargas pesadas
+- Elite: típico de 5+ años competitivo (Open/Quarterfinals)
 
 FORMATO EXACTO:
 {
   "recommended_level": "principiante|intermedio|avanzado|elite",
   "confidence": 0.75,
-  "reasoning": "Explicación detallada basada en las 10 habilidades",
+  "reasoning": "Explicación basada SOLO en datos reales del perfil; menciona cualquier lesión/limitación",
   "key_indicators": ["Factor 1", "Factor 2"],
   "suggested_focus_areas": ["Gymnastic", "Weightlifting", "Monostructural"],
-  "safety_considerations": ["Advertencia 1", "Advertencia 2"],
+  "safety_considerations": ["Advertencia por lesión/limitación 1"],
+  "contraindicated_movements": ["Movimiento a evitar/escalar por lesión"],
   "benchmark_targets": {
     "fran": "Sub-8 min",
     "helen": "Sub-12 min",
@@ -122,6 +129,7 @@ FORMATO EXACTO:
         key_indicators: evaluation.key_indicators || [],
         suggested_focus_areas: evaluation.suggested_focus_areas || [],
         safety_considerations: evaluation.safety_considerations || [],
+        contraindicated_movements: evaluation.contraindicated_movements || [],
         benchmark_targets: evaluation.benchmark_targets || {}
       },
       metadata: {
@@ -151,6 +159,46 @@ function normalizeCrossFitLevel(raw) {
   if (lvl.includes('avanz')) return 'avanzado';
   if (lvl.includes('inter')) return 'intermedio';
   return 'principiante';
+}
+
+// 🩹 Contraindicaciones por lesión/limitación física. Cada entrada mapea una zona
+// (regex sobre el texto de limitaciones_fisicas del perfil) a los patrones de
+// movimiento a EVITAR (regex sobre nombre/categoría/dominio del ejercicio).
+// Es conservador a propósito: ante una lesión declarada, mejor excluir de más.
+const CROSSFIT_INJURY_CONTRAINDICATIONS = [
+  { zona: 'hombro', match: /hombro|deltoid|manguito|rotador|shoulder|supraespinoso/i,
+    avoid: /overhead|sobre.?cabeza|snatch|arranc|jerk|press|thruster|hspu|handstand|pino|muscle.?up|kipping|wall.?ball|pull.?up|dominad|dip|fondos|push.?up|flexion/i },
+  { zona: 'lumbar', match: /lumbar|espalda baja|zona baja|hernia|columna|discal|ci[aá]tic/i,
+    avoid: /deadlift|peso muerto|good ?morning|buenos d[ií]as|clean|cargada|snatch|arranc|swing|kettlebell|box ?jump|salto al caj|thruster|overhead squat|sentadilla sobre|barbell row|remo con barra|hinge|bisagra/i },
+  { zona: 'rodilla', match: /rodilla|menisco|ligament|lca|lcp|patel|knee/i,
+    avoid: /box ?jump|salto|pistol|squat ?jump|sentadilla con salto|lunge|zancada|wall.?ball|thruster|running|carrera|double.?under|comba/i },
+  { zona: 'muñeca', match: /mu[ñn]eca|wrist/i,
+    avoid: /front squat|sentadilla frontal|clean|cargada|snatch|arranc|handstand|pino|hspu|press|push.?up|flexion|thruster/i },
+  { zona: 'tobillo', match: /tobillo|ankle|aquiles/i,
+    avoid: /box ?jump|salto|running|carrera|double.?under|comba|pistol|lunge|zancada/i },
+  { zona: 'codo', match: /codo|elbow|epicondil/i,
+    avoid: /muscle.?up|dip|fondos|pull.?up|dominad|press|hspu|handstand|pino/i }
+];
+
+// Extrae el texto de limitaciones/lesiones del perfil (array o string).
+function extractInjuryText(profile) {
+  const raw = profile?.limitaciones_fisicas ?? profile?.limitaciones ?? profile?.lesiones ?? null;
+  if (!raw) return '';
+  if (Array.isArray(raw)) return raw.filter(Boolean).join(' ');
+  return String(raw);
+}
+
+// Devuelve las zonas con contraindicación activas según el texto de lesiones.
+function activeInjuryRules(injuryText) {
+  if (!injuryText || !injuryText.trim()) return [];
+  return CROSSFIT_INJURY_CONTRAINDICATIONS.filter(r => r.match.test(injuryText));
+}
+
+// True si el ejercicio está contraindicado por alguna de las reglas activas.
+function isContraindicated(ex, rules) {
+  if (!rules.length) return false;
+  const hay = `${ex?.nombre || ''} ${ex?.categoria || ''} ${ex?.dominio || ''} ${ex?.tipo_wod || ''}`;
+  return rules.some(r => r.avoid.test(hay));
 }
 
 // Plantillas de sesión tipo WOD; cada `[dominio, n]` toma n movimientos de ese dominio.
@@ -264,8 +312,45 @@ export async function generateCrossFitPlan(userId, planData = {}) {
     throw new Error('No se encontraron ejercicios de CrossFit para el nivel seleccionado');
   }
 
+  // 🩹 SEGURIDAD POR LESIÓN: leer limitaciones físicas del perfil y excluir del
+  // pool los movimientos contraindicados (p.ej. hombro → overhead/press/kipping;
+  // lumbar → peso muerto/swing/box jump). El motor es determinista, así que este
+  // filtro es la única barrera real: sin él, el plan incluía cargas agresivas
+  // (Thrusters/Deadlift/muscle-ups) pese a la lesión declarada.
+  let injuryText = '';
+  try {
+    const profile = await getUserFullProfile(userId);
+    injuryText = extractInjuryText(profile);
+  } catch (profileError) {
+    logger.warn(`⚠️ [CROSSFIT] No se pudo leer el perfil para filtrar lesiones: ${profileError.message}`);
+  }
+  const injuryRules = activeInjuryRules(injuryText);
+  const injuryZones = injuryRules.map(r => r.zona);
+
   const poolByDomain = {};
-  for (const ex of exercises) (poolByDomain[ex.dominio] ||= []).push(ex);
+  const excludedByInjury = [];
+  for (const ex of exercises) {
+    if (isContraindicated(ex, injuryRules)) {
+      excludedByInjury.push(ex.nombre);
+      continue;
+    }
+    (poolByDomain[ex.dominio] ||= []).push(ex);
+  }
+
+  // Salvaguarda: si un dominio queda vacío tras el filtro, restaurar sus
+  // movimientos pero marcados con nota de escalado por lesión (mejor un plan
+  // adaptado y avisado que ninguno). Evita que la generación falle.
+  if (injuryRules.length) {
+    for (const ex of exercises) {
+      if (!(poolByDomain[ex.dominio]?.length)) {
+        (poolByDomain[ex.dominio] ||= []).push({
+          ...ex,
+          escalamiento: `⚠️ Escalar/evitar por lesión (${injuryZones.join(', ')}): ${ex.escalamiento || 'reduce rango y carga, prioriza técnica'}`
+        });
+      }
+    }
+    logger.info(`🩹 [CROSSFIT] Filtro de lesiones activo (${injuryZones.join(', ') || 'ninguna'}). Excluidos: ${excludedByInjury.length} movimientos`);
+  }
 
   // Reglas (descanso, deload, escalas) cargadas desde app.mindfeed_rulesets (scope crossfit_v1).
   const ruleset = await loadCrossFitRuleset(pool);
@@ -293,6 +378,11 @@ export async function generateCrossFitPlan(userId, planData = {}) {
     fecha_inicio: new Date().toISOString(),
     objetivo: planData.goals || levelConfig.description,
     benchmark_targets: levelConfig.benchmark_targets || {},
+    restricciones_lesion: {
+      zonas: injuryZones,
+      limitaciones_texto: injuryText || null,
+      movimientos_excluidos: excludedByInjury
+    },
     configuracion: {
       progression_type: 'scale_progression',
       sessions_per_week: frecuencia,

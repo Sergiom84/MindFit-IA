@@ -26,7 +26,13 @@ export async function getUserFullProfile(userId) {
         u.cintura, u.muslo, u.cuello, u.antebrazos, u.cadera,
         u.comidas_por_dia, u.alimentos_excluidos, u.meta_peso,
         u.meta_grasa_corporal, u.enfoque_entrenamiento, u.historial_medico,
-        p.limitaciones_fisicas, p.objetivo_principal, p.metodologia_preferida,
+        -- 🩹 FIX: las lesiones se guardan en users (registro/onboarding) pero antes
+        -- solo se leía user_profiles (a menudo vacío), así que las limitaciones se
+        -- perdían y la generación las ignoraba. Preferir la fuente con dato.
+        -- Nota: user_profiles.limitaciones_fisicas es text y users es text[],
+        -- por eso se normaliza a texto con array_to_string.
+        COALESCE(NULLIF(p.limitaciones_fisicas, ''), array_to_string(u.limitaciones_fisicas, '. ')) AS limitaciones_fisicas,
+        p.objetivo_principal, p.metodologia_preferida,
         p.usar_preferencias_ia, p.dias_preferidos_entrenamiento,
         p.ejercicios_por_dia_preferido, p.semanas_entrenamiento
       FROM app.users u
