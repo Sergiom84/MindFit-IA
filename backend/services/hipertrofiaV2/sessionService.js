@@ -4,7 +4,7 @@
  */
 
 import { MUSCLE_TO_CATEGORY_MAP, EXERCISE_TYPE_ORDER } from './constants.js';
-import { selectExercisesByTypeForSession, mapExercisesWithTrainingParams } from './exerciseSelector.js';
+import { selectExercisesByTypeForSession, selectExercises, mapExercisesWithTrainingParams } from './exerciseSelector.js';
 import { logger } from './logger.js';
 
 /**
@@ -89,11 +89,13 @@ export async function generateSessionExercises(
   nivel,
   isFemale,
   priorityMuscle = null,
-  ruleset = null
+  ruleset = null,
+  injuryRules = []
 ) {
   const muscleGroups = parseMuscleGroups(sessionConfig.muscle_groups);
   const cycleDay = sessionConfig.cycle_day;
   const volumeProfiles = ruleset?.volumeProfiles || {};
+  const hasInjuryRules = Array.isArray(injuryRules) && injuryRules.length > 0;
 
   logger.info(`🎯 [SESSION] Generando D${cycleDay}: ${sessionConfig.session_name}`);
 
@@ -105,10 +107,20 @@ export async function generateSessionExercises(
     const profile = volumeProfiles[muscleGroup] || {};
     const setsForMuscle = Number(profile.sets ?? sessionConfig.default_sets);
     const selectedNames = new Set();
+    let expectedForGroup = 0;
+
+    const pushExercise = (ex) => {
+      selectedNames.add(ex.nombre);
+      sessionExercises.push({
+        ...ex,
+        sets_override: setsForMuscle
+      });
+    };
 
     const selectType = async (tipo, count) => {
       const safeCount = Math.max(0, Number(count || 0));
       if (safeCount === 0) return;
+      expectedForGroup += safeCount;
 
       const selected = await selectExercisesByTypeForSession(dbClient, {
         nivel,
@@ -117,15 +129,12 @@ export async function generateSessionExercises(
         count: safeCount,
         cycleDay,
         muscleGroup,
-        excludeNames: Array.from(selectedNames)
+        excludeNames: Array.from(selectedNames),
+        injuryRules
       });
 
       for (const ex of selected) {
-        selectedNames.add(ex.nombre);
-        sessionExercises.push({
-          ...ex,
-          sets_override: setsForMuscle
-        });
+        pushExercise(ex);
       }
     };
 
@@ -137,6 +146,29 @@ export async function generateSessionExercises(
 
     // Analíticos
     await selectType('analitico', profile.analitico ?? sessionConfig.analitico_count);
+
+    // 🩹 Relleno seguro: si el filtro de lesiones dejó el grupo corto (algún tipo
+    // se vació de opciones seguras), completamos con OTROS ejercicios seguros del
+    // mismo grupo (cualquier tipo), sin reintroducir contraindicados.
+    if (hasInjuryRules) {
+      const missing = expectedForGroup - Array.from(selectedNames).length;
+      if (missing > 0) {
+        const filler = await selectExercises(dbClient, {
+          nivel,
+          categoria,
+          cantidad: missing,
+          excludeNames: Array.from(selectedNames),
+          injuryRules
+        });
+        for (const ex of filler) {
+          pushExercise(ex);
+        }
+        const stillMissing = expectedForGroup - Array.from(selectedNames).length;
+        if (stillMissing > 0) {
+          logger.warn(`⚠️ [LESIONES] D${cycleDay}/${muscleGroup}: ${stillMissing} hueco(s) sin alternativa segura en el grupo`);
+        }
+      }
+    }
   }
 
   // Ordenar ejercicios: Multi → Uni → Ana

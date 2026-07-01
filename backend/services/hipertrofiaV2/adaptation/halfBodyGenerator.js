@@ -60,7 +60,8 @@ const WEEKDAY_MAP = {
 export async function generateHalfBodySessions(dbClient, options = {}) {
   const {
     durationWeeks = HALF_BODY_CONFIG.DEFAULT_WEEKS,
-    penaltyPct = 0
+    penaltyPct = 0,
+    injuryRules = []
   } = options;
 
   const sessions = [];
@@ -76,21 +77,21 @@ export async function generateHalfBodySessions(dbClient, options = {}) {
   console.log(`🏋️ [HALF BODY] Generando ${weeks} semanas × ${daysPerWeek} días = ${weeks * daysPerWeek} sesiones`);
 
   const exercisesA = [
-    ...(await selectExercises(dbClient, { nivel, categoria: "Piernas", tipo_ejercicio: "multiarticular", cantidad: 1 })),
-    ...(await selectExercises(dbClient, { nivel, categoria: "Pecho", tipo_ejercicio: "multiarticular", cantidad: 1 })),
-    ...(await selectExercises(dbClient, { nivel, categoria: "Hombro", cantidad: 1 })),
-    ...(await selectExercises(dbClient, { nivel, categoria: "Piernas", tipo_ejercicio: "analitico", cantidad: 1 })),
-    ...(await selectExercises(dbClient, { nivel, categoria: "Tríceps", cantidad: 1 })),
-    ...(await selectExercises(dbClient, { nivel, categoria: "Abdominales", cantidad: 1 }))
+    ...(await selectExercises(dbClient, { nivel, categoria: "Piernas", tipo_ejercicio: "multiarticular", cantidad: 1, injuryRules })),
+    ...(await selectExercises(dbClient, { nivel, categoria: "Pecho", tipo_ejercicio: "multiarticular", cantidad: 1, injuryRules })),
+    ...(await selectExercises(dbClient, { nivel, categoria: "Hombro", cantidad: 1, injuryRules })),
+    ...(await selectExercises(dbClient, { nivel, categoria: "Piernas", tipo_ejercicio: "analitico", cantidad: 1, injuryRules })),
+    ...(await selectExercises(dbClient, { nivel, categoria: "Tríceps", cantidad: 1, injuryRules })),
+    ...(await selectExercises(dbClient, { nivel, categoria: "Abdominales", cantidad: 1, injuryRules }))
   ];
 
   const exercisesB = [
-    ...(await selectExercises(dbClient, { nivel, categoria: "Piernas", cantidad: 1 })),
-    ...(await selectExercises(dbClient, { nivel, categoria: "Espalda", tipo_ejercicio: "multiarticular", cantidad: 1 })),
-    ...(await selectExercises(dbClient, { nivel, categoria: "Piernas", tipo_ejercicio: "analitico", cantidad: 1 })),
-    ...(await selectExercises(dbClient, { nivel, categoria: "Hombro", tipo_ejercicio: "analitico", cantidad: 1 })),
-    ...(await selectExercises(dbClient, { nivel, categoria: "Bíceps", cantidad: 1 })),
-    ...(await selectExercises(dbClient, { nivel, categoria: "Abdominales", cantidad: 1 }))
+    ...(await selectExercises(dbClient, { nivel, categoria: "Piernas", cantidad: 1, injuryRules })),
+    ...(await selectExercises(dbClient, { nivel, categoria: "Espalda", tipo_ejercicio: "multiarticular", cantidad: 1, injuryRules })),
+    ...(await selectExercises(dbClient, { nivel, categoria: "Piernas", tipo_ejercicio: "analitico", cantidad: 1, injuryRules })),
+    ...(await selectExercises(dbClient, { nivel, categoria: "Hombro", tipo_ejercicio: "analitico", cantidad: 1, injuryRules })),
+    ...(await selectExercises(dbClient, { nivel, categoria: "Bíceps", cantidad: 1, injuryRules })),
+    ...(await selectExercises(dbClient, { nivel, categoria: "Abdominales", cantidad: 1, injuryRules }))
   ];
 
   console.log(`📋 [HALF BODY] Ejercicios A: ${exercisesA.length}, B: ${exercisesB.length}`);

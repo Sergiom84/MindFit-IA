@@ -5,6 +5,7 @@
 
 import { DAY_NAMES, MONTH_NAMES } from './constants.js';
 import { selectExercises } from './exerciseSelector.js';
+import { resolveUserInjuryRules } from './injuryFilter.js';
 import { logger } from './logger.js';
 
 // Número de ejercicios recientes que intentaremos evitar repetir
@@ -61,6 +62,9 @@ const FULLBODY_CATEGORIES = [
 export async function generateFullBodyWorkout(dbClient, userId, nivel) {
   logger.info('💪 [FULLBODY] Generando rutina para usuario:', userId, 'Nivel:', nivel);
 
+  // 🩹 Reglas de lesión del usuario (filtro compartido)
+  const { rules: injuryRules } = await resolveUserInjuryRules(userId);
+
   const fullBodyExercises = [];
 
   // Configurar categorías según nivel
@@ -77,7 +81,8 @@ export async function generateFullBodyWorkout(dbClient, userId, nivel) {
     const exercises = await selectExercises(dbClient, {
       nivel,
       categoria: config.category,
-      cantidad: config.count
+      cantidad: config.count,
+      injuryRules
     });
 
     if (exercises.length > 0) {
@@ -198,6 +203,9 @@ export async function generateSingleDayWorkout(dbClient, userId, nivel, isWeeken
 
   const { selectionMode = 'full_body', focusGroup = null } = options || {};
 
+  // 🩹 Reglas de lesión del usuario (filtro compartido)
+  const { rules: injuryRules } = await resolveUserInjuryRules(userId);
+
   // Mapear nivel
   const nivelMapping = {
     'Principiante': 'basico',
@@ -225,7 +233,8 @@ export async function generateSingleDayWorkout(dbClient, userId, nivel, isWeeken
       nivel,
       categoria: group.categoria,
       cantidad: group.count,
-      avoidRecent: DEFAULT_RECENT_EXERCISES_LIMIT
+      avoidRecent: DEFAULT_RECENT_EXERCISES_LIMIT,
+      injuryRules
     });
 
     fullBodyExercises.push(
@@ -258,7 +267,8 @@ export async function generateSingleDayWorkout(dbClient, userId, nivel, isWeeken
           nivel,
           categoria: cat,
           cantidad: 1,
-          excludeNames: existingNames
+          excludeNames: existingNames,
+          injuryRules
         });
         
         if (extra && extra.length > 0) {
@@ -297,7 +307,8 @@ export async function generateSingleDayWorkout(dbClient, userId, nivel, isWeeken
         nivel,
         categoria: extraCat,
         cantidad: needed,
-        avoidRecent: DEFAULT_RECENT_EXERCISES_LIMIT
+        avoidRecent: DEFAULT_RECENT_EXERCISES_LIMIT,
+        injuryRules
       });
       if (extra && extra.length > 0) {
         fullBodyExercises = [...fullBodyExercises, ...extra];
@@ -484,7 +495,7 @@ function normalizeMuscleGroup(group) {
 /**
  * Selecciona ejercicios evitando repeticiones recientes
  */
-async function selectExercisesWithHistory(dbClient, { userId, nivel, categoria, cantidad, avoidRecent = DEFAULT_RECENT_EXERCISES_LIMIT }) {
+async function selectExercisesWithHistory(dbClient, { userId, nivel, categoria, cantidad, avoidRecent = DEFAULT_RECENT_EXERCISES_LIMIT, injuryRules = [] }) {
   // Obtener ejercicios recientes del usuario (por nombre) para intentar evitarlos
   const recentQuery = await dbClient.query(
     `
@@ -511,7 +522,8 @@ async function selectExercisesWithHistory(dbClient, { userId, nivel, categoria, 
       nivel,
       categoria: cat,
       cantidad: remaining,
-      excludeNames: [...recentNames, ...selected.map((e) => e.nombre)]
+      excludeNames: [...recentNames, ...selected.map((e) => e.nombre)],
+      injuryRules
     }).catch(() => []);
 
     if (primary.length > 0) {
@@ -520,13 +532,14 @@ async function selectExercisesWithHistory(dbClient, { userId, nivel, categoria, 
 
     if (selected.length >= cantidad) break;
 
-    // Segundo intento sin exclusiones si aún faltan
+    // Segundo intento sin exclusiones si aún faltan (pero SIEMPRE respetando lesiones)
     const remainingAfterPrimary = cantidad - selected.length;
     if (remainingAfterPrimary > 0) {
       const fallback = await selectExercises(dbClient, {
         nivel,
         categoria: cat,
-        cantidad: remainingAfterPrimary
+        cantidad: remainingAfterPrimary,
+        injuryRules
       }).catch(() => []);
 
       if (fallback.length > 0) {

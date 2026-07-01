@@ -77,7 +77,8 @@ export async function generateFullBodySessions(dbClient, options = {}) {
     dayPattern = FULL_BODY_CONFIG.DAY_PATTERNS.novato_total,
     penaltyPct = 0,
     age = null,
-    tag = "novato_total"
+    tag = "novato_total",
+    injuryRules = []
   } = options;
 
   const sessions = [];
@@ -94,14 +95,14 @@ export async function generateFullBodySessions(dbClient, options = {}) {
   console.log(`🏋️ [FULL BODY] Generando ${weeks} semanas × ${daysPerWeek} días = ${weeks * daysPerWeek} sesiones`);
 
   const exercises = [
-    ...(await selectExercises(dbClient, { nivel, categoria: "Piernas", tipo_ejercicio: "multiarticular", cantidad: 1 })),
-    ...(await selectExercises(dbClient, { nivel, categoria: "Pecho", tipo_ejercicio: "multiarticular", cantidad: 1 })),
-    ...(await selectExercises(dbClient, { nivel, categoria: "Espalda", tipo_ejercicio: "multiarticular", cantidad: 1 })),
-    ...(await selectExercises(dbClient, { nivel, categoria: "Hombro", cantidad: 1 })),
-    ...(await selectExercises(dbClient, { nivel, categoria: "Piernas", tipo_ejercicio: "analitico", cantidad: 1 })),
-    ...(await selectExercises(dbClient, { nivel, categoria: "Bíceps", cantidad: 1 })),
-    ...(await selectExercises(dbClient, { nivel, categoria: "Tríceps", cantidad: 1 })),
-    ...(await selectExercises(dbClient, { nivel, categoria: "Abdominales", cantidad: 1 }))
+    ...(await selectExercises(dbClient, { nivel, categoria: "Piernas", tipo_ejercicio: "multiarticular", cantidad: 1, injuryRules })),
+    ...(await selectExercises(dbClient, { nivel, categoria: "Pecho", tipo_ejercicio: "multiarticular", cantidad: 1, injuryRules })),
+    ...(await selectExercises(dbClient, { nivel, categoria: "Espalda", tipo_ejercicio: "multiarticular", cantidad: 1, injuryRules })),
+    ...(await selectExercises(dbClient, { nivel, categoria: "Hombro", cantidad: 1, injuryRules })),
+    ...(await selectExercises(dbClient, { nivel, categoria: "Piernas", tipo_ejercicio: "analitico", cantidad: 1, injuryRules })),
+    ...(await selectExercises(dbClient, { nivel, categoria: "Bíceps", cantidad: 1, injuryRules })),
+    ...(await selectExercises(dbClient, { nivel, categoria: "Tríceps", cantidad: 1, injuryRules })),
+    ...(await selectExercises(dbClient, { nivel, categoria: "Abdominales", cantidad: 1, injuryRules }))
   ];
 
   console.log(`📋 [FULL BODY] Ejercicios seleccionados: ${exercises.length}`);

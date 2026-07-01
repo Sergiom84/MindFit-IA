@@ -37,6 +37,7 @@ function getWeekBounds(startDate) {
 
 import { generateFullBodySessions } from '../services/hipertrofiaV2/adaptation/fullBodyGenerator.js';
 import { generateHalfBodySessions } from '../services/hipertrofiaV2/adaptation/halfBodyGenerator.js';
+import { resolveUserInjuryRules } from '../services/hipertrofiaV2/injuryFilter.js';
 
 const resolveDayPatternForTag = (tag) => {
   if (tag === 'readaptacion_mayor') return [1, 3, 5];
@@ -145,7 +146,8 @@ async function generateAdaptationSessions(dbClient, options) {
     penaltyPct = 0,
     dayPattern = null,
     age = null,
-    aiTag = null
+    aiTag = null,
+    injuryRules = []
   } = options || {};
 
   console.log(`🏗️ Generando sesiones para bloque ${blockType} (${durationWeeks} semanas) con penalización ${penaltyPct}%`);
@@ -156,13 +158,15 @@ async function generateAdaptationSessions(dbClient, options) {
       dayPattern,
       penaltyPct,
       age,
-      tag: aiTag
+      tag: aiTag,
+      injuryRules
     });
   }
   if (blockType === 'half_body') {
     return await generateHalfBodySessions(dbClient, {
       durationWeeks,
-      penaltyPct
+      penaltyPct,
+      injuryRules
     });
   }
 
@@ -261,6 +265,9 @@ router.post('/generate', authenticateToken, async (req, res) => {
       }
     }
 
+    // 🩹 Reglas de lesión del usuario (filtro compartido)
+    const { rules: injuryRules } = await resolveUserInjuryRules(userId);
+
     // 1. Generar sesiones de entrenamiento
     const sessions = await generateAdaptationSessions(dbClient, {
       blockType: effectiveBlockType,
@@ -268,7 +275,8 @@ router.post('/generate', authenticateToken, async (req, res) => {
       dayPattern: effectiveDayPattern,
       penaltyPct,
       age: resolvedProfile.age,
-      aiTag: effectiveAiTag
+      aiTag: effectiveAiTag,
+      injuryRules
     });
 
     if (sessions.length === 0) {

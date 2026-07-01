@@ -4,6 +4,7 @@
  */
 
 import { HIPERTROFIA_COLUMNS } from '../exerciseRepository.js';
+import { isContraindicated } from '../routineGeneration/injuryContraindications.js';
 
 /**
  * Selecciona ejercicios de la base de datos con filtros opcionales
@@ -13,10 +14,14 @@ import { HIPERTROFIA_COLUMNS } from '../exerciseRepository.js';
  * @param {string} filters.categoria - Categoría del ejercicio (Pecho, Espalda, etc.)
  * @param {string} [filters.tipo_ejercicio] - Tipo opcional (multiarticular, unilateral, analitico)
  * @param {number} [filters.cantidad=1] - Cantidad de ejercicios a seleccionar
+ * @param {Array} [filters.injuryRules=[]] - Reglas de contraindicación por lesión
+ *   (ver `resolveUserInjuryRules`). Si hay reglas, se excluyen los movimientos
+ *   contraindicados y se rellena con alternativas seguras del mismo grupo/tipo.
  * @returns {Promise<Array>} Array de ejercicios seleccionados
  */
 export async function selectExercises(dbClient, filters) {
-  const { nivel, categoria, tipo_ejercicio, cantidad = 1, excludeNames = [] } = filters;
+  const { nivel, categoria, tipo_ejercicio, cantidad = 1, excludeNames = [], injuryRules = [] } = filters;
+  const hasInjuryRules = Array.isArray(injuryRules) && injuryRules.length > 0;
 
   // Comparación case-insensitive: los datos están capitalizados (Pecho, Principiante)
   // pero los callers/clientes pueden enviar minúsculas (pecho) → LOWER en ambos lados.
@@ -37,18 +42,34 @@ export async function selectExercises(dbClient, filters) {
     paramCount += excludeNames.length;
   }
 
+  // 🩹 Con lesión activa: sobre-pedimos (sin LIMIT) para poder descartar los
+  // contraindicados y aún así rellenar con alternativas seguras del mismo pool.
+  // Sin lesión: mantenemos el LIMIT en SQL por eficiencia (comportamiento previo).
+  const limitClause = hasInjuryRules ? '' : `LIMIT $${paramCount + 1}`;
+
   const query = `
     SELECT ${HIPERTROFIA_COLUMNS}
     FROM app.ejercicios
     WHERE disciplina = 'hipertrofia' AND ${whereConditions.join(' AND ')}
     ORDER BY RANDOM()
-    LIMIT $${paramCount + 1}
+    ${limitClause}
   `;
 
-  params.push(cantidad);
+  if (!hasInjuryRules) {
+    params.push(cantidad);
+  }
 
   const result = await dbClient.query(query, params);
-  return result.rows;
+
+  if (!hasInjuryRules) {
+    return result.rows;
+  }
+
+  // Filtrar contraindicados y recortar a la cantidad pedida. Si el grupo/tipo se
+  // vacía, simplemente devolvemos menos (NO reintroducimos contraindicados);
+  // el caller decide cómo compensar con otros grupos seguros.
+  const safe = result.rows.filter((ex) => !isContraindicated(ex, injuryRules));
+  return safe.slice(0, cantidad);
 }
 
 /**
@@ -65,14 +86,15 @@ export async function selectExercises(dbClient, filters) {
  * @returns {Promise<Array>} Ejercicios seleccionados con metadata
  */
 export async function selectExercisesByTypeForSession(dbClient, config) {
-  const { nivel, categoria, tipo_ejercicio, count, cycleDay, muscleGroup, excludeNames = [] } = config;
+  const { nivel, categoria, tipo_ejercicio, count, cycleDay, muscleGroup, excludeNames = [], injuryRules = [] } = config;
 
   const exercises = await selectExercises(dbClient, {
     nivel,
     categoria,
     tipo_ejercicio,
     cantidad: count,
-    excludeNames
+    excludeNames,
+    injuryRules
   });
 
   // Agregar metadata específica de la sesión

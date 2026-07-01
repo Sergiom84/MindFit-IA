@@ -7,6 +7,7 @@ import { CYCLE_LENGTH, DEFAULT_WEEKS_BY_LEVEL, WEEK_0_CONFIG } from './constants
 import { buildTrainingCalendar, getDefaultDayMapping } from './calendarService.js';
 import { loadSessionsConfig, generateSessionExercises } from './sessionService.js';
 import { loadMindfeedRuleset } from './rulesetService.js';
+import { resolveUserInjuryRules } from './injuryFilter.js';
 import { logger } from './logger.js';
 
 function isDeloadWeek(weekNumber, ruleset) {
@@ -113,6 +114,13 @@ export async function generateD1D5Plan(dbClient, config) {
   // Cargar ruleset normativo MindFeed v1
   const ruleset = await loadMindfeedRuleset(dbClient, nivel);
 
+  // 🩹 Resolver reglas de lesión del usuario (filtro compartido). Si hay lesión,
+  // la selección excluirá movimientos contraindicados por zona.
+  const { rules: injuryRules, zonas: injuryZones, injuryText } = await resolveUserInjuryRules(userId);
+  if (injuryRules.length > 0) {
+    logger.info(`🩹 [MINDFEED] Filtro de lesiones ACTIVO → zonas: ${injuryZones.join(', ')}`);
+  }
+
   // Obtener prioridad muscular activa
   const priorityResult = await dbClient.query(
     `SELECT priority_muscle FROM app.hipertrofia_v2_state WHERE user_id = $1`,
@@ -166,7 +174,8 @@ export async function generateD1D5Plan(dbClient, config) {
       nivel,
       isFemale,
       priorityMuscle,
-      ruleset
+      ruleset,
+      injuryRules
     );
 
     sessionsWithExercises.push(session);
@@ -296,6 +305,13 @@ export async function generateD1D5Plan(dbClient, config) {
       ruleset_version: ruleset?.meta?.spec || 'MindFeed_Compliance_Spec_v1',
       deload_weeks: ruleset?.deloadRules?.deloadWeeks || [6],
       rest_seconds_by_type: ruleset?.restSecondsByType || null
+    },
+    // 🩹 Trazabilidad de restricciones aplicadas por lesión (para UI/QA/auditoría).
+    restricciones_lesion: {
+      activo: injuryRules.length > 0,
+      zonas: injuryZones,
+      fuente: injuryText || null,
+      filtro: 'injuryContraindications (compartido)'
     }
   };
 
