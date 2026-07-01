@@ -1,5 +1,9 @@
 # Registro diario de implementaciones
 
+## 01.07.2026
+
+- Catálogo CrossFit (`app."Ejercicios_CrossFit"`): auditoría y corrección integral de calidad vía `scripts/fix_crossfit_catalog_quality.mjs` (transaccional, con `--dry`). Se rellena `Cómo_hacerlo` en el 100% (antes 0), se convierten todas las cargas de lbs→kg en el nombre y se estructuran en `rx_carga_sugerida` (20 movimientos con carga + 17 con %1RM), se marcan 21 `is_benchmark` clásicos, se pueblan `wod_types` (formatos compatibles reales) y `duracion_seg` de 7 isometrías. Se remapean 38 `gif_url` erróneos (placeholders `.jpg` de free-exercise-db) al GIF animado correcto del bucket Supabase y se anulan 10 sin asset fiable (correr/remo ergo/shuttle/trineo). Se eliminan 2 duplicados (pistol con peso) y se insertan 2 movimientos estándar que faltaban (Wall Walk, Empuje de trineo). Ajuste de motor en `CrossFitService.repsObjetivoFromWod`: las isometrías muestran objetivo por tiempo (`Mantén la posición Ns`) en vez de reps. Pendiente: al resetear la cuota mensual de RapidAPI, ejecutar `scripts/fetch_crossfit_gifs_exercisedb.mjs` para subir GIFs animados de los estáticos correctos restantes.
+
 ## 30.06.2026
 
 - Rutinas/metodologías: se endurece la ejecución de planes completos usando `today-status.summary` como fuente de verdad en la pestaña Hoy, se centraliza la normalización de días en helpers compartidos para `sessions`/`schedule`, se elimina el mapeo local frágil de días en rutas críticas y se añaden tests de contrato para proteger el cierre 7/7, el WOD player de CrossFit y el fallback multimedia sin columnas inexistentes.

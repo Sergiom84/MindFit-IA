@@ -212,6 +212,8 @@ const CROSSFIT_SESSION_TEMPLATES = [
 ];
 
 function repsObjetivoFromWod(ex) {
+  // Isometrías (planchas, holds, L-sit…): el objetivo es tiempo, no reps.
+  if (ex.duracion_seg) return `Mantén la posición ${ex.duracion_seg}s`;
   switch (String(ex.tipo_wod || '').toLowerCase()) {
     case 'amrap': return 'Máximas reps en el tiempo';
     case 'emom': return 'Reps fijas por minuto';
