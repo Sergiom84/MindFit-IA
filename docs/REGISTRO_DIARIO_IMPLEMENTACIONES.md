@@ -1,5 +1,9 @@
 # Registro diario de implementaciones
 
+## 30.06.2026
+
+- Rutinas/metodologías: se endurece la ejecución de planes completos usando `today-status.summary` como fuente de verdad en la pestaña Hoy, se centraliza la normalización de días en helpers compartidos para `sessions`/`schedule`, se elimina el mapeo local frágil de días en rutas críticas y se añaden tests de contrato para proteger el cierre 7/7, el WOD player de CrossFit y el fallback multimedia sin columnas inexistentes.
+
 ## 28.06.2026
 
 - Diagnóstico entrenamiento/calistenia: añadido `scripts/test-calistenia-generation.mjs` para verificar el contrato de generación de calistenia (`plan.semanas[]`) y permitir smoke API con token sin arrancar servidores desde el script.

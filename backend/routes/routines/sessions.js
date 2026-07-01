@@ -12,8 +12,9 @@ import {
   preSessionCleanup
 } from '../../utils/sessionCleanup.js';
 import {
-  normalizeDayAbbrev
-} from '../../utils/ensureScheduleV3.js';
+  normalizeDayAbbrev,
+  normalizeDayFullName
+} from '../../utils/shared/dayNormalizer.js';
 import {
   getRandomByLevel
 } from '../../services/exerciseRepository.js';
@@ -862,19 +863,14 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
     });
 
     if (!session) {
-      // 🎯 FIX: Si no hay sesión iniciada, verificar si hay un día programado en workout_schedule
-      // Normalizar el día para buscar en workout_schedule (usa nombres completos: "Lunes", "Martes", etc.)
-      const dayFullNameMap = {
-        'Lun': 'Lunes', 'Mar': 'Martes', 'Mie': 'Miercoles', 'Miércoles': 'Miercoles',
-        'Jue': 'Jueves', 'Vie': 'Viernes', 'Sab': 'Sabado', 'Sábado': 'Sabado', 'Dom': 'Domingo'
-      };
-      const dayFullName = dayFullNameMap[normalizedDay] || normalizedDay;
+      // 🎯 FIX: Si no hay sesión iniciada, verificar si hay un día programado en workout_schedule.
+      const dayFullName = normalizeDayFullName(normalizedDay);
 
       const scheduleQuery = await pool.query(
         `SELECT id, exercises, scheduled_date, day_name
          FROM app.workout_schedule
          WHERE methodology_plan_id = $1 AND week_number = $2
-           AND (day_name = $3 OR day_name = $4)
+           AND (day_abbrev = $3 OR day_name = $4)
          LIMIT 1`,
         [methodology_plan_id, week_number, normalizedDay, dayFullName]
       );
@@ -952,23 +948,14 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
       plannedCount: planDayQuery.rows[0]?.planned_exercises_count
     });
 
-    // 🎯 Obtener ejercicios completos desde workout_schedule
-    // Nota: workout_schedule usa day_name completo ("Lunes") no abreviado ("Lun")
-    const dayNameMap = {
-      'Lun': 'Lunes',
-      'Mar': 'Martes',
-      'Mie': 'Miércoles',
-      'Jue': 'Jueves',
-      'Vie': 'Viernes',
-      'Sab': 'Sábado',
-      'Dom': 'Domingo'
-    };
-    const fullDayName = dayNameMap[normalizedDay] || normalizedDay;
+    // 🎯 Obtener ejercicios completos desde workout_schedule.
+    const fullDayName = normalizeDayFullName(normalizedDay);
 
     const workoutScheduleQuery = await pool.query(
       `SELECT exercises FROM app.workout_schedule
-       WHERE methodology_plan_id = $1 AND week_number = $2 AND day_name = $3`,
-      [methodology_plan_id, week_number, fullDayName]
+       WHERE methodology_plan_id = $1 AND week_number = $2
+         AND (day_abbrev = $3 OR day_name = $4)`,
+      [methodology_plan_id, week_number, normalizedDay, fullDayName]
     );
 
     let planExercisesFromSchedule = workoutScheduleQuery.rows[0]?.exercises || [];

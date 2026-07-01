@@ -1524,60 +1524,55 @@ export default function TodayTrainingTab({
     }
   }, [hasActiveSession, nextPendingIndex]);
 
-  // Estados para mostrar el entrenamiento de hoy
-  // ✅ CORRECCIÓN VISUAL: Priorizar datos locales para evitar parpadeo del botón
-  // Siempre usar todaySessionData como fuente de verdad para el total (no cambia)
-  const totalCountForGate = todaySessionData?.ejercicios?.length || todayStatus?.summary?.total || 0;
+  // Estados para mostrar el entrenamiento de hoy.
+  // Fuente de verdad: backend (`today-status.summary`) cuando existe. El estado
+  // local solo se usa como fallback mientras llega la primera respuesta.
+  const backendSummary = todayStatus?.summary || null;
+  const hasBackendSummary = Boolean(backendSummary);
+  const localProgressValues = Object.values(exerciseProgress || {});
 
-  // Usar datos locales primero, backend como fallback (más estable visualmente)
+  const totalCountForGate = hasBackendSummary
+    ? Number(backendSummary.total || 0)
+    : (todaySessionData?.ejercicios?.length || 0);
+
   const completedCountForGate = (() => {
-    // Si hay exerciseProgress local, usarlo
-    if (todaySessionData?.ejercicios?.length && exerciseProgress && Object.keys(exerciseProgress).length > 0) {
-      return Object.values(exerciseProgress).filter(p => String(p?.status || '').toLowerCase() === 'completed').length;
+    if (hasBackendSummary) {
+      return Number(backendSummary.completed || 0);
     }
-    // Fallback: backend
-    return todayStatus?.summary?.completed || 0;
+    return localProgressValues.filter(p => String(p?.status || '').toLowerCase() === 'completed').length;
   })();
 
   const skippedCountForGate = (() => {
-    if (todaySessionData?.ejercicios?.length && exerciseProgress && Object.keys(exerciseProgress).length > 0) {
-      return Object.values(exerciseProgress).filter(p => String(p?.status || '').toLowerCase() === 'skipped').length;
+    if (hasBackendSummary) {
+      return Number(backendSummary.skipped || 0);
     }
-    return todayStatus?.summary?.skipped || 0;
+    return localProgressValues.filter(p => String(p?.status || '').toLowerCase() === 'skipped').length;
   })();
 
   const cancelledCountForGate = (() => {
-    if (todaySessionData?.ejercicios?.length && exerciseProgress && Object.keys(exerciseProgress).length > 0) {
-      return Object.values(exerciseProgress).filter(p => String(p?.status || '').toLowerCase() === 'cancelled').length;
+    if (hasBackendSummary) {
+      return Number(backendSummary.cancelled || 0);
     }
-    return todayStatus?.summary?.cancelled || 0;
+    return localProgressValues.filter(p => String(p?.status || '').toLowerCase() === 'cancelled').length;
   })();
 
   const pendingCountForGate = (() => {
-    // Calcular desde local si disponible
-    if (todaySessionData?.ejercicios?.length) {
-      let c = 0;
-      for (let i = 0; i < todaySessionData.ejercicios.length; i++) {
-        const s = String(exerciseProgress?.[i]?.status || 'pending').toLowerCase();
-        if (s === 'pending') c++;
-      }
-      return c;
+    if (hasBackendSummary) {
+      return Number(backendSummary.pending || 0);
     }
-    // Fallback: backend
-    if (Array.isArray(todayStatus?.exercises)) {
-      return todayStatus.exercises.filter(ex => String(ex?.status || 'pending').toLowerCase() === 'pending').length;
+    if (!todaySessionData?.ejercicios?.length) {
+      return 0;
     }
-    return todayStatus?.summary?.pending || 0;
+    return todaySessionData.ejercicios.filter((_, i) => (
+      String(exerciseProgress?.[i]?.status || 'pending').toLowerCase() === 'pending'
+    )).length;
   })();
 
   const inProgressCountForGate = (() => {
-    if (todaySessionData?.ejercicios?.length && exerciseProgress && Object.keys(exerciseProgress).length > 0) {
-      return Object.values(exerciseProgress).filter(p => String(p?.status || '').toLowerCase() === 'in_progress').length;
+    if (hasBackendSummary) {
+      return Number(backendSummary.in_progress || 0);
     }
-    if (Array.isArray(todayStatus?.exercises)) {
-      return todayStatus.exercises.filter(ex => String(ex?.status || '').toLowerCase() === 'in_progress').length;
-    }
-    return todayStatus?.summary?.in_progress || 0;
+    return localProgressValues.filter(p => String(p?.status || '').toLowerCase() === 'in_progress').length;
   })();
 
   // 🎯 CORRECCIÓN VISUAL: Lógica robusta estabilizada con useMemo para evitar recálculos
@@ -1596,15 +1591,15 @@ export default function TodayTrainingTab({
     const hasCancelled = (todayStatus?.summary?.cancelled ?? 0) > 0;
     const canRetryToday = Boolean(todayStatus?.summary?.canRetry) || hasSkipped || hasCancelled;
 
-    // 5. Sesión completada exitosamente: todos los ejercicios están completados
-    const hasCompletedSession = totalCountForGate > 0 && completedCountForGate === totalCountForGate;
+    // 5. Sesión completada exitosamente: manda el backend; local solo como fallback.
+    const hasCompletedSession = isFinishedToday || (totalCountForGate > 0 && completedCountForGate === totalCountForGate);
 
     // 6. Mostrar CTA de comenzar/reanudar: hay ejercicios sin completar
     // Incluye: pending, in_progress, skipped, cancelled
-    const hasUnfinishedWorkToday = totalCountForGate > 0 && completedCountForGate < totalCountForGate;
+    const hasUnfinishedWorkToday = !isFinishedToday && totalCountForGate > 0 && completedCountForGate < totalCountForGate;
 
-    // 7. Para compatibilidad con código existente (simplificado)
-    const allProcessedIncomplete = false;
+    // 7. Procesados pero no todos completados (skips/cancelaciones).
+    const allProcessedIncomplete = allProcessedToday && !hasCompletedSession;
 
     return {
       hasIncompleteExercises,
@@ -1710,7 +1705,7 @@ export default function TodayTrainingTab({
     canRetry: canRetryToday,
 
     // 🎯 NUEVO: Fuente de datos para contadores
-    dataSource: todaySessionData?.ejercicios?.length ? 'local (todaySessionData)' : (todayStatus ? 'backend (todayStatus)' : 'ninguno')
+    dataSource: hasBackendSummary ? 'backend (today-status.summary)' : (todaySessionData?.ejercicios?.length ? 'local fallback' : 'ninguno')
   });
 
 

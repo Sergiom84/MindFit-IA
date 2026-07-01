@@ -10,6 +10,10 @@ import {
 import {
   ensureWorkoutScheduleV3
 } from '../../utils/ensureScheduleV3.js';
+import {
+  getDayAbbrevByIndex,
+  getDayNameByIndex
+} from '../../utils/shared/dayNormalizer.js';
 
 const router = express.Router();
 
@@ -231,12 +235,10 @@ router.post('/generate-schedule', authenticateToken, async (req, res) => {
           default: sessionTitle = `Sesión ${sessionOrder}`; break;
         }
 
-        // Obtener nombre del día
-        const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-        const dayAbbrevs = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+        // Obtener nombre del día desde el helper compartido.
         const dayOfWeek = currentDate.getDay();
-        const dayName = dayNames[dayOfWeek];
-        const dayAbbrev = dayAbbrevs[dayOfWeek];
+        const dayName = getDayNameByIndex(dayOfWeek);
+        const dayAbbrev = getDayAbbrevByIndex(dayOfWeek);
 
         // Insertar en la base de datos
         const insertResult = await pool.query(`

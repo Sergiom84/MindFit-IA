@@ -98,6 +98,50 @@ export const FULL_DAY_NAMES = [
 ];
 
 /**
+ * Nombres completos con formato de título para persistencia/consultas.
+ * @type {string[]}
+ */
+export const FULL_DAY_NAMES_TITLE = [
+  'Domingo',
+  'Lunes',
+  'Martes',
+  'Miércoles',
+  'Jueves',
+  'Viernes',
+  'Sábado'
+];
+
+/**
+ * Devuelve el nombre completo estandarizado para un día.
+ *
+ * @param {string} dayName - Nombre completo o abreviado.
+ * @returns {string} Nombre completo en formato título, o el valor original si no se reconoce.
+ */
+export function normalizeDayFullName(dayName) {
+  const abbrev = normalizeDayAbbrev(dayName);
+  const index = ABBREV_TO_DAY_INDEX[abbrev];
+  return Number.isInteger(index) ? FULL_DAY_NAMES_TITLE[index] : dayName;
+}
+
+/**
+ * Obtiene el nombre completo de día por índice JS (0=domingo).
+ * @param {number} index
+ * @returns {string}
+ */
+export function getDayNameByIndex(index) {
+  return FULL_DAY_NAMES_TITLE[index] || FULL_DAY_NAMES_TITLE[0];
+}
+
+/**
+ * Obtiene la abreviatura de día por índice JS (0=domingo).
+ * @param {number} index
+ * @returns {string}
+ */
+export function getDayAbbrevByIndex(index) {
+  return DAY_INDEX_TO_ABBREV[index] || DAY_INDEX_TO_ABBREV[0];
+}
+
+/**
  * Obtiene el nombre completo del día actual
  * @returns {string} Nombre del día en minúsculas (ej: 'lunes', 'martes')
  */
@@ -121,4 +165,3 @@ export function isWeekend() {
   const day = new Date().getDay();
   return day === 0 || day === 6;
 }
-
