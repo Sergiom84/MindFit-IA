@@ -26,8 +26,9 @@ export async function bootstrapPlan(routine_plan_id) {
   return data.methodology_plan_id;
 }
 
-export async function startSession({ methodology_plan_id, day_id = null, week_number = null, day_name = null }) {
+export async function startSession({ methodology_plan_id, day_id = null, week_number = null, day_name = null, session_date = null }) {
   const payload = { methodology_plan_id };
+  if (session_date) payload.session_date = session_date; // resolución autoritativa por fecha
   if (day_id !== null && day_id !== undefined) payload.day_id = day_id;
   if (week_number !== null && week_number !== undefined) payload.week_number = week_number;
   if (day_name) payload.day_name = day_name;

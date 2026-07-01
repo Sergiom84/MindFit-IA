@@ -766,6 +766,15 @@ export function WorkoutProvider({ children }) {
       const payload = {
         methodology_plan_id: config.methodologyPlanId || state.plan.methodologyPlanId
       };
+      // 🎯 session_date (HOY en Europe/Madrid): fuente autoritativa para que el
+      // backend resuelva la sesión de hoy POR FECHA. Evita el desfase entre
+      // computeDayId (numera desde plan_start_date, hoy=1) y methodology_plan_days
+      // (numera desde el lunes de la semana de inicio) en arranques a media semana:
+      // sin esto, /sessions/start abría un día equivocado (p.ej. la calibración de
+      // HipertrofiaV2 se convertía en otra sesión distinta a la del preview).
+      payload.session_date = config.sessionDate || new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(new Date());
       if (config.dayId != null) {
         payload.day_id = config.dayId;
       } else {

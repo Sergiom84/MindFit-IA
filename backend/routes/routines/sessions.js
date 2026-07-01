@@ -63,8 +63,42 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
       console.log(`✅ Limpieza completada: ${cleanup.cleanedSessions} sesiones limpiadas, ${cleanup.fixedStates} estados corregidos`);
     }
 
+    // 🎯 PRIORIDAD POR FECHA: si el frontend envía session_date (hoy), resolver
+    // week_number/day_name desde el calendario del plan por FECHA. Es autoritativo
+    // y evita el desfase entre el day_id del frontend (computeDayId numera desde
+    // plan_start_date) y methodology_plan_days (numera desde el lunes de la semana
+    // de inicio). Sin esto, en arranques a media semana se abría un día distinto al
+    // del preview (p.ej. HipertrofiaV2: la calibración se convertía en otra sesión).
+    const bodySessionDate = req.body?.session_date || null;
+    if (bodySessionDate && (!week_number || !day_name)) {
+      const byDate = await client.query(
+        `SELECT week_number, day_name FROM app.methodology_plan_days
+         WHERE plan_id = $1 AND date_local = $2::date AND is_rest = false
+         LIMIT 1`,
+        [methodology_plan_id, bodySessionDate]
+      );
+      if (byDate.rowCount > 0) {
+        week_number = byDate.rows[0].week_number;
+        day_name = byDate.rows[0].day_name;
+        console.log('🗓️ start: sesión resuelta por FECHA (methodology_plan_days)', { session_date: bodySessionDate, week_number, day_name });
+      } else {
+        // Fallback: workout_schedule por fecha programada.
+        const bySched = await client.query(
+          `SELECT week_number, day_name, day_abbrev FROM app.workout_schedule
+           WHERE methodology_plan_id = $1 AND user_id = $2 AND scheduled_date::date = $3::date
+           LIMIT 1`,
+          [methodology_plan_id, userId, bodySessionDate]
+        );
+        if (bySched.rowCount > 0) {
+          week_number = bySched.rows[0].week_number;
+          day_name = bySched.rows[0].day_abbrev || bySched.rows[0].day_name;
+          console.log('🗓️ start: sesión resuelta por FECHA (workout_schedule)', { session_date: bodySessionDate, week_number, day_name });
+        }
+      }
+    }
+
     // Si viene day_id, resolver week_number y day_name desde calendario del plan
-    if (!req.query.session_date && day_id && (!week_number || !day_name)) {
+    if (!bodySessionDate && !req.query.session_date && day_id && (!week_number || !day_name)) {
       const dayInfoQ = await client.query(
         `SELECT week_number, day_name FROM app.methodology_plan_days WHERE plan_id = $1 AND day_id = $2`,
         [methodology_plan_id, day_id]
