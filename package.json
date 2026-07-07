@@ -37,13 +37,18 @@
     "render:logs": "bash scripts/render-logs.sh",
     "render:logs:win": "scripts\\render-logs.bat",
     "render:tail": "render logs --tail",
-    "render:deploy": "render services"
+    "render:deploy": "render services",
+    "mobile:sync": "npm run build && npx cap sync",
+    "ios:sync": "npm run build && npx cap sync ios",
+    "ios:open": "npx cap open ios",
+    "android:sync": "npm run build && npx cap sync android"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.67.0",
     "@capacitor/android": "^8.4.1",
     "@capacitor/cli": "^8.4.1",
     "@capacitor/core": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
     "@playwright/test": "^1.56.0",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",

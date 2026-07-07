@@ -1,5 +1,9 @@
 # Registro diario de implementaciones
 
+## 07.07.2026
+
+- iOS (Capacitor): añadida la plataforma iOS al empaquetado móvil existente. `npm i @capacitor/ios` + `npx cap add ios` genera `ios/` (Xcode, SPM sin CocoaPods, bundle `com.entrenaconia.app`, target iOS 15). `Info.plist` con permisos de cámara/micrófono/fototeca para corrección de vídeo (`getUserMedia` en WKWebView). Reutiliza el mismo build web que Android (`.env.production` → Render, `CapacitorHttp`). Scripts nuevos: `ios:sync`, `ios:open`, `android:sync`, `mobile:sync`. Guía de compilación/publicación en `docs/GUIA_BUILD_IOS.md` (el build final requiere Mac+Xcode). Análisis previo Flutter vs Capacitor en `docs/DECISION_ARQUITECTURA_MOVIL_FLUTTER_VS_CAPACITOR.md`.
+
 ## 01.07.2026
 
 - Catálogo Casa (`app.ejercicios`, disciplina='casa', 100 ejercicios): saneado de calidad vía `scripts/fix_casa_catalog_quality.mjs` (transaccional, con `--dry`). Se rellenan `como_hacerlo`, `consejos`, `errores_comunes` y `criterio_de_progreso` al 100% (antes 0/100). GIFs: el trabajo de fuerza/HIIT/cardio con equivalente se resuelve sin RapidAPI con GIFs animados del bucket Supabase (flexión, sentadilla, plancha, zancada, puente, burpee, comba, dip, pistol, KB swing, L-sit) y free-exercise-db (mountain climber, bicycle crunch, jump squat). Los ~49 de movilidad (estiramientos, círculos, posturas de yoga) y cardio no representable (shadow boxing, marcha) se dejan deliberadamente sin GIF: no hay asset fiable y el texto los describe con precisión (mejor sin imagen que una falsa). `series_reps_objetivo` ya estaba al 100%; los gif_url previos no se tocan.
