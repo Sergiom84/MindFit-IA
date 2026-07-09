@@ -1,5 +1,9 @@
 # Registro diario de implementaciones
 
+## 09.07.2026
+
+- iOS (safe-area / notch): `index.html` no declaraba `viewport-fit=cover`, así que en iOS con notch/Dynamic Island `env(safe-area-inset-*)` devolvía siempre 0 y todos los paddings de safe-area ya presentes en el código (Navigation, modales, nutrición…) no surtían efecto dentro del WebView. Añadido `viewport-fit=cover` al meta viewport; ahora esos insets funcionan. De paso, metadatos iOS del WebView: `theme-color`, `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style=black-translucent`, `apple-mobile-web-app-title` y `<title>` real ("Entrena con IA", antes "Vite + React"). Verificado el pipeline completo en esta sesión: `npm run build` + `npx cap sync ios` copian el nuevo `index.html` a `ios/App/App/public` sin errores (assets generados siguen fuera de git). No toca `src/` ni backend. El build/firma final sigue requiriendo Mac+Xcode.
+
 ## 07.07.2026
 
 - iOS (Capacitor): añadida la plataforma iOS al empaquetado móvil existente. `npm i @capacitor/ios` + `npx cap add ios` genera `ios/` (Xcode, SPM sin CocoaPods, bundle `com.entrenaconia.app`, target iOS 15). `Info.plist` con permisos de cámara/micrófono/fototeca para corrección de vídeo (`getUserMedia` en WKWebView). Reutiliza el mismo build web que Android (`.env.production` → Render, `CapacitorHttp`). Scripts nuevos: `ios:sync`, `ios:open`, `android:sync`, `mobile:sync`. Guía de compilación/publicación en `docs/GUIA_BUILD_IOS.md` (el build final requiere Mac+Xcode). Análisis previo Flutter vs Capacitor en `docs/DECISION_ARQUITECTURA_MOVIL_FLUTTER_VS_CAPACITOR.md`.
