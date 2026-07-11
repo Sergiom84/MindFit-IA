@@ -7,38 +7,32 @@ import {
 } from "../lib/openaiClient.js";
 
 const ORIGINAL_ENV = {
-  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-  OPENAI_API_KEY_NUTRITION: process.env.OPENAI_API_KEY_NUTRITION
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY
 };
 
 test.after(() => {
   process.env.OPENAI_API_KEY = ORIGINAL_ENV.OPENAI_API_KEY;
-  process.env.OPENAI_API_KEY_NUTRITION = ORIGINAL_ENV.OPENAI_API_KEY_NUTRITION;
 });
 
-test("openaiClient: nutrition usa env key dedicada", () => {
-  assert.equal(getFeatureEnvKey("nutrition"), "OPENAI_API_KEY_NUTRITION");
+test("openaiClient: nutrition usa la key unificada OPENAI_API_KEY", () => {
+  assert.equal(getFeatureEnvKey("nutrition"), "OPENAI_API_KEY");
 });
 
-test("openaiClient: nutrition prioriza OPENAI_API_KEY_NUTRITION", () => {
-  process.env.OPENAI_API_KEY = "fallback-key";
-  process.env.OPENAI_API_KEY_NUTRITION = "nutrition-key";
+test("openaiClient: nutrition resuelve con OPENAI_API_KEY", () => {
+  process.env.OPENAI_API_KEY = "unified-key";
 
   const resolution = resolveApiKeyForFeature("nutrition");
 
-  assert.equal(resolution.key, "nutrition-key");
-  assert.equal(resolution.source, "OPENAI_API_KEY_NUTRITION");
+  assert.equal(resolution.key, "unified-key");
+  assert.equal(resolution.source, "OPENAI_API_KEY");
   assert.equal(resolution.fallbackUsed, false);
 });
 
-test("openaiClient: nutrition NO usa fallback cuando falta key dedicada", () => {
-  process.env.OPENAI_API_KEY = "fallback-key";
-  delete process.env.OPENAI_API_KEY_NUTRITION;
+test("openaiClient: nutrition sin key configurada devuelve null (no estricto)", () => {
+  delete process.env.OPENAI_API_KEY;
 
   const resolution = resolveApiKeyForFeature("nutrition");
 
   assert.equal(resolution.key, null);
-  assert.equal(resolution.source, "OPENAI_API_KEY_NUTRITION");
-  assert.equal(resolution.fallbackUsed, false);
-  assert.equal(resolution.strict, true);
+  assert.equal(resolution.strict, false);
 });

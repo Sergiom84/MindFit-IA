@@ -9,7 +9,7 @@ if (process.env.NODE_ENV !== 'production') {
 const clients = {};
 
 const DEFAULT_FALLBACK_ENV_KEY = "OPENAI_API_KEY";
-const STRICT_FEATURES = new Set(["nutrition"]);
+const STRICT_FEATURES = new Set();
 
 // Mapeo de features a variables de entorno
 const ENV_BY_FEATURE = {
@@ -17,7 +17,7 @@ const ENV_BY_FEATURE = {
   video: DEFAULT_FALLBACK_ENV_KEY,
   home: DEFAULT_FALLBACK_ENV_KEY,
   methodologie: DEFAULT_FALLBACK_ENV_KEY,
-  nutrition: "OPENAI_API_KEY_NUTRITION",
+  nutrition: DEFAULT_FALLBACK_ENV_KEY,
 };
 
 export function getFeatureEnvKey(feature) {
