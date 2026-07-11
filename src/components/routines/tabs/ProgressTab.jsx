@@ -126,21 +126,16 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
   const calculateBestStreak = () => {
     if (!progressData?.recentActivity || progressData.recentActivity.length === 0) return 0;
 
-    const sortedActivity = [...progressData.recentActivity].sort((a, b) =>
-      new Date(a.date) - new Date(b.date)
-    );
+    // Deduplicar por día: dos sesiones el mismo día contaban diff 0 y rompían la racha
+    const uniqueDays = [...new Set(
+      progressData.recentActivity.map(a => new Date(a.date).setHours(0, 0, 0, 0))
+    )].sort((a, b) => a - b);
 
     let maxStreak = 0;
     let currentStreak = 1;
 
-    for (let i = 1; i < sortedActivity.length; i++) {
-      const prevDate = new Date(sortedActivity[i - 1].date);
-      const currDate = new Date(sortedActivity[i].date);
-
-      prevDate.setHours(0, 0, 0, 0);
-      currDate.setHours(0, 0, 0, 0);
-
-      const diffDays = Math.floor((currDate - prevDate) / (1000 * 60 * 60 * 24));
+    for (let i = 1; i < uniqueDays.length; i++) {
+      const diffDays = Math.round((uniqueDays[i] - uniqueDays[i - 1]) / (1000 * 60 * 60 * 24));
 
       if (diffDays === 1) {
         currentStreak++;

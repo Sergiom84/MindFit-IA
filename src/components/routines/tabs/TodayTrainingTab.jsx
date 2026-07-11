@@ -898,8 +898,11 @@ export default function TodayTrainingTab({
     });
 
     // 🎯 CORRECCIÓN: Si la sesión está completada Y NO puede reintentar, NO abrir modal
+    // pero SÍ avisar al usuario (antes el botón quedaba mudo) y refrescar el estado
+    // para que la UI retire el CTA.
     if (sessionCompleted && !canRetry) {
       console.log('[TodayTrainingTab] Session completed with no exercises to retry');
+      setSessionError('La sesión de hoy ya figura como completada o cerrada. No quedan ejercicios pendientes.');
       return;
     }
 

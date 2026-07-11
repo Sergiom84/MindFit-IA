@@ -59,9 +59,15 @@ export async function cleanupLimboSessions(userId, methodologyPlanId = null, hou
  */
 export async function fixInconsistentSessionStates(userId = null) {
   try {
+    // Honestidad del historial: solo marcar 'completed' si realmente se terminaron
+    // todos los ejercicios; si quedó trabajo a medias, la sesión es 'incomplete'
+    // (antes una sesión cerrada por limpieza con 1/7 ejercicios salía "Completada").
     let query = `
       UPDATE app.methodology_exercise_sessions
-      SET session_status = 'completed'
+      SET session_status = CASE
+        WHEN total_exercises > 0 AND COALESCE(exercises_completed, 0) >= total_exercises THEN 'completed'
+        ELSE 'incomplete'
+      END
       WHERE session_status = 'in_progress'
         AND completed_at IS NOT NULL
     `;
@@ -194,10 +200,13 @@ export async function systemWideCleanup() {
       RETURNING id, user_id, day_name, started_at
     `);
 
-    // 3. Corregir todos los estados inconsistentes
+    // 3. Corregir todos los estados inconsistentes (solo 'completed' si se terminó todo)
     const inconsistentQuery = await pool.query(`
       UPDATE app.methodology_exercise_sessions
-      SET session_status = 'completed'
+      SET session_status = CASE
+        WHEN total_exercises > 0 AND COALESCE(exercises_completed, 0) >= total_exercises THEN 'completed'
+        ELSE 'incomplete'
+      END
       WHERE session_status = 'in_progress'
         AND completed_at IS NOT NULL
       RETURNING id, user_id, day_name, completed_at

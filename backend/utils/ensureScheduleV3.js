@@ -775,8 +775,16 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
           sessionExercises = sessionExercises.slice(0, limitPerSession);
         }
 
+        // Guard anti-duplicados: en QA se observaron filas repetidas para la misma
+        // fecha del mismo plan (p.ej. dos "Sesion 6" el mismo viernes). Nunca debe
+        // haber dos sesiones programadas del mismo plan en la misma fecha.
         await client.query(
-          'INSERT INTO app.workout_schedule (methodology_plan_id, user_id, week_number, session_order, week_session_order, scheduled_date, day_name, day_abbrev, session_title, exercises, status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',
+          `INSERT INTO app.workout_schedule (methodology_plan_id, user_id, week_number, session_order, week_session_order, scheduled_date, day_name, day_abbrev, session_title, exercises, status)
+           SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11
+           WHERE NOT EXISTS (
+             SELECT 1 FROM app.workout_schedule
+             WHERE methodology_plan_id = $1 AND user_id = $2 AND scheduled_date = $6
+           )`,
           [
             methodologyPlanId,
             userId,

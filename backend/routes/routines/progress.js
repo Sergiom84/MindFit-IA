@@ -111,7 +111,7 @@ router.get('/progress-data', authenticateToken, async (req, res) => {
     const recentActivityQuery = await pool.query(
       `SELECT
          mes.id as methodology_session_id,
-         mes.completed_at as session_date,
+         COALESCE(mes.session_date, mes.completed_at::date) as session_date,
          mes.week_number,
          mes.day_name,
          mes.total_duration_seconds as session_duration_seconds,
@@ -120,8 +120,8 @@ router.get('/progress-data', authenticateToken, async (req, res) => {
        FROM app.methodology_exercise_sessions mes
        LEFT JOIN app.methodology_exercise_progress mep ON mep.methodology_session_id = mes.id
        WHERE mes.user_id = $1 AND mes.methodology_plan_id = $2 AND mes.session_status = 'completed'
-       GROUP BY mes.id, mes.completed_at, mes.week_number, mes.day_name, mes.total_duration_seconds
-       ORDER BY mes.completed_at DESC
+       GROUP BY mes.id, mes.session_date, mes.completed_at, mes.week_number, mes.day_name, mes.total_duration_seconds
+       ORDER BY COALESCE(mes.session_date, mes.completed_at::date) DESC, mes.id DESC
        LIMIT 10`,
       [userId, methodology_plan_id]
     );

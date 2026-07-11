@@ -274,7 +274,15 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
     // usar hoy como inicio. Sin esto quedaba NULL y el frontend ("Hoy") caía a
     // new Date() como inicio en cada carga → dayId=1 permanente → la semana del
     // plan nunca avanzaba y divergía del calendario (que usa confirmed_at).
-    const persistedStartDate = resolvedStartDate || new Date();
+    // 🗓️ Sin startConfig y en fin de semana, el inicio por defecto es el próximo
+    // lunes: anclar el plan al sábado/domingo dejaba la semana 1 sin sesiones
+    // (p.ej. 21/24 programadas en un plan de 8 semanas).
+    let persistedStartDate = resolvedStartDate;
+    if (!persistedStartDate) {
+      const now = new Date();
+      const dow = now.getDay(); // 0=Dom, 6=Sáb
+      persistedStartDate = (dow === 0 || dow === 6) ? getNextMonday(now) : now;
+    }
     const startDateLocal = formatLocalDate(persistedStartDate);
     await client.query(
       `UPDATE app.methodology_plans
