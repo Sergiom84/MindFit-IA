@@ -15,12 +15,10 @@ router.get('/config/:userId', async (req, res) => {
     `;
     
     const result = await pool.query(query, [userId]);
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    const musicConfig = result.rows[0].music_config || {
+
+    // Usuarios recién registrados aún no tienen fila en user_profiles: devolver
+    // la configuración por defecto en lugar de 404 (evita ruido en cada sesión).
+    const musicConfig = result.rows[0]?.music_config || {
       spotify: { enabled: false, connected: false },
       youtube: { enabled: false, connected: false },
       apple: { enabled: false, connected: false },

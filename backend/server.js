@@ -550,6 +550,15 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });
 });
 
+// Red de seguridad a nivel de proceso: un error asíncrono sin capturar (p.ej. una
+// conexión pg que muere fuera de un try/catch) NO debe tumbar el servidor entero.
+process.on('unhandledRejection', (reason) => {
+  console.error('⚠️  unhandledRejection (recuperable):', reason?.message || reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('⚠️  uncaughtException (recuperable):', err?.message || err);
+});
+
 // Iniciar servidor en Render (0.0.0.0 obligatorio)
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor backend ejecutándose en http://0.0.0.0:${PORT}`);

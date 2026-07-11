@@ -536,7 +536,7 @@ export function WorkoutProvider({ children }) {
           currentPlan: data.routinePlan,
           methodologyPlanId: data.methodology_plan_id,
           planStartDate: data.confirmedAt || data.createdAt || new Date().toISOString(),
-          planType: data.planSource?.type || 'automatic',
+          planType: data.generation_mode || data.planSource?.type || 'automatic',
           methodology: data.routinePlan?.selected_style || data.routinePlan?.nombre,
           status: PLAN_STATUS.ACTIVE,
           weekTotal: data.routinePlan?.weeks?.length || 0,
@@ -548,10 +548,12 @@ export function WorkoutProvider({ children }) {
       }
 
       dispatch({ type: WORKOUT_ACTIONS.SET_LOADING, payload: false });
-      return { success: false, error: 'No hay plan activo' };
+      // El backend respondió correctamente y confirma que NO hay plan.
+      return { success: false, noPlan: true, error: 'No hay plan activo' };
     } catch (error) {
       dispatch({ type: WORKOUT_ACTIONS.SET_ERROR, payload: error.message });
-      return { success: false, error: error.message };
+      // Error de red/transitorio: NO equivale a "sin plan"; el llamador no debe redirigir.
+      return { success: false, transient: true, error: error.message };
     }
   }, [user]);
 

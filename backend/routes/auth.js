@@ -375,6 +375,38 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Refresh de token (renovación deslizante): el frontend (tokenManager) llama a este
+// endpoint de forma proactiva ANTES de que el JWT caduque. Sin él, todo refresh
+// silencioso devolvía 404 y el cliente degradaba a logout.
+router.post('/refresh', async (req, res) => {
+  try {
+    const bearer = req.headers.authorization?.split(' ')[1];
+    const candidate = req.body?.token || bearer;
+
+    if (!candidate) {
+      return res.status(400).json({ error: 'Token requerido' });
+    }
+
+    let payload;
+    try {
+      payload = jwt.verify(candidate, process.env.JWT_SECRET);
+    } catch {
+      return res.status(401).json({ error: 'Token inválido o caducado' });
+    }
+
+    const token = jwt.sign(
+      { userId: payload.userId, email: payload.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({ token });
+  } catch (error) {
+    console.error('Error en refresh:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // Logout de usuario
 router.post('/logout', authenticateToken, async (req, res) => {
   try {

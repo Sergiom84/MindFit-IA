@@ -32,6 +32,7 @@ export default function SeriesTrackingModal({
   const [rir, setRir] = useState(2); // Default RIR 2 (óptimo)
   const [errors, setErrors] = useState([]);
   const [showRIRReference, setShowRIRReference] = useState(false);
+  const [isSaving, setIsSaving] = useState(false); // Evita doble guardado por doble tap
 
   // Cálculos en tiempo real
   const [calculations, setCalculations] = useState({
@@ -64,6 +65,7 @@ export default function SeriesTrackingModal({
   }, [weight, reps, rir]);
 
   const handleSave = () => {
+    if (isSaving) return;
     const repsNum = parseInt(reps);
     // En calistenia el peso es opcional (peso corporal). Si va vacío, 0.
     const weightNum = weight !== '' ? parseFloat(weight) : (bodyweight ? 0 : NaN);
@@ -101,6 +103,7 @@ export default function SeriesTrackingModal({
 
     console.log('🔍 DEBUG SeriesTrackingModal - setData preparado:', setData);
 
+    setIsSaving(true);
     onSave(setData);
   };
 
@@ -285,7 +288,7 @@ export default function SeriesTrackingModal({
             )}
             <button
               onClick={handleSave}
-              disabled={!reps || (!bodyweight && !weight)}
+              disabled={isSaving || !reps || (!bodyweight && !weight)}
               className="flex-1 py-3 bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 text-gray-900 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)] flex items-center justify-center gap-2"
             >
               <Check className="w-5 h-5" />

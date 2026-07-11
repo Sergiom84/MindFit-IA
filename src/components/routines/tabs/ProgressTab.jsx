@@ -173,7 +173,7 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
   const getNextMilestones = () => {
     const sessions = progressData?.completedSessions || 0;
     const series = progressData?.totalSeriesCompleted || 0;
-    const weeks = progressData?.weeklyProgress?.filter(w => (w.completed || 0) === (w.sessions || 0) && (w.sessions || 0) > 0).length || 0;
+    const weeks = progressData?.weeklyProgress?.filter(w => Number(w.completed || 0) === Number(w.sessions || 0) && Number(w.sessions || 0) > 0).length || 0;
 
     const milestones = [
       {
@@ -392,7 +392,7 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
                     {week.seriesCompleted || 0} series completadas
                   </span>
                 )}
-                {(week.completed || 0) === (week.sessions || 0) && (week.completed || 0) > 0 && (
+                {Number(week.completed || 0) === Number(week.sessions || 0) && Number(week.completed || 0) > 0 && (
                   <span className="text-emerald-300 flex items-center">
                     <CheckCircle className="w-3 h-3 mr-1" />
                     Completada
@@ -460,13 +460,13 @@ export default function ProgressTab({ plan, methodologyPlanId, routinePlan, rout
               </div>
             </div>
 
-            <div className={`flex items-center space-x-3 p-2 bg-black/40 border border-white/10 rounded-lg ${progressData.weeklyProgress?.some(w => (w.completed || 0) === (w.sessions || 0) && (w.sessions || 0) > 0) ? '' : 'opacity-50'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${progressData.weeklyProgress?.some(w => (w.completed || 0) === (w.sessions || 0) && (w.sessions || 0) > 0) ? 'bg-emerald-500/60' : 'bg-gray-600/60'}`}>
-                <Activity className={`w-4 h-4 ${progressData.weeklyProgress?.some(w => (w.completed || 0) === (w.sessions || 0) && (w.sessions || 0) > 0) ? 'text-white' : 'text-gray-400'}`} />
+            <div className={`flex items-center space-x-3 p-2 bg-black/40 border border-white/10 rounded-lg ${progressData.weeklyProgress?.some(w => Number(w.completed || 0) === Number(w.sessions || 0) && Number(w.sessions || 0) > 0) ? '' : 'opacity-50'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${progressData.weeklyProgress?.some(w => Number(w.completed || 0) === Number(w.sessions || 0) && Number(w.sessions || 0) > 0) ? 'bg-emerald-500/60' : 'bg-gray-600/60'}`}>
+                <Activity className={`w-4 h-4 ${progressData.weeklyProgress?.some(w => Number(w.completed || 0) === Number(w.sessions || 0) && Number(w.sessions || 0) > 0) ? 'text-white' : 'text-gray-400'}`} />
               </div>
               <div>
-                <p className={`text-sm font-medium ${progressData.weeklyProgress?.some(w => (w.completed || 0) === (w.sessions || 0) && (w.sessions || 0) > 0) ? 'text-emerald-300' : 'text-gray-400'}`}>
-                  Semana Completa {progressData.weeklyProgress?.some(w => (w.completed || 0) === (w.sessions || 0) && (w.sessions || 0) > 0) ? '✓' : ''}
+                <p className={`text-sm font-medium ${progressData.weeklyProgress?.some(w => Number(w.completed || 0) === Number(w.sessions || 0) && Number(w.sessions || 0) > 0) ? 'text-emerald-300' : 'text-gray-400'}`}>
+                  Semana Completa {progressData.weeklyProgress?.some(w => Number(w.completed || 0) === Number(w.sessions || 0) && Number(w.sessions || 0) > 0) ? '✓' : ''}
                 </p>
                 <p className="text-xs text-gray-400/70">Completa una semana de entrenamientos</p>
               </div>

@@ -431,3 +431,7 @@
 - Docs/Nutrición: se añade `docs/PLAN_IMPLEMENTACION_MACROS_PERFIL_METABOLICO_FASE.md` con un plan detallado para implementar de forma robusta, escalable y sostenible la tabla oficial de macros por perfil metabólico + fase, unificar calculadoras, endurecer guardarraíles/auditoría y cerrar el rollout con tests y actualización de documentación.
 - Nutrición/macros perfil+fase: implementado `backend/services/macroProfilePhaseResolver.js` como fuente única de verdad (`mindfeed_macro_phase_v2`), alineados `nutritionCalculator`, `metabolicProfileCalculator`, bridge, `trainingNutritionBridge`, `/api/metabolic-profile/distributions` y `nutritionV2/current_estimate`; se elimina el cálculo local incoherente de macros en `NutritionScreen`, se añaden 4 suites nuevas (`macroProfilePhaseResolver`, `nutritionCalculatorMacrosByPhase`, `metabolicProfileMacroAlignment`, `trainingNutritionBridgeMacroOverride`) y `npm run test:backend` queda en verde (69/69).
 - Docs/Impl-pack: cierre documental de `macros-perfil-metabolico-fase` tras QA manual OK y limpieza de `docs/_active.md`; quedan el outcome summary, resultados de tests y evidencia final alineados con el rollout.
+
+## 2026-07-10
+
+- Reglas operativas: se permite iniciar o reiniciar frontend/backend cuando exista una autorización general del usuario para la tarea, manteniendo la solicitud previa en los demás casos.

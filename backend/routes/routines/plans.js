@@ -659,7 +659,8 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
     // Buscar plan de metodología activo (fallback al método anterior)
     const activeMethodologyQuery = await pool.query(
       `SELECT id as methodology_plan_id, methodology_type, plan_data,
-              confirmed_at, created_at, plan_start_date, 'methodology' as source, status
+              confirmed_at, created_at, plan_start_date, generation_mode,
+              'methodology' as source, status
        FROM app.methodology_plans
        WHERE user_id = $1
          AND status = 'active'
@@ -685,15 +686,26 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
     // ✅ Validación adicional: asegurar que el plan NO esté cancelado
     if (todayWorkoutQuery.rowCount === 0 && activePlan && ['active', 'confirmed'].includes(String(activePlan.status)) && !activePlan.cancelled_at) {
       try {
-        console.log('🧩 [/active-plan] Sin todaySession; generando programación on-demand...');
-        const client = await pool.connect();
-        try {
-          // 📅 Usar plan_start_date o confirmed_at/created_at como fallback
-          const startDate = activePlan.plan_start_date || activePlan.confirmed_at || activePlan.created_at || new Date();
-          console.log(`📅 Fecha de inicio del plan: ${startDate}`);
-          await ensureWorkoutScheduleV3(client, userId, activePlan.methodology_plan_id, activePlan.plan_data, startDate);
-        } finally {
-          client.release();
+        // 🛡️ Solo generar si el plan NO tiene calendario. "Hoy sin sesión" es lo normal
+        // en días de descanso; regenerar aquí borraba todo el calendario en cada visita
+        // (perdiendo estados y re-anclando las semanas a la fecha del servidor).
+        const scheduleCount = await pool.query(
+          'SELECT count(*)::int AS n FROM app.workout_schedule WHERE methodology_plan_id = $1 AND user_id = $2',
+          [activePlan.methodology_plan_id, userId]
+        );
+        if (scheduleCount.rows[0].n > 0) {
+          console.log('🗓️ [/active-plan] Hoy es descanso (calendario ya existe); no se regenera');
+        } else {
+          console.log('🧩 [/active-plan] Plan sin calendario; generando programación on-demand...');
+          const client = await pool.connect();
+          try {
+            // 📅 Usar plan_start_date o confirmed_at/created_at como fallback
+            const startDate = activePlan.plan_start_date || activePlan.confirmed_at || activePlan.created_at || new Date();
+            console.log(`📅 Fecha de inicio del plan: ${startDate}`);
+            await ensureWorkoutScheduleV3(client, userId, activePlan.methodology_plan_id, activePlan.plan_data, startDate);
+          } finally {
+            client.release();
+          }
         }
 
         // Reintentar la consulta de todaySession
@@ -774,7 +786,12 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
       success: true,
       hasActivePlan: true,
       routinePlan: planData,
-      planSource: { label: 'IA' }, // Siempre es IA cuando viene de methodology_plans
+      // Etiqueta honesta según cómo se generó el plan (antes siempre decía 'IA')
+      planSource: {
+        label: activePlan.generation_mode === 'manual' ? 'Manual' : 'IA',
+        type: activePlan.generation_mode || 'automatic'
+      },
+      generation_mode: activePlan.generation_mode || null,
       planId: activePlan.methodology_plan_id, // Solo tenemos methodology_plan_id
       methodology_plan_id: activePlan.methodology_plan_id,
       planType: activePlan.methodology_type,

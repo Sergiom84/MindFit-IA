@@ -549,19 +549,40 @@ export const sessionControllers = {
         ? normalizedWeight * (1 + normalizedReps * 0.0333)
         : null;
 
-      const result = await pool.query(`
-        INSERT INTO app.hypertrophy_set_logs (
-          user_id, methodology_plan_id, session_id, exercise_id,
-          exercise_name, set_number, weight_used, reps_completed,
-          rir_reported, is_warmup, is_effective, volume_load, estimated_1rm
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-        RETURNING *
-      `, [
-        userId, methodologyPlanId, sessionId, normalizedExerciseId,
-        normalizedExerciseName, normalizedSetNumber, normalizedWeight,
-        normalizedReps, normalizedRir, normalizedIsWarmup, isEffective,
-        volumeLoad, estimated1RM
-      ]);
+      // Idempotencia: un doble tap en "Guardar Serie" (o un retry del cliente) no debe
+      // duplicar la serie: si ya existe esa serie para la sesión/ejercicio, se actualiza.
+      const existing = await pool.query(`
+        SELECT id FROM app.hypertrophy_set_logs
+        WHERE session_id = $1 AND user_id = $2 AND set_number = $3 AND is_warmup = $4
+          AND (exercise_id = $5 OR (exercise_id IS NULL AND exercise_name = $6))
+        LIMIT 1
+      `, [sessionId, userId, normalizedSetNumber, normalizedIsWarmup, normalizedExerciseId ?? null, normalizedExerciseName ?? null]);
+
+      let result;
+      if (existing.rows.length > 0) {
+        result = await pool.query(`
+          UPDATE app.hypertrophy_set_logs
+          SET weight_used = $2, reps_completed = $3, rir_reported = $4,
+              is_effective = $5, volume_load = $6, estimated_1rm = $7
+          WHERE id = $1
+          RETURNING *
+        `, [existing.rows[0].id, normalizedWeight, normalizedReps, normalizedRir, isEffective, volumeLoad, estimated1RM]);
+        logger.debug('♻️ [SET] Serie existente actualizada (guardado idempotente)');
+      } else {
+        result = await pool.query(`
+          INSERT INTO app.hypertrophy_set_logs (
+            user_id, methodology_plan_id, session_id, exercise_id,
+            exercise_name, set_number, weight_used, reps_completed,
+            rir_reported, is_warmup, is_effective, volume_load, estimated_1rm
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          RETURNING *
+        `, [
+          userId, methodologyPlanId, sessionId, normalizedExerciseId,
+          normalizedExerciseName, normalizedSetNumber, normalizedWeight,
+          normalizedReps, normalizedRir, normalizedIsWarmup, isEffective,
+          volumeLoad, estimated1RM
+        ]);
+      }
 
       res.json({
         success: true,

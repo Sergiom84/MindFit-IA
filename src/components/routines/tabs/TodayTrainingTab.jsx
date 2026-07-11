@@ -464,7 +464,13 @@ export default function TodayTrainingTab({
   const warmupShownSessionsRef = useRef(new Set());
 
   const updateLocalState = (updates) => {
-    setLocalState(prev => ({ ...prev, ...updates }));
+    // Acepta objeto o función (estilo setState). Antes, pasar una función esparcía
+    // la función en el objeto (no-op silencioso) y se perdían transiciones clave
+    // como calentamiento → entrenamiento principal.
+    setLocalState(prev => ({
+      ...prev,
+      ...(typeof updates === 'function' ? updates(prev) : updates)
+    }));
   };
 
   useEffect(() => {
@@ -1942,7 +1948,11 @@ export default function TodayTrainingTab({
 
                 {/* Header enriquecido con metodología, fuente, perfil y progreso */}
                 <section className="mt-4">
-                  <SummaryHeader plan={plan?.currentPlan || plan} session={session} planSource={{ label: 'OpenAI' }} />
+                  <SummaryHeader
+                    plan={plan?.currentPlan || plan}
+                    session={session}
+                    planSource={{ label: (plan?.planType === 'manual' || plan?.currentPlan?.generation_mode === 'manual') ? 'Manual' : 'IA' }}
+                  />
                   <UserProfileDisplay />
                   <ProgressBar progressStats={headerProgressStats} />
                 </section>
@@ -1967,7 +1977,10 @@ export default function TodayTrainingTab({
             {((hasToday && hasActivePlan && hasUnfinishedWorkToday) ||
               (hasActivePlan && sessionNotStarted && todaySessionData?.ejercicios?.length > 0) ||
               (hasToday && hasActivePlan && loadingTodayStatus && !todayStatus) ||
-              (hasToday && hasActivePlan && !loadingTodayStatus && todaySessionData?.ejercicios?.length > 0)) ? (
+              (hasToday && hasActivePlan && !loadingTodayStatus && todaySessionData?.ejercicios?.length > 0)) &&
+              // Día ya completado: no ofrecer "Reanudar Entrenamiento"
+              !(todayStatus?.session?.session_status === 'completed' &&
+                (todayStatus?.summary?.isComplete || todayStatus?.summary?.isFinished)) ? (
               <section className="transition-opacity duration-300 ease-in-out opacity-100">
 
                 {/* Componente modular para iniciar/reanudar sesión */}

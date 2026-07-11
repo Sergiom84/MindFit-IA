@@ -370,7 +370,7 @@ router.get('/historical-data', authenticateToken, async (req, res) => {
        LEFT JOIN app.methodology_exercise_progress mep ON mep.methodology_session_id = mes.id
        JOIN app.methodology_plans mp ON mp.id = mes.methodology_plan_id
        WHERE mp.user_id = $1 AND mes.started_at IS NOT NULL
-       GROUP BY TO_CHAR(mes.started_at, 'YYYY-MM'), TO_CHAR(mes.started_at, 'Month YYYY'), mes.started_at
+       GROUP BY TO_CHAR(mes.started_at, 'YYYY-MM'), TO_CHAR(mes.started_at, 'Month YYYY')
        ORDER BY TO_CHAR(mes.started_at, 'YYYY-MM') DESC
        LIMIT 12`,
       [userId]

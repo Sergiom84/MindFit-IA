@@ -102,6 +102,16 @@ pool.on("error", (err) => {
 // --- 4) search_path por conexión ---
 const DB_SEARCH_PATH = process.env.DB_SEARCH_PATH || "app,public";
 pool.on("connect", async (client) => {
+  // El handler del Pool solo cubre clientes OCIOSOS. Si la conexión de un cliente
+  // PRESTADO (checked-out) muere (p.ej. el pooler corta, DNS transitorio), el
+  // 'error' se emite en el Client y sin listener tumba el proceso entero.
+  client.on("error", (err) => {
+    console.error(
+      "⚠️  Error en cliente prestado del pool PostgreSQL (recuperable):",
+      err?.code || "",
+      err?.message || err
+    );
+  });
   try {
     await client.query(`SET search_path TO ${DB_SEARCH_PATH}`);
   } catch (e) {

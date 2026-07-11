@@ -111,7 +111,8 @@ const RoutineScreen = () => {
 
   // Plan efectivo a usar (prioridad: contexto > location.state)
   const effectivePlan = plan.currentPlan || incomingState?.routinePlan || incomingState?.plan;
-  const effectivePlanSource = incomingState?.planSource || { label: 'IA' };
+  const effectivePlanSource = incomingState?.planSource ||
+    (plan.planType === 'manual' ? { label: 'Manual' } : { label: 'IA' });
   const effectivePlanId = plan.methodologyPlanId || incomingState?.planId;
   const effectiveMethodologyPlanId = plan.methodologyPlanId || incomingState?.methodology_plan_id;
 
@@ -155,21 +156,32 @@ const RoutineScreen = () => {
         // Fallback: si no hay plan en contexto, intentar recuperarlo del backend
         if (!hasActivePlan) {
           console.log('🔎 No hay plan en contexto; consultando /api/routines/active-plan...');
-          const result = await loadActivePlan();
+          let result = await loadActivePlan();
+          // Un fallo transitorio (red/timeout) NO significa "sin plan": reintentar antes de decidir.
+          if (!result?.success && !result?.noPlan) {
+            console.log('↻ Fallo transitorio consultando el plan; reintentando en 2s...');
+            await new Promise(r => setTimeout(r, 2000));
+            result = await loadActivePlan();
+          }
           if (result?.success) {
             console.log('✅ Plan activo recuperado desde backend');
             return;
           }
-          console.log('⚠️ Sin plan activo tras consultar backend; redirigiendo a metodologías...');
-          goToMethodologies();
+          if (result?.noPlan) {
+            console.log('⚠️ Backend confirma que no hay plan activo; redirigiendo a metodologías...');
+            goToMethodologies();
+            return;
+          }
+          // Sigue fallando por red: quedarse en Rutinas y mostrar el error (sin expulsar al usuario).
+          console.log('⚠️ No se pudo consultar el plan (error transitorio); permanecemos en Rutinas');
+          ui.setError(result?.error || 'No se pudo cargar el plan. Comprueba tu conexión y reintenta.');
           return;
         }
 
       } catch (error) {
         console.error('❌ Error inicializando RoutineScreen:', error);
         ui.setError(error.message || 'Error cargando el plan de entrenamiento');
-        // En caso de error, también redirigir a metodologías
-        setTimeout(() => goToMethodologies(), 2000);
+        // Error inesperado: mantener al usuario en Rutinas con el mensaje de error visible.
       }
     };
 

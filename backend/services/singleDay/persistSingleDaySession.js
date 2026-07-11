@@ -44,6 +44,29 @@ export async function persistSingleDaySession(dbClient, {
   extraSessionMetadata = null,
   currentDate = new Date()
 }) {
+  // Dedupe: si ya hay una sesión single-day sin terminar para este usuario, fecha y
+  // metodología, reutilizarla en lugar de crear plan+sesión nuevos. (Cada re-clic en
+  // "aceptar entrenamiento de hoy" creaba un plan 'completed' y una sesión duplicados.)
+  const existing = await dbClient.query(`
+    SELECT s.id AS session_id, s.methodology_plan_id AS plan_id
+    FROM app.methodology_exercise_sessions s
+    WHERE s.user_id = $1
+      AND s.methodology_type = $2
+      AND s.session_type = 'weekend-extra'
+      AND s.session_date::date = $3::date
+      AND s.session_status IN ('pending', 'in_progress')
+    ORDER BY s.id DESC
+    LIMIT 1
+  `, [userId, methodologyType, currentDate]);
+
+  if (existing.rows.length > 0) {
+    return {
+      sessionId: existing.rows[0].session_id,
+      planId: existing.rows[0].plan_id,
+      reused: true
+    };
+  }
+
   // Crear plan temporal
   const planResult = await dbClient.query(`
     INSERT INTO app.methodology_plans (
