@@ -7,7 +7,7 @@
 3. **NO inventes nuevas funciones** a menos que se soliciten explícitamente
 4. **Haz propuestas de mejora** pero NO las implementes hasta que se te pida
 5. **NO modifiques otras partes del código** que no estén relacionadas con la tarea
-6. **Nunca reincies el frontend y backend** cuando sea necesario, me lo solicitas a mi
+6. **Servicios frontend/backend**: puedes iniciarlos o reiniciarlos cuando sea necesario para una tarea que el usuario haya autorizado de forma general; si no existe esa autorización, solicítala antes.
 7. **Nunca hagas commit/push** salvo que el usuario lo solicite explícitamente
 8. **Todo lo anterior es OBLIGATORIO** - Sin excepciones
 
