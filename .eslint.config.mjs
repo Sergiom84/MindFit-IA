@@ -8,6 +8,7 @@ export default defineConfig([
   // Ignora artefactos de build y archivos experimentales no incluidos en el runtime
   globalIgnores([
     'dist',
+    'android/**/build/**',
     '.kilocode',
     '.kilocode/**',
     'backend/routes/crossfit_endpoints.js',
