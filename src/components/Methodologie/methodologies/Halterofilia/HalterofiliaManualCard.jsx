@@ -337,12 +337,20 @@ export default function HalterofíliaManualCard({ onGenerate, isLoading, error }
       <AlertTriangle className={`w-12 h-12 text-${CARD_CONFIG.THEME.ERROR} mx-auto mb-4`} />
       <h3 className={`text-xl font-semibold text-${CARD_CONFIG.THEME.ERROR} mb-2`}>Error en Evaluación</h3>
       <p className="text-gray-400 mb-4">{state.evaluationError}</p>
+      <div className="flex flex-col sm:flex-row gap-3 justify-center">
       <button
         onClick={evaluateUserProfile}
         className={`px-4 py-2 bg-${CARD_CONFIG.THEME.PRIMARY} text-black rounded-lg hover:bg-yellow-300 transition-colors`}
       >
         Reintentar Evaluación
       </button>
+      <button
+        onClick={goToManualSelection}
+        className={`px-4 py-2 bg-${CARD_CONFIG.THEME.BACKGROUND} border border-${CARD_CONFIG.THEME.BORDER} text-${CARD_CONFIG.THEME.PRIMARY} rounded-lg hover:bg-black/60 transition-colors`}
+      >
+        Elegir Nivel Manualmente
+      </button>
+      </div>
     </div>
   );
 
