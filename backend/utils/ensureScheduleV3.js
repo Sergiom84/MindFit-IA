@@ -166,8 +166,11 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
       }
     } else {
       console.log('⚠️ [Redistribución] Sin configuración del usuario, usando lógica por defecto');
-      // Mantener lógica original como fallback
-      firstWeekPattern = originalPattern;
+      // Sin startConfig NO se fuerza patrón: la semana 1 usa los días propios del plan.
+      // (Antes se forzaba 'Lun-Mié-Vie' y un plan de 4-5 días/semana perdía sesiones
+      // en la semana 1, p.ej. 39/40 programadas.) Los arranques a mitad de semana de
+      // principiantes se tratan en el switch de abajo.
+      firstWeekPattern = null;
     }
 
     // 🔄 APLICAR REDISTRIBUCIÓN SEGÚN EL DÍA DE INICIO (SOLO SI NO HAY startConfig)
@@ -175,8 +178,10 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
       console.log('⚠️ [Redistribución] Usando lógica hardcodeada (fallback)');
       switch (startDayOfWeek) {
         case 1: // LUNES
+          // Empezar en lunes no requiere redistribución: la semana 1 mantiene los
+          // días propios del plan (sea de 3, 4 o 5 días por semana).
           console.log('✅ Lunes: Patrón estándar sin cambios');
-          firstWeekPattern = 'Lun-Mié-Vie';
+          firstWeekPattern = null;
           break;
 
         case 2: // MARTES
@@ -267,10 +272,10 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
         default:
           firstWeekPattern = originalPattern;
       }
-    } else if (!startConfig || !firstWeekPattern) {
-      // Para niveles intermedios/avanzados, usar el patrón original SOLO si no hay config
-      firstWeekPattern = originalPattern;
     }
+    // Nota: para intermedios/avanzados sin startConfig NO se fuerza patrón alguno
+    // (antes se imponía 'Lun-Mié-Vie' y los planes de 4-5 días/semana perdían
+    // sesiones en la semana 1). Sin patrón, la semana 1 usa los días del plan.
 
     // Guardar configuración de redistribución en la base de datos
     let configResult = null;
@@ -531,10 +536,13 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
           });
         }
       } else if (isFirstWeek && !startConfig) {
-        // Solo aplicar lógica hardcodeada si NO hay startConfig
+        // Solo aplicar lógica hardcodeada si NO hay startConfig.
+        // Con inicio en LUNES no hay nada que comprimir: la semana 1 usa los días
+        // del plan tal cual (antes se reasignaba a días consecutivos Lun-Mar-Mié
+        // y un plan de 4 días perdía el viernes).
         console.log('⚠️ [Primera semana] Sin startConfig, usando lógica hardcodeada');
 
-        if (startDayOfWeek > 0 && startDayOfWeek < 6) {
+        if (startDayOfWeek > 1 && startDayOfWeek < 6) {
           // Calcular días consecutivos disponibles desde hoy hasta viernes
           const consecutiveDaysAvailable = [];
           for (let d = startDayOfWeek; d <= 5; d++) { // 1=Lun ... 5=Vie

@@ -290,7 +290,11 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
          )`,
         [session.id, userId, order, exerciseId, ej.nombre || `Ejercicio ${i + 1}`,
          String(ej.series || '3'), String(repsTarget || '0'), restSeconds,
-         ej.intensidad || null, ej.tempo || null, ej.notas || null,
+         // Truncado defensivo a los límites de columna: un tempo/intensidad más largo
+         // (p.ej. 'Controlado con aceleración' en Halterofilia) rompía TODO el start.
+         ej.intensidad ? String(ej.intensidad).slice(0, 50) : null,
+         ej.tempo ? String(ej.tempo).slice(0, 60) : null,
+         ej.notas || null,
          ej.gif_url || null, ej.video_url || null]
       );
     }
