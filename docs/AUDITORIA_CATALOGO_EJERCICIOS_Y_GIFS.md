@@ -83,16 +83,17 @@ Recomendación: **activos autoalojados con pago único** (compatibles con Supaba
 
 **Coste total estimado: 450-900 $ una sola vez.** Alternativas valoradas y descartadas: MuscleWiki API (vídeos excelentes pero **prohíbe almacenarlos** → ata a su CDN y suscripción), RapidAPI ExerciseDB (pagar para siempre por lo mismo), datasets de Kaggle/GitHub con gifs de ExerciseDB re-empaquetados (**sin derechos, riesgo legal en Play Store**), gym-animations.com (denuncias por contenido robado), wger (solo ~286 imágenes estáticas), ExRx/WorkoutLabs (caros/fricción).
 
-## 4. Plan de corrección propuesto
+## 4. Plan de corrección
 
-**Fase A — datos (sin coste, ya testeable en Docker):**
+**Fase A — datos (sin coste): ✅ COMPLETADA y aplicada a producción el 2026-07-12**
+(parches en `backend/output/catalog-audit/fixes/` y `output/catalog-audit/fixes/`, probados en Docker antes de producción):
 
-1. Poner `gif_url = NULL` en los 110 MAL (mejor sin gif que con gif de otro ejercicio) o remapear los que tengan JPG correcto en free-exercise-db.
-2. Rellenar `descanso_seg` de calistenia (65 filas).
-3. Normalizar `progresion_desde/hacia` a nombres exactos del catálogo (calistenia primero: crear nodos que faltan o corregir alias).
-4. Deduplicar heavy_duty (renombrar pares duplicados) y consolidar las 4 prensas de hipertrofia.
-5. Etiquetar el bloque fuerza de hipertrofia o ajustar reps a 6-15.
-6. CrossFit: poblar `supports_strength_block`, `time_domain`, `pairing_tags`; corregir nota id 111; separar id 120.
-7. Bomberos: redactar `ejecucion/consejos/errores_evitar` (43) y separar semántica baremo vs prescripción.
+1. ✅ Parche 01: 110 gifs MAL → 69 remapeados a free-exercise-db (URLs verificadas) y 41 a NULL.
+2. ✅ Parche 02: `descanso_seg` de calistenia (65 filas) + grafo de progresiones normalizado (0 refs rotas).
+3. ✅ Parche 03: duplicados heavy_duty renombrados, prensas de hipertrofia diferenciadas, bloque fuerza etiquetado, seguridad casa, categorías/niveles, 18 progresiones powerlifting, `'-'` → NULL.
+4. ✅ Parche 04: CrossFit `supports_strength_block` (30), `time_domain` y `pairing_tags` 120/120, `avoid_pairing_with` (31), `is_benchmark` saneado, 10 puntuales (nota Fran, Worm, etc.).
+5. ✅ Parche 05: Bomberos `ejecucion/consejos/errores_evitar` redactados 43/43 + categoría Agilidad→Acondicionamiento (41, 42), descanso oficiales (29, 30, 33), nota apnea (3).
+
+Pendiente de Fase A (menor): separar la doble semántica del campo baremo de Bomberos (baremo real vs prescripción de series) — requiere decidir modelado y tocar código que lo consuma.
 
 **Fase B — medios (requiere decisión de compra):** 8. Comprar ExerciseDB dataset (299-599 $) → reemplaza los 36 gifs comodín y da gif animado a los 268 que hoy tienen foto estática. 9. Comprar en Gymvisual los ~100-150 huecos (halterofilia/CrossFit/calistenia/oposiciones). 10. Subir todo a `exercise-gifs/` con nomenclatura por slug y remapear `gif_url` por id (no por fuzzy match).
