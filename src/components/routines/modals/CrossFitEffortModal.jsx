@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Flame, Check, X } from 'lucide-react';
 
 /**
@@ -47,6 +47,10 @@ export default function CrossFitEffortModal({
   const [rpe, setRpe] = useState(null);
   const [scale, setScale] = useState(defaultScale);
   const [feeling, setFeeling] = useState(null); // opcional
+
+  useEffect(() => {
+    if (isOpen) setScale(defaultScale);
+  }, [defaultScale, isOpen]);
 
   if (!isOpen) return null;
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Timer, Play, Pause, RotateCcw, Flag, X, Dumbbell, ChevronDown } from 'lucide-react';
 
 /**
@@ -127,7 +128,7 @@ export default function WodSessionModal({
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-3 sm:p-4">
       <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/10 border-l-2 border-l-yellow-400/40 bg-neutral-900/95 shadow-2xl backdrop-blur-xl">
         {/* Cabecera */}
@@ -253,6 +254,7 @@ export default function WodSessionModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

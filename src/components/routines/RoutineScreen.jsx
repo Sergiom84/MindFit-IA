@@ -9,6 +9,7 @@ import TodayTrainingTab from './tabs/TodayTrainingTab.jsx';
 import CalendarTab from './tabs/CalendarTab.jsx';
 import ProgressTab from './tabs/ProgressTab.jsx';
 import HistoricalTab from './tabs/HistoricalTab.jsx';
+import { getWeekendStatus } from './api.js';
 
 // ===============================================
 // 🚀 RoutineScreen - Versión Integrada con WorkoutContext
@@ -19,6 +20,7 @@ const RoutineScreen = () => {
 
   const location = useLocation();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [hasStandaloneWeekendSession, setHasStandaloneWeekendSession] = useState(false);
 
   useEffect(() => {
     const handleMouseMove = (event) => {
@@ -168,6 +170,12 @@ const RoutineScreen = () => {
             return;
           }
           if (result?.noPlan) {
+            const weekendSession = await getWeekendStatus();
+            if (weekendSession?.hasWeekendSession) {
+              setHasStandaloneWeekendSession(true);
+              console.log('✅ Sesión suelta de fin de semana recuperada; permanecemos en Rutinas');
+              return;
+            }
             console.log('⚠️ Backend confirma que no hay plan activo; redirigiendo a metodologías...');
             goToMethodologies();
             return;
@@ -400,14 +408,14 @@ const RoutineScreen = () => {
   // Si no hay plan efectivo después de intentar cargar, redirigir
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!ui.isLoading && !effectivePlan && !incomingState?.plan) {
+      if (!ui.isLoading && !effectivePlan && !incomingState?.plan && !hasStandaloneWeekendSession) {
         console.log('⚠️ No hay plan disponible, redirigiendo a metodologías...');
         goToMethodologies();
       }
     }, 3000); // Dar tiempo para cargar
 
     return () => clearTimeout(timer);
-  }, [ui.isLoading, effectivePlan, incomingState?.plan, goToMethodologies]);
+  }, [ui.isLoading, effectivePlan, incomingState?.plan, hasStandaloneWeekendSession, goToMethodologies]);
 
   // ===============================================
   // 🎨 RENDER CONDICIONAL PARA LOADING
