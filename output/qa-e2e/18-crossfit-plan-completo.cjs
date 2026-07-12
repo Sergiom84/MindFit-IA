@@ -3,8 +3,18 @@
 // (un contexto por día con Date desplazado) → revisa Progreso e Historial.
 //
 // Uso: node 18-crossfit-plan-completo.cjs [YYYY-MM-DD lunes] [nivel]
+const path = require('path');
 const { launch, shot, saveState, report, BASE } = require('./lib.cjs');
 const { registerMobileUser } = require('./ui-user-helpers.cjs');
+require(path.join(__dirname, '../../backend/node_modules/dotenv')).config({ path: path.join(__dirname, '../../backend/.env') });
+const jwt = require(path.join(__dirname, '../../backend/node_modules/jsonwebtoken'));
+
+// Acuña un JWT de expiración lejana a partir del token real (mismo secreto),
+// para que la sesión sobreviva a la fecha falseada (evita logout por exp).
+function mintLongToken(realToken) {
+  const p = jwt.decode(realToken) || {};
+  return jwt.sign({ userId: p.userId, email: p.email }, process.env.JWT_SECRET, { expiresIn: '365d' });
+}
 
 const MONDAY = process.argv[2] || '2026-07-13';
 const LEVEL = process.argv[3] || 'principiante';
@@ -38,16 +48,24 @@ async function handleWod(page) {
     await clickIf(page, /^8(\s|$)/, { wait: 200 }); // RPE 8 (Duro)
     await clickIf(page, /^Scaled$/i, { wait: 200 });
     await clickIf(page, /^(Me gustó|Normal)$/i, { wait: 200 });
-    const g = await clickIf(page, /^Guardar$/i, { wait: 1500 });
-    if (g) return 'esfuerzo-guardado';
+    await clickIf(page, /^Guardar$/i, { wait: 1800 });
+    await clickIf(page, /^Continuar$/i, { wait: 1200 });
+    return 'esfuerzo-guardado';
   }
   // Pantalla del WOD (tiene "Terminar WOD")
   const terminar = page.getByRole('button', { name: /Terminar WOD/i });
   if (await terminar.count()) {
     await clickIf(page, /^Scaled$/i, { wait: 200 });
-    await clickIf(page, /^Iniciar$/i, { wait: 1500 });
-    const t = await clickIf(page, /Terminar WOD/i, { wait: 1500 });
-    if (t) return 'wod-terminado';
+    await clickIf(page, /^Iniciar$/i, { wait: 1200 });
+    await clickIf(page, /Terminar WOD/i, { wait: 800 });
+    // handleFinish() registra N movimientos (await) antes de abrir el modal de
+    // esfuerzo. Esperar aquí a que aparezca evita que el walker clique "Reanudar"
+    // en la pantalla de fondo y aborte el cierre.
+    for (let i = 0; i < 12; i++) {
+      await page.waitForTimeout(900);
+      if (/¿Cómo fue el WOD\?/i.test(await short(page))) break;
+    }
+    return 'wod-terminado';
   }
   return null;
 }
@@ -69,10 +87,13 @@ async function walkSession(page, tag, maxSteps = 120) {
     const wod = await handleWod(page);
     if (wod) { console.log(`  [${step}] ${wod}`); stuck = 0; lastSig = sig; continue; }
 
+    // OJO: NO incluir "Reanudar Entrenamiento" — tras terminar el WOD aparece
+    // transitoriamente en la pantalla de fondo y clicarlo aborta el cierre (bucle).
+    // Cada día arranca fresco con "Iniciar Entrenamiento".
     const prio = [
       /Saltar calentamiento/i, /Comenzar Entrenamiento Principal/i,
       /Iniciar sesión de hoy/i, /Iniciar entrenamiento/i, /Comenzar entrenamiento/i,
-      /Empezar sesión/i, /^Entrenar$/i, /Reanudar Entrenamiento/i,
+      /Empezar sesión/i, /^Entrenar$/i,
       /^Continuar$/i, /^Comenzar$/i, /^Siguiente$/i, /^Iniciar$/i, /^Empezar$/i, /^Listo$/i,
     ];
     let clicked = null;
@@ -128,7 +149,8 @@ async function apiConfirm(token, planId) {
   const token = await reg.page.evaluate(() => localStorage.getItem('authToken') || localStorage.getItem('token'));
   await saveState(reg.context);
   await reg.browser.close();
-  console.log('REGISTRADO', email, 'token?', !!token);
+  const longToken = mintLongToken(token);
+  console.log('REGISTRADO', email, 'token?', !!token, 'longToken?', !!longToken);
 
   // === 2) Plan por API (la generación por UI manual de CrossFit está bloqueada por la
   //        key de OpenAI: evaluate-profile 500 → cola offline). El objetivo aquí es el
@@ -144,7 +166,7 @@ async function apiConfirm(token, planId) {
 
   // === 3) Todas las sesiones por UI (reproductor WOD), una por día con fecha desplazada ===
   for (const s of rest) {
-    const { browser, context, page, issues } = await launch({ dateAt: `${s.date}T08:00:00`, speed: true, useState: true });
+    const { browser, context, page, issues } = await launch({ dateAt: `${s.date}T08:00:00`, speed: true, useState: true, injectToken: longToken });
     try {
       await page.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 60000 });
       await page.waitForTimeout(3000);
@@ -165,7 +187,7 @@ async function apiConfirm(token, planId) {
   // === 4) Progreso + Historial ===
   {
     const lastDate = rest.length ? rest[rest.length - 1].date : MONDAY;
-    const { browser, page } = await launch({ dateAt: `${lastDate}T20:00:00`, speed: false, useState: true });
+    const { browser, page } = await launch({ dateAt: `${lastDate}T20:00:00`, speed: false, useState: true, injectToken: longToken });
     try {
       await page.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 60000 });
       await page.waitForTimeout(3000);

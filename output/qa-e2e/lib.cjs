@@ -7,7 +7,7 @@ const OUT = __dirname;
 const STATE = path.join(OUT, 'storageState.json');
 const BASE = 'http://localhost:5173';
 
-async function launch({ useState = true, clockAt = null, dateAt = null, speed = false } = {}) {
+async function launch({ useState = true, clockAt = null, dateAt = null, speed = false, injectToken = null } = {}) {
   const browser = await chromium.launch({ headless: true, channel: 'chromium' });
   const context = await browser.newContext({
     viewport: { width: 375, height: 812 },
@@ -17,6 +17,14 @@ async function launch({ useState = true, clockAt = null, dateAt = null, speed = 
     ...(useState && fs.existsSync(STATE) ? { storageState: STATE } : {})
   });
   const page = await context.newPage();
+  if (injectToken) {
+    // Al falsear la fecha del navegador más allá de la expiración del JWT (7d), el
+    // cliente valida exp contra el Date falseado y desloguea. Inyectar un token de
+    // expiración lejana (mismo JWT_SECRET) mantiene la sesión en cualquier fecha.
+    await context.addInitScript((tok) => {
+      try { localStorage.setItem('authToken', tok); localStorage.setItem('token', tok); } catch {}
+    }, injectToken);
+  }
   if (clockAt) {
     await page.clock.install({ time: new Date(clockAt) });
     console.log('CLOCK instalado en', clockAt);

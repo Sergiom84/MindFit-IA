@@ -2,9 +2,37 @@
 // Registra usuario → genera plan manual el lunes → completa TODAS las sesiones
 // (un contexto por día) → revisa Progreso e Historial.
 //
+// ⚠️ BLOQUEADO (2026-07-12): con el plan hipertrofiav2 generado por API, el reproductor
+// (ExerciseSessionView vía Hoy) NO arranca el set: "Comenzar" no es accionable (queda
+// cubierto) y la sesión cae a estado de error "Reintentar". Codex sí validó MindFeed con
+// plan generado por UI (flujo de finde), así que la sospecha es que el plan por API no
+// trae la config que el player necesita. Requiere depurar RoutineSessionModal/ExerciseSessionView.
+//
 // Uso: node 19-mindfeed-plan-completo.cjs [YYYY-MM-DD lunes] [nivel]
+const path = require('path');
 const { launch, shot, saveState, report, BASE } = require('./lib.cjs');
 const { registerMobileUser } = require('./ui-user-helpers.cjs');
+require(path.join(__dirname, '../../backend/node_modules/dotenv')).config({ path: path.join(__dirname, '../../backend/.env') });
+const jwt = require(path.join(__dirname, '../../backend/node_modules/jsonwebtoken'));
+
+function mintLongToken(realToken) {
+  const p = jwt.decode(realToken) || {};
+  return jwt.sign({ userId: p.userId, email: p.email }, process.env.JWT_SECRET, { expiresIn: '365d' });
+}
+async function apiGen(token, methodology, level) {
+  const r = await fetch(`http://localhost:3010/api/methodology/generate`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    body: JSON.stringify({ mode: 'manual', methodology, selectedLevel: level, nivel: level, goals: '', selectedMuscleGroups: [], source: 'manual_selection', version: '5.0' }),
+  }).then(x => x.json());
+  return r.methodology_plan_id || r.planId || r.plan?.methodology_plan_id;
+}
+async function apiConfirm(token, planId) {
+  const r = await fetch(`http://localhost:3010/api/routines/confirm-plan`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    body: JSON.stringify({ methodology_plan_id: planId }),
+  });
+  return r.status;
+}
 
 const MONDAY = process.argv[2] || '2026-07-13';
 const LEVEL = process.argv[3] || 'principiante';
@@ -28,21 +56,38 @@ async function clickIf(page, rx, { wait = 0 } = {}) {
   return null;
 }
 
-// Registrar Serie: reps + RIR 2 + Guardar Serie.
+// Flujo de serie en ExerciseSessionView (MindFeed):
+//  Comenzar → (timer) → Pausar para que aparezca "Registrar Serie (RIR)" →
+//  abre modal → reps + RIR 2 + Guardar Serie.
 async function handleSerie(page) {
-  const txt = await short(page);
-  if (!/Registrar Serie/i.test(txt)) return null;
-  const reps = page.locator('input[placeholder="10"]:visible, input[type="number"]:visible').first();
-  if (await reps.count()) await reps.fill('10').catch(() => {});
-  const weight = page.locator('input[placeholder*="75"]:visible, input[placeholder*="peso"]:visible').first();
-  if (await weight.count()) { const v = await weight.inputValue().catch(() => ''); if (!v) await weight.fill('20').catch(() => {}); }
-  const rir2 = page.getByRole('button', { name: /^2$/ });
-  if (await rir2.count()) await rir2.first().click({ force: true, timeout: 3000 }).catch(() => {});
-  await page.waitForTimeout(250);
+  // 1) Modal de registro abierto → rellenar y guardar
   const save = page.getByRole('button', { name: /Guardar Serie/i });
-  if (await save.count() && await save.first().isEnabled().catch(() => false)) {
-    await save.first().click({ force: true }).catch(() => {});
-    return 'serie-guardada';
+  if (await save.count()) {
+    const reps = page.locator('input[placeholder="10"]:visible, input[type="number"]:visible').first();
+    if (await reps.count()) await reps.fill('10').catch(() => {});
+    const weight = page.locator('input[placeholder*="75"]:visible, input[placeholder*="peso"]:visible').first();
+    if (await weight.count()) { const v = await weight.inputValue().catch(() => ''); if (!v) await weight.fill('20').catch(() => {}); }
+    const rir2 = page.getByRole('button', { name: /^2$/ });
+    if (await rir2.count()) await rir2.first().click({ force: true, timeout: 3000 }).catch(() => {});
+    await page.waitForTimeout(250);
+    if (await save.first().isEnabled().catch(() => false)) {
+      await save.first().click({ force: true }).catch(() => {});
+      return 'serie-guardada';
+    }
+  }
+  // 2) Botón "Registrar Serie (RIR)" visible → abrir el modal
+  const reg = page.getByRole('button', { name: /Registrar Serie/i });
+  if (await reg.count() && await reg.first().isEnabled().catch(() => false)) {
+    await reg.first().click({ force: true }).catch(() => {});
+    await page.waitForTimeout(600);
+    return 'abrir-registro';
+  }
+  // 3) Set en marcha (timer): pausar para que aparezca "Registrar Serie"
+  const pausar = page.getByRole('button', { name: /^Pausar$/i });
+  if (await pausar.count() && await pausar.first().isEnabled().catch(() => false)) {
+    await pausar.first().click({ force: true }).catch(() => {});
+    await page.waitForTimeout(400);
+    return 'pausar';
   }
   return null;
 }
@@ -64,13 +109,16 @@ async function walkSession(page, tag, maxSteps = 200) {
     const serie = await handleSerie(page);
     if (serie) { console.log(`  [${step}] ${serie}`); stuck = 0; lastSig = sig; continue; }
 
+    // OJO: NO incluir "Reanudar Entrenamiento" — queda en el fondo del player y, al ir
+    // antes que "Comenzar", el walker lo clicaba en bucle sin arrancar la serie.
     const prio = [
       /Saltar calentamiento/i, /Comenzar Entrenamiento Principal/i,
-      /Iniciar sesión de hoy/i, /Iniciar entrenamiento/i, /Comenzar entrenamiento/i,
-      /Empezar sesión/i, /^Entrenar$/i, /Reanudar Entrenamiento/i,
+      /Iniciar sesión de hoy/i, /Iniciar entrenamiento/i,
+      /Empezar sesión/i, /^Entrenar$/i,
       /Siguiente ejercicio/i, /^Completar( ejercicio)?$/i, /Serie completada/i,
-      /^Continuar$/i, /^Comenzar$/i, /^Siguiente$/i, /^Iniciar$/i, /^Empezar$/i, /^Listo$/i,
-      /Saltar descanso/i, /Omitir descanso/i, /^(Fácil|Óptimo|Bien|Normal)$/i, /Guardar valoración/i,
+      /^Comenzar$/i, /^Continuar$/i, /^Siguiente$/i, /^Iniciar$/i, /^Empezar$/i, /^Listo$/i,
+      /^Entendido$/i, /Saltar descanso/i, /Omitir descanso/i,
+      /^(Fácil|Óptimo|Bien|Normal)$/i, /Guardar valoración/i,
     ];
     let clicked = null;
     for (const rx of prio) { clicked = await clickIf(page, rx); if (clicked) break; }
@@ -112,56 +160,21 @@ async function fetchCalendar(token, planId) {
   const token = await reg.page.evaluate(() => localStorage.getItem('authToken') || localStorage.getItem('token'));
   await saveState(reg.context);
   await reg.browser.close();
-  console.log('REGISTRADO', email, 'token?', !!token);
+  const longToken = mintLongToken(token);
+  console.log('REGISTRADO', email, 'token?', !!token, 'longToken?', !!longToken);
 
-  let planId = null;
-  {
-    const { browser, context, page, issues } = await launch({ dateAt: `${MONDAY}T08:00:00`, speed: true, useState: true });
-    try {
-      await page.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 60000 });
-      await page.waitForTimeout(3500);
-      await page.getByText('Métodos', { exact: true }).last().click();
-      await page.waitForTimeout(2500);
-      const manual = page.getByText('Manual (tú eliges)', { exact: true });
-      if (await manual.count()) await manual.click();
-      await page.waitForTimeout(800);
-      const card = page.locator('[aria-label="Tarjeta de metodología Hipertrofia"]');
-      if (await card.count()) await card.getByRole('button', { name: /Seleccionar metodología Hipertrofia/i }).click();
-      else await clickIf(page, /Seleccionar/i);
-      await page.waitForTimeout(2500);
-      await clickIf(page, /Elegir Nivel Manualmente/i, { wait: 1500 });
-      const lvl = LEVEL[0].toUpperCase() + LEVEL.slice(1);
-      const levelCard = page.locator('h4', { hasText: new RegExp(lvl, 'i') }).first();
-      if (await levelCard.count()) { await levelCard.click(); await page.waitForTimeout(800); }
-      await clickIf(page, /Generar Plan Manual|Generar Plan/i);
-      for (let i = 0; i < 36; i++) {
-        await page.waitForTimeout(4000);
-        if (/Plan de Entrenamiento Listo|Plan listo|semanas/i.test(await page.locator('body').innerText())) break;
-      }
-      await shot(page, '19-mf-plan-listo');
-      await clickIf(page, /Comenzar Entrenamiento$/i, { wait: 6000 });
-      await shot(page, '19-mf-tras-confirmar');
-      const r1 = await walkSession(page, '19-mf-dia1', 220);
-      results.push(`${MONDAY} (día1): ${r1}`);
-      console.log('DIA1', r1);
-      await saveState(context);
-    } finally {
-      report(issues);
-      await browser.close();
-    }
-  }
-
-  const ap = await fetch(`${API}/api/routines/active-plan`, { headers: { Authorization: 'Bearer ' + token } }).then(x => x.json()).catch(() => ({}));
-  planId = ap.plan?.methodology_plan_id || ap.methodology_plan_id || ap.plan?.id || null;
-  console.log('PLAN_ID', planId);
-  const sessions = planId ? await fetchCalendar(token, planId) : [];
+  // Plan por API (consistente con CrossFit; evita depender de la generación por UI).
+  const planId = await apiGen(token, 'hipertrofiav2', LEVEL);
+  console.log('PLAN_ID', planId, 'confirm=', planId ? await apiConfirm(token, planId) : 'n/a');
+  if (!planId) { console.error('No se pudo generar el plan por API'); process.exit(1); }
+  const sessions = await fetchCalendar(token, planId);
   console.log('SESIONES', sessions.length, JSON.stringify(sessions.slice(0, 6)));
-  let rest = sessions.filter(s => s.date > MONDAY).sort((a, b) => a.date.localeCompare(b.date));
+  let rest = sessions.sort((a, b) => a.date.localeCompare(b.date));
   const MAX_DAYS = Number(process.env.MF_MAX_DAYS || 0);
   if (MAX_DAYS > 0) rest = rest.slice(0, MAX_DAYS);
 
   for (const s of rest) {
-    const { browser, context, page, issues } = await launch({ dateAt: `${s.date}T08:00:00`, speed: true, useState: true });
+    const { browser, context, page, issues } = await launch({ dateAt: `${s.date}T08:00:00`, speed: true, useState: true, injectToken: longToken });
     try {
       await page.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 60000 });
       await page.waitForTimeout(3000);
@@ -181,7 +194,7 @@ async function fetchCalendar(token, planId) {
 
   {
     const lastDate = rest.length ? rest[rest.length - 1].date : MONDAY;
-    const { browser, page } = await launch({ dateAt: `${lastDate}T20:00:00`, speed: false, useState: true });
+    const { browser, page } = await launch({ dateAt: `${lastDate}T20:00:00`, speed: false, useState: true, injectToken: longToken });
     try {
       await page.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 60000 });
       await page.waitForTimeout(3000);
