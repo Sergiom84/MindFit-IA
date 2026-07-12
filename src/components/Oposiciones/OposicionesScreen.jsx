@@ -24,6 +24,8 @@ import { useNavigate } from 'react-router-dom';
 
 // Importar componentes de metodologías específicas
 import BomberosManualCard from './methodologies/Bomberos/BomberosManualCard.jsx';
+import OposicionManualCard from './methodologies/shared/OposicionManualCard.jsx';
+import { getOposicionData } from './methodologies/shared/oposicionesData.js';
 import TrainingPlanConfirmationModal from '../routines/TrainingPlanConfirmationModal.jsx';
 import WarmupModal from '../routines/WarmupModal.jsx';
 import RoutineSessionModal from '../routines/RoutineSessionModal.jsx';
@@ -55,7 +57,7 @@ const OPOSICIONES = [
   {
     id: 'guardia-civil',
     name: 'Guardia Civil',
-    available: false,
+    available: true,
     description: 'Entrenamiento específico para las pruebas físicas de la Guardia Civil',
     icon: Shield,
     color: 'green',
@@ -72,7 +74,7 @@ const OPOSICIONES = [
   {
     id: 'policia-nacional',
     name: 'Policía Nacional',
-    available: false,
+    available: true,
     description: 'Preparación para el circuito y pruebas físicas de Policía Nacional',
     icon: Shield,
     color: 'blue',
@@ -88,7 +90,7 @@ const OPOSICIONES = [
   {
     id: 'policia-local',
     name: 'Policía Local',
-    available: false,
+    available: true,
     description: 'Entrenamiento adaptado a las pruebas físicas de Policía Local',
     icon: Shield,
     color: 'purple',
@@ -115,6 +117,7 @@ export default function OposicionesScreen() {
 
   // Estados para modales específicos
   const [showBomberosModal, setShowBomberosModal] = useState(false);
+  const [activeOposicion, setActiveOposicion] = useState(null); // config genérico para GC/PN/PL
   const [showWarmupModal, setShowWarmupModal] = useState(false);
   const [showRoutineSessionModal, setShowRoutineSessionModal] = useState(false);
   const [sessionId, setSessionId] = useState(null);
@@ -150,12 +153,33 @@ export default function OposicionesScreen() {
     console.log(`🎯 Abriendo modal para: ${oposicion.name} (${oposicion.id})`);
 
     // Abrir modal específico según la oposición
-    switch(oposicion.id) {
-      case 'bomberos':
-        setShowBomberosModal(true);
-        break;
-      default:
-        setError('Oposición no reconocida');
+    if (oposicion.id === 'bomberos') {
+      setShowBomberosModal(true);
+      return;
+    }
+    const config = getOposicionData(oposicion.id);
+    if (config) {
+      setActiveOposicion(config);
+      return;
+    }
+    setError('Oposición no reconocida');
+  };
+
+  // Handler genérico de generación para Guardia Civil / Policía Nacional / Policía Local.
+  const handleOposicionGenerate = async (planData) => {
+    try {
+      const result = await generatePlan({ mode: 'manual', ...planData });
+      if (result.success && result.plan) {
+        setGeneratedPlan(result.plan);
+        if (result.methodology_plan_id) setMethodologyPlanId(result.methodology_plan_id);
+        setActiveOposicion(null);
+        setShowConfirmation(true);
+      } else {
+        throw new Error(result.error || 'No se pudo generar el plan');
+      }
+    } catch (err) {
+      console.error('❌ Error generando plan de oposición:', err);
+      setError(err.message || 'Error generando el plan de entrenamiento');
     }
   };
 
@@ -594,6 +618,22 @@ export default function OposicionesScreen() {
               onGenerate={handleBomberosGenerate}
               isLoading={isLoading}
               error={error}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Modal genérico de oposición (Guardia Civil / Policía Nacional / Policía Local) */}
+      {activeOposicion && (
+        <Dialog open={!!activeOposicion} onOpenChange={() => setActiveOposicion(null)}>
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-black/80 text-white border border-white/10 backdrop-blur-md">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-urbanist">{activeOposicion.label}</DialogTitle>
+            </DialogHeader>
+            <OposicionManualCard
+              config={activeOposicion}
+              onGenerate={handleOposicionGenerate}
+              isLoading={isLoading}
             />
           </DialogContent>
         </Dialog>
