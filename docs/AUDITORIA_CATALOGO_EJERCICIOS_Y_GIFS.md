@@ -102,4 +102,16 @@ Recomendación: **activos autoalojados con pago único** (compatibles con Supaba
 
 Infraestructura retirada: el contenedor `entrenaconia-audit-pg` se eliminó al cerrar la Fase A; el backup `backups/app-schema-20260712.dump` se conserva (restaurable con postgres:17 + pg_restore).
 
+## 5. Oposiciones operativas (2026-07-12)
+
+Hallazgo de partida: **ninguna oposición generaba plan** — `MethodologyOrchestrator` lanzaba "Metodología no soportada" para bomberos y las demás (500). Solo existía la fachada de frontend/datos.
+
+Solución (motor por catálogo, decisión de producto: determinista, no IA):
+
+- **`OposicionService.js`**: motor genérico que lee `app."Ejercicios_<Oposicion>"` (whitelist), agrupa por categoría de prueba y arma un plan concurrente (todas las capacidades cada semana, descarga cada 4). Cableado en el orquestador.
+- **Catálogos sembrados** sobre baremos oficiales reales: Bomberos 43 (ya existía), Guardia Civil 29, Policía Nacional 27 (tabla creada), Policía Local 27. Loader idempotente `backend/scripts/load-oposicion-seeds.mjs`; seeds en `backend/output/catalog-audit/seeds/`.
+- **Frontend**: card genérica `OposicionManualCard` + `oposicionesData.js` + niveles compartidos; las 4 oposiciones `available:true`. Bomberos mantiene su card propia.
+- **Verificado**: el motor genera plan válido para las **4 oposiciones × 3 niveles (12/12)**; build de producción OK. Falta prueba E2E por navegador (requiere login).
+- Baremos orientativos por convocatoria (BOE/boletines); descargo visible en la UI.
+
 **Fase B — medios (requiere decisión de compra):** 8. Comprar ExerciseDB dataset (299-599 $) → reemplaza los 36 gifs comodín y da gif animado a los 268 que hoy tienen foto estática. 9. Comprar en Gymvisual los ~100-150 huecos (halterofilia/CrossFit/calistenia/oposiciones). 10. Subir todo a `exercise-gifs/` con nomenclatura por slug y remapear `gif_url` por id (no por fuzzy match).
