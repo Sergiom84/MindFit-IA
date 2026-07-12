@@ -94,6 +94,8 @@ Recomendación: **activos autoalojados con pago único** (compatibles con Supaba
 4. ✅ Parche 04: CrossFit `supports_strength_block` (30), `time_domain` y `pairing_tags` 120/120, `avoid_pairing_with` (31), `is_benchmark` saneado, 10 puntuales (nota Fran, Worm, etc.).
 5. ✅ Parche 05: Bomberos `ejecucion/consejos/errores_evitar` redactados 43/43 + categoría Agilidad→Acondicionamiento (41, 42), descanso oficiales (29, 30, 33), nota apnea (3).
 
-Pendiente de Fase A (menor): separar la doble semántica del campo baremo de Bomberos (baremo real vs prescripción de series) — requiere decidir modelado y tocar código que lo consuma.
+6. ✅ Parche 06: doble semántica del baremo de Bomberos resuelta — `baremo_hombres/mujeres` contienen solo marcas reales de examen (filas `Oficial`); en Preparatoria/Técnica la prescripción se consolidó en `series_reps_objetivo` y el baremo pasó a NULL. Verificado que ningún código consumía estas columnas (el frontend usa `BomberosPruebas.js` hardcodeado).
+
+Infraestructura retirada: el contenedor `entrenaconia-audit-pg` se eliminó al cerrar la Fase A; el backup `backups/app-schema-20260712.dump` se conserva (restaurable con postgres:17 + pg_restore).
 
 **Fase B — medios (requiere decisión de compra):** 8. Comprar ExerciseDB dataset (299-599 $) → reemplaza los 36 gifs comodín y da gif animado a los 268 que hoy tienen foto estática. 9. Comprar en Gymvisual los ~100-150 huecos (halterofilia/CrossFit/calistenia/oposiciones). 10. Subir todo a `exercise-gifs/` con nomenclatura por slug y remapear `gif_url` por id (no por fuzzy match).
