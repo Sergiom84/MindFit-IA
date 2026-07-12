@@ -9,6 +9,7 @@ import { METODOLOGIAS } from '../constants.js';
 import * as CalisteniaService from './CalisteniaService.js';
 import * as CrossFitService from './CrossFitService.js';
 import * as GymRoutineService from './GymRoutineService.js';
+import * as OposicionService from './OposicionService.js';
 
 const METHODOLOGY_DATA_KEYS = {
   [METODOLOGIAS.CALISTENIA]: ['calisteniaData'],
@@ -49,6 +50,9 @@ export function normalizeMethodologyId(methodology) {
     return METODOLOGIAS.CASA;
   }
   if (value.includes('gimnasio') || value.includes('gym')) return METODOLOGIAS.GIMNASIO;
+
+  // Oposiciones: se resuelven a su id canónico y las maneja OposicionService.
+  if (OposicionService.isOposicion(value)) return OposicionService.normalizeOposicionId(value);
 
   return value;
 }
@@ -102,6 +106,11 @@ export async function evaluateUserLevel(methodology, userId) {
 
   const normalizedMethodology = normalizeMethodologyId(methodology);
 
+  // Oposiciones (bomberos, guardia-civil, policia-nacional, policia-local).
+  if (OposicionService.isOposicion(normalizedMethodology)) {
+    return await OposicionService.evaluateOposicionLevel(normalizedMethodology, userId);
+  }
+
   switch (normalizedMethodology) {
     case METODOLOGIAS.CALISTENIA:
       return await CalisteniaService.evaluateCalisteniaLevel(userId);
@@ -137,6 +146,11 @@ export async function generateMethodologyPlan(methodology, userId, planData) {
   const normalizedMethodology = normalizeMethodologyId(methodology);
   const normalizedPlanData = normalizePlanData(normalizedMethodology, planData);
 
+  // Oposiciones (bomberos, guardia-civil, policia-nacional, policia-local).
+  if (OposicionService.isOposicion(normalizedMethodology)) {
+    return await OposicionService.generateOposicionPlan(normalizedMethodology, userId, normalizedPlanData);
+  }
+
   switch (normalizedMethodology) {
     case METODOLOGIAS.CALISTENIA:
       return await CalisteniaService.generateCalisteniaPlan(userId, normalizedPlanData);
@@ -164,6 +178,10 @@ export async function generateMethodologyPlan(methodology, userId, planData) {
  */
 export function getMethodologyLevels(methodology) {
   const normalizedMethodology = normalizeMethodologyId(methodology);
+
+  if (OposicionService.isOposicion(normalizedMethodology)) {
+    return OposicionService.getOposicionLevels();
+  }
 
   switch (normalizedMethodology) {
     case METODOLOGIAS.CALISTENIA:
@@ -245,6 +263,38 @@ export function getSupportedMethodologies() {
       name: 'Halterofilia',
       description: 'Técnica olímpica, potencia y fuerza base',
       hasAutoEvaluation: false,
+      levels: ['principiante', 'intermedio', 'avanzado']
+    },
+    {
+      id: 'bomberos',
+      name: 'Bomberos',
+      description: 'Preparación física para oposiciones de Bombero',
+      hasAutoEvaluation: false,
+      isOposicion: true,
+      levels: ['principiante', 'intermedio', 'avanzado']
+    },
+    {
+      id: 'guardia-civil',
+      name: 'Guardia Civil',
+      description: 'Preparación física para oposiciones de Guardia Civil',
+      hasAutoEvaluation: false,
+      isOposicion: true,
+      levels: ['principiante', 'intermedio', 'avanzado']
+    },
+    {
+      id: 'policia-nacional',
+      name: 'Policía Nacional',
+      description: 'Preparación física para oposiciones de Policía Nacional',
+      hasAutoEvaluation: false,
+      isOposicion: true,
+      levels: ['principiante', 'intermedio', 'avanzado']
+    },
+    {
+      id: 'policia-local',
+      name: 'Policía Local',
+      description: 'Preparación física para oposiciones de Policía Local',
+      hasAutoEvaluation: false,
+      isOposicion: true,
       levels: ['principiante', 'intermedio', 'avanzado']
     }
   ];
