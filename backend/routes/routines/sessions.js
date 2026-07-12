@@ -608,11 +608,22 @@ router.post('/sessions/:sessionId/finish', authenticateToken, async (req, res) =
       finalStatus
     });
 
+    // 🕒 Duración de la sesión = MAX(reloj de pared, tiempo activo de ejercicios + warmup).
+    // El reloj de pared solo (NOW()-started_at) daba ~0 en sesiones rápidas y era
+    // inconsistente con Progreso (que suma time_spent_seconds). GREATEST garantiza que
+    // nunca sea 0 cuando hubo entrenamiento y conserva la duración real en sesiones largas.
     await client.query(
       `UPDATE app.methodology_exercise_sessions
          SET session_status = $2,
              completed_at = NOW(),
-             total_duration_seconds = EXTRACT(EPOCH FROM (NOW() - started_at))::INTEGER,
+             total_duration_seconds = GREATEST(
+               EXTRACT(EPOCH FROM (NOW() - started_at))::INTEGER,
+               COALESCE((
+                 SELECT SUM(COALESCE(time_spent_seconds, 0))
+                 FROM app.methodology_exercise_progress
+                 WHERE methodology_session_id = $1 AND status = 'completed'
+               ), 0) + COALESCE(warmup_time_seconds, 0)
+             ),
              exercises_completed = $3,
              total_exercises = $4
        WHERE id = $1`,
