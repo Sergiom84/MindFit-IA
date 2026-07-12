@@ -100,7 +100,7 @@ const initialState = {
 
 // Importar configuraciones modulares
 import { BOMBEROS_LEVELS, getLevelConfig, getLevelRecommendations } from './BomberosLevels.js';
-import { PRUEBAS_OFICIALES, getPruebaInfo, ESTRATEGIAS_EXAMEN } from './BomberosPruebas.js';
+import { PRUEBAS_OFICIALES, getPruebaInfo, ESTRATEGIAS_EXAMEN, NOTA_BAREMOS } from './BomberosPruebas.js';
 
 // Importar contextos
 import { useAuth } from '@/contexts/AuthContext';
@@ -562,6 +562,7 @@ export default function BomberosManualCard({ onGenerate, isLoading: externalLoad
                 <li>• Progresión adaptada a tu nivel actual</li>
                 <li>• Simulacros periódicos para evaluar progreso</li>
                 <li>• Ajustes automáticos según tu evolución</li>
+                <li>• {NOTA_BAREMOS}</li>
               </ul>
             </div>
           </div>

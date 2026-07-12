@@ -96,6 +96,10 @@ Recomendación: **activos autoalojados con pago único** (compatibles con Supaba
 
 6. ✅ Parche 06: doble semántica del baremo de Bomberos resuelta — `baremo_hombres/mujeres` contienen solo marcas reales de examen (filas `Oficial`); en Preparatoria/Técnica la prescripción se consolidó en `series_reps_objetivo` y el baremo pasó a NULL. Verificado que ningún código consumía estas columnas (el frontend usa `BomberosPruebas.js` hardcodeado).
 
+7. ✅ Parche 07 + frontend: baremos reales de Bomberos calibrados sobre convocatorias reales (Comunidad de Madrid como base + Ayto. Madrid + estándares de consorcio) y **alineados entre BD y ficha** `BomberosPruebas.js` (el umbral "apto" de cada tramo coincide con `baremo_*` de la BD). Añadido descargo `NOTA_BAREMOS` visible en el flujo de generación. Números orientativos: cada convocatoria fija los suyos.
+
+8. ✅ Oposiciones no implementadas (Guardia Civil, Policía Nacional, Policía Local): sustituido el `alert('… próximamente')` por estado **"Próximamente"** en la tarjeta (badge + botón deshabilitado + guarda en el handler). Bomberos es la única con flujo real; las otras tres solo tienen prompt de especialista, sin catálogo ni UI.
+
 Infraestructura retirada: el contenedor `entrenaconia-audit-pg` se eliminó al cerrar la Fase A; el backup `backups/app-schema-20260712.dump` se conserva (restaurable con postgres:17 + pg_restore).
 
 **Fase B — medios (requiere decisión de compra):** 8. Comprar ExerciseDB dataset (299-599 $) → reemplaza los 36 gifs comodín y da gif animado a los 268 que hoy tienen foto estática. 9. Comprar en Gymvisual los ~100-150 huecos (halterofilia/CrossFit/calistenia/oposiciones). 10. Subir todo a `exercise-gifs/` con nomenclatura por slug y remapear `gif_url` por id (no por fuzzy match).

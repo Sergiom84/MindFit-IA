@@ -33,6 +33,7 @@ const OPOSICIONES = [
   {
     id: 'bomberos',
     name: 'Bomberos',
+    available: true,
     description: 'Preparación física completa para oposiciones de Bombero',
     icon: Flame,
     color: 'orange',
@@ -54,6 +55,7 @@ const OPOSICIONES = [
   {
     id: 'guardia-civil',
     name: 'Guardia Civil',
+    available: false,
     description: 'Entrenamiento específico para las pruebas físicas de la Guardia Civil',
     icon: Shield,
     color: 'green',
@@ -70,6 +72,7 @@ const OPOSICIONES = [
   {
     id: 'policia-nacional',
     name: 'Policía Nacional',
+    available: false,
     description: 'Preparación para el circuito y pruebas físicas de Policía Nacional',
     icon: Shield,
     color: 'blue',
@@ -85,6 +88,7 @@ const OPOSICIONES = [
   {
     id: 'policia-local',
     name: 'Policía Local',
+    available: false,
     description: 'Entrenamiento adaptado a las pruebas físicas de Policía Local',
     icon: Shield,
     color: 'purple',
@@ -137,6 +141,9 @@ export default function OposicionesScreen() {
 
   // Handler para seleccionar oposición y abrir modal correspondiente
   const handleSelectOposicion = (oposicion) => {
+    // Oposiciones aún no implementadas: no hacer nada (la UI ya las marca "Próximamente")
+    if (!oposicion.available) return;
+
     setSelectedOposicion(oposicion);
     setError(null);
 
@@ -146,18 +153,6 @@ export default function OposicionesScreen() {
     switch(oposicion.id) {
       case 'bomberos':
         setShowBomberosModal(true);
-        break;
-      case 'guardia-civil':
-        // TODO: Implementar GuardiaCivilManualCard
-        alert('Guardia Civil próximamente disponible');
-        break;
-      case 'policia-nacional':
-        // TODO: Implementar PoliciaNacionalManualCard
-        alert('Policía Nacional próximamente disponible');
-        break;
-      case 'policia-local':
-        // TODO: Implementar PoliciaLocalManualCard
-        alert('Policía Local próximamente disponible');
         break;
       default:
         setError('Oposición no reconocida');
@@ -407,7 +402,14 @@ export default function OposicionesScreen() {
                         <Icon className={`w-8 h-8 ${colors.text}`} />
                       </div>
                       <div className="flex-1">
-                        <h2 className="text-2xl font-semibold font-urbanist text-white">{oposicion.name}</h2>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-2xl font-semibold font-urbanist text-white">{oposicion.name}</h2>
+                          {!oposicion.available && (
+                            <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-white/10 text-gray-300 border border-white/15">
+                              Próximamente
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-300/80">{oposicion.nivel} • {oposicion.duracion}</p>
                       </div>
                     </div>
@@ -446,13 +448,14 @@ export default function OposicionesScreen() {
                         Ver Detalles
                       </Button>
                       <Button
-                        className="flex-1 bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]"
+                        disabled={!oposicion.available}
+                        className="flex-1 bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:from-yellow-300 disabled:hover:via-yellow-400 disabled:hover:to-amber-500"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleSelectOposicion(oposicion);
                         }}
                       >
-                        Comenzar Preparación
+                        {oposicion.available ? 'Comenzar Preparación' : 'Próximamente'}
                       </Button>
                     </div>
                   </div>
@@ -527,13 +530,14 @@ export default function OposicionesScreen() {
               </div>
 
               <Button
-                className="w-full bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]"
+                disabled={!showDetails.available}
+                className="w-full bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:from-yellow-300 disabled:hover:via-yellow-400 disabled:hover:to-amber-500"
                 onClick={() => {
                   setShowDetails(null);
                   handleSelectOposicion(showDetails);
                 }}
               >
-                Comenzar Preparación
+                {showDetails.available ? 'Comenzar Preparación' : 'Próximamente'}
               </Button>
             </div>
           </DialogContent>

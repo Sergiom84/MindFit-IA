@@ -1,11 +1,21 @@
 /**
  * Información de pruebas oficiales para oposiciones de Bomberos
- * Basado en convocatorias oficiales España 2024-2025
+ * Baremos orientativos calibrados sobre convocatorias reales (2023-2025):
+ * Comunidad de Madrid (natación 50 m, trepa, press banca 40 kg/60 s, velocidad,
+ * resistencia), Ayto. de Madrid y estándares de consorcios provinciales para las
+ * pruebas que Madrid no incluye (dominadas, balón medicinal, apnea).
+ * Los umbrales "apto" coinciden con app."Ejercicios_Bomberos" (parche 07).
  *
  * @author Claude Code - Sistema de Oposiciones
- * @version 1.0.0
- * @date 2025-10-20
+ * @version 1.1.0
+ * @date 2026-07-12
  */
+
+// Descargo mostrado junto a los baremos en la UI
+export const NOTA_BAREMOS =
+  'Marcas orientativas basadas en Comunidad de Madrid y estándares del sector. ' +
+  'Cada convocatoria fija sus propias pruebas y marcas: consulta siempre las bases ' +
+  'oficiales de tu convocatoria (BOCM / BOP / DOGC).';
 
 // Pruebas oficiales de Bomberos con baremos
 export const PRUEBAS_OFICIALES = {
@@ -16,16 +26,16 @@ export const PRUEBAS_OFICIALES = {
     descripcion: 'Nadar 50 metros estilo libre en el menor tiempo posible',
     baremos: {
       hombres: {
-        excelente: '< 30 seg',
-        notable: '30-35 seg',
-        apto: '35-40 seg',
-        eliminatorio: '> 40 seg'
+        excelente: '< 35 seg',
+        notable: '35-43 seg',
+        apto: '43-51 seg',
+        eliminatorio: '> 51 seg'
       },
       mujeres: {
-        excelente: '< 35 seg',
-        notable: '35-40 seg',
-        apto: '40-45 seg',
-        eliminatorio: '> 45 seg'
+        excelente: '< 38 seg',
+        notable: '38-46 seg',
+        apto: '46-53 seg',
+        eliminatorio: '> 53 seg'
       }
     },
     puntuacion_maxima: 10,
@@ -46,16 +56,16 @@ export const PRUEBAS_OFICIALES = {
     descripcion: 'Nadar 100 metros estilo libre (algunas convocatorias)',
     baremos: {
       hombres: {
-        excelente: '< 1:10 min',
-        notable: '1:10-1:20 min',
-        apto: '1:20-1:30 min',
-        eliminatorio: '> 1:30 min'
+        excelente: '< 1:25 min',
+        notable: '1:25-1:35 min',
+        apto: '1:35-1:45 min',
+        eliminatorio: '> 1:45 min'
       },
       mujeres: {
-        excelente: '< 1:20 min',
-        notable: '1:20-1:30 min',
-        apto: '1:30-1:40 min',
-        eliminatorio: '> 1:40 min'
+        excelente: '< 1:35 min',
+        notable: '1:35-1:45 min',
+        apto: '1:45-1:55 min',
+        eliminatorio: '> 1:55 min'
       }
     },
     puntuacion_maxima: 10,
@@ -75,16 +85,16 @@ export const PRUEBAS_OFICIALES = {
     descripcion: 'Nadar 25 metros bajo el agua sin respirar',
     baremos: {
       hombres: {
-        excelente: '< 25 seg',
-        notable: '25-30 seg',
-        apto: '30-35 seg',
-        eliminatorio: '> 35 seg o no completar'
+        excelente: '< 20 seg',
+        notable: '20-25 seg',
+        apto: 'Completar (< 30 seg)',
+        eliminatorio: 'No completar'
       },
       mujeres: {
-        excelente: '< 30 seg',
-        notable: '30-35 seg',
-        apto: '35-40 seg',
-        eliminatorio: '> 40 seg o no completar'
+        excelente: '< 25 seg',
+        notable: '25-30 seg',
+        apto: 'Completar (< 35 seg)',
+        eliminatorio: 'No completar'
       }
     },
     puntuacion_maxima: 10,
@@ -103,7 +113,7 @@ export const PRUEBAS_OFICIALES = {
     id: 'trepa_cuerda',
     nombre: 'Trepa de cuerda 6m',
     categoria: 'Fuerza',
-    descripcion: 'Subir 6 metros de cuerda lisa sin ayuda de piernas',
+    descripcion: 'Subir la cuerda lisa sin ayuda de piernas (6 m hombres / 5,5 m mujeres)',
     baremos: {
       hombres: {
         excelente: '< 8 seg',
@@ -112,10 +122,10 @@ export const PRUEBAS_OFICIALES = {
         eliminatorio: '> 12 seg o no completar'
       },
       mujeres: {
-        excelente: '< 15 seg',
-        notable: '15-18 seg',
-        apto: '18-22 seg',
-        eliminatorio: '> 22 seg o no completar'
+        excelente: '< 10 seg',
+        notable: '10-13 seg',
+        apto: '13-15 seg',
+        eliminatorio: '> 15 seg o no completar'
       }
     },
     puntuacion_maxima: 10,
@@ -139,14 +149,14 @@ export const PRUEBAS_OFICIALES = {
       hombres: {
         excelente: '> 20 reps',
         notable: '15-20 reps',
-        apto: '10-15 reps',
-        eliminatorio: '< 10 reps'
+        apto: '12-15 reps',
+        eliminatorio: '< 12 reps'
       },
       mujeres: {
-        excelente: '> 15 reps',
-        notable: '10-15 reps',
-        apto: '5-10 reps',
-        eliminatorio: '< 5 reps'
+        excelente: '> 14 reps',
+        notable: '10-14 reps',
+        apto: '8-10 reps',
+        eliminatorio: '< 8 reps'
       }
     },
     puntuacion_maxima: 10,
@@ -168,17 +178,17 @@ export const PRUEBAS_OFICIALES = {
     baremos: {
       hombres: {
         peso: '40 kg',
-        excelente: '> 25 reps',
-        notable: '20-25 reps',
-        apto: '15-20 reps',
-        eliminatorio: '< 15 reps'
+        excelente: '> 35 reps',
+        notable: '25-35 reps',
+        apto: '19-25 reps',
+        eliminatorio: '< 19 reps'
       },
       mujeres: {
         peso: '30 kg',
-        excelente: '> 20 reps',
-        notable: '15-20 reps',
-        apto: '10-15 reps',
-        eliminatorio: '< 10 reps'
+        excelente: '> 28 reps',
+        notable: '20-28 reps',
+        apto: '15-20 reps',
+        eliminatorio: '< 15 reps'
       }
     },
     puntuacion_maxima: 10,
@@ -229,16 +239,16 @@ export const PRUEBAS_OFICIALES = {
     descripcion: 'Carrera de 3000 metros (7.5 vueltas en pista)',
     baremos: {
       hombres: {
-        excelente: '< 10:30 min',
-        notable: '10:30-11:30 min',
-        apto: '11:30-12:30 min',
-        eliminatorio: '> 12:30 min'
+        excelente: '< 11:00 min',
+        notable: '11:00-12:00 min',
+        apto: '12:00-13:00 min',
+        eliminatorio: '> 13:00 min'
       },
       mujeres: {
-        excelente: '< 12:30 min',
-        notable: '12:30-13:30 min',
-        apto: '13:30-14:30 min',
-        eliminatorio: '> 14:30 min'
+        excelente: '< 13:00 min',
+        notable: '13:00-14:30 min',
+        apto: '14:30-15:30 min',
+        eliminatorio: '> 15:30 min'
       }
     },
     puntuacion_maxima: 10,
@@ -260,17 +270,17 @@ export const PRUEBAS_OFICIALES = {
     baremos: {
       hombres: {
         peso: '5 kg',
-        excelente: '> 9m',
-        notable: '8-9m',
-        apto: '7-8m',
+        excelente: '> 12m',
+        notable: '9-12m',
+        apto: '7-9m',
         eliminatorio: '< 7m'
       },
       mujeres: {
         peso: '3 kg',
-        excelente: '> 8m',
-        notable: '7-8m',
-        apto: '6-7m',
-        eliminatorio: '< 6m'
+        excelente: '> 10m',
+        notable: '8-10m',
+        apto: '7-8m',
+        eliminatorio: '< 7m'
       }
     },
     puntuacion_maxima: 10,
