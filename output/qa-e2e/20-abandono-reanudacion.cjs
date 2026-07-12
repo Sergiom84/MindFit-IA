@@ -126,8 +126,9 @@ async function startAndPartial(page) {
     await shot(page, '20-B-modal-cancelar');
     const modalTxt = (await short(page)).slice(0, 500);
     console.log('Botón cancelar:', cancel, '| modal:', modalTxt.slice(0, 250));
-    // Confirmar en el modal (sin asumir texto exacto)
-    const confirm = await clickIf(page, /Confirmar|Sí, cancelar|Cancelar rutina|Eliminar|Aceptar/i, { wait: 3000 });
+    // Confirmar en el modal con el botón EXACTO (no el disparador "Cancelar rutina")
+    const confirm = await clickIf(page, /Sí, cancelar rutina/i, { wait: 3000 })
+      || await clickIf(page, /Confirmar|Eliminar|Aceptar/i, { wait: 3000 });
     await shot(page, '20-B-tras-cancelar');
     const ap = await apiJson('GET', '/api/routines/active-plan', token);
     const stillActive = !!(ap.j.plan?.methodology_plan_id || ap.j.methodology_plan_id);
@@ -152,17 +153,22 @@ async function startAndPartial(page) {
     const manual = page.getByText('Manual (tú eliges)', { exact: true });
     if (await manual.count()) await manual.click();
     await page.waitForTimeout(800);
-    // Seleccionar una metodología DISTINTA (Funcional)
+    // Seleccionar una metodología DISTINTA (Funcional) y llegar hasta GENERAR:
+    // el aviso "Plan activo detectado" salta al generar (runWithActivePlanGuard), no al seleccionar.
     const card = page.locator('[aria-label="Tarjeta de metodología Funcional"]');
     if (await card.count()) await card.getByRole('button', { name: /Seleccionar metodología Funcional/i }).click().catch(() => {});
     else await clickIf(page, /Seleccionar/i);
     await page.waitForTimeout(2500);
-    await shot(page, '20-C-tras-seleccionar-otra');
+    await clickIf(page, /Elegir Nivel Manualmente/i, { wait: 1500 });
+    const lvlC = page.locator('h4', { hasText: /Principiante/i }).first();
+    if (await lvlC.count()) { await lvlC.click(); await page.waitForTimeout(800); }
+    await clickIf(page, /Generar Plan Manual|Generar Plan/i, { wait: 3000 });
+    await shot(page, '20-C-tras-generar-otra');
     const txt = (await short(page)).slice(0, 900);
-    const warns = /plan activo|ya tienes|reemplaz|sobrescrib|perder|estás seguro|cambiar de metodolog/i.test(txt);
-    console.log('¿Avisa de plan activo al cambiar?', warns);
-    console.log('PANTALLA:', txt.slice(0, 400));
-    findings.push(`C) Cambio de metodología: modal de aviso de plan activo=${warns}`);
+    const warns = /Plan activo detectado|Ya tienes un plan activo|se cancelará y quedará|Generar nuevo y cancelar/i.test(txt);
+    console.log('¿Avisa de plan activo al generar otra metodología?', warns);
+    if (!warns) console.log('PANTALLA:', txt.slice(0, 400));
+    findings.push(`C) Cambio de metodología: aviso "Plan activo detectado" al generar=${warns}`);
     await browser.close();
   }
 
