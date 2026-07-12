@@ -1,0 +1,6104 @@
+[
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "25",
+    "nombre": "Flexión a una mano",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Single-Arm_Push-Up",
+    "muestra": "Single-Arm Push-Up"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "26",
+    "nombre": "Flexión pliométrica",
+    "tipo": "EXDB_GIF",
+    "gif": "1273",
+    "muestra": "clap push up [chest/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "27",
+    "nombre": "Handstand push-up",
+    "tipo": "EXDB_GIF",
+    "gif": "3302",
+    "muestra": "handstand [upper arms/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "28",
+    "nombre": "Handstand libre",
+    "tipo": "EXDB_GIF",
+    "gif": "3302",
+    "muestra": "handstand [upper arms/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "29",
+    "nombre": "Planche lean avanzada",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "30",
+    "nombre": "Tuck planche",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "31",
+    "nombre": "Dominada explosiva",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "32",
+    "nombre": "Archer pull-up / Typewriter",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "33",
+    "nombre": "One-arm chin-up",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "One_Arm_Chin-Up",
+    "muestra": "One Arm Chin-Up"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "34",
+    "nombre": "Muscle-up en barra",
+    "tipo": "EXDB_GIF",
+    "gif": "0631",
+    "muestra": "muscle up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "35",
+    "nombre": "Muscle-up en anillas",
+    "tipo": "EXDB_GIF",
+    "gif": "0631",
+    "muestra": "muscle up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "36",
+    "nombre": "Front lever – advanced tuck/straddle",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "37",
+    "nombre": "Back lever – advanced tuck/straddle",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "38",
+    "nombre": "Human flag",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "39",
+    "nombre": "Dragon flag 3-8 reps",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "40",
+    "nombre": "L-sit",
+    "tipo": "EXDB_GIF",
+    "gif": "3419",
+    "muestra": "l-sit on floor [waist/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "41",
+    "nombre": "V-sit",
+    "tipo": "EXDB_GIF",
+    "gif": "3419",
+    "muestra": "l-sit on floor [waist/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "42",
+    "nombre": "Pistol squat completo",
+    "tipo": "EXDB_GIF",
+    "gif": "0544",
+    "muestra": "kettlebell pistol squat [upper legs/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "43",
+    "nombre": "Shrimp squat avanzado",
+    "tipo": "EXDB_GIF",
+    "gif": "0544",
+    "muestra": "kettlebell pistol squat [upper legs/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "44",
+    "nombre": "Nordic curl concéntrico",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "45",
+    "nombre": "Toes-to-bar",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Hanging_Leg_Raise",
+    "muestra": "Hanging Leg Raise"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "46",
+    "nombre": "Explosive dips / Dips en anillas",
+    "tipo": "EXDB_GIF",
+    "gif": "0677",
+    "muestra": "ring dips [upper arms/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "1",
+    "nombre": "Pike push-up",
+    "tipo": "EXDB_GIF",
+    "gif": "1273",
+    "muestra": "clap push up [chest/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "2",
+    "nombre": "Flexión estándar",
+    "tipo": "EXDB_GIF",
+    "gif": "1273",
+    "muestra": "clap push up [chest/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "3",
+    "nombre": "Flexión diamante",
+    "tipo": "EXDB_GIF",
+    "gif": "1273",
+    "muestra": "clap push up [chest/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "4",
+    "nombre": "Flexión declinada",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Decline_Push-Up",
+    "muestra": "Decline Push-Up"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "5",
+    "nombre": "Flexión archer",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Single-Arm_Push-Up",
+    "muestra": "Single-Arm Push-Up"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "6",
+    "nombre": "Pseudo planche push-up",
+    "tipo": "EXDB_GIF",
+    "gif": "1273",
+    "muestra": "clap push up [chest/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "7",
+    "nombre": "Fondos en paralelas",
+    "tipo": "EXDB_GIF",
+    "gif": "0677",
+    "muestra": "ring dips [upper arms/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "8",
+    "nombre": "Remo invertido piernas estiradas",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "10",
+    "nombre": "Remo invertido pies elevados",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "11",
+    "nombre": "Dominada pronación",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "12",
+    "nombre": "Chin-up",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "13",
+    "nombre": "Dominadas negativas controladas",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "14",
+    "nombre": "Hanging knee raises",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Hanging_Leg_Raise",
+    "muestra": "Hanging Leg Raise"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "15",
+    "nombre": "Hanging leg raises",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Hanging_Leg_Raise",
+    "muestra": "Hanging Leg Raise"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "16",
+    "nombre": "L-sit tuck en paralelas",
+    "tipo": "EXDB_GIF",
+    "gif": "3419",
+    "muestra": "l-sit on floor [waist/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "17",
+    "nombre": "Hollow body",
+    "tipo": "EXDB_GIF",
+    "gif": "2135",
+    "muestra": "weighted front plank [waist/weighted]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "18",
+    "nombre": "Sentadilla libre profunda",
+    "tipo": "EXDB_GIF",
+    "gif": "0750",
+    "muestra": "smith chair squat [upper legs/smith machine]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "19",
+    "nombre": "Bulgarian split squat",
+    "tipo": "EXDB_GIF",
+    "gif": "1460",
+    "muestra": "walking lunge [upper legs/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "20",
+    "nombre": "Pistol squat a caja",
+    "tipo": "EXDB_GIF",
+    "gif": "0544",
+    "muestra": "kettlebell pistol squat [upper legs/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "21",
+    "nombre": "Nordic curl excéntrico",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "22",
+    "nombre": "Elevación de gemelos a 1 pierna",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "23",
+    "nombre": "Handstand asistido a pared",
+    "tipo": "EXDB_GIF",
+    "gif": "3302",
+    "muestra": "handstand [upper arms/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "24",
+    "nombre": "Crow pose",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "9",
+    "nombre": "Superman hold suave",
+    "tipo": "EXDB_GIF",
+    "gif": "0803",
+    "muestra": "superman push-up [chest/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "47",
+    "nombre": "Flexión contra pared",
+    "tipo": "EXDB_GIF",
+    "gif": "1273",
+    "muestra": "clap push up [chest/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "48",
+    "nombre": "Flexión inclinada",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Incline_Push-Up",
+    "muestra": "Incline Push-Up"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "49",
+    "nombre": "Flexión en rodillas",
+    "tipo": "EXDB_GIF",
+    "gif": "1273",
+    "muestra": "clap push up [chest/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "50",
+    "nombre": "Flexión escapular",
+    "tipo": "EXDB_GIF",
+    "gif": "1273",
+    "muestra": "clap push up [chest/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "51",
+    "nombre": "Plancha frontal",
+    "tipo": "EXDB_GIF",
+    "gif": "2135",
+    "muestra": "weighted front plank [waist/weighted]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "52",
+    "nombre": "Plancha lateral",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Push_Up_to_Side_Plank",
+    "muestra": "Push Up to Side Plank"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "53",
+    "nombre": "Hollow body tuck",
+    "tipo": "EXDB_GIF",
+    "gif": "2135",
+    "muestra": "weighted front plank [waist/weighted]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "54",
+    "nombre": "Dead bug",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dead_Bug",
+    "muestra": "Dead Bug"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "55",
+    "nombre": "Puente de glúteo",
+    "tipo": "EXDB_GIF",
+    "gif": "1409",
+    "muestra": "barbell glute bridge [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "56",
+    "nombre": "Sentadilla a caja/banco",
+    "tipo": "EXDB_GIF",
+    "gif": "0750",
+    "muestra": "smith chair squat [upper legs/smith machine]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "57",
+    "nombre": "Sentadilla aire",
+    "tipo": "EXDB_GIF",
+    "gif": "0750",
+    "muestra": "smith chair squat [upper legs/smith machine]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "58",
+    "nombre": "Zancada asistida",
+    "tipo": "EXDB_GIF",
+    "gif": "1460",
+    "muestra": "walking lunge [upper legs/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "59",
+    "nombre": "Step-up bajo",
+    "tipo": "EXDB_GIF",
+    "gif": "1374",
+    "muestra": "box jump down with one leg stabilization [lower legs/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "60",
+    "nombre": "Elevación de gemelos bilateral",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "61",
+    "nombre": "Remo invertido rodillas flexionadas",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "62",
+    "nombre": "Dead hang",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "63",
+    "nombre": "Scap pull",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "64",
+    "nombre": "Pike hold básico",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "calistenia",
+    "id": "65",
+    "nombre": "Soporte en paralelas con pies apoyados",
+    "tipo": "EXDB_GIF",
+    "gif": "0677",
+    "muestra": "ring dips [upper arms/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "108",
+    "nombre": "Pistol Squats (Sentadilla a Una Pierna)",
+    "tipo": "EXDB_GIF",
+    "gif": "0544",
+    "muestra": "kettlebell pistol squat [upper legs/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "109",
+    "nombre": "Flexiones Diamante",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Clock_Push-Up",
+    "muestra": "Clock Push-Up"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "110",
+    "nombre": "Dominadas en Barra Portátil",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "111",
+    "nombre": "Turkish Get-Up con Kettlebell",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Kettlebell_Turkish_Get-Up_Lunge_style",
+    "muestra": "Kettlebell Turkish Get-Up Lunge style"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "112",
+    "nombre": "Remo Renegade con Mancuernas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Standing_Dumbbell_Upright_Row",
+    "muestra": "Standing Dumbbell Upright Row"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "113",
+    "nombre": "Dragon Flag",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "114",
+    "nombre": "L-Sit Hold",
+    "tipo": "EXDB_GIF",
+    "gif": "3419",
+    "muestra": "l-sit on floor [waist/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "115",
+    "nombre": "Handstand Push-ups Asistidas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Handstand_Push-Ups",
+    "muestra": "Handstand Push-Ups"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "116",
+    "nombre": "Kettlebell Swing",
+    "tipo": "EXDB_GIF",
+    "gif": "0549",
+    "muestra": "kettlebell swing [upper legs/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "117",
+    "nombre": "Pistol Squat con Kettlebell",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Kettlebell_Pistol_Squat",
+    "muestra": "Kettlebell Pistol Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "118",
+    "nombre": "Muscle-up Adaptado con Toalla",
+    "tipo": "EXDB_GIF",
+    "gif": "0631",
+    "muestra": "muscle up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "119",
+    "nombre": "Burpees Completos con Salto",
+    "tipo": "EXDB_GIF",
+    "gif": "1160",
+    "muestra": "burpee [cardio/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "120",
+    "nombre": "Box Jumps con Silla Robusta",
+    "tipo": "EXDB_GIF",
+    "gif": "1374",
+    "muestra": "box jump down with one leg stabilization [lower legs/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "121",
+    "nombre": "Sprints en el Sitio (High Intensity)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "122",
+    "nombre": "Battle Rope Simulado con Toallas",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "123",
+    "nombre": "Burpee Broad Jump",
+    "tipo": "EXDB_GIF",
+    "gif": "1160",
+    "muestra": "burpee [cardio/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "124",
+    "nombre": "Tuck Jumps",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Freehand_Jump_Squat",
+    "muestra": "Freehand Jump Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "125",
+    "nombre": "Clapping Push-ups",
+    "tipo": "EXDB_GIF",
+    "gif": "1273",
+    "muestra": "clap push up [chest/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "126",
+    "nombre": "Single Leg Burpees",
+    "tipo": "EXDB_GIF",
+    "gif": "1160",
+    "muestra": "burpee [cardio/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "127",
+    "nombre": "180 Degree Jump Squat",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Freehand_Jump_Squat",
+    "muestra": "Freehand Jump Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "128",
+    "nombre": "Jefferson Curl",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "129",
+    "nombre": "Pancake Stretch Dinámico",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "130",
+    "nombre": "Lizard Pose con Rotación",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "141",
+    "nombre": "180 Degree Burpees",
+    "tipo": "EXDB_GIF",
+    "gif": "1160",
+    "muestra": "burpee [cardio/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "142",
+    "nombre": "Sprawls Explosivos",
+    "tipo": "EXDB_GIF",
+    "gif": "1160",
+    "muestra": "burpee [cardio/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "143",
+    "nombre": "Saltos Laterales sobre Línea",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "144",
+    "nombre": "Battle Rope Jumps (sin cuerda)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "145",
+    "nombre": "Plyo Push-ups con Desplazamiento",
+    "tipo": "EXDB_GIF",
+    "gif": "1273",
+    "muestra": "clap push up [chest/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "160",
+    "nombre": "Cossack Squat Dinámico",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "161",
+    "nombre": "Spiderman Stretch con Rotación",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "162",
+    "nombre": "Deep Squat Hold (Malasana)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "163",
+    "nombre": "Shoulder Dislocates con Toalla",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "164",
+    "nombre": "Pancake Stretch Progresivo",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "165",
+    "nombre": "King Pigeon Pose (Eka Pada Rajakapotasana)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "86",
+    "nombre": "Sentadillas Búlgaras con Silla",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Side_Split_Squat",
+    "muestra": "Barbell Side Split Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "87",
+    "nombre": "Flexiones Completas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Clock_Push-Up",
+    "muestra": "Clock Push-Up"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "88",
+    "nombre": "Remo Invertido con Toalla/Mesa",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "89",
+    "nombre": "Lunges Caminando",
+    "tipo": "EXDB_GIF",
+    "gif": "1460",
+    "muestra": "walking lunge [upper legs/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "90",
+    "nombre": "Press de Hombros con Banda",
+    "tipo": "EXDB_GIF",
+    "gif": "1700",
+    "muestra": "dumbbell push press [shoulders/dumbbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "91",
+    "nombre": "Plancha Completa",
+    "tipo": "EXDB_GIF",
+    "gif": "2135",
+    "muestra": "weighted front plank [waist/weighted]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "92",
+    "nombre": "Hip Thrust con Banda",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Hip_Thrust",
+    "muestra": "Barbell Hip Thrust"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "93",
+    "nombre": "Curl de Bíceps con Mancuernas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dumbbell_Bicep_Curl",
+    "muestra": "Dumbbell Bicep Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "94",
+    "nombre": "Press de Pecho con Mancuernas en Suelo",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dumbbell_Floor_Press",
+    "muestra": "Dumbbell Floor Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "95",
+    "nombre": "Abdominales Bicicleta",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Air_Bike",
+    "muestra": "Air Bike"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "96",
+    "nombre": "Burpees Modificados (sin salto)",
+    "tipo": "EXDB_GIF",
+    "gif": "1160",
+    "muestra": "burpee [cardio/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "97",
+    "nombre": "Jumping Jacks",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "98",
+    "nombre": "Mountain Climbers",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Mountain_Climbers",
+    "muestra": "Mountain Climbers"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "99",
+    "nombre": "Skaters (Patinador)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "100",
+    "nombre": "Sentadilla con Salto",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Freehand_Jump_Squat",
+    "muestra": "Freehand Jump Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "101",
+    "nombre": "Fondos en Silla",
+    "tipo": "EXDB_GIF",
+    "gif": "0677",
+    "muestra": "ring dips [upper arms/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "102",
+    "nombre": "Plancha con Salto de Pies (Plank Jacks)",
+    "tipo": "EXDB_GIF",
+    "gif": "2135",
+    "muestra": "weighted front plank [waist/weighted]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "103",
+    "nombre": "Reverse Lunge con Rodilla Alta",
+    "tipo": "EXDB_GIF",
+    "gif": "1460",
+    "muestra": "walking lunge [upper legs/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "104",
+    "nombre": "Push-up to T (Flexión + Rotación)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Push-Up_Wide",
+    "muestra": "Push-Up Wide"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "105",
+    "nombre": "World's Greatest Stretch",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Worlds_Greatest_Stretch",
+    "muestra": "Worlds Greatest Stretch"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "106",
+    "nombre": "Hip Circles (90/90)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "107",
+    "nombre": "Cossack Squats",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "136",
+    "nombre": "Saltos de Cuerda Simulados",
+    "tipo": "EXDB_GIF",
+    "gif": "2612",
+    "muestra": "jump rope [cardio/rope]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "137",
+    "nombre": "Burpees al Ritmo",
+    "tipo": "EXDB_GIF",
+    "gif": "1160",
+    "muestra": "burpee [cardio/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "138",
+    "nombre": "Shadow Boxing Intenso",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "139",
+    "nombre": "Knee Drives (Impulsos de Rodilla)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "140",
+    "nombre": "Quick Feet (Pies Rápidos)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "153",
+    "nombre": "Thread the Needle",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "154",
+    "nombre": "Leg Swings Frontales",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "155",
+    "nombre": "Leg Swings Laterales",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "156",
+    "nombre": "Frog Stretch (Rana)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "157",
+    "nombre": "Scorpion Stretch",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "158",
+    "nombre": "Pigeon Pose (Postura de Paloma)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "159",
+    "nombre": "Bretzel Stretch (Pretzel)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "66",
+    "nombre": "Sentadillas Asistidas con Silla",
+    "tipo": "EXDB_GIF",
+    "gif": "0750",
+    "muestra": "smith chair squat [upper legs/smith machine]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "67",
+    "nombre": "Flexiones Inclinadas en Silla",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Incline_Push-Up",
+    "muestra": "Incline Push-Up"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "68",
+    "nombre": "Elevaciones de Pantorrilla en Escalón",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Standing_Calf_Raises",
+    "muestra": "Standing Calf Raises"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "69",
+    "nombre": "Zancadas Estáticas",
+    "tipo": "EXDB_GIF",
+    "gif": "1460",
+    "muestra": "walking lunge [upper legs/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "70",
+    "nombre": "Plancha sobre Rodillas",
+    "tipo": "EXDB_GIF",
+    "gif": "2135",
+    "muestra": "weighted front plank [waist/weighted]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "71",
+    "nombre": "Puente de Glúteo",
+    "tipo": "EXDB_GIF",
+    "gif": "1409",
+    "muestra": "barbell glute bridge [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "72",
+    "nombre": "Superman Hold",
+    "tipo": "EXDB_GIF",
+    "gif": "0803",
+    "muestra": "superman push-up [chest/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "73",
+    "nombre": "Bird Dog",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "74",
+    "nombre": "Curl de Bíceps con Toalla",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dumbbell_Bicep_Curl",
+    "muestra": "Dumbbell Bicep Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "75",
+    "nombre": "Marcha en el Sitio",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "76",
+    "nombre": "Jumping Jacks Modificados",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "77",
+    "nombre": "Escaladores Lentos",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Mountain_Climbers",
+    "muestra": "Mountain Climbers"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "78",
+    "nombre": "High Knees Moderados",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "79",
+    "nombre": "Sentadilla + Elevación de Brazos",
+    "tipo": "EXDB_GIF",
+    "gif": "0750",
+    "muestra": "smith chair squat [upper legs/smith machine]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "80",
+    "nombre": "Plancha con Toque de Hombro",
+    "tipo": "EXDB_GIF",
+    "gif": "2135",
+    "muestra": "weighted front plank [waist/weighted]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "81",
+    "nombre": "Desplazamientos Laterales",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "82",
+    "nombre": "Inchworm Simplificado",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "83",
+    "nombre": "Estiramiento de Isquiotibiales Sentado",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "84",
+    "nombre": "Cat-Cow (Gato-Vaca)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "85",
+    "nombre": "Rotaciones de Cadera en Suelo",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "131",
+    "nombre": "Step Touch Lateral",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "132",
+    "nombre": "Caminata con Elevación de Rodillas",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "133",
+    "nombre": "Boxeo Sombra Lento",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "134",
+    "nombre": "Toe Taps (Toques de Puntas)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "135",
+    "nombre": "Marcha con Brazos en Cruz",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "146",
+    "nombre": "Círculos de Brazos",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "147",
+    "nombre": "Apertura de Pecho en Pared",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "148",
+    "nombre": "Estiramiento de Cuádriceps de Pie",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "149",
+    "nombre": "Rotaciones de Tobillo",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "150",
+    "nombre": "Estiramiento Mariposa Sentado",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "151",
+    "nombre": "Child Pose (Postura del Niño)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "casa",
+    "id": "152",
+    "nombre": "Flexión Lateral de Cuello",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "199",
+    "nombre": "Flexiones a una mano",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Single-Arm_Push-Up",
+    "muestra": "Single-Arm Push-Up"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "200",
+    "nombre": "Handstand push-ups en pared",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Handstand_Push-Ups",
+    "muestra": "Handstand Push-Ups"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "201",
+    "nombre": "Planche lean",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "202",
+    "nombre": "Dominadas con lastre",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "203",
+    "nombre": "Muscle-up (subida a barra)",
+    "tipo": "EXDB_GIF",
+    "gif": "0631",
+    "muestra": "muscle up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "204",
+    "nombre": "Front lever hold (estático)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "205",
+    "nombre": "Pistol squat (sentadilla a una pierna)",
+    "tipo": "EXDB_GIF",
+    "gif": "0544",
+    "muestra": "kettlebell pistol squat [upper legs/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "206",
+    "nombre": "Peso muerto con barra a una pierna",
+    "tipo": "EXDB_GIF",
+    "gif": "0085",
+    "muestra": "barbell romanian deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "207",
+    "nombre": "Box jumps a altura máxima",
+    "tipo": "EXDB_GIF",
+    "gif": "1374",
+    "muestra": "box jump down with one leg stabilization [lower legs/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "208",
+    "nombre": "Broad jumps (saltos de longitud)",
+    "tipo": "EXDB_GIF",
+    "gif": "1374",
+    "muestra": "box jump down with one leg stabilization [lower legs/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "209",
+    "nombre": "Dragon flag",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "210",
+    "nombre": "V-sit hold",
+    "tipo": "EXDB_GIF",
+    "gif": "3419",
+    "muestra": "l-sit on floor [waist/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "211",
+    "nombre": "Windshield wipers en barra",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "212",
+    "nombre": "Ab wheel rollout completo",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "213",
+    "nombre": "Waiter carry (carga de camarero)",
+    "tipo": "EXDB_GIF",
+    "gif": "2133",
+    "muestra": "farmers walk [upper legs/dumbbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "214",
+    "nombre": "Yoke carry (yugo)",
+    "tipo": "EXDB_GIF",
+    "gif": "2133",
+    "muestra": "farmers walk [upper legs/dumbbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "215",
+    "nombre": "Sandbag shoulder (saco a hombro)",
+    "tipo": "EXDB_GIF",
+    "gif": "0648",
+    "muestra": "power clean [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "216",
+    "nombre": "Burpee con dominada",
+    "tipo": "EXDB_GIF",
+    "gif": "1160",
+    "muestra": "burpee [cardio/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "217",
+    "nombre": "Devil press con mancuernas",
+    "tipo": "EXDB_GIF",
+    "gif": "1160",
+    "muestra": "burpee [cardio/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "218",
+    "nombre": "Man makers",
+    "tipo": "EXDB_GIF",
+    "gif": "1160",
+    "muestra": "burpee [cardio/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "182",
+    "nombre": "Flexiones diamante",
+    "tipo": "EXDB_GIF",
+    "gif": "1273",
+    "muestra": "clap push up [chest/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "183",
+    "nombre": "Flexiones arqueras",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Single-Arm_Push-Up",
+    "muestra": "Single-Arm Push-Up"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "184",
+    "nombre": "Press landmine unilateral",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "One_Arm_Floor_Press",
+    "muestra": "One Arm Floor Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "185",
+    "nombre": "Turkish get-up con kettlebell",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Kettlebell_Turkish_Get-Up_Lunge_style",
+    "muestra": "Kettlebell Turkish Get-Up Lunge style"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "186",
+    "nombre": "Dominadas asistidas con banda",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "187",
+    "nombre": "Remo invertido a una mano",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "188",
+    "nombre": "Face pulls con rotación externa",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Face_Pull",
+    "muestra": "Face Pull"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "189",
+    "nombre": "Sentadilla búlgara",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Side_Split_Squat",
+    "muestra": "Barbell Side Split Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "190",
+    "nombre": "Peso muerto a una pierna con kettlebell",
+    "tipo": "EXDB_GIF",
+    "gif": "0085",
+    "muestra": "barbell romanian deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "191",
+    "nombre": "Zancadas caminando con mancuernas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dumbbell_Rear_Lunge",
+    "muestra": "Dumbbell Rear Lunge"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "192",
+    "nombre": "Box jumps (saltos al cajón)",
+    "tipo": "EXDB_GIF",
+    "gif": "1374",
+    "muestra": "box jump down with one leg stabilization [lower legs/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "193",
+    "nombre": "Plancha con toque de hombro",
+    "tipo": "EXDB_GIF",
+    "gif": "2135",
+    "muestra": "weighted front plank [waist/weighted]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "194",
+    "nombre": "L-sit hold en paralelas",
+    "tipo": "EXDB_GIF",
+    "gif": "3419",
+    "muestra": "l-sit on floor [waist/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "195",
+    "nombre": "Pallof press",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Pallof_Press",
+    "muestra": "Pallof Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "196",
+    "nombre": "Russian twist con medicine ball",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Medicine_Ball_Full_Twist",
+    "muestra": "Medicine Ball Full Twist"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "197",
+    "nombre": "Farmer carry (carga de granjero)",
+    "tipo": "EXDB_GIF",
+    "gif": "2133",
+    "muestra": "farmers walk [upper legs/dumbbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "198",
+    "nombre": "Suitcase carry (carga de maleta)",
+    "tipo": "EXDB_GIF",
+    "gif": "2133",
+    "muestra": "farmers walk [upper legs/dumbbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "166",
+    "nombre": "Flexiones en pared",
+    "tipo": "EXDB_GIF",
+    "gif": "1273",
+    "muestra": "clap push up [chest/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "167",
+    "nombre": "Flexiones en rodillas",
+    "tipo": "EXDB_GIF",
+    "gif": "1273",
+    "muestra": "clap push up [chest/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "168",
+    "nombre": "Press overhead con mancuerna ligera",
+    "tipo": "EXDB_GIF",
+    "gif": "1293",
+    "muestra": "dumbbell press on exercise ball [chest/dumbbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "169",
+    "nombre": "Remo TRX asistido",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "170",
+    "nombre": "Dead hang (cuelgue pasivo)",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "171",
+    "nombre": "Remo invertido con pies en suelo",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "172",
+    "nombre": "Sentadilla al cajón",
+    "tipo": "EXDB_GIF",
+    "gif": "0750",
+    "muestra": "smith chair squat [upper legs/smith machine]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "173",
+    "nombre": "Sentadilla goblet ligera",
+    "tipo": "EXDB_GIF",
+    "gif": "0534",
+    "muestra": "kettlebell goblet squat [upper legs/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "174",
+    "nombre": "Step-ups a cajón bajo",
+    "tipo": "EXDB_GIF",
+    "gif": "1374",
+    "muestra": "box jump down with one leg stabilization [lower legs/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "175",
+    "nombre": "Plancha frontal",
+    "tipo": "EXDB_GIF",
+    "gif": "2135",
+    "muestra": "weighted front plank [waist/weighted]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "176",
+    "nombre": "Plancha lateral",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Push_Up_to_Side_Plank",
+    "muestra": "Push Up to Side Plank"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "177",
+    "nombre": "Dead bug",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dead_Bug",
+    "muestra": "Dead Bug"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "178",
+    "nombre": "Bird dog",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "179",
+    "nombre": "Cat-cow (gato-vaca)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "180",
+    "nombre": "Rotaciones torácicas en cuadrupedia",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "181",
+    "nombre": "Hip circles (círculos de cadera)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "funcional",
+    "id": "219",
+    "nombre": "Peso muerto rumano con mancuernas",
+    "tipo": "EXDB_GIF",
+    "gif": "0085",
+    "muestra": "barbell romanian deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "261",
+    "nombre": "Snatch completo desde suelo",
+    "tipo": "EXDB_GIF",
+    "gif": "0529",
+    "muestra": "kettlebell double snatch [shoulders/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "262",
+    "nombre": "Snatch desde bloques (knee)",
+    "tipo": "EXDB_GIF",
+    "gif": "0529",
+    "muestra": "kettlebell double snatch [shoulders/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "263",
+    "nombre": "Snatch Pull pesado 110-120%",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "264",
+    "nombre": "Snatch Complejo: 1+1+1",
+    "tipo": "EXDB_GIF",
+    "gif": "0529",
+    "muestra": "kettlebell double snatch [shoulders/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "265",
+    "nombre": "Drop Snatch pesado",
+    "tipo": "EXDB_GIF",
+    "gif": "0069",
+    "muestra": "barbell overhead squat [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "266",
+    "nombre": "Overhead Squat pesado",
+    "tipo": "EXDB_GIF",
+    "gif": "0069",
+    "muestra": "barbell overhead squat [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "267",
+    "nombre": "Snatch High Pull + Snatch (Complejo)",
+    "tipo": "EXDB_GIF",
+    "gif": "0529",
+    "muestra": "kettlebell double snatch [shoulders/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "268",
+    "nombre": "Clean completo desde suelo",
+    "tipo": "EXDB_GIF",
+    "gif": "0537",
+    "muestra": "kettlebell one arm clean and jerk [shoulders/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "269",
+    "nombre": "Clean & Jerk",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Clean_and_Jerk",
+    "muestra": "Clean and Jerk"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "270",
+    "nombre": "Split Jerk",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Split_Jerk",
+    "muestra": "Split Jerk"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "271",
+    "nombre": "Clean Pull pesado 110-120%",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "272",
+    "nombre": "Front Squat pesado",
+    "tipo": "EXDB_GIF",
+    "gif": "0042",
+    "muestra": "barbell front squat [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "273",
+    "nombre": "Clean complejo: Power + Full + Jerk",
+    "tipo": "EXDB_GIF",
+    "gif": "0537",
+    "muestra": "kettlebell one arm clean and jerk [shoulders/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "274",
+    "nombre": "Jerk desde bloques (detrás del cuello)",
+    "tipo": "EXDB_GIF",
+    "gif": "1700",
+    "muestra": "dumbbell push press [shoulders/dumbbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "275",
+    "nombre": "Tall Jerk",
+    "tipo": "EXDB_GIF",
+    "gif": "1700",
+    "muestra": "dumbbell push press [shoulders/dumbbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "276",
+    "nombre": "Clean + 3 Front Squats",
+    "tipo": "EXDB_GIF",
+    "gif": "0537",
+    "muestra": "kettlebell one arm clean and jerk [shoulders/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "277",
+    "nombre": "Back Squat pesado",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "278",
+    "nombre": "Deficit Snatch Pull",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "279",
+    "nombre": "Pause Front Squat",
+    "tipo": "EXDB_GIF",
+    "gif": "0042",
+    "muestra": "barbell front squat [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "280",
+    "nombre": "Good Morning pesado",
+    "tipo": "EXDB_GIF",
+    "gif": "0044",
+    "muestra": "barbell good morning [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "281",
+    "nombre": "Snatch Grip Overhead Lunges pesado",
+    "tipo": "EXDB_GIF",
+    "gif": "1460",
+    "muestra": "walking lunge [upper legs/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "282",
+    "nombre": "Sotts Press moderado",
+    "tipo": "EXDB_GIF",
+    "gif": "1700",
+    "muestra": "dumbbell push press [shoulders/dumbbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "283",
+    "nombre": "Snatch Grip RDL pesado",
+    "tipo": "EXDB_GIF",
+    "gif": "0085",
+    "muestra": "barbell romanian deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "239",
+    "nombre": "Power Snatch desde suelo",
+    "tipo": "EXDB_GIF",
+    "gif": "0529",
+    "muestra": "kettlebell double snatch [shoulders/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "240",
+    "nombre": "Hang Snatch (mid-thigh)",
+    "tipo": "EXDB_GIF",
+    "gif": "0529",
+    "muestra": "kettlebell double snatch [shoulders/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "241",
+    "nombre": "Snatch Balance con barra",
+    "tipo": "EXDB_GIF",
+    "gif": "0069",
+    "muestra": "barbell overhead squat [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "242",
+    "nombre": "Snatch Pull desde suelo",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "243",
+    "nombre": "Overhead Squat con barra",
+    "tipo": "EXDB_GIF",
+    "gif": "0069",
+    "muestra": "barbell overhead squat [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "244",
+    "nombre": "Muscle Snatch con barra cargada",
+    "tipo": "EXDB_GIF",
+    "gif": "0529",
+    "muestra": "kettlebell double snatch [shoulders/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "245",
+    "nombre": "Power Clean desde suelo",
+    "tipo": "EXDB_GIF",
+    "gif": "0648",
+    "muestra": "power clean [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "246",
+    "nombre": "Hang Clean (knee)",
+    "tipo": "EXDB_GIF",
+    "gif": "0648",
+    "muestra": "power clean [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "247",
+    "nombre": "Clean Pull desde suelo",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "248",
+    "nombre": "Front Squat con carga",
+    "tipo": "EXDB_GIF",
+    "gif": "0042",
+    "muestra": "barbell front squat [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "249",
+    "nombre": "Push Jerk",
+    "tipo": "EXDB_GIF",
+    "gif": "1700",
+    "muestra": "dumbbell push press [shoulders/dumbbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "250",
+    "nombre": "Power Jerk",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Power_Jerk",
+    "muestra": "Power Jerk"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "251",
+    "nombre": "Clean + Front Squat (Complejo)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Front_Squat_Clean_Grip",
+    "muestra": "Front Squat Clean Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "252",
+    "nombre": "Tall Clean",
+    "tipo": "EXDB_GIF",
+    "gif": "0648",
+    "muestra": "power clean [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "253",
+    "nombre": "Back Squat @ 80-85%",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "254",
+    "nombre": "Romanian Deadlift con carga",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Romanian_Deadlift",
+    "muestra": "Romanian Deadlift"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "255",
+    "nombre": "Strict Press intermedio",
+    "tipo": "EXDB_GIF",
+    "gif": "1700",
+    "muestra": "dumbbell push press [shoulders/dumbbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "256",
+    "nombre": "Bulgarian Split Squat con barra",
+    "tipo": "EXDB_GIF",
+    "gif": "1460",
+    "muestra": "walking lunge [upper legs/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "257",
+    "nombre": "Overhead Walking Lunges con barra",
+    "tipo": "EXDB_GIF",
+    "gif": "1460",
+    "muestra": "walking lunge [upper legs/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "258",
+    "nombre": "Snatch Grip High Pull",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "259",
+    "nombre": "Sotts Press con carga ligera",
+    "tipo": "EXDB_GIF",
+    "gif": "1700",
+    "muestra": "dumbbell push press [shoulders/dumbbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "260",
+    "nombre": "Pendlay Row",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "220",
+    "nombre": "Overhead Squat con PVC",
+    "tipo": "EXDB_GIF",
+    "gif": "0069",
+    "muestra": "barbell overhead squat [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "221",
+    "nombre": "Front Squat con barra vacía",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Front_Barbell_Squat",
+    "muestra": "Front Barbell Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "222",
+    "nombre": "Back Squat básico",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "223",
+    "nombre": "Muscle Snatch con PVC",
+    "tipo": "EXDB_GIF",
+    "gif": "0529",
+    "muestra": "kettlebell double snatch [shoulders/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "224",
+    "nombre": "Muscle Clean con PVC",
+    "tipo": "EXDB_GIF",
+    "gif": "0648",
+    "muestra": "power clean [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "225",
+    "nombre": "Snatch Balance sin peso",
+    "tipo": "EXDB_GIF",
+    "gif": "0069",
+    "muestra": "barbell overhead squat [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "226",
+    "nombre": "Romanian Deadlift",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Romanian_Deadlift",
+    "muestra": "Romanian Deadlift"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "227",
+    "nombre": "Good Morning con barra",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Stiff_Leg_Barbell_Good_Morning",
+    "muestra": "Stiff Leg Barbell Good Morning"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "228",
+    "nombre": "Push Press con barra vacía",
+    "tipo": "EXDB_GIF",
+    "gif": "1700",
+    "muestra": "dumbbell push press [shoulders/dumbbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "229",
+    "nombre": "Strict Press con barra",
+    "tipo": "EXDB_GIF",
+    "gif": "1700",
+    "muestra": "dumbbell push press [shoulders/dumbbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "230",
+    "nombre": "Sotts Press preparación",
+    "tipo": "EXDB_GIF",
+    "gif": "1700",
+    "muestra": "dumbbell push press [shoulders/dumbbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "231",
+    "nombre": "Clean Grip Deadlift",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Clean_Deadlift",
+    "muestra": "Clean Deadlift"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "232",
+    "nombre": "Hang Pull (mid-thigh)",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "233",
+    "nombre": "Hang Power Clean (above knee)",
+    "tipo": "EXDB_GIF",
+    "gif": "0648",
+    "muestra": "power clean [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "234",
+    "nombre": "Hang Clean Pull",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Hang_Clean",
+    "muestra": "Hang Clean"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "235",
+    "nombre": "Hang Snatch Pull",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Hang_Snatch",
+    "muestra": "Hang Snatch"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "236",
+    "nombre": "Overhead Walking Lunges ligero",
+    "tipo": "EXDB_GIF",
+    "gif": "1460",
+    "muestra": "walking lunge [upper legs/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "237",
+    "nombre": "Snatch Grip Behind Neck Press",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Push_Press_-_Behind_the_Neck",
+    "muestra": "Push Press - Behind the Neck"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "238",
+    "nombre": "Plancha Hollow Hold",
+    "tipo": "EXDB_GIF",
+    "gif": "2135",
+    "muestra": "weighted front plank [waist/weighted]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "halterofilia",
+    "id": "284",
+    "nombre": "Hang Power Snatch (above knee)",
+    "tipo": "EXDB_GIF",
+    "gif": "0529",
+    "muestra": "kettlebell double snatch [shoulders/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "320",
+    "nombre": "Sentadilla trasera",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "321",
+    "nombre": "Jalón supino en polea",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Close-Grip_Front_Lat_Pulldown",
+    "muestra": "Close-Grip Front Lat Pulldown"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "322",
+    "nombre": "Dips en paralelas",
+    "tipo": "EXDB_GIF",
+    "gif": "0677",
+    "muestra": "ring dips [upper arms/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "323",
+    "nombre": "Peso muerto convencional",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Deadlift",
+    "muestra": "Barbell Deadlift"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "324",
+    "nombre": "Press tras nuca / militar con barra",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Shoulder_Press",
+    "muestra": "Barbell Shoulder Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "325",
+    "nombre": "Elevación de talones de pie",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Standing_Calf_Raises",
+    "muestra": "Standing Calf Raises"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "326",
+    "nombre": "Press de banca con pausa",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Bench_Press_-_Powerlifting",
+    "muestra": "Bench Press - Powerlifting"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "327",
+    "nombre": "Remo Pendlay",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Bent_Over_Barbell_Row",
+    "muestra": "Bent Over Barbell Row"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "328",
+    "nombre": "Hip thrust con barra",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Hip_Thrust",
+    "muestra": "Barbell Hip Thrust"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "302",
+    "nombre": "Pec-deck",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Butterfly",
+    "muestra": "Butterfly"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "303",
+    "nombre": "Press inclinado con barra",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Incline_Bench_Press_-_Medium_Grip",
+    "muestra": "Barbell Incline Bench Press - Medium Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "304",
+    "nombre": "Pullover recto en polea",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Straight-Arm_Pulldown",
+    "muestra": "Straight-Arm Pulldown"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "305",
+    "nombre": "Jalón al pecho supino",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Wide-Grip_Lat_Pulldown",
+    "muestra": "Wide-Grip Lat Pulldown"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "306",
+    "nombre": "Remo con barra 45°",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Bent_Over_Barbell_Row",
+    "muestra": "Bent Over Barbell Row"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "307",
+    "nombre": "Elevación lateral con mancuernas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Side_Lateral_Raise",
+    "muestra": "Side Lateral Raise"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "308",
+    "nombre": "Press militar con mancuernas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Machine_Shoulder_Military_Press",
+    "muestra": "Machine Shoulder Military Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "309",
+    "nombre": "Reverse fly en máquina/cable",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Reverse_Machine_Flyes",
+    "muestra": "Reverse Machine Flyes"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "310",
+    "nombre": "Curl con barra Z",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Curl",
+    "muestra": "Barbell Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "311",
+    "nombre": "Jalón supino",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Close-Grip_Front_Lat_Pulldown",
+    "muestra": "Close-Grip Front Lat Pulldown"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "312",
+    "nombre": "Press francés con barra Z",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Lying_Triceps_Press",
+    "muestra": "Lying Triceps Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "313",
+    "nombre": "Dips en paralelas",
+    "tipo": "EXDB_GIF",
+    "gif": "0677",
+    "muestra": "ring dips [upper arms/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "314",
+    "nombre": "Extensión de cuádriceps",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Single-Leg_Leg_Extension",
+    "muestra": "Single-Leg Leg Extension"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "315",
+    "nombre": "Prensa 45°",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Leg_Press",
+    "muestra": "Leg Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "316",
+    "nombre": "RDL con barra",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Romanian_Deadlift",
+    "muestra": "Romanian Deadlift"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "317",
+    "nombre": "Curl femoral sentado",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Seated_Leg_Curl",
+    "muestra": "Seated Leg Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "318",
+    "nombre": "Elevación de talones de pie",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Standing_Calf_Raises",
+    "muestra": "Standing Calf Raises"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "319",
+    "nombre": "Crunch en polea",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Cable_Crunch",
+    "muestra": "Cable Crunch"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "285",
+    "nombre": "Press de pecho en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Machine_Bench_Press",
+    "muestra": "Machine Bench Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "286",
+    "nombre": "Press inclinado con mancuernas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Incline_Dumbbell_Press",
+    "muestra": "Incline Dumbbell Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "287",
+    "nombre": "Pec-deck",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Butterfly",
+    "muestra": "Butterfly"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "288",
+    "nombre": "Jalón al pecho en polea",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Wide-Grip_Lat_Pulldown",
+    "muestra": "Wide-Grip Lat Pulldown"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "289",
+    "nombre": "Remo en polea baja",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Seated_Cable_Rows",
+    "muestra": "Seated Cable Rows"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "290",
+    "nombre": "Pullover en máquina o polea",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Straight-Arm_Pulldown",
+    "muestra": "Straight-Arm Pulldown"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "291",
+    "nombre": "Press militar en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Machine_Shoulder_Military_Press",
+    "muestra": "Machine Shoulder Military Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "292",
+    "nombre": "Elevaciones laterales en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Side_Lateral_Raise",
+    "muestra": "Side Lateral Raise"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "293",
+    "nombre": "Extensión de tríceps en polea",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Kneeling_Cable_Triceps_Extension",
+    "muestra": "Kneeling Cable Triceps Extension"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "294",
+    "nombre": "Curl de bíceps en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Machine_Bicep_Curl",
+    "muestra": "Machine Bicep Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "295",
+    "nombre": "Prensa 45°",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Leg_Press",
+    "muestra": "Leg Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "296",
+    "nombre": "Extensión de cuádriceps",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Single-Leg_Leg_Extension",
+    "muestra": "Single-Leg Leg Extension"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "297",
+    "nombre": "Curl femoral tumbado",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Lying_Leg_Curls",
+    "muestra": "Lying Leg Curls"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "298",
+    "nombre": "Hip thrust en máquina/Smith",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Hip_Thrust",
+    "muestra": "Barbell Hip Thrust"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "299",
+    "nombre": "Elevación de talones en prensa",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Calf_Press_On_The_Leg_Press_Machine",
+    "muestra": "Calf Press On The Leg Press Machine"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "300",
+    "nombre": "Crunch en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Ab_Crunch_Machine",
+    "muestra": "Ab Crunch Machine"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "heavy_duty",
+    "id": "301",
+    "nombre": "Pallof press",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Pallof_Press",
+    "muestra": "Pallof Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "333",
+    "nombre": "Walking Lunges con mancuernas pesadas",
+    "tipo": "EXDB_GIF",
+    "gif": "1460",
+    "muestra": "walking lunge [upper legs/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "334",
+    "nombre": "Pistol Squat asistida",
+    "tipo": "EXDB_GIF",
+    "gif": "0544",
+    "muestra": "kettlebell pistol squat [upper legs/kettlebell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "335",
+    "nombre": "Curl Scott con barra olímpica",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Curl",
+    "muestra": "Barbell Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "336",
+    "nombre": "Fondos unilateral asistido",
+    "tipo": "EXDB_GIF",
+    "gif": "0677",
+    "muestra": "ring dips [upper arms/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "338",
+    "nombre": "Curls isométricos con banda",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Standing_Biceps_Cable_Curl",
+    "muestra": "Standing Biceps Cable Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "339",
+    "nombre": "Press de banca con pausa",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Bench_Press_-_Powerlifting",
+    "muestra": "Bench Press - Powerlifting"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "340",
+    "nombre": "Press inclinado con barra (pesado)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Incline_Bench_Press_-_Medium_Grip",
+    "muestra": "Barbell Incline Bench Press - Medium Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "341",
+    "nombre": "Crunch con carga (disco en pecho)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Crunches",
+    "muestra": "Crunches"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "342",
+    "nombre": "Hack Squat en máquina (pesado)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Hack_Squat",
+    "muestra": "Hack Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "345",
+    "nombre": "Sentadilla trasera alta (High Bar)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "346",
+    "nombre": "Curl con barra Z (pesado)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Curl",
+    "muestra": "Barbell Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "366",
+    "nombre": "Curl complejos con barra (Rest-Pause)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Curl",
+    "muestra": "Barbell Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "368",
+    "nombre": "Sentadilla olímpica con barra",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "369",
+    "nombre": "Press overhead unilateral con mancuerna",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dumbbell_One-Arm_Shoulder_Press",
+    "muestra": "Dumbbell One-Arm Shoulder Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "370",
+    "nombre": "L-Sit ponderado",
+    "tipo": "EXDB_GIF",
+    "gif": "3419",
+    "muestra": "l-sit on floor [waist/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "371",
+    "nombre": "Press militar con barra (pesado con pausa)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Machine_Shoulder_Military_Press",
+    "muestra": "Machine Shoulder Military Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "372",
+    "nombre": "Snatch Grip High Pull",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "373",
+    "nombre": "Ab Wheel posición avanzada",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Ab_Rollout",
+    "muestra": "Barbell Ab Rollout"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "374",
+    "nombre": "Dragon Flag completo",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "378",
+    "nombre": "Press militar con barra (de pie)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Machine_Shoulder_Military_Press",
+    "muestra": "Machine Shoulder Military Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "379",
+    "nombre": "Dominadas lastradas (si disponibles)",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "380",
+    "nombre": "Jalón en polea con agarre V (pesado)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "V-Bar_Pulldown",
+    "muestra": "V-Bar Pulldown"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "390",
+    "nombre": "Sentadilla búlgara con mancuernas (pesada)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Side_Split_Squat",
+    "muestra": "Barbell Side Split Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "393",
+    "nombre": "Fondos pesados lastrados",
+    "tipo": "EXDB_GIF",
+    "gif": "0677",
+    "muestra": "ring dips [upper arms/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "394",
+    "nombre": "Extensión de tríceps en barras paralelas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Standing_Overhead_Barbell_Triceps_Extension",
+    "muestra": "Standing Overhead Barbell Triceps Extension"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "398",
+    "nombre": "Hip Thrust pesado con barra (pausas)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Hip_Thrust",
+    "muestra": "Barbell Hip Thrust"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "399",
+    "nombre": "Step-Up alto con mancuernas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dumbbell_Step_Ups",
+    "muestra": "Dumbbell Step Ups"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "401",
+    "nombre": "Extensión de tríceps en polea unilateral",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Standing_Low-Pulley_One-Arm_Triceps_Extension",
+    "muestra": "Standing Low-Pulley One-Arm Triceps Extension"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "403",
+    "nombre": "Elevación lateral en cable unilateral",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Side_Lateral_Raise",
+    "muestra": "Side Lateral Raise"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "409",
+    "nombre": "Buenos días con barra (ligero/moderado)",
+    "tipo": "EXDB_GIF",
+    "gif": "0044",
+    "muestra": "barbell good morning [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "410",
+    "nombre": "Elevación de talones sentado (sóleo)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Seated_Calf_Raise",
+    "muestra": "Seated Calf Raise"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "416",
+    "nombre": "Curl en polea baja con barra recta",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Standing_Biceps_Cable_Curl",
+    "muestra": "Standing Biceps Cable Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "421",
+    "nombre": "JM Press (press francés pesado)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "JM_Press",
+    "muestra": "JM Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "422",
+    "nombre": "Aperturas con cable en polea de pie",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Cable_Crossover",
+    "muestra": "Cable Crossover"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "425",
+    "nombre": "Face Pull pesado con pausa",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Face_Pull",
+    "muestra": "Face Pull"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "434",
+    "nombre": "Remo con barra Pendlay (estricto)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Bent_Over_Barbell_Row",
+    "muestra": "Bent Over Barbell Row"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "435",
+    "nombre": "Peso muerto rumano con mancuernas (pesado)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Stiff-Legged_Dumbbell_Deadlift",
+    "muestra": "Stiff-Legged Dumbbell Deadlift"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "436",
+    "nombre": "Rueda abdominal (Ab Wheel) controlada",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Ab_Rollout",
+    "muestra": "Barbell Ab Rollout"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "329",
+    "nombre": "Sentadilla Sissy con mancuernas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dumbbell_Squat",
+    "muestra": "Dumbbell Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "330",
+    "nombre": "Curl en predicador con mancuernas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dumbbell_Bicep_Curl",
+    "muestra": "Dumbbell Bicep Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "331",
+    "nombre": "Extensión francesa con barra EZ (sentado)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Seated_Triceps_Press",
+    "muestra": "Seated Triceps Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "332",
+    "nombre": "Elevación lateral en polea (unilateral)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Side_Lateral_Raise",
+    "muestra": "Side Lateral Raise"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "337",
+    "nombre": "Shrugs (encorvamientos) con barra olímpica",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Shrug",
+    "muestra": "Barbell Shrug"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "344",
+    "nombre": "Peso muerto rumano (RDL) con barra",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Romanian_Deadlift",
+    "muestra": "Romanian Deadlift"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "347",
+    "nombre": "Crunch en polea de rodillas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Cable_Crunch",
+    "muestra": "Cable Crunch"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "355",
+    "nombre": "Fondos en paralelas lastrados",
+    "tipo": "EXDB_GIF",
+    "gif": "0677",
+    "muestra": "ring dips [upper arms/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "359",
+    "nombre": "Plank pesado (con disco en espalda)",
+    "tipo": "EXDB_GIF",
+    "gif": "2135",
+    "muestra": "weighted front plank [waist/weighted]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "360",
+    "nombre": "Hack Squat en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Hack_Squat",
+    "muestra": "Hack Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "361",
+    "nombre": "Prensa inclinada 45°",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Leg_Press",
+    "muestra": "Leg Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "362",
+    "nombre": "Curl con barra olímpica completo",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Curl",
+    "muestra": "Barbell Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "363",
+    "nombre": "Dips en máquina asistida",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dip_Machine",
+    "muestra": "Dip Machine"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "364",
+    "nombre": "Fondos en barras paralelas asistidos",
+    "tipo": "EXDB_GIF",
+    "gif": "0677",
+    "muestra": "ring dips [upper arms/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "365",
+    "nombre": "Press Arnold con mancuernas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Arnold_Dumbbell_Press",
+    "muestra": "Arnold Dumbbell Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "367",
+    "nombre": "Curl concentrado en banco",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Concentration_Curls",
+    "muestra": "Concentration Curls"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "377",
+    "nombre": "Press militar con mancuernas (sentado)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dumbbell_Shoulder_Press",
+    "muestra": "Dumbbell Shoulder Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "381",
+    "nombre": "Jalón supino (agarre neutro)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Close-Grip_Front_Lat_Pulldown",
+    "muestra": "Close-Grip Front Lat Pulldown"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "382",
+    "nombre": "Remo en polea baja (agarre neutro)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Seated_Cable_Rows",
+    "muestra": "Seated Cable Rows"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "383",
+    "nombre": "Remo con barra Pendlay",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Bent_Over_Barbell_Row",
+    "muestra": "Bent Over Barbell Row"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "386",
+    "nombre": "Prensa 45° (carga moderada/alta)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Leg_Press",
+    "muestra": "Leg Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "387",
+    "nombre": "Press inclinado con mancuernas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Incline_Dumbbell_Press",
+    "muestra": "Incline Dumbbell Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "389",
+    "nombre": "Sentadilla frontal con barra (técnica)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Front_Barbell_Squat",
+    "muestra": "Front Barbell Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "395",
+    "nombre": "Curl femoral en máquina unilateral",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Seated_Leg_Curl",
+    "muestra": "Seated Leg Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "397",
+    "nombre": "Hip Thrust con barra",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Hip_Thrust",
+    "muestra": "Barbell Hip Thrust"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "400",
+    "nombre": "Curl inclinado con mancuernas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Incline_Dumbbell_Curl",
+    "muestra": "Incline Dumbbell Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "402",
+    "nombre": "Aperturas con mancuernas en banco plano",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dumbbell_Flyes",
+    "muestra": "Dumbbell Flyes"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "404",
+    "nombre": "Farmer’s Walk con mancuernas (corto)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Farmers_Walk",
+    "muestra": "Farmers Walk"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "405",
+    "nombre": "Elevaciones laterales con mancuernas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Side_Lateral_Raise",
+    "muestra": "Side Lateral Raise"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "408",
+    "nombre": "Elevaciones de talón de pie en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Standing_Calf_Raises",
+    "muestra": "Standing Calf Raises"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "414",
+    "nombre": "Curl con barra recta (de pie)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Curl",
+    "muestra": "Barbell Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "417",
+    "nombre": "Press francés con barra Z (tumbado)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Lying_Triceps_Press",
+    "muestra": "Lying Triceps Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "420",
+    "nombre": "Extensión de tríceps por encima de la cabeza en polea",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Kneeling_Cable_Triceps_Extension",
+    "muestra": "Kneeling Cable Triceps Extension"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "427",
+    "nombre": "Dead Bug ponderado",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dead_Bug",
+    "muestra": "Dead Bug"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "428",
+    "nombre": "Crunches en banco declinado con disco",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Decline_Crunch",
+    "muestra": "Decline Crunch"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "429",
+    "nombre": "Dragon Flag (progresión)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "432",
+    "nombre": "Face Pull en polea con cuerda",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Face_Pull",
+    "muestra": "Face Pull"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "433",
+    "nombre": "Press de banca con barra",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Bench_Press_-_Medium_Grip",
+    "muestra": "Barbell Bench Press - Medium Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "437",
+    "nombre": "Pallof Press en polea (alto/medio)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Pallof_Press",
+    "muestra": "Pallof Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "438",
+    "nombre": "Pullover en polea alta (barra recta)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Straight-Arm_Pulldown",
+    "muestra": "Straight-Arm Pulldown"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "343",
+    "nombre": "Jalón al pecho en polea (agarre ancho)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Wide-Grip_Lat_Pulldown",
+    "muestra": "Wide-Grip Lat Pulldown"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "348",
+    "nombre": "Crunch en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Ab_Crunch_Machine",
+    "muestra": "Ab Crunch Machine"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "349",
+    "nombre": "Leg Press en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Smith_Machine_Leg_Press",
+    "muestra": "Smith Machine Leg Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "350",
+    "nombre": "Sentadilla Goblet (control técnico)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Goblet_Squat",
+    "muestra": "Goblet Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "351",
+    "nombre": "Extensión de rodilla unilateral en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Leg_Extensions",
+    "muestra": "Leg Extensions"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "352",
+    "nombre": "Tríceps en máquina cerrada",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Machine_Triceps_Extension",
+    "muestra": "Machine Triceps Extension"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "353",
+    "nombre": "Curl con mancuernas (alternado/unilateral)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dumbbell_Bicep_Curl",
+    "muestra": "Dumbbell Bicep Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "354",
+    "nombre": "Pallof Press con banda elástica",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Pallof_Press",
+    "muestra": "Pallof Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "356",
+    "nombre": "Curl de bíceps con barra EZ (de pie)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Curl",
+    "muestra": "Barbell Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "357",
+    "nombre": "Sentadilla búlgara con mancuernas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Side_Split_Squat",
+    "muestra": "Barbell Side Split Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "358",
+    "nombre": "Extensión de tríceps en polea alta (cuerda)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Cable_Rope_Overhead_Triceps_Extension",
+    "muestra": "Cable Rope Overhead Triceps Extension"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "375",
+    "nombre": "Press militar en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Machine_Shoulder_Military_Press",
+    "muestra": "Machine Shoulder Military Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "376",
+    "nombre": "Press inclinado en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Smith_Machine_Incline_Bench_Press",
+    "muestra": "Smith Machine Incline Bench Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "384",
+    "nombre": "Remo sentado en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Smith_Machine_Bent_Over_Row",
+    "muestra": "Smith Machine Bent Over Row"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "385",
+    "nombre": "Sentadilla en prensa 45°",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Leg_Press",
+    "muestra": "Leg Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "388",
+    "nombre": "Elevación de talones en prensa (gemelos)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Calf_Press_On_The_Leg_Press_Machine",
+    "muestra": "Calf Press On The Leg Press Machine"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "391",
+    "nombre": "Pullover en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Bent-Arm_Dumbbell_Pullover",
+    "muestra": "Bent-Arm Dumbbell Pullover"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "392",
+    "nombre": "Press de pecho en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Machine_Bench_Press",
+    "muestra": "Machine Bench Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "396",
+    "nombre": "Hip Thrust en máquina Smith (básico)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Hip_Thrust",
+    "muestra": "Barbell Hip Thrust"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "406",
+    "nombre": "Elevaciones laterales en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Side_Lateral_Raise",
+    "muestra": "Side Lateral Raise"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "407",
+    "nombre": "Abducción de cadera en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Thigh_Abductor",
+    "muestra": "Thigh Abductor"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "411",
+    "nombre": "Curl femoral tumbado",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Lying_Leg_Curls",
+    "muestra": "Lying Leg Curls"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "412",
+    "nombre": "Curl femoral sentado",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Seated_Leg_Curl",
+    "muestra": "Seated Leg Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "413",
+    "nombre": "Extensión de cuádriceps (Leg Extension)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Single-Leg_Leg_Extension",
+    "muestra": "Single-Leg Leg Extension"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "415",
+    "nombre": "Curl de bíceps en máquina (predicador)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Machine_Bicep_Curl",
+    "muestra": "Machine Bicep Curl"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "418",
+    "nombre": "Extensión de tríceps con cuerda",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Triceps_Overhead_Extension_with_Rope",
+    "muestra": "Triceps Overhead Extension with Rope"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "419",
+    "nombre": "Extensión de tríceps en polea con barra",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Kneeling_Cable_Triceps_Extension",
+    "muestra": "Kneeling Cable Triceps Extension"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "423",
+    "nombre": "Aperturas en máquina (Pec Deck)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Butterfly",
+    "muestra": "Butterfly"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "424",
+    "nombre": "Pallof Press en polea",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Pallof_Press",
+    "muestra": "Pallof Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "426",
+    "nombre": "Pájaros en polea (Reverse Pec Deck modificado)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Reverse_Machine_Flyes",
+    "muestra": "Reverse Machine Flyes"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "430",
+    "nombre": "Reverse Fly en máquina",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Reverse_Machine_Flyes",
+    "muestra": "Reverse Machine Flyes"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "hipertrofia",
+    "id": "431",
+    "nombre": "Extensión lumbar en banco 45° (peso corporal)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Hyperextensions_Back_Extensions",
+    "muestra": "Hyperextensions Back Extensions"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "461",
+    "nombre": "Competition Squat (max)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "462",
+    "nombre": "Wide Stance Squat",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Wide_Stance_Barbell_Squat",
+    "muestra": "Wide Stance Barbell Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "463",
+    "nombre": "Pause Squat (3 segundos)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "464",
+    "nombre": "Pin Squats",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "465",
+    "nombre": "Anderson Squats",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "466",
+    "nombre": "Squat con Bandas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "467",
+    "nombre": "Squat con Cadenas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "468",
+    "nombre": "Competition Bench (arco)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Bench_Press_-_Medium_Grip",
+    "muestra": "Barbell Bench Press - Medium Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "469",
+    "nombre": "Wide Grip Bench",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Wide-Grip_Barbell_Bench_Press",
+    "muestra": "Wide-Grip Barbell Bench Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "470",
+    "nombre": "Narrow Grip Bench",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Close-Grip_Barbell_Bench_Press",
+    "muestra": "Close-Grip Barbell Bench Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "471",
+    "nombre": "Bench con Bandas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Bench_Press_-_Medium_Grip",
+    "muestra": "Barbell Bench Press - Medium Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "472",
+    "nombre": "Bench con Cadenas",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Bench_Press_-_Medium_Grip",
+    "muestra": "Barbell Bench Press - Medium Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "473",
+    "nombre": "Slingshot Press",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Bench_Press_-_Medium_Grip",
+    "muestra": "Barbell Bench Press - Medium Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "474",
+    "nombre": "Pin Press",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Bench_Press_-_Medium_Grip",
+    "muestra": "Barbell Bench Press - Medium Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "475",
+    "nombre": "Competition Deadlift (conv/sumo)",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "476",
+    "nombre": "Deficit Deadlift (4\")",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "477",
+    "nombre": "Paused Deadlift (múltiples posiciones)",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "478",
+    "nombre": "Snatch Grip Deadlift",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "479",
+    "nombre": "Deadlift con Bandas",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "480",
+    "nombre": "Speed Deadlifts",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "481",
+    "nombre": "Belt Squats",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "482",
+    "nombre": "Nordic Hamstring Curls",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Glute_Ham_Raise",
+    "muestra": "Glute Ham Raise"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "483",
+    "nombre": "Step-Ups (carga pesada)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dumbbell_Step_Ups",
+    "muestra": "Dumbbell Step Ups"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "484",
+    "nombre": "Bradford Press",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Standing_Bradford_Press",
+    "muestra": "Standing Bradford Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "485",
+    "nombre": "Seal Row",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Bent_Over_Barbell_Row",
+    "muestra": "Bent Over Barbell Row"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "486",
+    "nombre": "Band Pull-Aparts",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Band_Pull_Apart",
+    "muestra": "Band Pull Apart"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "487",
+    "nombre": "Max Effort Squat (comp)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "488",
+    "nombre": "Dynamic Effort Squat",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "489",
+    "nombre": "Accommodating Resistance Squat",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "490",
+    "nombre": "Max Effort Bench (comp)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Bench_Press_-_Medium_Grip",
+    "muestra": "Barbell Bench Press - Medium Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "491",
+    "nombre": "Dynamic Effort Bench",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Bench_Press_-_Medium_Grip",
+    "muestra": "Barbell Bench Press - Medium Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "492",
+    "nombre": "Shirt Work (equipped)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Bench_Press_-_Medium_Grip",
+    "muestra": "Barbell Bench Press - Medium Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "493",
+    "nombre": "Max Effort Deadlift (comp)",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "494",
+    "nombre": "Dynamic Effort Deadlift",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "495",
+    "nombre": "Overload Deadlift (straps)",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "439",
+    "nombre": "Back Squat (barra baja)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "440",
+    "nombre": "Pause Squat (2 segundos)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "441",
+    "nombre": "Tempo Squat (3-0-1-0)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "442",
+    "nombre": "Safety Bar Squat",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "443",
+    "nombre": "Front Squat",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Front_Barbell_Squat",
+    "muestra": "Front Barbell Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "444",
+    "nombre": "Competition Bench Press",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Bench_Press_-_Medium_Grip",
+    "muestra": "Barbell Bench Press - Medium Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "445",
+    "nombre": "Paused Bench Press (2 seg)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Bench_Press_-_Medium_Grip",
+    "muestra": "Barbell Bench Press - Medium Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "446",
+    "nombre": "Tempo Bench (3-1-1-0)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Bench_Press_-_Medium_Grip",
+    "muestra": "Barbell Bench Press - Medium Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "447",
+    "nombre": "Floor Press",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Floor_Press",
+    "muestra": "Floor Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "448",
+    "nombre": "Board Press (2-3 boards)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Bench_Press_-_Medium_Grip",
+    "muestra": "Barbell Bench Press - Medium Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "449",
+    "nombre": "Sumo Deadlift",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Sumo_Deadlift",
+    "muestra": "Sumo Deadlift"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "450",
+    "nombre": "Paused Deadlift (rodilla)",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "451",
+    "nombre": "Deficit Deadlift (2-3\")",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "452",
+    "nombre": "Block Pulls (altura rodilla)",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "453",
+    "nombre": "Bulgarian Split Squat",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Side_Split_Squat",
+    "muestra": "Barbell Side Split Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "454",
+    "nombre": "Good Mornings",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Seated_Good_Mornings",
+    "muestra": "Seated Good Mornings"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "455",
+    "nombre": "Hip Thrusts",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Hip_Thrust",
+    "muestra": "Barbell Hip Thrust"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "456",
+    "nombre": "Glute-Ham Raise",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Glute_Ham_Raise",
+    "muestra": "Glute Ham Raise"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "457",
+    "nombre": "JM Press",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "JM_Press",
+    "muestra": "JM Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "458",
+    "nombre": "Tricep Extensions (overhead)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Seated_Triceps_Press",
+    "muestra": "Seated Triceps Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "459",
+    "nombre": "Face Pulls",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Face_Pull",
+    "muestra": "Face Pull"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "460",
+    "nombre": "Pendlay Row",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Bent_Over_Barbell_Row",
+    "muestra": "Bent Over Barbell Row"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "496",
+    "nombre": "Back Squat (barra alta)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "497",
+    "nombre": "Goblet Squat",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Goblet_Squat",
+    "muestra": "Goblet Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "498",
+    "nombre": "Box Squat",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Box_Squat",
+    "muestra": "Box Squat"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "499",
+    "nombre": "Front Squat (introducción)",
+    "tipo": "EXDB_GIF",
+    "gif": "0042",
+    "muestra": "barbell front squat [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "500",
+    "nombre": "Bench Press plano",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Bench_Press_-_Medium_Grip",
+    "muestra": "Barbell Bench Press - Medium Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "501",
+    "nombre": "Incline Bench Press",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Incline_Bench_Press_-_Medium_Grip",
+    "muestra": "Barbell Incline Bench Press - Medium Grip"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "502",
+    "nombre": "Close Grip Bench Press",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Close-Grip_Barbell_Bench_Press",
+    "muestra": "Close-Grip Barbell Bench Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "503",
+    "nombre": "Dumbbell Bench Press",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dumbbell_Bench_Press",
+    "muestra": "Dumbbell Bench Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "504",
+    "nombre": "Conventional Deadlift",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "505",
+    "nombre": "Romanian Deadlift",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Romanian_Deadlift",
+    "muestra": "Romanian Deadlift"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "506",
+    "nombre": "Rack Pulls (altura rodilla)",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "507",
+    "nombre": "Sumo Deadlift (introducción)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Sumo_Deadlift",
+    "muestra": "Sumo Deadlift"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "508",
+    "nombre": "Leg Press",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Leg_Press",
+    "muestra": "Leg Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "509",
+    "nombre": "Walking Lunges",
+    "tipo": "EXDB_GIF",
+    "gif": "1460",
+    "muestra": "walking lunge [upper legs/body weight]"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "510",
+    "nombre": "Leg Curls",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Lying_Leg_Curls",
+    "muestra": "Lying Leg Curls"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "511",
+    "nombre": "Calf Raises",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Standing_Calf_Raises",
+    "muestra": "Standing Calf Raises"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "512",
+    "nombre": "Dips (tríceps)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Dips_-_Triceps_Version",
+    "muestra": "Dips - Triceps Version"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "513",
+    "nombre": "Barbell Row",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Upright_Barbell_Row",
+    "muestra": "Upright Barbell Row"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "514",
+    "nombre": "Overhead Press",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Shoulder_Press",
+    "muestra": "Barbell Shoulder Press"
+  },
+  {
+    "src": "ejercicios",
+    "disciplina": "powerlifting",
+    "id": "515",
+    "nombre": "Pull-Ups",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Scapular_Pull-Up",
+    "muestra": "Scapular Pull-Up"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 1,
+    "nombre": "Remo en anillas",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 2,
+    "nombre": "Flexiones",
+    "tipo": "EXDB_GIF",
+    "gif": "1273",
+    "muestra": "clap push up [chest/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 3,
+    "nombre": "Sentadillas al aire",
+    "tipo": "EXDB_GIF",
+    "gif": "0750",
+    "muestra": "smith chair squat [upper legs/smith machine]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 4,
+    "nombre": "Plancha",
+    "tipo": "EXDB_GIF",
+    "gif": "2135",
+    "muestra": "weighted front plank [waist/weighted]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 5,
+    "nombre": "Saltos de tijera",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Freehand_Jump_Squat",
+    "muestra": "Freehand Jump Squat"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 6,
+    "nombre": "Subidas a cajón",
+    "tipo": "EXDB_GIF",
+    "gif": "1374",
+    "muestra": "box jump down with one leg stabilization [lower legs/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 7,
+    "nombre": "Abdominales",
+    "tipo": "EXDB_GIF",
+    "gif": "0456",
+    "muestra": "flexion leg sit up (bent knee) [waist/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 8,
+    "nombre": "Burpees (escalado)",
+    "tipo": "EXDB_GIF",
+    "gif": "1160",
+    "muestra": "burpee [cardio/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 9,
+    "nombre": "Sentadilla goblet",
+    "tipo": "EXDB_GIF",
+    "gif": "0534",
+    "muestra": "kettlebell goblet squat [upper legs/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 10,
+    "nombre": "Press con mancuernas",
+    "tipo": "EXDB_GIF",
+    "gif": "1293",
+    "muestra": "dumbbell press on exercise ball [chest/dumbbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 11,
+    "nombre": "Balanceo con kettlebell (ruso)",
+    "tipo": "EXDB_GIF",
+    "gif": "0549",
+    "muestra": "kettlebell swing [upper legs/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 12,
+    "nombre": "Peso muerto rumano",
+    "tipo": "EXDB_GIF",
+    "gif": "0085",
+    "muestra": "barbell romanian deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 13,
+    "nombre": "Remo con mancuerna",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Alternating_Kettlebell_Row",
+    "muestra": "Alternating Kettlebell Row"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 14,
+    "nombre": "Sentadillas frontales (ligero)",
+    "tipo": "EXDB_GIF",
+    "gif": "0042",
+    "muestra": "barbell front squat [upper legs/barbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 15,
+    "nombre": "Lanzamientos a pared (ligero)",
+    "tipo": "EXDB_GIF",
+    "gif": "0550",
+    "muestra": "kettlebell thruster [shoulders/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 16,
+    "nombre": "Press de empuje (ligero)",
+    "tipo": "EXDB_GIF",
+    "gif": "1700",
+    "muestra": "dumbbell push press [shoulders/dumbbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 17,
+    "nombre": "Remo (ritmo lento)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 18,
+    "nombre": "Assault Bike (ritmo moderado)",
+    "tipo": "EXDB_GIF",
+    "gif": "0003",
+    "muestra": "air bike [waist/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 19,
+    "nombre": "Carrera (ritmo suave)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 20,
+    "nombre": "Comba (saltos simples)",
+    "tipo": "EXDB_GIF",
+    "gif": "2612",
+    "muestra": "jump rope [cardio/rope]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 21,
+    "nombre": "Ski Erg (moderado)",
+    "tipo": "EXDB_GIF",
+    "gif": "2142",
+    "muestra": "ski ergometer [upper arms/skierg machine]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 22,
+    "nombre": "Zancadas caminando",
+    "tipo": "EXDB_GIF",
+    "gif": "1460",
+    "muestra": "walking lunge [upper legs/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 23,
+    "nombre": "Subidas a cajón (cardio)",
+    "tipo": "EXDB_GIF",
+    "gif": "1374",
+    "muestra": "box jump down with one leg stabilization [lower legs/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 24,
+    "nombre": "Aguante en posición hueca",
+    "tipo": "EXDB_GIF",
+    "gif": "2135",
+    "muestra": "weighted front plank [waist/weighted]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 25,
+    "nombre": "Aguante en posición Superman",
+    "tipo": "EXDB_GIF",
+    "gif": "0803",
+    "muestra": "superman push-up [chest/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 26,
+    "nombre": "Puente de glúteos",
+    "tipo": "EXDB_GIF",
+    "gif": "1409",
+    "muestra": "barbell glute bridge [upper legs/barbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 27,
+    "nombre": "Apertura de hombros con banda",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Band_Pull_Apart",
+    "muestra": "Band Pull Apart"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 28,
+    "nombre": "Colgado muerto",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 29,
+    "nombre": "Buenos días con banda",
+    "tipo": "EXDB_GIF",
+    "gif": "0044",
+    "muestra": "barbell good morning [upper legs/barbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 30,
+    "nombre": "Dominadas escapulares",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Scapular_Pull-Up",
+    "muestra": "Scapular Pull-Up"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 31,
+    "nombre": "Dominadas estrictas",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 32,
+    "nombre": "Dominadas pecho a barra",
+    "tipo": "EXDB_GIF",
+    "gif": "3293",
+    "muestra": "archer pull up [back/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 33,
+    "nombre": "Flexiones con despegue de manos",
+    "tipo": "EXDB_GIF",
+    "gif": "1273",
+    "muestra": "clap push up [chest/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 34,
+    "nombre": "Saltos a cajón (24\"/20\")",
+    "tipo": "EXDB_GIF",
+    "gif": "1374",
+    "muestra": "box jump down with one leg stabilization [lower legs/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 35,
+    "nombre": "Burpees (RX)",
+    "tipo": "EXDB_GIF",
+    "gif": "1160",
+    "muestra": "burpee [cardio/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 36,
+    "nombre": "Pies a barra",
+    "tipo": "EXDB_GIF",
+    "gif": "0456",
+    "muestra": "flexion leg sit up (bent knee) [waist/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 37,
+    "nombre": "Fondos (anillas/paralelas)",
+    "tipo": "EXDB_GIF",
+    "gif": "0677",
+    "muestra": "ring dips [upper arms/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 38,
+    "nombre": "Sentadilla a una pierna (Pistol)",
+    "tipo": "EXDB_GIF",
+    "gif": "0544",
+    "muestra": "kettlebell pistol squat [upper legs/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 39,
+    "nombre": "Abdominales en V",
+    "tipo": "EXDB_GIF",
+    "gif": "0456",
+    "muestra": "flexion leg sit up (bent knee) [waist/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 40,
+    "nombre": "Aguante en pino (pared)",
+    "tipo": "EXDB_GIF",
+    "gif": "3302",
+    "muestra": "handstand [upper arms/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 41,
+    "nombre": "Rodillas a codos",
+    "tipo": "EXDB_GIF",
+    "gif": "0456",
+    "muestra": "flexion leg sit up (bent knee) [waist/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 42,
+    "nombre": "Burpee salto sobre cajón",
+    "tipo": "EXDB_GIF",
+    "gif": "1374",
+    "muestra": "box jump down with one leg stabilization [lower legs/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 43,
+    "nombre": "Thrusters (43/30 kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "0550",
+    "muestra": "kettlebell thruster [shoulders/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 44,
+    "nombre": "Power Clean",
+    "tipo": "EXDB_GIF",
+    "gif": "0648",
+    "muestra": "power clean [upper legs/barbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 45,
+    "nombre": "Power Snatch desde colgado",
+    "tipo": "EXDB_GIF",
+    "gif": "0529",
+    "muestra": "kettlebell double snatch [shoulders/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 46,
+    "nombre": "Peso muerto (102/70 kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 47,
+    "nombre": "Sentadilla sobre cabeza",
+    "tipo": "EXDB_GIF",
+    "gif": "0069",
+    "muestra": "barbell overhead squat [upper legs/barbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 48,
+    "nombre": "Peso muerto sumo + jalón alto (34/25 kg)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Kettlebell_Sumo_High_Pull",
+    "muestra": "Kettlebell Sumo High Pull"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 49,
+    "nombre": "Lanzamientos a pared (9/6 kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "0550",
+    "muestra": "kettlebell thruster [shoulders/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 50,
+    "nombre": "Balanceo con kettlebell (americano, 24/16 kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "0549",
+    "muestra": "kettlebell swing [upper legs/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 51,
+    "nombre": "Snatch con mancuerna",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "One-Arm_Kettlebell_Snatch",
+    "muestra": "One-Arm Kettlebell Snatch"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 52,
+    "nombre": "Clean & Jerk",
+    "tipo": "EXDB_GIF",
+    "gif": "0537",
+    "muestra": "kettlebell one arm clean and jerk [shoulders/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 53,
+    "nombre": "Sentadillas frontales (61/43 kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "0042",
+    "muestra": "barbell front squat [upper legs/barbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 54,
+    "nombre": "Push Jerk",
+    "tipo": "EXDB_GIF",
+    "gif": "1700",
+    "muestra": "dumbbell push press [shoulders/dumbbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 55,
+    "nombre": "Sentadillas traseras (84/61 kg)",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Barbell_Full_Squat",
+    "muestra": "Barbell Full Squat"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 56,
+    "nombre": "Clean en sentadilla desde colgado",
+    "tipo": "EXDB_GIF",
+    "gif": "0648",
+    "muestra": "power clean [upper legs/barbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 57,
+    "nombre": "Remo (ritmo moderado, 500m)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 58,
+    "nombre": "Assault Bike (20/15 cal)",
+    "tipo": "EXDB_GIF",
+    "gif": "0003",
+    "muestra": "air bike [waist/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 59,
+    "nombre": "Carrera (400m-800m)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 60,
+    "nombre": "Doble salto a la comba",
+    "tipo": "EXDB_GIF",
+    "gif": "2612",
+    "muestra": "jump rope [cardio/rope]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 61,
+    "nombre": "Ski Erg (500m)",
+    "tipo": "EXDB_GIF",
+    "gif": "2142",
+    "muestra": "ski ergometer [upper arms/skierg machine]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 62,
+    "nombre": "Burpee + salto largo",
+    "tipo": "EXDB_GIF",
+    "gif": "1160",
+    "muestra": "burpee [cardio/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 63,
+    "nombre": "Subidas a cajón (rápidas, 24/20\")",
+    "tipo": "EXDB_GIF",
+    "gif": "1374",
+    "muestra": "box jump down with one leg stabilization [lower legs/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 64,
+    "nombre": "Carreras de ida y vuelta (25 pies)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 65,
+    "nombre": "Abdominales en GHD",
+    "tipo": "EXDB_GIF",
+    "gif": "0456",
+    "muestra": "flexion leg sit up (bent knee) [waist/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 66,
+    "nombre": "Balanceos en posición hueca",
+    "tipo": "EXDB_GIF",
+    "gif": "2135",
+    "muestra": "weighted front plank [waist/weighted]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 67,
+    "nombre": "Extensiones de cadera (GHD)",
+    "tipo": "EXDB_GIF",
+    "gif": "0130",
+    "muestra": "bench hip extension [upper legs/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 68,
+    "nombre": "Aguante en soporte de anillas",
+    "tipo": "EXDB_GIF",
+    "gif": "0677",
+    "muestra": "ring dips [upper arms/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 69,
+    "nombre": "Marcha del granjero (pesado)",
+    "tipo": "EXDB_GIF",
+    "gif": "2133",
+    "muestra": "farmers walk [upper legs/dumbbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 70,
+    "nombre": "Turkish Get-Up",
+    "tipo": "EXDB_GIF",
+    "gif": "0551",
+    "muestra": "kettlebell turkish get up (squat style) [upper legs/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 71,
+    "nombre": "Muscle-Ups en barra",
+    "tipo": "EXDB_GIF",
+    "gif": "0631",
+    "muestra": "muscle up [back/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 72,
+    "nombre": "Muscle-Ups en anillas",
+    "tipo": "EXDB_GIF",
+    "gif": "0631",
+    "muestra": "muscle up [back/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 73,
+    "nombre": "Flexiones en pino (HSPU)",
+    "tipo": "EXDB_GIF",
+    "gif": "3302",
+    "muestra": "handstand [upper arms/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 74,
+    "nombre": "Caminar en pino",
+    "tipo": "EXDB_GIF",
+    "gif": "3302",
+    "muestra": "handstand [upper arms/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 75,
+    "nombre": "Escalada de cuerda (15 pies)",
+    "tipo": "EXDB_GIF",
+    "gif": "0680",
+    "muestra": "rope climb [back/rope]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 76,
+    "nombre": "HSPU en déficit (4\")",
+    "tipo": "EXDB_GIF",
+    "gif": "3302",
+    "muestra": "handstand [upper arms/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 77,
+    "nombre": "Muscle-Ups estrictos",
+    "tipo": "EXDB_GIF",
+    "gif": "0631",
+    "muestra": "muscle up [back/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 78,
+    "nombre": "Sentadilla a una pierna con peso (Pistol)",
+    "tipo": "EXDB_GIF",
+    "gif": "0544",
+    "muestra": "kettlebell pistol squat [upper legs/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 79,
+    "nombre": "L-Sit (anillas/paralelas)",
+    "tipo": "EXDB_GIF",
+    "gif": "3419",
+    "muestra": "l-sit on floor [waist/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 80,
+    "nombre": "Burpee + Muscle-Up en barra",
+    "tipo": "EXDB_GIF",
+    "gif": "1160",
+    "muestra": "burpee [cardio/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 81,
+    "nombre": "Snatch completo (61/43 kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "0529",
+    "muestra": "kettlebell double snatch [shoulders/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 82,
+    "nombre": "Snatch en sentadilla (pesado)",
+    "tipo": "EXDB_GIF",
+    "gif": "0529",
+    "muestra": "kettlebell double snatch [shoulders/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 83,
+    "nombre": "Clean en sentadilla (pesado, 84/61 kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "0648",
+    "muestra": "power clean [upper legs/barbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 84,
+    "nombre": "Thrusters (pesado, 61/43 kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "0550",
+    "muestra": "kettlebell thruster [shoulders/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 85,
+    "nombre": "Sentadilla sobre cabeza (pesado)",
+    "tipo": "EXDB_GIF",
+    "gif": "0069",
+    "muestra": "barbell overhead squat [upper legs/barbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 86,
+    "nombre": "Clean & Jerk (pesado, 84/61 kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "0537",
+    "muestra": "kettlebell one arm clean and jerk [shoulders/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 87,
+    "nombre": "Devil Press (pesado, mancuernas 22,5/15 kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "1293",
+    "muestra": "dumbbell press on exercise ball [chest/dumbbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 88,
+    "nombre": "Cluster (61/43 kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "0550",
+    "muestra": "kettlebell thruster [shoulders/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 89,
+    "nombre": "Zancadas caminando con peso sobre cabeza (pesado)",
+    "tipo": "EXDB_GIF",
+    "gif": "1460",
+    "muestra": "walking lunge [upper legs/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 90,
+    "nombre": "Peso muerto (pesado, 143/102 kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 91,
+    "nombre": "Snatch en sentadilla desde colgado",
+    "tipo": "EXDB_GIF",
+    "gif": "0529",
+    "muestra": "kettlebell double snatch [shoulders/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 92,
+    "nombre": "Split Jerk (pesado)",
+    "tipo": "EXDB_GIF",
+    "gif": "1700",
+    "muestra": "dumbbell push press [shoulders/dumbbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 93,
+    "nombre": "Remo (ritmo rápido, 1000m)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 94,
+    "nombre": "Assault Bike (50/35 cal)",
+    "tipo": "EXDB_GIF",
+    "gif": "0003",
+    "muestra": "air bike [waist/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 95,
+    "nombre": "Carrera (1 milla)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 96,
+    "nombre": "Triple salto a la comba",
+    "tipo": "EXDB_GIF",
+    "gif": "2612",
+    "muestra": "jump rope [cardio/rope]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 97,
+    "nombre": "Ski Erg (1000m)",
+    "tipo": "EXDB_GIF",
+    "gif": "2142",
+    "muestra": "ski ergometer [upper arms/skierg machine]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 98,
+    "nombre": "Pies a barra (estrictos)",
+    "tipo": "EXDB_GIF",
+    "gif": "0456",
+    "muestra": "flexion leg sit up (bent knee) [waist/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 100,
+    "nombre": "Fondos en anillas (con peso)",
+    "tipo": "EXDB_GIF",
+    "gif": "0677",
+    "muestra": "ring dips [upper arms/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 101,
+    "nombre": "HSPU sin pared",
+    "tipo": "EXDB_GIF",
+    "gif": "3302",
+    "muestra": "handstand [upper arms/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 102,
+    "nombre": "Escalada de cuerda sin piernas",
+    "tipo": "EXDB_GIF",
+    "gif": "0680",
+    "muestra": "rope climb [back/rope]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 103,
+    "nombre": "HSPU en anillas",
+    "tipo": "EXDB_GIF",
+    "gif": "3302",
+    "muestra": "handstand [upper arms/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 104,
+    "nombre": "Escalada de clavijas (Pegboard)",
+    "tipo": "EXDB_GIF",
+    "gif": "0680",
+    "muestra": "rope climb [back/rope]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 105,
+    "nombre": "Muscle-Ups en barra (estrictos)",
+    "tipo": "EXDB_GIF",
+    "gif": "0631",
+    "muestra": "muscle up [back/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 106,
+    "nombre": "Caminar en pino (50 pies sin pausa)",
+    "tipo": "EXDB_GIF",
+    "gif": "3302",
+    "muestra": "handstand [upper arms/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 107,
+    "nombre": "Muscle-Up en barra a L-Sit",
+    "tipo": "EXDB_GIF",
+    "gif": "0631",
+    "muestra": "muscle up [back/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 108,
+    "nombre": "Snatch (competición, 84/61 kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "0529",
+    "muestra": "kettlebell double snatch [shoulders/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 109,
+    "nombre": "Clean & Jerk (competición, 111/84 kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "0537",
+    "muestra": "kettlebell one arm clean and jerk [shoulders/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 110,
+    "nombre": "Sentadilla sobre cabeza (pesado, 84/61 kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "0069",
+    "muestra": "barbell overhead squat [upper legs/barbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 111,
+    "nombre": "Thrusters (competición, 84/61 kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "0550",
+    "muestra": "kettlebell thruster [shoulders/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 112,
+    "nombre": "Peso muerto (esfuerzo máximo, 180+/136+ kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "0032",
+    "muestra": "barbell deadlift [upper legs/barbell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 113,
+    "nombre": "Balance de Snatch (pesado)",
+    "tipo": "EXDB_GIF",
+    "gif": "0529",
+    "muestra": "kettlebell double snatch [shoulders/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 114,
+    "nombre": "Complejo: Clean en sentadilla + Sentadilla frontal + Jerk",
+    "tipo": "EXDB_GIF",
+    "gif": "0537",
+    "muestra": "kettlebell one arm clean and jerk [shoulders/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 115,
+    "nombre": "Power Snatch (toque y sigue, 61/43 kg)",
+    "tipo": "EXDB_GIF",
+    "gif": "0529",
+    "muestra": "kettlebell double snatch [shoulders/kettlebell]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 116,
+    "nombre": "Remo (ritmo élite, 2000m)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 117,
+    "nombre": "Carrera (5K)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 118,
+    "nombre": "Assault Bike (100 cal)",
+    "tipo": "EXDB_GIF",
+    "gif": "0003",
+    "muestra": "air bike [waist/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 120,
+    "nombre": "Volteo de neumático en equipo (Worm)",
+    "tipo": "EXDB_GIF",
+    "gif": "2459",
+    "muestra": "tire flip [upper legs/tire]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 121,
+    "nombre": "Wall Walk (subida a la pared)",
+    "tipo": "EXDB_GIF",
+    "gif": "3302",
+    "muestra": "handstand [upper arms/body weight]"
+  },
+  {
+    "src": "crossfit",
+    "disciplina": null,
+    "id": 122,
+    "nombre": "Empuje de trineo (Sled Push)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 1,
+    "nombre": "Natación 50m libre - Oficial",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 2,
+    "nombre": "Natación 100m libre - Oficial",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 3,
+    "nombre": "Buceo/Apnea 25m - Oficial",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 4,
+    "nombre": "Técnica de crol - 400m",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 5,
+    "nombre": "Series 50m sprint",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 6,
+    "nombre": "Apnea estática",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 7,
+    "nombre": "Buceo dinámico 50m",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 8,
+    "nombre": "Trepa de cuerda 6m - Oficial (H)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 9,
+    "nombre": "Trepa de cuerda 5.5m - Oficial (M)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 10,
+    "nombre": "Dominadas agarre prono",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 11,
+    "nombre": "Trepa con piernas",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 12,
+    "nombre": "Trepa sin piernas parcial (3m)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 13,
+    "nombre": "Isométrico en cuerda",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 14,
+    "nombre": "Dominadas máximas 30 seg - Oficial",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 15,
+    "nombre": "Dominadas asistidas banda",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Band_Assisted_Pull-Up",
+    "muestra": "Band Assisted Pull-Up"
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 16,
+    "nombre": "Negativas de dominada",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 17,
+    "nombre": "Dominadas explosivas",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 18,
+    "nombre": "Series máximas de dominadas",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 19,
+    "nombre": "Carrera 100m - Oficial",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 20,
+    "nombre": "Carrera 200m - Oficial",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 21,
+    "nombre": "Sprints 60m",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 22,
+    "nombre": "Técnica de salida",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 23,
+    "nombre": "Series HIIT 400m",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 24,
+    "nombre": "Carrera 2800m - Oficial",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 25,
+    "nombre": "Carrera 3000m - Oficial",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 26,
+    "nombre": "Carrera continua 5km",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 27,
+    "nombre": "Intervalos 1000m",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 28,
+    "nombre": "Fartlek 30 minutos",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 29,
+    "nombre": "Press Banca 40kg - Oficial (H)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 30,
+    "nombre": "Press Banca 30kg - Oficial (M)",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 31,
+    "nombre": "Press banca fuerza",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Bench_Press_-_Powerlifting",
+    "muestra": "Bench Press - Powerlifting"
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 32,
+    "nombre": "Press banca resistencia",
+    "tipo": "FEDB_JPG_ESTATICO",
+    "gif": "Bench_Press_-_Powerlifting",
+    "muestra": "Bench Press - Powerlifting"
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 33,
+    "nombre": "Flexiones máximas - Oficial",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 34,
+    "nombre": "Flexiones estándar",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 35,
+    "nombre": "Flexiones explosivas",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 36,
+    "nombre": "Series máximas flexiones",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 37,
+    "nombre": "Lanzamiento balón medicinal 5kg (H) - Oficial",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 38,
+    "nombre": "Lanzamiento balón medicinal 3kg (M) - Oficial",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 39,
+    "nombre": "Técnica de lanzamiento",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 40,
+    "nombre": "Lanzamientos potencia",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 41,
+    "nombre": "Plancha abdominal",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 42,
+    "nombre": "Burpees",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  },
+  {
+    "src": "bomberos",
+    "disciplina": null,
+    "id": 43,
+    "nombre": "Sentadillas peso corporal",
+    "tipo": "SIN_GIF",
+    "gif": "",
+    "muestra": ""
+  }
+]

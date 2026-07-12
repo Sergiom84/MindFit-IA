@@ -1,0 +1,98 @@
+# Auditoría del catálogo de ejercicios y gifs · 2026-07-12
+
+Revisión completa de coherencia ejercicio↔metodología y de los gifs/imágenes asignados,
+sobre la BD de producción Supabase (`sbqcnlwpvjavmljzkmfy`, esquema `app`).
+
+## Infraestructura de la auditoría
+
+- **Backup local**: `backups/app-schema-20260712.dump` (pg_dump -Fc del esquema `app` completo, PG17, 3,2 MB).
+- **Sandbox Docker**: contenedor `entrenaconia-audit-pg` (postgres:17, puerto local **55432**, pwd `audit123`) con el backup restaurado (139 tablas). Las pruebas de UPDATE se validaron ahí antes de tocar producción.
+- **Datos exportados**: `backend/output/catalog-audit/` → `ejercicios.json` (515), `ejercicios_crossfit.json` (120), `ejercicios_bomberos.json` (43), `gif_map.json`, `gif_verdicts.json` (555 veredictos), `broken_urls.json`, `exercisedb_numeric.json` (mapeo id→nombre de los gifs).
+
+## Alcance
+
+| Tabla                                                           | Filas | Contenido                                                                                                              |
+| --------------------------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------- |
+| `app.ejercicios`                                                | 515   | 7 disciplinas: hipertrofia 110, casa 100, powerlifting 77, halterofilia 65, calistenia 65, funcional 54, heavy_duty 44 |
+| `app."Ejercicios_CrossFit"`                                     | 120   | catálogo CrossFit (legacy, sigue activo)                                                                               |
+| `app."Ejercicios_Bomberos"`                                     | 43    | pruebas de oposición                                                                                                   |
+| `app."Ejercicios_Guardia_Civil"` / `"Ejercicios_Policia_Local"` | 0     | vacías                                                                                                                 |
+
+## 1. Coherencia ejercicio↔metodología
+
+Veredictos por disciplina (auditoría con revisión de los ~680 ejercicios uno a uno):
+
+| Disciplina   | Veredicto               | Problema principal                                                                                                                                                                                                                                                                                           |
+| ------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Halterofilia | ✅ Coherente (la mejor) | Progresiones en texto libre no enlazables (~83% punteros muertos)                                                                                                                                                                                                                                            |
+| Powerlifting | ✅ Coherente            | `progresion_desde/hacia` 100% null (única disciplina sin cadena)                                                                                                                                                                                                                                             |
+| Heavy Duty   | ✅ Con ajustes          | 5 pares de nombres duplicados exactos entre niveles (313/322 Dips, 318/325 talones, 287/302 pec-deck, 295/315 prensa, 296/314 extensión); triple "jalón supino" (305/311/321)                                                                                                                                |
+| Hipertrofia  | ⚠️ Necesita ajustes     | Bloque de fuerza 3-6 reps sin etiquetar (ids 339,345,368,371,379,393); prensa de piernas cuadruplicada (349/385/361/386)                                                                                                                                                                                     |
+| Calistenia   | ✅ Con reservas         | `descanso_seg` null en los 65; grafo de progresiones roto (nodo fantasma "Dominada strict"; ~70% referencias irresolubles)                                                                                                                                                                                   |
+| Casa         | ✅ Aprobado             | Progresiones inexistentes (100% null); 3 ejercicios con silla como cajón/anclaje (120, 113, 118) cuestionables por seguridad; 163 Shoulder Dislocates mal clasificado como Avanzado                                                                                                                          |
+| Funcional    | ✅ Con reservas         | Progresiones inexistentes; 210 V-sit con dosis irreal (3x20-40s); 184 landmine/214 yoke exigen material de gimnasio                                                                                                                                                                                          |
+| CrossFit     | ⚠️ Apto con reservas    | Movimientos y cargas RX correctos, PERO columnas del motor vacías: `time_domain`, `pairing_tags`, `avoid_pairing_with` null en 120/120 y `supports_strength_block=0` en TODOS (contradice `wod_types: Strength`); id 111 nota "Fran weight" errónea (Fran es 43/30, id 43); id 120 mezcla neumático/Worm/Pig |
+| Bomberos     | ✅ Con reservas         | Pruebas y baremos fieles a convocatorias reales (incl. 2.800 m Madrid); PERO `ejecucion/consejos/errores_evitar` null en 43/43; falta circuito de agilidad; campo baremo mezcla baremo real y prescripción de series                                                                                         |
+
+**Problemas transversales** (arreglar a nivel de esquema, no fila a fila):
+
+1. `progresion_desde/hacia` es texto libre: no enlaza con nombres del catálogo en ninguna disciplina (rotas las cadenas de progresión si algo las consume).
+2. `tempo` solo poblado en halterofilia y funcional.
+3. Los textos `como_hacerlo` son correctos en el ~100% de los casos revisados (ningún texto describe otro ejercicio). El contenido pedagógico es bueno; el problema está en los metadatos.
+
+## 2. Gifs: el problema gordo
+
+**Cobertura** (698 ejercicios): 287 con gif animado de ExerciseDB, 268 con **foto estática** JPG
+de free-exercise-db (no gif), 123 sin nada (Bomberos 40/43 sin imagen).
+
+**Solo existen 36 gifs animados únicos** en el bucket `exercise-gifs/crossfit/` para esos 287
+ejercicios. Se asignaron con un matcher difuso (`backend/scripts/map-exercise-gifs.mjs` y
+`scripts/match_crossfit_gifs.mjs`, con mapeos manuales ya erróneos de origen).
+
+**Veredicto de correspondencia (555 ejercicios con imagen):** OK 265 (48%) · PARCIAL 180 (32%) · **MAL 110 (20%)**.
+
+Los ~110 MAL se concentran en ~10 "gifs comodín":
+
+| Gif real                                 | Se usa (mal) para                                                      |
+| ---------------------------------------- | ---------------------------------------------------------------------- |
+| kettlebell double snatch                 | TODOS los snatch con barra (halterofilia + CrossFit, ~16 ejercicios)   |
+| kettlebell one-arm clean & jerk          | todos los clean / clean&jerk con barra                                 |
+| dumbbell push press                      | strict press, push jerk, split jerk, Sotts press… (8+)                 |
+| air bike (¡es el abdominal "bicicleta"!) | las 4 filas de Assault Bike                                            |
+| archer pull-up                           | dominadas, dead hang, scap pulls y hasta remos invertidos (23 usos)    |
+| clap push-up                             | todas las variantes de flexión, incl. flexión en pared de principiante |
+| smith chair squat                        | sentadillas al aire / asistidas (¡máquina Smith para peso corporal!)   |
+| box jump down                            | step-ups y box jumps (movimiento inverso)                              |
+| barbell side split squat                 | sentadillas búlgaras en 5 disciplinas                                  |
+| kettlebell thruster                      | wall balls                                                             |
+
+Peor disciplina: **halterofilia (24 MAL de 64)** — el usuario nunca ve el levantamiento con barra.
+Mejores: heavy_duty (1 MAL) e hipertrofia (6 MAL), porque free-exercise-db cubre bien máquinas/mancuernas.
+
+**Corregido ya en producción** (2026-07-12, probado antes en Docker): 5 URLs 404 con ruta
+malformada `/exercises/<slug>/images/<slug>/0.jpg` en `Ejercicios_CrossFit` (ids 5, 13, 48, 51, 55).
+
+## 3. Mejor fuente de gifs/vídeos (investigación jul-2026)
+
+Recomendación: **activos autoalojados con pago único** (compatibles con Supabase Storage y la app Android). Evitar suscripciones que prohíben almacenar los medios.
+
+1. **ExerciseDB dataset de pago** (exercisedb.io): 1.394 gifs, mismos ids que ya usamos → migración casi nula. Mobile 299 $ / Cross-Platform 599 $, pago único, autoalojable. Cubre el ~80% del catálogo (gimnasio/casa/funcional/powerlifting básico).
+2. **Gymvisual a la carta** (~0,90 $/gif en packs): para los huecos — halterofilia (tienen snatch/clean&jerk), CrossFit (kipping, wall ball…), calistenia avanzada, oposiciones. ~150-250 gifs ≈ 150-300 $. Licencia N-CRFL perpetua, descarga directa.
+3. **free-exercise-db** (dominio público): mantener como fallback estático donde ya acierta.
+4. Nichos imposibles: encargo en Fiverr de Gymvisual (~10 $/animación) o embed puntual de YouTube.
+
+**Coste total estimado: 450-900 $ una sola vez.** Alternativas valoradas y descartadas: MuscleWiki API (vídeos excelentes pero **prohíbe almacenarlos** → ata a su CDN y suscripción), RapidAPI ExerciseDB (pagar para siempre por lo mismo), datasets de Kaggle/GitHub con gifs de ExerciseDB re-empaquetados (**sin derechos, riesgo legal en Play Store**), gym-animations.com (denuncias por contenido robado), wger (solo ~286 imágenes estáticas), ExRx/WorkoutLabs (caros/fricción).
+
+## 4. Plan de corrección propuesto
+
+**Fase A — datos (sin coste, ya testeable en Docker):**
+
+1. Poner `gif_url = NULL` en los 110 MAL (mejor sin gif que con gif de otro ejercicio) o remapear los que tengan JPG correcto en free-exercise-db.
+2. Rellenar `descanso_seg` de calistenia (65 filas).
+3. Normalizar `progresion_desde/hacia` a nombres exactos del catálogo (calistenia primero: crear nodos que faltan o corregir alias).
+4. Deduplicar heavy_duty (renombrar pares duplicados) y consolidar las 4 prensas de hipertrofia.
+5. Etiquetar el bloque fuerza de hipertrofia o ajustar reps a 6-15.
+6. CrossFit: poblar `supports_strength_block`, `time_domain`, `pairing_tags`; corregir nota id 111; separar id 120.
+7. Bomberos: redactar `ejecucion/consejos/errores_evitar` (43) y separar semántica baremo vs prescripción.
+
+**Fase B — medios (requiere decisión de compra):** 8. Comprar ExerciseDB dataset (299-599 $) → reemplaza los 36 gifs comodín y da gif animado a los 268 que hoy tienen foto estática. 9. Comprar en Gymvisual los ~100-150 huecos (halterofilia/CrossFit/calistenia/oposiciones). 10. Subir todo a `exercise-gifs/` con nomenclatura por slug y remapear `gif_url` por id (no por fuzzy match).
