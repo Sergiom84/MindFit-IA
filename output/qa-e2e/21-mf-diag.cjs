@@ -22,45 +22,47 @@ const btns = async (p) => (await p.getByRole('button').allTextContents()).filter
   console.log('PLAN', planId, 'primera sesión', JSON.stringify(first));
 
   const { browser, page } = await launch({ dateAt: `${first.d}T08:00:00`, speed: true, useState: true, injectToken: longToken });
+  page.on('console', m => { if (m.type() === 'error') console.log('  [console.error]', m.text().replace(/\n/g, ' ').slice(0, 220)); });
+  page.on('pageerror', e => console.log('  [pageerror]', String(e).replace(/\n/g, ' ').slice(0, 220)));
+  page.on('response', async r => {
+    if (r.status() >= 400) {
+      let body = ''; try { body = (await r.text()).slice(0, 200); } catch {}
+      console.log(`  [NET ${r.status()}] ${r.url().replace(/^.*\/api/, '/api').slice(0, 80)} → ${body.replace(/\n/g, ' ')}`);
+    }
+  });
   await page.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForTimeout(3000);
   await page.getByText('Rutinas', { exact: true }).last().click().catch(() => {});
   await page.waitForTimeout(3500);
-  console.log('\n=== HOY (inicial) ===\nBTNS:', JSON.stringify(await btns(page)));
-  console.log('TXT:', (await short(page)).slice(0, 900));
-  await shot(page, '21-mf-hoy-inicial');
 
-  // Entrar y volcar la secuencia cada 2s durante 24s
-  const b = page.getByRole('button', { name: /Iniciar Entrenamiento/i }).first();
   console.log('\n>>> CLICK Iniciar Entrenamiento');
-  await b.click({ force: true }).catch(() => {});
+  await page.getByRole('button', { name: /Iniciar Entrenamiento/i }).first().click({ force: true }).catch(() => {});
   await page.waitForTimeout(3000);
   console.log('>>> CLICK Saltar calentamiento');
-  await page.getByRole('button', { name: /Saltar calentamiento/i }).first().click({ force: true }).catch((e) => console.log('  saltar fail', e.message.split('\n')[0]));
-  await page.waitForTimeout(2000);
-  console.log('>>> CLICK 45s (tiempo por serie)'); await page.getByRole('button', { name: /^45s$/i }).first().click({ force: true }).catch(() => {});
-  await page.waitForTimeout(600);
-  page.on('console', m => { if (m.type() === 'error') console.log('  [console.error]', m.text().slice(0, 160)); });
-  page.on('pageerror', e => console.log('  [pageerror]', String(e).slice(0, 160)));
-  console.log('>>> CLICK Comenzar (SIN force)');
-  await page.getByRole('button', { name: /Comenzar/i }).last().click({ timeout: 5000 }).then(() => console.log('  click OK')).catch((e) => console.log('  CLICK FAIL:', e.message.split('\n')[0]));
-  // Observar 60s: ¿aparece "Registrar Serie" solo (timer) o hay que pausar?
-  for (let i = 0; i < 20; i++) {
-    await page.waitForTimeout(3000);
+  await page.getByRole('button', { name: /Saltar calentamiento/i }).first().click({ force: true }).catch(() => {});
+  await page.waitForTimeout(2500);
+  // ¿Qué elemento cubre el botón "Comenzar"?
+  const cover = await page.evaluate(() => {
+    const btn = [...document.querySelectorAll('button')].find(b => /Comenzar/.test(b.textContent) && !/Entrenamiento|Principal/.test(b.textContent));
+    if (!btn) return { found: false };
+    const r = btn.getBoundingClientRect();
+    const cx = Math.round(r.x + r.width / 2), cy = Math.round(r.y + r.height / 2);
+    const top = document.elementFromPoint(cx, cy);
+    const chain = []; let el = top;
+    for (let i = 0; i < 6 && el; i++) { chain.push(`${el.tagName}.${(el.className && el.className.toString ? el.className.toString().slice(0, 40) : '')}`); el = el.parentElement; }
+    const cs = window.getComputedStyle(btn);
+    return { found: true, rect: { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) }, cx, cy, btnIsTop: top === btn || btn.contains(top), topChain: chain, pointerEvents: cs.pointerEvents, vw: window.innerWidth, vh: window.innerHeight };
+  });
+  console.log('COVER:', JSON.stringify(cover, null, 0));
+  console.log('>>> CLICK Comenzar (force)');
+  await page.getByRole('button', { name: /Comenzar/i }).last().click({ force: true }).catch(() => {});
+  for (let i = 0; i < 10; i++) {
+    await page.waitForTimeout(2500);
     const bs = await btns(page);
-    const hasReg = bs.some(x => /Registrar Serie/i.test(x));
-    const hasPause = bs.some(x => /Pausar/i.test(x));
-    const timer = ((await short(page)).match(/\d:\d\d|\d\d:\d\d|--:--/g) || []).slice(0, 3);
-    console.log(`[${i * 3}s] reg=${hasReg} pausar=${hasPause} timer=${JSON.stringify(timer)} btns=${JSON.stringify(bs.slice(5))}`);
-    if (hasReg) {
-      console.log('   >>> Registrar Serie visible → abrir');
-      await page.getByRole('button', { name: /Registrar Serie/i }).first().click({ force: true }).catch(() => {});
-      await page.waitForTimeout(1000);
-      console.log('   modal btns:', JSON.stringify((await btns(page)).slice(5)));
-      console.log('   inputs:', await page.locator('input:visible').count());
-      break;
-    }
-    if (hasPause && i === 1) { console.log('   >>> pauso'); await page.getByRole('button', { name: /^Pausar$/i }).first().click({ force: true }).catch(() => {}); }
+    const tx = await short(page);
+    const err = /Error cargando datos: ([^|]+)/.exec(tx);
+    console.log(`[${i * 2.5}s] reg=${bs.some(x => /Registrar Serie/i.test(x))} pausar=${bs.some(x => /Pausar/i.test(x))} ${err ? 'ERROR=' + err[1].trim() : ''} btns=${JSON.stringify(bs.slice(5, 12))}`);
+    if (err) { console.log('   BODY:', tx.slice(0, 700)); break; }
   }
   await shot(page, '21-mf-secuencia');
   await browser.close();

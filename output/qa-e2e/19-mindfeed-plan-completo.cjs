@@ -2,11 +2,12 @@
 // Registra usuario → genera plan manual el lunes → completa TODAS las sesiones
 // (un contexto por día) → revisa Progreso e Historial.
 //
-// ⚠️ BLOQUEADO (2026-07-12): con el plan hipertrofiav2 generado por API, el reproductor
-// (ExerciseSessionView vía Hoy) NO arranca el set: "Comenzar" no es accionable (queda
-// cubierto) y la sesión cae a estado de error "Reintentar". Codex sí validó MindFeed con
-// plan generado por UI (flujo de finde), así que la sospecha es que el plan por API no
-// trae la config que el player necesita. Requiere depurar RoutineSessionModal/ExerciseSessionView.
+// ESTADO: el player MindFeed FUNCIONA (flujo por set: cerrar "Series de aproximación"
+// con Entendido → Off tiempo → Comenzar → Avanzar → modal RIR → Guardar Serie → save-set
+// 200 confirmado en BD). PERO la automatización de una sesión completa se atasca: tras el
+// 1er guardado exitoso, los siguientes clics de "Guardar Serie" no disparan la petición
+// (la serie no avanza y el modal se reabre) — parece un problema de estado/auth con el
+// token inyectado en el arnés, no del player. El walker aborta el día con BUCLE_GUARDADO.
 //
 // Uso: node 19-mindfeed-plan-completo.cjs [YYYY-MM-DD lunes] [nivel]
 const path = require('path');
@@ -56,44 +57,56 @@ async function clickIf(page, rx, { wait = 0 } = {}) {
   return null;
 }
 
-// Flujo de serie en ExerciseSessionView (MindFeed):
-//  Comenzar → (timer) → Pausar para que aparezca "Registrar Serie (RIR)" →
-//  abre modal → reps + RIR 2 + Guardar Serie.
-async function handleSerie(page) {
-  // 1) Modal de registro abierto → rellenar y guardar
+// Flujo de UN set en MindFeed (ExerciseSessionView + SeriesTrackingModal):
+//  Entendido (cierra "Series de aproximación") → Off (tiempo por serie 0) → Comenzar →
+//  Avanzar (avance manual → descanso → auto-abre modal RIR) → reps+peso+RIR2+Guardar Serie.
+async function handleSet(page) {
+  // 0) Cerrar modal "Series de aproximación" (z-85) que tapa "Comenzar"
+  const entendido = page.getByRole('button', { name: /^Entendido$/i });
+  if (await entendido.count() && await entendido.first().isEnabled().catch(() => false)) {
+    await entendido.first().click({ force: true }).catch(() => {});
+    await page.waitForTimeout(400); return 'entendido';
+  }
+  // 1) Modal RIR abierto → rellenar reps + peso + RIR 2 → Guardar Serie
   const save = page.getByRole('button', { name: /Guardar Serie/i });
   if (await save.count()) {
-    const reps = page.locator('input[placeholder="10"]:visible, input[type="number"]:visible').first();
+    const reps = page.locator('input[placeholder="10"]:visible').first();
     if (await reps.count()) await reps.fill('10').catch(() => {});
-    const weight = page.locator('input[placeholder*="75"]:visible, input[placeholder*="peso"]:visible').first();
-    if (await weight.count()) { const v = await weight.inputValue().catch(() => ''); if (!v) await weight.fill('20').catch(() => {}); }
+    const nums = page.locator('input[type="number"]:visible');
+    const n = await nums.count();
+    for (let i = 0; i < n; i++) { const v = await nums.nth(i).inputValue().catch(() => 'x'); if (!v) await nums.nth(i).fill('20').catch(() => {}); }
     const rir2 = page.getByRole('button', { name: /^2$/ });
     if (await rir2.count()) await rir2.first().click({ force: true, timeout: 3000 }).catch(() => {});
-    await page.waitForTimeout(250);
+    await page.waitForTimeout(200);
     if (await save.first().isEnabled().catch(() => false)) {
       await save.first().click({ force: true }).catch(() => {});
+      // Esperar a que el modal RIR se cierre antes de seguir (evita re-guardar la misma
+      // serie: el walker iría más rápido que el avance de serie de la app).
+      await page.getByRole('button', { name: /Guardar Serie/i }).first().waitFor({ state: 'hidden', timeout: 6000 }).catch(() => {});
+      await page.waitForTimeout(2200); // dar tiempo a que la app avance de serie/ejercicio
       return 'serie-guardada';
     }
+    return null;
   }
-  // 2) Botón "Registrar Serie (RIR)" visible → abrir el modal
-  const reg = page.getByRole('button', { name: /Registrar Serie/i });
-  if (await reg.count() && await reg.first().isEnabled().catch(() => false)) {
-    await reg.first().click({ force: true }).catch(() => {});
-    await page.waitForTimeout(600);
-    return 'abrir-registro';
+  // 2) Avance manual (con tiempo Off) → dispara descanso → auto-abre modal RIR
+  const adv = page.getByRole('button', { name: /^Avanzar$/i });
+  if (await adv.count() && await adv.first().isEnabled().catch(() => false)) {
+    await adv.first().click({ force: true }).catch(() => {});
+    await page.waitForTimeout(500); return 'avanzar';
   }
-  // 3) Set en marcha (timer): pausar para que aparezca "Registrar Serie"
-  const pausar = page.getByRole('button', { name: /^Pausar$/i });
-  if (await pausar.count() && await pausar.first().isEnabled().catch(() => false)) {
-    await pausar.first().click({ force: true }).catch(() => {});
-    await page.waitForTimeout(400);
-    return 'pausar';
+  // 3) Arrancar el set: en fase 'ready' → poner tiempo Off y Comenzar
+  const comenzar = page.getByRole('button', { name: /^Comenzar$/i });
+  if (await comenzar.count() && await comenzar.first().isEnabled().catch(() => false)) {
+    await page.getByRole('button', { name: /^Off$/i }).first().click({ force: true }).catch(() => {});
+    await page.waitForTimeout(200);
+    await comenzar.first().click({ force: true }).catch(() => {});
+    await page.waitForTimeout(400); return 'comenzar';
   }
   return null;
 }
 
 async function walkSession(page, tag, maxSteps = 200) {
-  let stuck = 0, lastSig = '';
+  let stuck = 0, lastSig = '', sameSave = 0;
   for (let step = 0; step < maxSteps; step++) {
     await page.waitForTimeout(700);
     const txt = await short(page);
@@ -106,18 +119,25 @@ async function walkSession(page, tag, maxSteps = 200) {
       return 'COMPLETADA';
     }
 
-    const serie = await handleSerie(page);
-    if (serie) { console.log(`  [${step}] ${serie}`); stuck = 0; lastSig = sig; continue; }
+    const serie = await handleSet(page);
+    if (serie) {
+      console.log(`  [${step}] ${serie}`);
+      // Tope de seguridad: si el modal RIR se re-guarda muchas veces seguidas (la serie
+      // no avanza — problema conocido de estado con token inyectado), abortar la sesión.
+      if (serie === 'serie-guardada') { sameSave++; if (sameSave > 15) { console.log('  BUCLE de guardado (serie no avanza) → abortar día'); return 'BUCLE_GUARDADO'; } }
+      else sameSave = 0;
+      stuck = 0; lastSig = sig; continue;
+    }
 
-    // OJO: NO incluir "Reanudar Entrenamiento" — queda en el fondo del player y, al ir
-    // antes que "Comenzar", el walker lo clicaba en bucle sin arrancar la serie.
+    // handleSet ya gestiona Entendido/Comenzar/Avanzar/Guardar. NO incluir "Reanudar"
+    // ni "Comenzar" aquí (los maneja handleSet). Solo entrada, calentamiento y cierres.
     const prio = [
       /Saltar calentamiento/i, /Comenzar Entrenamiento Principal/i,
       /Iniciar sesión de hoy/i, /Iniciar entrenamiento/i,
       /Empezar sesión/i, /^Entrenar$/i,
       /Siguiente ejercicio/i, /^Completar( ejercicio)?$/i, /Serie completada/i,
-      /^Comenzar$/i, /^Continuar$/i, /^Siguiente$/i, /^Iniciar$/i, /^Empezar$/i, /^Listo$/i,
-      /^Entendido$/i, /Saltar descanso/i, /Omitir descanso/i,
+      /^Continuar$/i, /^Siguiente$/i, /^Iniciar$/i, /^Empezar$/i, /^Listo$/i,
+      /Saltar descanso/i, /Omitir descanso/i,
       /^(Fácil|Óptimo|Bien|Normal)$/i, /Guardar valoración/i,
     ];
     let clicked = null;
