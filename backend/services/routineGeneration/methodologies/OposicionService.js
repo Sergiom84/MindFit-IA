@@ -16,6 +16,8 @@
 
 import { pool } from '../../../db.js';
 import { logger } from '../logger.js';
+import { getUserFullProfile } from '../database/userRepository.js';
+import { extractInjuryText, activeInjuryRules, isContraindicated } from '../injuryContraindications.js';
 
 // Whitelist tabla por oposición (evita inyección: el nombre NUNCA viene del input).
 const OPOSICION_TABLES = {
@@ -292,6 +294,38 @@ export async function generateOposicionPlan(methodology, userId, planData = {}) 
     );
   }
 
+  // 🩹 SEGURIDAD POR LESIÓN: leer limitaciones físicas del perfil y excluir del
+  // pool los movimientos contraindicados (p.ej. rodilla → saltos, sentadillas con
+  // salto, zancadas, carrera, box jump). Mismo filtro compartido que el resto de
+  // metodologías. El motor es determinista, así que este filtro es la barrera real.
+  let injuryText = '';
+  try {
+    const profile = await getUserFullProfile(userId);
+    injuryText = extractInjuryText(profile);
+  } catch (profileError) {
+    logger.warn(`⚠️ [OPOSICION:${oposicionId}] No se pudo leer el perfil para filtrar lesiones: ${profileError.message}`);
+  }
+  const injuryRules = activeInjuryRules(injuryText);
+  const injuryZones = injuryRules.map((r) => r.zona);
+  const excludedByInjury = [];
+  const safeExercises = exercises.filter((ex) => {
+    if (isContraindicated(ex, injuryRules)) {
+      excludedByInjury.push(ex.nombre);
+      return false;
+    }
+    return true;
+  });
+  if (injuryRules.length) {
+    logger.info(
+      `🩹 [OPOSICION:${oposicionId}] Filtro de lesiones activo (${injuryZones.join(', ')}). Excluidos: ${excludedByInjury.length}/${exercises.length}`
+    );
+  }
+  if (safeExercises.length === 0) {
+    throw new Error(
+      `Todas las pruebas de ${label} están contraindicadas por las limitaciones indicadas (${injuryZones.join(', ')}); revisa el perfil.`
+    );
+  }
+
   // 2) Pruebas oficiales (objetivo del plan) para mostrar marcas/baremos.
   const { rows: oficiales } = await pool.query(
     `SELECT nombre, categoria, baremo_hombres, baremo_mujeres
@@ -300,9 +334,9 @@ export async function generateOposicionPlan(methodology, userId, planData = {}) 
       ORDER BY exercise_id`
   );
 
-  // 3) Agrupar por categoría.
+  // 3) Agrupar por categoría (solo ejercicios SEGUROS tras el filtro de lesiones).
   const exercisesByCategory = {};
-  for (const ex of exercises) {
+  for (const ex of safeExercises) {
     (exercisesByCategory[ex.categoria] ||= []).push(ex);
   }
 
@@ -360,6 +394,11 @@ export async function generateOposicionPlan(methodology, userId, planData = {}) 
     fecha_inicio: fechaInicio,
     sessions_per_week: frecuencia,
     objetivo: planData.goals || `Superar las pruebas físicas de ${label}.`,
+    restricciones_lesion: {
+      zonas: injuryZones,
+      limitaciones_texto: injuryText || null,
+      movimientos_excluidos: excludedByInjury
+    },
     pruebas_objetivo: oficiales.map((o) => ({
       nombre: o.nombre,
       categoria: o.categoria,

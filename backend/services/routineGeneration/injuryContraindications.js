@@ -40,7 +40,7 @@ export const INJURY_CONTRAINDICATIONS = [
   {
     zona: 'rodilla',
     match: /rodilla|menisco|ligament|lca|lcp|patel|knee/,
-    avoid: /box ?jump|salto|pistol|squat ?jump|sentadilla con salto|lunge|zancada|wall.?ball|thruster|running|carrera|double.?under|comba|shrimp|sissy|step.?up|subida al caj/
+    avoid: /box ?jump|salto|pistol|squat ?jump|sentadilla con salto|lunge|zancada|wall.?ball|thruster|running|carrera|fartlek|intervalos|double.?under|comba|shrimp|sissy|step.?up|subida al caj/
   },
   {
     zona: 'muñeca',
@@ -53,7 +53,7 @@ export const INJURY_CONTRAINDICATIONS = [
   {
     zona: 'tobillo',
     match: /tobillo|ankle|aquiles/,
-    avoid: /box ?jump|salto|running|carrera|double.?under|comba|pistol|lunge|zancada|jump|jumping/
+    avoid: /box ?jump|salto|running|carrera|fartlek|intervalos|double.?under|comba|pistol|lunge|zancada|jump|jumping/
   },
   {
     zona: 'codo',
