@@ -171,7 +171,9 @@ export default function OposicionesScreen() {
       const result = await generatePlan({ mode: 'manual', ...planData });
       if (result.success && result.plan) {
         setGeneratedPlan(result.plan);
-        if (result.methodology_plan_id) setMethodologyPlanId(result.methodology_plan_id);
+        const planId =
+          result.methodologyPlanId || result.planId || result.methodology_plan_id || result.plan?.methodologyPlanId;
+        if (planId) setMethodologyPlanId(planId);
         setActiveOposicion(null);
         setShowConfirmation(true);
       } else {
@@ -199,10 +201,14 @@ export default function OposicionesScreen() {
         console.log('✅ Plan de Bomberos generado exitosamente:', result);
         setGeneratedPlan(result.plan);
 
-        // Guardar el ID del plan para iniciar la sesión después
-        if (result.methodology_plan_id) {
-          setMethodologyPlanId(result.methodology_plan_id);
-          console.log('📝 Guardado methodology_plan_id:', result.methodology_plan_id);
+        // Guardar el ID del plan para iniciar la sesión después.
+        // El backend devuelve methodologyPlanId/planId (camelCase); mantenemos
+        // methodology_plan_id como fallback por compatibilidad.
+        const planId =
+          result.methodologyPlanId || result.planId || result.methodology_plan_id || result.plan?.methodologyPlanId;
+        if (planId) {
+          setMethodologyPlanId(planId);
+          console.log('📝 Guardado methodology_plan_id:', planId);
         }
 
         setShowBomberosModal(false);
