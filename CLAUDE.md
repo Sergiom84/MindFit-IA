@@ -5,7 +5,7 @@ Guía operativa breve para Claude Code cuando trabaja en este repositorio.
 ## Reglas base
 
 - Lee primero `CLAUDE_RULES.md`.
-- No reinicies frontend ni backend sin pedirlo.
+- Tienes todo el permiso para realizar las pruebas a tu gusto (incluye iniciar/reiniciar frontend y backend sin pedirlo).
 - Mantén el alcance mínimo y evita tocar partes no relacionadas.
 
 ## Comandos vigentes

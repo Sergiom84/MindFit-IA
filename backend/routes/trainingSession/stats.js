@@ -94,7 +94,13 @@ router.get('/stats/progress-data', authenticateToken, async (req, res) => {
            COUNT(DISTINCT mep.id) as total_exercises,
            SUM(CASE WHEN mep.status = 'completed' THEN mep.series_completed ELSE 0 END) as series_completed,
            SUM(CASE WHEN mep.status = 'completed' THEN COALESCE(mep.time_spent_seconds, 0) ELSE 0 END) +
-           COALESCE(mes.warmup_time_seconds, 0) as time_spent_seconds
+           COALESCE((
+             SELECT SUM(COALESCE(w.warmup_time_seconds, 0))
+             FROM app.methodology_exercise_sessions w
+             WHERE w.user_id = $1 AND w.methodology_plan_id = $2
+               AND w.week_number = mes.week_number
+               AND w.session_status = 'completed'
+           ), 0) as time_spent_seconds
          FROM app.methodology_exercise_sessions mes
          LEFT JOIN app.methodology_exercise_progress mep ON mep.methodology_session_id = mes.id
          WHERE mes.user_id = $1 AND mes.methodology_plan_id = $2

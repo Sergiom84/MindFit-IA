@@ -12,8 +12,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* 1 worker: la suite de regresión comparte una única conexión al pooler de
+   * Supabase; ejecutar en paralelo lo agota (EMAXCONNSESSION). */
+  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -27,18 +28,27 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
+    /* Suite de regresión por API (sin navegador). Serie forzada dentro del spec. */
+    {
+      name: 'regresion-api',
+      testMatch: /regresion-.*\.spec\.js/,
+      fullyParallel: false,
+    },
     {
       name: 'chromium',
+      testIgnore: /regresion-.*\.spec\.js/,
       use: { ...devices['Desktop Chrome'] },
     },
 
     {
       name: 'firefox',
+      testIgnore: /regresion-.*\.spec\.js/,
       use: { ...devices['Desktop Firefox'] },
     },
 
     {
       name: 'webkit',
+      testIgnore: /regresion-.*\.spec\.js/,
       use: { ...devices['Desktop Safari'] },
     },
 
