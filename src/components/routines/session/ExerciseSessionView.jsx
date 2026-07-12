@@ -150,6 +150,14 @@ export const ExerciseSessionView = ({
               Intensidad reducida
             </span>
           )}
+
+          {/* 🩹 Precaución por lesión (contraindicación blanda: se mantiene con aviso) */}
+          {exercise?.precaucion_lesion && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 ml-2 bg-amber-500/15 text-amber-200 rounded-md text-xs font-normal border border-amber-400/30">
+              <span className="text-lg">🩹</span>
+              Precaución{exercise?.zona_precaucion ? ` (${exercise.zona_precaucion})` : ''}
+            </span>
+          )}
         </h4>
         <div className="flex items-center gap-3 text-sm">
           <div className="text-gray-200/80">
@@ -167,6 +175,13 @@ export const ExerciseSessionView = ({
       {exercise?.adjustment_note && (
         <div className="mb-4 text-sm text-orange-200 bg-orange-500/10 border border-orange-400/30 rounded-xl px-3 py-2">
           <span className="font-semibold">Nota:</span> {exercise.adjustment_note}
+        </div>
+      )}
+
+      {/* 🩹 Aviso de precaución por lesión (se mantiene el ejercicio con adaptación) */}
+      {exercise?.aviso_lesion && (
+        <div className="mb-4 text-sm text-amber-100 bg-amber-500/10 border border-amber-400/30 rounded-xl px-3 py-2">
+          <span className="font-semibold text-amber-300">🩹 Precaución por lesión:</span> {exercise.aviso_lesion}
         </div>
       )}
 

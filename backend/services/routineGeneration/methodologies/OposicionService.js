@@ -17,7 +17,7 @@
 import { pool } from '../../../db.js';
 import { logger } from '../logger.js';
 import { getUserFullProfile } from '../database/userRepository.js';
-import { extractInjuryText, activeInjuryRules, isContraindicated } from '../injuryContraindications.js';
+import { extractInjuryText, activeInjuryRules, isContraindicated, injuryCaution } from '../injuryContraindications.js';
 
 // Whitelist tabla por oposición (evita inyección: el nombre NUNCA viene del input).
 const OPOSICION_TABLES = {
@@ -128,7 +128,7 @@ function parseSeriesCount(seriesStr) {
  * series, reps_objetivo, descanso_seg, gif_url, como_hacerlo…) como los
  * específicos de oposición (tipo_prueba, baremos, errores_evitar).
  */
-function toPlanExercise(ex, orden, sessionId, { isDeload = false } = {}) {
+function toPlanExercise(ex, orden, sessionId, { isDeload = false, injuryRules = [] } = {}) {
   const { series: seriesRaw, reps } = parseSeriesReps(ex.series_reps_objetivo);
   const baseSeries = parseSeriesCount(seriesRaw);
   let series = seriesRaw || (baseSeries ? String(baseSeries) : '');
@@ -139,6 +139,9 @@ function toPlanExercise(ex, orden, sessionId, { isDeload = false } = {}) {
     series = String(reduced);
     notas = 'Semana de descarga: reduce el volumen, mantén la técnica y recupera.';
   }
+
+  // Contraindicación BLANDA: se mantiene el ejercicio con aviso de precaución.
+  const caution = injuryCaution(ex, injuryRules);
 
   return {
     id: `${sessionId}-E${orden}`,
@@ -161,6 +164,9 @@ function toPlanExercise(ex, orden, sessionId, { isDeload = false } = {}) {
     baremo_hombres: ex.baremo_hombres || null,
     baremo_mujeres: ex.baremo_mujeres || null,
     es_deload: isDeload,
+    precaucion_lesion: Boolean(caution),
+    aviso_lesion: caution ? caution.mensaje : null,
+    zona_precaucion: caution ? caution.zona : null,
     notas
   };
 }
@@ -364,7 +370,7 @@ export async function generateOposicionPlan(methodology, userId, planData = {}) 
         grupos_musculares: tpl.grupos,
         es_deload: deload,
         ejercicios: tpl.ejercicios.map((ex, eIdx) =>
-          toPlanExercise(ex, eIdx + 1, sessionId, { isDeload: deload })
+          toPlanExercise(ex, eIdx + 1, sessionId, { isDeload: deload, injuryRules })
         )
       };
     });
@@ -397,7 +403,10 @@ export async function generateOposicionPlan(methodology, userId, planData = {}) 
     restricciones_lesion: {
       zonas: injuryZones,
       limitaciones_texto: injuryText || null,
-      movimientos_excluidos: excludedByInjury
+      movimientos_excluidos: excludedByInjury,
+      movimientos_con_precaucion: [
+        ...new Set(safeExercises.filter((ex) => injuryCaution(ex, injuryRules)).map((ex) => ex.nombre))
+      ]
     },
     pruebas_objetivo: oficiales.map((o) => ({
       nombre: o.nombre,

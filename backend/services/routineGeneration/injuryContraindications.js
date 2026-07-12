@@ -40,7 +40,14 @@ export const INJURY_CONTRAINDICATIONS = [
   {
     zona: 'rodilla',
     match: /rodilla|menisco|ligament|lca|lcp|patel|knee/,
-    avoid: /box ?jump|salto|pistol|squat ?jump|sentadilla con salto|lunge|zancada|wall.?ball|thruster|running|carrera|fartlek|intervalos|double.?under|comba|shrimp|sissy|step.?up|subida al caj/
+    avoid: /box ?jump|salto|pistol|squat ?jump|sentadilla con salto|lunge|zancada|wall.?ball|thruster|running|carrera|fartlek|intervalos|double.?under|comba|shrimp|sissy|step.?up|subida al caj/,
+    // Contraindicación BLANDA: movimientos relevantes/inevitables que se MANTIENEN
+    // con aviso de precaución en vez de excluirse (la caution gana al avoid).
+    caution: /burpee/,
+    cautionMsg:
+      'Tienes molestias de rodilla y este ejercicio incluye impacto. Es útil para la prueba, ' +
+      'pero adáptalo: baja el ritmo, amortigua la caída o sustituye el salto por un paso atrás. ' +
+      'Si notas dolor articular (no muscular), párate y avísanos.'
   },
   {
     zona: 'muñeca',
@@ -95,9 +102,8 @@ export function activeInjuryRules(injuryText) {
  * @param {Array} rules
  * @returns {boolean}
  */
-export function isContraindicated(ex, rules) {
-  if (!rules.length) return false;
-  const hay = stripDiacritics([
+function exerciseText(ex) {
+  return stripDiacritics([
     ex?.nombre,
     ex?.categoria,
     ex?.dominio,
@@ -105,5 +111,30 @@ export function isContraindicated(ex, rules) {
     ex?.patron_movimiento,
     ex?.tipo_wod
   ].filter(Boolean).join(' '));
-  return rules.some((r) => r.avoid.test(hay));
+}
+
+export function isContraindicated(ex, rules) {
+  if (!rules.length) return false;
+  const hay = exerciseText(ex);
+  // La contraindicación BLANDA (caution) gana: si el ejercicio encaja en caution
+  // NO se excluye (se mantiene con aviso; ver injuryCaution).
+  return rules.some((r) => r.avoid.test(hay) && !(r.caution && r.caution.test(hay)));
+}
+
+/**
+ * Si el ejercicio es una contraindicación BLANDA (relevante pero con impacto),
+ * devuelve { zona, mensaje } para mostrar un aviso de precaución. Si no, null.
+ * @param {object} ex
+ * @param {Array} rules
+ * @returns {{zona:string, mensaje:string}|null}
+ */
+export function injuryCaution(ex, rules) {
+  if (!rules.length) return null;
+  const hay = exerciseText(ex);
+  for (const r of rules) {
+    if (r.caution && r.caution.test(hay)) {
+      return { zona: r.zona, mensaje: r.cautionMsg || `Precaución por lesión de ${r.zona}: adapta el ejercicio y detente si hay dolor.` };
+    }
+  }
+  return null;
 }
