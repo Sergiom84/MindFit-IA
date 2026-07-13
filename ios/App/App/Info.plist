@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Entrena con IA</string>
+        <string>MindFit</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -25,13 +25,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Entrena con IA usa la cámara para grabar tus ejercicios y corregir tu técnica.</string>
+	<string>MindFit usa la cámara para grabar tus ejercicios y corregir tu técnica.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Entrena con IA usa el micrófono al grabar vídeos de tus ejercicios.</string>
+	<string>MindFit usa el micrófono al grabar vídeos de tus ejercicios.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Entrena con IA accede a tu fototeca para que puedas subir vídeos de tus ejercicios.</string>
+	<string>MindFit accede a tu fototeca para que puedas subir vídeos de tus ejercicios.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Entrena con IA guarda en tu fototeca los vídeos de ejercicios que grabas.</string>
+	<string>MindFit guarda en tu fototeca los vídeos de ejercicios que grabas.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

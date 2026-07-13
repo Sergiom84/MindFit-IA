@@ -1,6 +1,6 @@
 {
   "appId": "com.entrenaconia.app",
-  "appName": "Entrena con IA",
+  "appName": "MindFit",
   "webDir": "dist",
   "plugins": {
     "CapacitorHttp": {
