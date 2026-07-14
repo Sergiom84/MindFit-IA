@@ -31,18 +31,19 @@ export default function CasaEquipmentModal({
     );
   };
 
+  // Paleta fija oscura de la app (sin variantes dark: dependientes del sistema)
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl dark:bg-gray-900">
-        <div className="flex items-center gap-3 border-b border-gray-200 px-6 py-4 dark:border-gray-800">
-          <div className="rounded-xl bg-emerald-100 p-3 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
+      <div className="w-full max-w-xl rounded-2xl bg-[#0d1522] border border-yellow-400/20 shadow-2xl">
+        <div className="flex items-center gap-3 border-b border-white/10 px-6 py-4">
+          <div className="rounded-xl bg-emerald-400/10 p-3 text-emerald-300">
             <Home className="h-6 w-6" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-xl font-semibold text-white">
               ¿Qué material tienes hoy?
             </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-400">
               Adaptaremos los ejercicios al equipamiento disponible. Si no tienes
               nada, no pasa nada: entrenarás con tu peso corporal.
             </p>
@@ -61,8 +62,8 @@ export default function CasaEquipmentModal({
                   onClick={() => toggle(opt.id)}
                   className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
                     active
-                      ? 'border-emerald-400 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200'
-                      : 'border-gray-200 bg-white text-gray-800 hover:border-emerald-300 hover:bg-emerald-50/50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-emerald-700'
+                      ? 'border-emerald-400/60 bg-emerald-400/10 text-emerald-200'
+                      : 'border-white/10 bg-white/5 text-gray-200 hover:border-emerald-400/40 hover:bg-emerald-400/5'
                   }`}
                 >
                   <span className="flex items-center gap-2">
@@ -75,7 +76,7 @@ export default function CasaEquipmentModal({
             })}
           </div>
 
-          <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:bg-gray-800/60 dark:text-gray-400">
+          <p className="rounded-lg bg-white/5 px-3 py-2 text-xs text-gray-400">
             Peso corporal y enseres de casa (silla, pared, toalla, esterilla…)
             siempre se incluyen.
           </p>
@@ -85,7 +86,7 @@ export default function CasaEquipmentModal({
               type="button"
               onClick={() => onConfirm(selected)}
               disabled={isLoading}
-              className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+              className="flex-1 rounded-xl bg-yellow-400 px-4 py-3 font-semibold text-black transition hover:bg-yellow-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLoading
                 ? 'Generando...'
@@ -97,7 +98,7 @@ export default function CasaEquipmentModal({
               type="button"
               onClick={onClose}
               disabled={isLoading}
-              className="rounded-xl border border-gray-300 px-4 py-3 text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+              className="rounded-xl border border-white/15 px-4 py-3 text-gray-300 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
               Cancelar
             </button>
