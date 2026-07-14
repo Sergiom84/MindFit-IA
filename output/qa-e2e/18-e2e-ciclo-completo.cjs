@@ -54,6 +54,7 @@ function parseReps(reps) { const m = String(reps || '').match(/^(\d+)/); return 
 
   // 4) COMPLETAR TODO EL PLAN (RIR realista: alterna 3/2/1 → ejercita autorregulación)
   let ok = 0, fails = 0, decisions = { progress: 0, hold: 0, deload: 0 };
+  let anExerciseId = null;
   for (let i = 0; i < sessions.length; i++) {
     const s = sessions[i];
     const rir = [3, 2, 1][i % 3];
@@ -67,6 +68,7 @@ function parseReps(reps) { const m = String(reps || '').match(/^(\d+)/); return 
     const exercises = prog.j.exercises || [];
     let lastAutoreg = null;
     for (const ex of exercises) {
+      if (!anExerciseId && ex.exercise_id) anExerciseId = ex.exercise_id;
       const sets = Number(ex.series_total) || 3;
       for (let sn = 1; sn <= sets; sn++) {
         await api('POST', '/api/hipertrofiav2/save-set', token, {
@@ -99,8 +101,18 @@ function parseReps(reps) { const m = String(reps || '').match(/^(\d+)/); return 
   check(`Progreso refleja el plan (completadas ${d.completedSessions}/${d.totalSessions})`,
     Number(d.completedSessions) >= sessions.length && Number(d.totalSessions) >= sessions.length);
   check(`Semanas al 100%: ${weeks100}/${d.totalWeeks}`, weeks100 >= Number(d.totalWeeks) - 1);
-  check(`Autorregulación activa durante el plan (${JSON.stringify(decisions)})`,
-    decisions.progress + decisions.hold + decisions.deload > 0);
+  if (METHODOLOGY.toLowerCase().includes('hipertrofia')) {
+    // Hipertrofia V2 tiene su propio ciclo (D1-D5 + apply_microcycle_progression):
+    // aquí se verifica su camino de peso sugerido (save-set → hypertrophy_progression).
+    const progression = anExerciseId
+      ? await api('GET', `/api/hipertrofiav2/progression/${user.id}/${anExerciseId}`, token)
+      : { status: 0, j: {} };
+    check(`Progresión de hipertrofia registrada (hypertrophy_progression, ej ${anExerciseId})`,
+      progression.status === 200 && !!progression.j.progression);
+  } else {
+    check(`Autorregulación activa durante el plan (${JSON.stringify(decisions)})`,
+      decisions.progress + decisions.hold + decisions.deload > 0);
+  }
 
   console.log(`\nRESULTADO: ${pass} pass / ${fail} fail — ${METHODOLOGY} ${LEVEL} plan ${planId} (${sessions.length} sesiones)`);
   process.exit(fail ? 1 : 0);
