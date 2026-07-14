@@ -66,3 +66,6 @@ android/keystore.properties
 
 # Artefactos de build de la app (aab/apk) y capturas
 builds/
+
+# Playwright storage state (contiene authToken de sesión — NEVER commit)
+output/qa-e2e/storageState.json
