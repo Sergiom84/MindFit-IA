@@ -7,7 +7,7 @@ const OUT = __dirname;
 const STATE = path.join(OUT, 'storageState.json');
 const BASE = 'http://localhost:5173';
 
-async function launch({ useState = true, clockAt = null, dateAt = null, speed = false, injectToken = null } = {}) {
+async function launch({ useState = true, clockAt = null, dateAt = null, speed = false, injectToken = null, injectAuth = null } = {}) {
   const browser = await chromium.launch({ headless: true, channel: 'chromium' });
   const context = await browser.newContext({
     viewport: { width: 375, height: 812 },
@@ -24,6 +24,19 @@ async function launch({ useState = true, clockAt = null, dateAt = null, speed = 
     await context.addInitScript((tok) => {
       try { localStorage.setItem('authToken', tok); localStorage.setItem('token', tok); } catch {}
     }, injectToken);
+  }
+  if (injectAuth) {
+    // Inyección de auth COMPLETA (token largo + usuario), sin pasar por registro/login UI.
+    // authConfig: TOKEN='authToken', USER='userProfile'; save-set lee userId de user/userProfile.
+    await context.addInitScript((a) => {
+      try {
+        localStorage.setItem('authToken', a.token);
+        localStorage.setItem('token', a.token);
+        const u = JSON.stringify(a.user);
+        localStorage.setItem('userProfile', u);
+        localStorage.setItem('user', u);
+      } catch {}
+    }, injectAuth);
   }
   if (clockAt) {
     await page.clock.install({ time: new Date(clockAt) });

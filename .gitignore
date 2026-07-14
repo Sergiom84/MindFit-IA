@@ -69,3 +69,6 @@ builds/
 
 # QA local DB dumps (catálogo, regenerable con scripts/setup-local-db.sh)
 scripts/.local-db/
+
+# Playwright storage state (contiene authToken de sesión — NEVER commit)
+output/qa-e2e/storageState.json
