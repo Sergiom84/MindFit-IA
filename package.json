@@ -14,6 +14,8 @@
     "dev:auto:cross": "node scripts/check-ports.js && concurrently -n FRONT,API -c green,cyan \"npm run dev\" \"npm run dev:backend\"",
     "install:all": "npm install && npm --prefix backend install",
     "check-ports": "node scripts/check-ports.js",
+    "db:local:setup": "bash scripts/setup-local-db.sh",
+    "db:local:backend": "DATABASE_URL=postgresql://$USER@localhost:5432/entrenaconia_local npm run dev:backend",
     "monitor": "node scripts/health-monitor.js",
     "sync-dev": "scripts/sync-dev.bat",
     "lint": "eslint --config .eslint.config.mjs .",

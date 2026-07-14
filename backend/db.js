@@ -71,13 +71,15 @@ console.log(
 );
 
 // --- 3) Config Pool explícita (ignora PGHOST/PGPORT externos) ---
+const isLocalHost = host === "localhost" || host === "127.0.0.1" || host === "::1";
 export const pool = new Pool({
   host,
   port,
   database,
   user,
   password,
-  ssl: { rejectUnauthorized: false }, // Supabase + Render
+  // Postgres local (mirror de QA) no habla SSL; Supabase/Render sí.
+  ssl: isLocalHost ? false : { rejectUnauthorized: false },
   application_name: "EntrenaConIA",
   max: 10,
   idleTimeoutMillis: 30000,
