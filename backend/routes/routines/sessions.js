@@ -26,6 +26,11 @@ import {
   ensureMethodologySessions,
   createMissingDaySession
 } from './_helpers.js';
+import {
+  registerSessionAutoreg,
+  adjustPrescriptionsForStart,
+  updateSubjective
+} from '../../services/progression/planAutoregService.js';
 
 const router = express.Router();
 
@@ -261,6 +266,26 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
       }
     }
 
+    // 📈 PROGRESIÓN RIR→PLAN: aplicar la exigencia acumulada por la
+    // autorregulación (más reps / más peso / descarga) a las prescripciones
+    // de esta sesión antes de materializarlas en progress.
+    let progressionMeta = null;
+    try {
+      const adj = await adjustPrescriptionsForStart(client, {
+        userId,
+        planId: methodology_plan_id,
+        methodologyType: planQ.rows[0].methodology_type || planData?.metodologia,
+        ejercicios
+      });
+      ejercicios = adj.ejercicios;
+      progressionMeta = adj.meta;
+      if (progressionMeta?.applied) {
+        console.log('📈 [start] Progresión aplicada a prescripciones', progressionMeta);
+      }
+    } catch (pe) {
+      console.warn('⚠️ [start] No se pudo aplicar progresión (se usan prescripciones base):', pe?.message);
+    }
+
     for (let i = 0; i < ejercicios.length; i++) {
       const ej = ejercicios[i] || {};
       const order = i; // 0-based
@@ -308,7 +333,7 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
     );
 
     await client.query('COMMIT');
-    res.json({ success: true, session_id: session.id, total_exercises: ejercicios.length });
+    res.json({ success: true, session_id: session.id, total_exercises: ejercicios.length, progression: progressionMeta });
   } catch (e) {
     await client.query('ROLLBACK');
     console.error('Error starting routine session:', e);
@@ -533,8 +558,30 @@ router.put('/sessions/:sessionId/exercise/:exerciseOrder', authenticateToken, as
       [sessionId, Number(completed), Number(total), time_spent_seconds ?? 0, String(newStatus)]
     );
 
+    // 📈 PROGRESIÓN: si la sesión queda completada, alimentar la autorregulación
+    // desde las series REALES registradas (save-set). Idempotente por sesión;
+    // el modal de esfuerzo posterior solo matiza lo subjetivo.
+    let autoreg = null;
+    if (newStatus === 'completed') {
+      try {
+        autoreg = await registerSessionAutoreg(client, {
+          userId,
+          planId: sessionRow.methodology_plan_id,
+          sessionId,
+          methodologyType: sessionRow.methodology_type
+        });
+        if (autoreg && !autoreg.alreadyRegistered) {
+          console.log('📈 [exercise] Autorregulación registrada al completar sesión', {
+            sessionId, decision: autoreg.decision, avgRir: autoreg.avg_rir, source: autoreg.source
+          });
+        }
+      } catch (ae) {
+        console.warn('⚠️ [exercise] Autorregulación no registrada:', ae?.message);
+      }
+    }
+
     await client.query('COMMIT');
-    res.json({ success: true, exercise: upd.rows[0], progress: { completed: Number(completed), total: Number(total) } });
+    res.json({ success: true, exercise: upd.rows[0], progress: { completed: Number(completed), total: Number(total) }, autoreg });
   } catch (e) {
     await client.query('ROLLBACK');
     console.error('Error updating routine exercise:', e);
@@ -632,6 +679,26 @@ router.post('/sessions/:sessionId/finish', authenticateToken, async (req, res) =
 
     console.log('\u2705 Session finished', { sessionId, status: finalStatus });
 
+    // \ud83d\udcc8 PROGRESI\u00d3N: alimentar autorregulaci\u00f3n con las series reales (idempotente).
+    let autoreg = null;
+    if (finalStatus === 'completed' || finalStatus === 'partial') {
+      try {
+        autoreg = await registerSessionAutoreg(client, {
+          userId,
+          planId: ses.rows[0].methodology_plan_id,
+          sessionId,
+          methodologyType: ses.rows[0].methodology_type
+        });
+        if (autoreg && !autoreg.alreadyRegistered) {
+          console.log('\ud83d\udcc8 [finish] Autorregulaci\u00f3n registrada', {
+            sessionId, decision: autoreg.decision, avgRir: autoreg.avg_rir, source: autoreg.source
+          });
+        }
+      } catch (ae) {
+        console.warn('\u26a0\ufe0f [finish] Autorregulaci\u00f3n no registrada:', ae?.message);
+      }
+    }
+
     // Obtener todos los ejercicios de la sesión para mover al historial
     const exercisesQuery = await client.query(
       `SELECT mep.*, mes.methodology_type, mes.methodology_plan_id, mes.week_number, mes.day_name,
@@ -678,10 +745,92 @@ router.post('/sessions/:sessionId/finish', authenticateToken, async (req, res) =
     }
 
     await client.query('COMMIT');
-    res.json({ success: true, message: 'Sesión finalizada y datos guardados en historial' });
+    res.json({ success: true, message: 'Sesión finalizada y datos guardados en historial', autoreg });
   } catch (e) {
     await client.query('ROLLBACK');
     console.error('Error finishing routine session:', e);
+    res.status(500).json({ success: false, error: 'Error interno' });
+  } finally {
+    client.release();
+  }
+});
+
+
+// POST /api/routines/sessions/:sessionId/effort
+// Cierre de autorregulación del flujo de PLAN desde el modal de esfuerzo.
+// Lo objetivo (series con RIR reales de save-set) manda: si la sesión ya quedó
+// registrada al completarse, aquí solo se matiza lo subjetivo (feeling) y se
+// devuelve la decisión ya tomada. Si aún no está registrada (p.ej. sin series
+// logueadas), se registra usando los valores manuales del modal como fallback.
+// Body: { subjective?, feeling?, avgRir?, rpe?, targetMet?, goodTechnique?, reachedFailure?, completed?, scale? }
+router.post('/sessions/:sessionId/effort', authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const userId = req.user?.userId || req.user?.id;
+    const { sessionId } = req.params;
+    const {
+      subjective = null, feeling = null,
+      avgRir, rpe, targetMet, goodTechnique, reachedFailure, completed, scale
+    } = req.body || {};
+
+    const ses = await client.query(
+      `SELECT id, methodology_plan_id, methodology_type, session_metadata
+       FROM app.methodology_exercise_sessions
+       WHERE id = $1 AND user_id = $2`,
+      [sessionId, userId]
+    );
+    if (ses.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ success: false, error: 'Sesión no encontrada' });
+    }
+    const row = ses.rows[0];
+
+    // feeling → score subjetivo acotado [-1, 1] (mismo mapa que single-day)
+    const FEELING_MAP = { facil: 1, easy: 1, me_gusta: 1, normal: 0, justo: 0, dificil: -1, hard: -1, me_cuesta: -1 };
+    let subjScore = subjective;
+    if (subjScore == null && feeling != null) {
+      subjScore = FEELING_MAP[String(feeling).toLowerCase()] ?? null;
+    }
+    if (subjScore != null) {
+      subjScore = Math.max(-1, Math.min(1, Number(subjScore)));
+      if (Number.isNaN(subjScore)) subjScore = null;
+    }
+
+    const autoreg = await registerSessionAutoreg(client, {
+      userId,
+      planId: row.methodology_plan_id,
+      sessionId,
+      methodologyType: row.methodology_type,
+      subjective: subjScore,
+      manual: { avgRir, rpe, targetMet, goodTechnique, reachedFailure, completed, scale }
+    });
+
+    // Si ya estaba registrada objetivamente, guardar al menos el matiz subjetivo.
+    if (autoreg?.alreadyRegistered && subjScore != null) {
+      await updateSubjective(client, {
+        userId,
+        methodologyType: row.methodology_type,
+        subjective: subjScore
+      });
+    }
+
+    await client.query('COMMIT');
+
+    if (!autoreg) {
+      return res.json({
+        success: true,
+        decision: 'hold',
+        registered: false,
+        message: 'Metodología sin autorregulación de plan o sin datos suficientes'
+      });
+    }
+
+    res.json({ success: true, registered: true, ...autoreg });
+  } catch (e) {
+    await client.query('ROLLBACK');
+    console.error('Error registrando esfuerzo de sesión:', e);
     res.status(500).json({ success: false, error: 'Error interno' });
   } finally {
     client.release();
@@ -1425,6 +1574,50 @@ router.get('/sessions/:sessionId/feedback', authenticateToken, async (req, res) 
 });
 
 
+
+
+// GET /api/routines/exercise-preferences
+// Preferencias agregadas del usuario por ejercicio (me gusta / no me gusta /
+// difícil), a partir del ÚLTIMO feedback dado a cada ejercicio en cualquier
+// sesión. Calibra el "entusiasmo" y alimenta el modo extra
+// ("hoy los que te gustan / los que no").
+router.get('/exercise-preferences', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    const { sentiment } = req.query; // filtro opcional: like | dislike | hard
+
+    const q = await pool.query(
+      `SELECT DISTINCT ON (f.exercise_name)
+         f.exercise_name,
+         f.sentiment,
+         f.comment,
+         COALESCE(f.updated_at, f.created_at) AS last_feedback_at,
+         COUNT(*) OVER (PARTITION BY f.exercise_name) AS times_rated
+       FROM app.methodology_exercise_feedback f
+       WHERE f.user_id = $1 AND f.exercise_name IS NOT NULL
+       ORDER BY f.exercise_name, COALESCE(f.updated_at, f.created_at) DESC`,
+      [userId]
+    );
+
+    let preferences = q.rows;
+    if (sentiment && ['like', 'dislike', 'hard'].includes(String(sentiment))) {
+      preferences = preferences.filter(p => p.sentiment === sentiment);
+    }
+
+    res.json({
+      success: true,
+      preferences,
+      summary: {
+        like: q.rows.filter(p => p.sentiment === 'like').length,
+        dislike: q.rows.filter(p => p.sentiment === 'dislike').length,
+        hard: q.rows.filter(p => p.sentiment === 'hard').length
+      }
+    });
+  } catch (error) {
+    console.error('Error obteniendo preferencias de ejercicios:', error);
+    res.status(500).json({ success: false, error: 'Error interno del servidor' });
+  }
+});
 
 
 // GET /api/routines/sessions/:sessionId/details

@@ -533,8 +533,11 @@ export const sessionControllers = {
       const normalizedExerciseId = exerciseId || exercise_id;
       const normalizedExerciseName = exerciseName || exercise_name;
       const normalizedSetNumber = setNumber || set_number;
-      const normalizedWeight = weight || weight_used;
-      const normalizedReps = reps || reps_completed;
+      // ?? y no ||: el peso 0 es VÁLIDO (ejercicios de peso corporal en
+      // calistenia/casa/funcional); con || se convertía en null y rompía el
+      // NOT NULL de hypertrophy_set_logs.
+      const normalizedWeight = weight ?? weight_used ?? 0;
+      const normalizedReps = reps ?? reps_completed;
       const normalizedRir = rir !== undefined ? rir : rir_reported;
       const normalizedIsWarmup = isWarmup !== undefined ? isWarmup : (is_warmup || false);
 

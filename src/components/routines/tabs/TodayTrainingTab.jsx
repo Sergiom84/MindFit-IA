@@ -209,7 +209,8 @@ export default function TodayTrainingTab({
     show: false,
     decision: null,
     saving: false,
-    scale: 'rx'
+    scale: 'rx',
+    sessionId: null
   });
 
   // 🎯 Metodología del plan activo (para elegir player y modal de cierre correctos).
@@ -1056,7 +1057,8 @@ export default function TodayTrainingTab({
             show: true,
             decision: null,
             saving: false,
-            scale: closingScale
+            scale: closingScale,
+            sessionId: sid
           });
         }
 
@@ -1080,24 +1082,35 @@ export default function TodayTrainingTab({
   // completed/scale + feeling); aquí solo se añade el methodologyPlanId.
   const handleEffortSubmit = useCallback(async (payload = {}) => {
     const method = effortModal.method;
-    const endpoint = method ? EFFORT_ENDPOINTS[method] : null;
-    if (!endpoint) return;
+    const sessionId = effortModal.sessionId;
     setEffortModal(prev => ({ ...prev, saving: true }));
     try {
-      const resp = await apiClient.post(endpoint, {
-        methodologyPlanId: methodologyPlanId || null,
-        ...payload // incluye feeling: 'facil' | 'normal' | 'dificil' cuando el modal lo aporta
-      });
-      const data = resp?.data || resp;
+      let data;
+      if (sessionId) {
+        // 📈 Flujo de PLAN: endpoint por sesión. Lo objetivo (RIR de las series
+        // guardadas) manda en el backend; el payload del modal solo matiza
+        // (feeling) o hace de fallback si no hubo series logueadas.
+        const resp = await apiClient.post(`/routines/sessions/${sessionId}/effort`, payload);
+        data = resp?.data || resp;
+      } else {
+        // Fallback legado (sin sessionId): endpoint por metodología con valores manuales.
+        const endpoint = method ? EFFORT_ENDPOINTS[method] : null;
+        if (!endpoint) return;
+        const resp = await apiClient.post(endpoint, {
+          methodologyPlanId: methodologyPlanId || null,
+          ...payload
+        });
+        data = resp?.data || resp;
+      }
       setEffortModal(prev => ({ ...prev, decision: data?.decision || 'hold', saving: false }));
     } catch (e) {
       console.warn(`⚠️ Autorregulación ${method} falló:`, e?.message);
       setEffortModal(prev => ({ ...prev, decision: 'hold', saving: false }));
     }
-  }, [effortModal.method, methodologyPlanId]);
+  }, [effortModal.method, effortModal.sessionId, methodologyPlanId]);
 
   const handleEffortClose = useCallback(() => {
-    setEffortModal({ method: null, show: false, decision: null, saving: false, scale: 'rx' });
+    setEffortModal({ method: null, show: false, decision: null, saving: false, scale: 'rx', sessionId: null });
   }, []);
 
   const handleExerciseUpdate = useCallback(async (exerciseIndex, progressData) => {
@@ -1165,7 +1178,7 @@ export default function TodayTrainingTab({
           if (finished && fsid && !effortClosureHandledRef.current.has(fsid)) {
             effortClosureHandledRef.current.add(fsid);
             updateLocalState({ showSessionModal: false, pendingSessionData: null });
-            setEffortModal({ method: activeMethodKey, show: true, decision: null, saving: false, scale: 'rx' });
+            setEffortModal({ method: activeMethodKey, show: true, decision: null, saving: false, scale: 'rx', sessionId: fsid });
           }
         }
       }

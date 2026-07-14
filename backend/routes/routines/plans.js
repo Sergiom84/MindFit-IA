@@ -121,7 +121,6 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
     const incomingStartConfig = req.body?.startConfig || req.body?.start_config || null;
 
     if (!methodology_plan_id) {
-      client.release();
       return res.status(400).json({
         success: false,
         error: 'methodology_plan_id es requerido'
@@ -219,7 +218,6 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
     );
 
     if (planCheck.rowCount === 0) {
-      client.release();
       return res.status(404).json({
         success: false,
         error: 'Plan no encontrado'
@@ -232,7 +230,6 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
     // Si ya está activo, considerar la operación idempotente
     if (String(plan.status).toLowerCase() === 'active') {
       await activateMethodologyPlan(userId, methodology_plan_id, client);
-      client.release();
       return res.json({ success: true, status: 'active', message: 'Plan ya confirmado (idempotente)' });
     }
 
@@ -259,7 +256,6 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
     }
 
     if (!confirmed) {
-      client.release();
       return res.status(400).json({
         success: false,
         error: 'No se pudo confirmar el plan. Puede que ya esté confirmado o no esté en estado draft.'
@@ -482,18 +478,16 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
     console.error('❌ [confirm-plan] Error confirmando rutina:', error);
     console.error('Stack:', error.stack);
 
-    // Intentar liberar el cliente de forma segura
-    try {
-      client.release();
-    } catch (releaseError) {
-      console.error('⚠️ Error liberando cliente:', releaseError.message);
-    }
-
     res.status(500).json({
       success: false,
       error: 'Error interno del servidor',
       details: error.message
     });
+  } finally {
+    // FUGA HISTÓRICA: el camino de ÉXITO nunca liberaba el cliente (solo los
+    // errores lo hacían) → cada confirmación de plan dejaba 1 conexión del pool
+    // secuestrada hasta agotar las 10 y colgar todo el backend.
+    client.release();
   }
 });
 

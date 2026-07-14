@@ -18,6 +18,7 @@ import { generateFuncionalSingleDay } from '../services/singleDay/funcionalSingl
 import { generateHalterofiliaSingleDay } from '../services/singleDay/halterofiliaSingleDay.js';
 import { generatePowerliftingSingleDay } from '../services/singleDay/powerliftingSingleDay.js';
 import { generateHeavyDutySingleDay } from '../services/singleDay/heavyDutySingleDay.js';
+import { generatePreferenceSingleDay } from '../services/singleDay/preferenceSingleDay.js';
 import { logger } from '../services/hipertrofiaV2/logger.js';
 import { cleanupUserStaleSessions } from '../services/sessionCleanupService.js';
 
@@ -99,7 +100,11 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
     await dbClient.query('BEGIN');
 
     let result;
-    if (method === 'calistenia') {
+    if (selectionMode === 'liked' || selectionMode === 'disliked') {
+      // Modo "extra" por preferencias: hoy los ejercicios que te gustan (liked)
+      // o los que te cuestan/no te gustan (disliked), según tus valoraciones.
+      result = await generatePreferenceSingleDay(dbClient, userId, nivel, selectionMode, method, isWeekendExtra);
+    } else if (method === 'calistenia') {
       result = await generateCalisteniaSingleDay(dbClient, userId, nivel, isWeekendExtra, {
         selectionMode,
         focusGroup
