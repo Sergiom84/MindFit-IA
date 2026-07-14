@@ -24,9 +24,14 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
   const [currentPlatform, setCurrentPlatform] = useState(null);
   const BUBBLE_SIZE = 72;
   const BUBBLE_MARGIN = 24;
+  // Spawn en el borde derecho, centrado verticalmente: la esquina inferior
+  // derecha (spawn original) queda siempre debajo del CTA principal del
+  // reproductor de sesión (p.ej. "Guardar Serie") y de la barra de
+  // navegación inferior, tapándolos por completo (burbuja arrastrable pero
+  // sin memoria de posición, así que reaparece encima en cada carga).
   const [position, setPosition] = useState({
     x: window.innerWidth - (BUBBLE_SIZE + BUBBLE_MARGIN),
-    y: window.innerHeight - (BUBBLE_SIZE + BUBBLE_MARGIN)
+    y: Math.round(window.innerHeight / 2 - BUBBLE_SIZE / 2)
   });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -626,7 +631,20 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
     return (
       <div
         ref={bubbleRef}
-        className={`fixed z-50 h-[72px] w-[72px] rounded-full cursor-move flex items-center justify-center hover:scale-105 transition-transform duration-200 touch-none ${
+        // z-[5] (no z-40/z-50): TODAS las pantallas de contenido de la app
+        // (RoutineScreen, MethodologiesScreen, ProfileSection... 8 en total)
+        // envuelven su contenido -incluidos los modales que abren, como
+        // RoutineSessionModal y su SeriesTrackingModal ("Guardar Serie")- en
+        // un <div className="relative z-10 ..."> que crea su PROPIO contexto
+        // de apilamiento. Eso significa que el z-50/z-[60] declarado DENTRO
+        // de esos modales solo compite contra sus hermanos dentro de ese
+        // mismo z-10: a nivel raíz, todo ese árbol pinta como un bloque a
+        // "10". Con la burbuja en z-40 o z-50 (ambos > 10) SIEMPRE ganaba y
+        // tapaba botones críticos como "Guardar Serie" de forma permanente
+        // e inclickable, aunque el modal "dijera" z-60. z-[5] (<10) la deja
+        // siempre detrás de cualquier pantalla/modal de la app, conservando
+        // su visibilidad sobre el contenido normal sin contenedor z-10.
+        className={`fixed z-[5] h-[72px] w-[72px] rounded-full cursor-move flex items-center justify-center hover:scale-105 transition-transform duration-200 touch-none ${
           isPlaying ? 'bubble-pulse' : ''
         }`}
         style={{ left: `${position.x}px`, top: `${position.y}px` }}
