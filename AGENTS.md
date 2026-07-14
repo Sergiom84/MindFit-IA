@@ -61,5 +61,5 @@
 
 ## MCP & Supabase
 
-- Cuando trabajemos con MCP, usar siempre el proyecto `lhsnmjgdtjalfcsurxvg` en Supabase.
+- Cuando trabajemos con MCP, usar siempre el proyecto `sbqcnlwpvjavmljzkmfy` en Supabase.
 - Los servidores MCP solo cargan al inicio; reinicia el host de la herramienta si cambias la configuración.

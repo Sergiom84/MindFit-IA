@@ -26,7 +26,7 @@ No usa Supabase como backend completo desde el cliente. La lógica de negocio y 
 
 - La conexión principal sale de `backend/db.js` mediante `DATABASE_URL`.
 - El backend fuerza `search_path` a `app,public`.
-- El proyecto Supabase asociado a este repositorio es `lhsnmjgdtjalfcsurxvg`.
+- El proyecto Supabase asociado a este repositorio es `sbqcnlwpvjavmljzkmfy`.
 
 ### Storage
 

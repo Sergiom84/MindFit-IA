@@ -38,8 +38,8 @@ sbp_TU_TOKEN_AQUI
 | Campo            | Valor                                                                                                   |
 | ---------------- | ------------------------------------------------------------------------------------------------------- |
 | **Access Token** | `sbp_TU_TOKEN_AQUI`                                                                                     |
-| **Project ID**   | `lhsnmjgdtjalfcsurxvg`                                                                                  |
-| **Project URL**  | `https://lhsnmjgdtjalfcsurxvg.supabase.co`                                                              |
+| **Project ID**   | `sbqcnlwpvjavmljzkmfy`                                                                                  |
+| **Project URL**  | `https://sbqcnlwpvjavmljzkmfy.supabase.co`                                                              |
 | **Database URL** | `postgresql://postgres.<project-ref>:REDACTED_ROTATE_ME@aws-<region>.pooler.supabase.com:6543/postgres` |
 | **Anon Key**     | `TU_ANON_O_PUBLISHABLE_KEY_AQUI`                                                                        |
 

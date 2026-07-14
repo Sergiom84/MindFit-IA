@@ -4,7 +4,7 @@
 
 - Fuente normativa: `docs/MindFeed_Compliance_Spec_v1.md`.
 - Backend revisado: `backend/routes/hipertrofiaV2.js`, `backend/routes/adaptationBlock.js`, `backend/services/hipertrofiaV2/*`, `backend/migrations/*`.
-- BD revisada: Supabase proyecto `lhsnmjgdtjalfcsurxvg` (tablas y funciones `app.*`).
+- BD revisada: Supabase proyecto `sbqcnlwpvjavmljzkmfy` (tablas y funciones `app.*`).
 
 ## Metodologia
 

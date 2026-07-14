@@ -14,7 +14,7 @@ import fs from 'fs';
 const envLocal = fs.readFileSync('.env.local', 'utf8');
 const dbUrl = (envLocal.match(/DATABASE_URL=(postgresql:\/\/\S+)/) || [])[1];
 if (dbUrl && !process.env.DATABASE_URL) process.env.DATABASE_URL = dbUrl;
-process.env.SUPABASE_PROJECT_REF = process.env.SUPABASE_PROJECT_REF || 'lhsnmjgdtjalfcsurxvg';
+process.env.SUPABASE_PROJECT_REF = process.env.SUPABASE_PROJECT_REF || 'sbqcnlwpvjavmljzkmfy';
 
 const { pool } = await import('../backend/db.js');
 const repo = await import('../backend/services/exerciseRepository.js');

@@ -4,7 +4,7 @@ Fecha de revisión: 2026-03-06
 
 ## Proyecto obligatorio
 
-- Para este repositorio se usa siempre el proyecto Supabase `lhsnmjgdtjalfcsurxvg`.
+- Para este repositorio se usa siempre el proyecto Supabase `sbqcnlwpvjavmljzkmfy`.
 - Si tienes varios proyectos conectados, no cambies este identificador salvo decisión explícita.
 
 ## Configuración recomendada
@@ -24,7 +24,7 @@ Ejemplo mínimo de configuración segura:
         "-y",
         "@supabase/mcp-server-supabase@latest",
         "--project-ref",
-        "lhsnmjgdtjalfcsurxvg"
+        "sbqcnlwpvjavmljzkmfy"
       ],
       "env": {
         "SUPABASE_ACCESS_TOKEN": "<configurar-localmente>"
@@ -37,7 +37,7 @@ Ejemplo mínimo de configuración segura:
 ## Comprobaciones rápidas
 
 1. Verifica que `.mcp.json` existe en la raíz.
-2. Confirma que el `project-ref` es `lhsnmjgdtjalfcsurxvg`.
+2. Confirma que el `project-ref` es `sbqcnlwpvjavmljzkmfy`.
 3. Reinicia el host MCP si acabas de tocar la configuración.
 4. Si sigue fallando, revisa el token en tu cuenta de Supabase y vuelve a probar.
 

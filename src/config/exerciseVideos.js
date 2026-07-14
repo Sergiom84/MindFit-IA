@@ -47,7 +47,7 @@ export const DEV_VIDEO_MODE = 'off'; // 'single' | 'mapping' | 'off'
  *
  * SIEMPRE usa URL pública de Supabase para garantizar funcionamiento en todas las metodologías
  */
-export const DEV_SINGLE_VIDEO = 'https://lhsnmjgdtjalfcsurxvg.supabase.co/storage/v1/object/public/exercise-videos/Press%20de%20pecho%20inclinado.mp4';
+export const DEV_SINGLE_VIDEO = 'https://sbqcnlwpvjavmljzkmfy.supabase.co/storage/v1/object/public/exercise-videos/Press%20de%20pecho%20inclinado.mp4';
 
 /**
  * Buscar video local para un ejercicio

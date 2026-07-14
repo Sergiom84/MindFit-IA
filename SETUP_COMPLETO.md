@@ -85,7 +85,7 @@ Una vez las proporciones, crearé el archivo `.env` automáticamente.
 
 **¿Dónde encontrar DATABASE_URL?**
 
-- Ve a: https://supabase.com/dashboard/project/lhsnmjgdtjalfcsurxvg/settings/database
+- Ve a: https://supabase.com/dashboard/project/sbqcnlwpvjavmljzkmfy/settings/database
 - Copia la "Connection string" (URI)
 - Debe verse como: `postgresql://postgres.xxx:REDACTED_ROTATE_ME@aws-xxx.pooler.supabase.com:5432/postgres`
 
