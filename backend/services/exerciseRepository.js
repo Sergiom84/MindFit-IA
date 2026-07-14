@@ -59,7 +59,13 @@ export const HIPERTROFIA_COLUMNS = `
 `;
 
 /**
- * Mapea el nivel del usuario al conjunto acumulativo de niveles permitidos.
+ * Mapea el nivel del usuario a los niveles permitidos con VENTANA DESLIZANTE:
+ * cada nivel incluye el suyo y como mucho UNO por debajo (no arrastra desde
+ * principiante hacia arriba). Evita que un plan avanzado reciba ejercicios
+ * triviales (p.ej. "Flexiones en pared") manteniendo variedad razonable.
+ *   avanzado    → ['Intermedio', 'Avanzado']
+ *   intermedio  → ['Principiante', 'Intermedio']
+ *   principiante→ ['Principiante']
  * Niveles reales en BD: 'Principiante', 'Intermedio', 'Avanzado'.
  * (Antes el código filtraba por 'Básico', que no existe en los datos → 0 filas.)
  * @param {string} level
@@ -67,7 +73,7 @@ export const HIPERTROFIA_COLUMNS = `
  */
 export function allowedLevels(level) {
   const lvl = String(level || '').toLowerCase();
-  if (lvl === 'avanzado') return ['Principiante', 'Intermedio', 'Avanzado'];
+  if (lvl === 'avanzado') return ['Intermedio', 'Avanzado'];
   if (lvl === 'intermedio') return ['Principiante', 'Intermedio'];
   return ['Principiante'];
 }

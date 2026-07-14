@@ -80,7 +80,7 @@ const NIVEL_NORMALIZED = {
  */
 function getAccumulativeLevels(nivel) {
   const idx = LEVEL_HIERARCHY.indexOf(nivel);
-  return LEVEL_HIERARCHY.slice(0, idx + 1);
+  return LEVEL_HIERARCHY.slice(Math.max(0, idx - 1), idx + 1); // ventana deslizante: nivel + 1 por debajo (no acumula desde principiante)
 }
 
 /**

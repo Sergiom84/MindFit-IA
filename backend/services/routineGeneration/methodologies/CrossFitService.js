@@ -146,12 +146,14 @@ FORMATO EXACTO:
   }
 }
 
-// Niveles acumulativos de CrossFit (la tabla tiene Principiante/Intermedio/Avanzado/Elite).
+// Niveles de CrossFit (la tabla tiene Principiante/Intermedio/Avanzado/Elite).
+// VENTANA DESLIZANTE: cada nivel incluye el suyo y como mucho uno por debajo
+// (no arrastra desde principiante) para no meter WODs triviales en niveles altos.
 const CROSSFIT_LEVEL_ORDER = ['Principiante', 'Intermedio', 'Avanzado', 'Elite'];
 
 function allowedCrossFitLevels(levelKey) {
   const idx = { principiante: 0, intermedio: 1, avanzado: 2, elite: 3 }[levelKey] ?? 0;
-  return CROSSFIT_LEVEL_ORDER.slice(0, idx + 1);
+  return CROSSFIT_LEVEL_ORDER.slice(Math.max(0, idx - 1), idx + 1);
 }
 
 function normalizeCrossFitLevel(raw) {
