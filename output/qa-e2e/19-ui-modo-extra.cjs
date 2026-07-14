@@ -16,13 +16,13 @@ async function api(method, path, token, body) {
   const reg = await api('POST', '/api/auth/register', null, {
     nombre: 'QA', apellido: 'UiExtra', email, password: 'QaTest2026!',
     edad: 30, sexo: 'femenino', peso: 63, altura: 166,
-    nivelEntrenamiento: 'intermedio', anosEntrenando: 2, frecuenciaSemanal: 3,
+    nivelEntrenamiento: process.argv[2] || 'intermedio', anosEntrenando: 2, frecuenciaSemanal: 3,
     nivelActividad: 'moderado', metodologiaPreferida: 'calistenia'
   });
   const token = reg.j.token; const user = reg.j.user;
   // Siembra: plan + 1 sesión con 3 likes
   const gen = await api('POST', '/api/methodology/generate', token, {
-    mode: 'manual', methodology: 'calistenia', selectedLevel: 'Intermedio',
+    mode: 'manual', methodology: 'calistenia', selectedLevel: (process.argv[2] || 'intermedio').replace(/^./, c => c.toUpperCase()),
     goals: '', selectedMuscleGroups: [], source: 'manual_selection', version: '5.0'
   });
   const planId = gen.j.methodology_plan_id || gen.j.planId;

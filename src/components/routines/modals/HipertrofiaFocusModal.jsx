@@ -26,7 +26,9 @@ export default function HipertrofiaFocusModal({
 }) {
   if (!isOpen) return null;
 
-  const MUSCLE_GROUPS = muscleGroups;
+  // Sin grupos (principiante): solo Full Body + modos por preferencias
+  const MUSCLE_GROUPS = Array.isArray(muscleGroups) ? muscleGroups : [];
+  const showGroups = MUSCLE_GROUPS.length > 0;
 
   // Paleta fija oscura de la app (la app es siempre dark; sin variantes dark: de
   // Tailwind, que dependen del esquema del sistema y dejaban el modal en blanco).
@@ -42,7 +44,9 @@ export default function HipertrofiaFocusModal({
               ¿Qué prefieres entrenar hoy?
             </h2>
             <p className="text-sm text-gray-400">
-              Hemos detectado que eres {nivel}. Elige un Full Body avanzado o céntrate en un grupo muscular.
+              {showGroups
+                ? `Hemos detectado que eres ${nivel}. Elige un Full Body avanzado o céntrate en un grupo muscular.`
+                : `Hemos detectado que eres ${nivel}. Elige un Full Body o entrena por tus valoraciones.`}
             </p>
           </div>
         </div>
@@ -92,6 +96,7 @@ export default function HipertrofiaFocusModal({
             </div>
           )}
 
+          {showGroups && (
           <div className="rounded-xl border border-white/10 bg-white/5 p-4">
             <p className="mb-3 text-sm font-semibold text-gray-200">
               O elige un grupo muscular concreto:
@@ -110,6 +115,7 @@ export default function HipertrofiaFocusModal({
               ))}
             </div>
           </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-3 border-t border-white/10 px-6 py-4">

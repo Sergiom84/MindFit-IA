@@ -81,7 +81,9 @@ export const pool = new Pool({
   // Postgres local (mirror de QA) no habla SSL; Supabase/Render sí.
   ssl: isLocalHost ? false : { rejectUnauthorized: false },
   application_name: "EntrenaConIA",
-  max: 10,
+  // 20: con 10 se agotaba en ráfagas (p.ej. varias confirmaciones/QA simultáneas).
+  // El pooler de Supabase (session mode) admite bastantes más por proyecto.
+  max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 15000,
   keepAlive: true,

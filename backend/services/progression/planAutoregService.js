@@ -33,18 +33,20 @@ export function normalizeMethodologyKey(raw) {
   if (m.includes('powerlifting') || m.includes('power-lifting')) return 'powerlifting';
   if (m.includes('heavy')) return 'heavy_duty';
   if (m.includes('hipertrofia')) return 'hipertrofia';
-  if (m.includes('oposicion')) return 'oposiciones';
+  // Oposiciones: el plan guarda el cuerpo concreto como methodology_type
+  if (m.includes('oposicion') || m.includes('policia') || m.includes('policía')
+    || m.includes('bombero') || m.includes('guardia')) return 'oposiciones';
   return null;
 }
 
 // Metodologías con enganche de autorregulación en el flujo de plan.
 const SUPPORTED_KEYS = new Set([
   'calistenia', 'casa', 'funcional', 'crossfit',
-  'halterofilia', 'powerlifting', 'heavy_duty'
+  'halterofilia', 'powerlifting', 'heavy_duty', 'oposiciones'
 ]);
 
 // Metodologías cuya progresión primaria es AÑADIR REPS (peso corporal).
-const REP_BASED_KEYS = new Set(['calistenia', 'casa', 'funcional']);
+const REP_BASED_KEYS = new Set(['calistenia', 'casa', 'funcional', 'oposiciones']);
 // Metodologías cuya progresión primaria es AÑADIR CARGA.
 const LOAD_BASED_KEYS = new Set(['halterofilia', 'powerlifting', 'heavy_duty']);
 
@@ -55,7 +57,8 @@ const AUTOREG_TABLES = {
   crossfit: 'crossfit_autoreg_state',
   halterofilia: 'halterofilia_autoreg_state',
   powerlifting: 'powerlifting_autoreg_state',
-  heavy_duty: 'heavy_duty_autoreg_state'
+  heavy_duty: 'heavy_duty_autoreg_state',
+  oposiciones: 'oposiciones_autoreg_state'
 };
 
 // Nombre de metodología que espera app.apply_stall_deload (histórico: heavy-duty con guion).
@@ -182,7 +185,8 @@ export async function registerSessionAutoreg(client, {
   switch (key) {
     case 'calistenia':
     case 'casa':
-    case 'funcional': {
+    case 'funcional':
+    case 'oposiciones': {
       if (avgRir == null) return null; // sin datos objetivos ni manuales, no registrar
       sql = `SELECT app.${key}_register_session_result($1, $2, $3, $4, $5) AS result`;
       params = [userId, planId, avgRir, targetMet, subjective];

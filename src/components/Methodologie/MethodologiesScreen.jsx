@@ -1312,18 +1312,13 @@ export default function MethodologiesScreen() {
     }
 
     const level = getUserLevel();
-    // Intermedio/Avanzado → ofrecer elección Full Body vs. foco muscular
-    if (level === 'Intermedio' || level === 'Avanzado') {
-      updateLocalState({
-        showHpv2WeekendModal: false,
-        showHpv2FocusModal: true,
-        pendingLevel: level
-      });
-      return;
-    }
-
-    // Principiante → Full Body directo
-    startHipertrofiaSingleDay({ selectionMode: 'full_body', nivelOverride: level });
+    // Todos los niveles pasan por el modal de elección: Intermedio/Avanzado con
+    // grupos musculares; Principiante solo Full Body + modos por preferencias.
+    updateLocalState({
+      showHpv2WeekendModal: false,
+      showHpv2FocusModal: true,
+      pendingLevel: level
+    });
   };
 
   // Casa: tras elegir el material, seguir con el mismo reparto por nivel
@@ -1333,15 +1328,10 @@ export default function MethodologiesScreen() {
     updateLocalState({
       pendingEquipment: equipment,
       showCasaEquipmentModal: false,
-      pendingLevel: level
+      pendingLevel: level,
+      // Todos los niveles eligen tipo de sesión (principiante sin grupos)
+      showHpv2FocusModal: true
     });
-
-    if (level === 'Intermedio' || level === 'Avanzado') {
-      updateLocalState({ showHpv2FocusModal: true });
-      return;
-    }
-
-    startHipertrofiaSingleDay({ selectionMode: 'full_body', nivelOverride: level, equipment });
   };
 
   const handleHipertrofiaWeekendLater = () => {
@@ -2086,7 +2076,9 @@ export default function MethodologiesScreen() {
         onClose={closeHipertrofiaWeekendModals}
         isLoading={localState.isGeneratingSingleDay}
         muscleGroups={
-          localState.pendingMethodology?.name === 'Calistenia' ? CALISTENIA_FOCUS_GROUPS
+          // Principiante: sin foco muscular (solo Full Body + preferencias)
+          (localState.pendingLevel || getUserLevel()) === 'Principiante' ? []
+            : localState.pendingMethodology?.name === 'Calistenia' ? CALISTENIA_FOCUS_GROUPS
             : localState.pendingMethodology?.name === 'CrossFit' ? CROSSFIT_FOCUS_GROUPS
             : localState.pendingMethodology?.name === 'Entrenamiento en Casa' ? CASA_FOCUS_GROUPS
             : localState.pendingMethodology?.name === 'Funcional' ? FUNCIONAL_FOCUS_GROUPS
