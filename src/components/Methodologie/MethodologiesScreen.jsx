@@ -1265,6 +1265,8 @@ export default function MethodologiesScreen() {
         dia: new Date().toLocaleDateString('es-ES', { weekday: 'long' }),
         tipo: isCrossFit
           ? (workout.wod?.label || 'WOD del Día')
+          : selectionMode === 'liked' ? 'Tus favoritos'
+          : selectionMode === 'disliked' ? 'Los que te cuestan'
           : (selectionMode === 'focus' && focusGroup ? `Foco: ${focusGroup}` : 'Full Body'),
         ejercicios: workout.exercises || [],
         isWeekendExtra: true,
@@ -1285,9 +1287,17 @@ export default function MethodologiesScreen() {
       ui.showModal('warmup');
     } catch (err) {
       console.error('❌ Error generando entrenamiento de un día (HipertrofiaV2):', err);
-      ui.setError(err?.message || 'No se pudo generar el entrenamiento para hoy');
+      // El backend detalla el motivo (p.ej. "Aún no has valorado suficientes
+      // ejercicios...") en details; mostrarlo si existe.
+      const detail = err?.response?.data?.details || err?.data?.details;
+      ui.setError(detail || err?.message || 'No se pudo generar el entrenamiento para hoy');
       updateLocalState({ isGeneratingSingleDay: false });
     }
+  };
+
+  // Modo extra por preferencias: "hoy los que te gustan" / "hoy los que te cuestan"
+  const handleHipertrofiaPreferenceMode = (mode) => {
+    startHipertrofiaSingleDay({ selectionMode: mode });
   };
 
   const handleHipertrofiaWeekendAccept = () => {
@@ -2072,6 +2082,7 @@ export default function MethodologiesScreen() {
         nivel={localState.pendingLevel || getUserLevel()}
         onFullBody={handleHipertrofiaFullBodyAdvanced}
         onSelectGroup={handleHipertrofiaFocusGroup}
+        onSelectPreference={handleHipertrofiaPreferenceMode}
         onClose={closeHipertrofiaWeekendModals}
         isLoading={localState.isGeneratingSingleDay}
         muscleGroups={

@@ -1,4 +1,4 @@
-import { BadgeCheck, ChevronRight, Dumbbell, Target } from 'lucide-react';
+import { BadgeCheck, ChevronRight, Dumbbell, Flame, Heart, Target } from 'lucide-react';
 
 const DEFAULT_MUSCLE_GROUPS = [
   { id: 'Pecho', label: 'Pecho' },
@@ -19,6 +19,7 @@ export default function HipertrofiaFocusModal({
   nivel,
   onFullBody,
   onSelectGroup,
+  onSelectPreference = null,
   onClose,
   isLoading = false,
   muscleGroups = DEFAULT_MUSCLE_GROUPS
@@ -61,6 +62,33 @@ export default function HipertrofiaFocusModal({
             </div>
             <BadgeCheck className="h-5 w-5" />
           </button>
+
+          {onSelectPreference && (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                disabled={isLoading}
+                onClick={() => onSelectPreference('liked')}
+                className="flex items-center gap-2 rounded-xl border border-pink-300 bg-pink-50 px-3 py-2.5 text-left text-sm text-pink-800 transition hover:bg-pink-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-pink-900 dark:bg-pink-900/30 dark:text-pink-200 dark:hover:bg-pink-900/40"
+              >
+                <Heart className="h-4 w-4 shrink-0" />
+                <div>
+                  <p className="font-semibold">Tus favoritos</p>
+                  <p className="text-xs opacity-80">Los ejercicios que te gustan</p>
+                </div>
+              </button>
+              <button
+                disabled={isLoading}
+                onClick={() => onSelectPreference('disliked')}
+                className="flex items-center gap-2 rounded-xl border border-orange-300 bg-orange-50 px-3 py-2.5 text-left text-sm text-orange-800 transition hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-orange-900 dark:bg-orange-900/30 dark:text-orange-200 dark:hover:bg-orange-900/40"
+              >
+                <Flame className="h-4 w-4 shrink-0" />
+                <div>
+                  <p className="font-semibold">Los que te cuestan</p>
+                  <p className="text-xs opacity-80">A dominar lo difícil</p>
+                </div>
+              </button>
+            </div>
+          )}
 
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
             <p className="mb-3 text-sm font-semibold text-gray-800 dark:text-gray-200">

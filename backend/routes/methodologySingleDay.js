@@ -168,9 +168,11 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
   } catch (error) {
     await dbClient.query('ROLLBACK');
     logger.error('❌ [METHODOLOGY-SINGLE-DAY] Error:', error);
-    res.status(500).json({
+    // Faltan valoraciones para el modo por preferencias: error de usuario, no del servidor
+    const status = error?.code === 'INSUFFICIENT_PREFERENCES' ? 400 : 500;
+    res.status(status).json({
       success: false,
-      error: 'Error al generar entrenamiento',
+      error: status === 400 ? error.message : 'Error al generar entrenamiento',
       details: error.message
     });
   } finally {
