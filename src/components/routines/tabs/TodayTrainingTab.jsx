@@ -1860,10 +1860,19 @@ export default function TodayTrainingTab({
                         const todayCapitalized = todayAbbrev.charAt(0).toUpperCase() + todayAbbrev.slice(1);
                         const mapping = planConfig.day_mappings[todayCapitalized];
                         if (!mapping) return null;
-                        const sessionNum = mapping.replace('sesion_', '');
+                        // Numerador GLOBAL (no el slot semanal 1-3): (semana-1)*sesiones_semana + slot.
+                        // Total robusto = total_weeks * sesiones/semana (no depende del expected_sessions
+                        // guardado, que en planes de principiante antiguos quedó hardcodeado a 12).
+                        const weeklySlot = parseInt(mapping.replace('sesion_', ''), 10) || 1;
+                        const perWeek = Object.keys(planConfig.day_mappings).length || 3;
+                        const totalWeeks = planConfig.total_weeks
+                          || Math.round((planConfig.expected_sessions || perWeek) / perWeek);
+                        const totalSessions = totalWeeks * perWeek;
+                        const currentWeek = plan?.currentWeek || 1;
+                        const globalNum = Math.min(totalSessions, (currentWeek - 1) * perWeek + weeklySlot);
                         return (
                           <span className="ml-3 text-lg font-normal text-yellow-400">
-                            (Sesión {sessionNum} de {planConfig.expected_sessions || 12})
+                            (Sesión {globalNum} de {totalSessions})
                           </span>
                         );
                       })()}

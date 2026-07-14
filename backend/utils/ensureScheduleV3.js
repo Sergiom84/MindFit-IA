@@ -321,7 +321,12 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
         firstWeekPattern,
         originalPattern, // regular_pattern (semanas 2+)
         totalWeeks,
-        isPrincipiante ? 12 : planData.semanas.length * 3, // expected_sessions
+        // expected_sessions = frecuencia_por_semana * total_semanas (real del plan).
+        // Antes: hardcode 12 para principiante (asunción vieja de plan de 4 semanas);
+        // los planes actuales de principiante son 8 sem/24 ses -> mostraba "de 12".
+        (Number(planData?.frecuencia_por_semana)
+          || planData.semanas?.[0]?.sesiones?.length
+          || 3) * totalWeeks, // expected_sessions
         JSON.stringify(dayMappings),
         JSON.stringify(warnings)
       ]);
