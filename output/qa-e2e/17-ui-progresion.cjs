@@ -116,7 +116,11 @@ async function clickName(p, rx, wait = 600) {
   const bodyTxt = async () => (await page.locator('body').innerText()).replace(/\n+/g, ' | ');
   let series = 0, ejercicios = 0, sawProgressNote = false, sawEffortModal = false, decisionShown = '';
 
-  for (let step = 0; step < 900; step++) {
+  // 900 pasos x 500ms+ de espera se quedaba corto: con "Off" el descanso
+  // sigue teniendo un suelo real de 30s en el frontend (useExerciseTimer.js
+  // clampa restDuration a Math.max(30,...) pase lo que pase por API), así
+  // que 4 ejercicios x 3 series ya son ~6min solo de descansos reales.
+  for (let step = 0; step < 2400; step++) {
     await page.waitForTimeout(500);
     const txt = await bodyTxt();
     if (/Progresión|entrenador sabe que puedes/i.test(txt)) sawProgressNote = true;
@@ -137,14 +141,27 @@ async function clickName(p, rx, wait = 600) {
     const repInput = page.locator('input[placeholder="10"]:visible').first();
     if (await repInput.count()) {
       await repInput.fill('12').catch(() => {});
+      // Peso: si el ejercicio NO se detectó como "peso corporal" (bodyweight),
+      // el campo "Peso Utilizado (kg)" es obligatorio y "Guardar Serie" queda
+      // deshabilitado (disabled, opacity-50) hasta rellenarlo — un click
+      // (incluso programático) sobre un <button disabled> es un no-op real,
+      // así que la sesión se quedaba congelada en la 1ª serie para siempre.
+      const weightInput = page.locator('input[placeholder="75.0"]:visible').first();
+      if (await weightInput.count()) {
+        await weightInput.fill('20').catch(() => {});
+      }
       const rir = page.getByRole('button', { name: /^3$/ });
       if (await rir.count()) await rir.first().click({ force: true }).catch(() => {});
       await page.waitForTimeout(250);
       const saveBtn = page.getByRole('button', { name: /Guardar Serie/i }).first();
       if (await saveBtn.count()) {
         await saveBtn.scrollIntoViewIfNeeded().catch(() => {});
-        // click programático: el botón queda tapado por el FAB flotante
-        await saveBtn.evaluate(el => el.click()).catch(() => {});
+        // Ya no hace falta click programático (fix db73b2d: AudioBubble ya no
+        // tapa el botón) — click real, que además falla visiblemente si algo
+        // lo bloquea, en vez de fallar en silencio.
+        await saveBtn.click({ timeout: 4000 }).catch(async () => {
+          await saveBtn.evaluate(el => el.click()).catch(() => {});
+        });
         await page.waitForTimeout(1600);
         series = net.saveSet.length;
       }

@@ -1777,6 +1777,13 @@ export default function TodayTrainingTab({
       ? {
           ...filteredSessionData,
           sessionId: session.sessionId || localState.pendingSessionData?.sessionId,
+          // filteredSessionData viene de todaySessionData (resumen día), que NUNCA
+          // trae methodologyPlanId (es un query param, no un campo de esa respuesta).
+          // Sin este fallback, RoutineSessionModal guarda cada serie con
+          // methodology_plan_id NULL en "Reanudar Entrenamiento" tras filtrar
+          // ejercicios ya completados -> se pierde la autorregulación y el
+          // modal de esfuerzo no siempre encuentra el plan al cerrar sesión.
+          methodologyPlanId: filteredSessionData?.methodologyPlanId || methodologyPlanId || plan?.methodologyPlanId,
           metodologia: filteredSessionData?.metodologia || filteredSessionData?.methodology_type || planMethodology,
           methodology_type: filteredSessionData?.methodology_type || filteredSessionData?.metodologia || planMethodology,
           currentExerciseIndex: 0, // Siempre empezar desde el primer ejercicio filtrado
