@@ -10,7 +10,8 @@ const { Pool } = pkg;
 
 // --- 1) Fuente única de verdad: DATABASE_URL ---
 // Render: usa conexión directa (DATABASE_URL definida en variables de entorno)
-// Local: usa pooler con puerto 6543 para compatibilidad IPv4/IPv6
+// Local: usa el pooler de Supabase en modo session; el puerto lo fija DATABASE_URL (5432).
+// (6543 = pooler transaction, objetivo futuro para escalar; ver nota del Pool más abajo.)
 // IMPORTANTE: DATABASE_URL debe estar definida en .env
 const rawConnStr = process.env.DATABASE_URL;
 
