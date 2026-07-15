@@ -81,9 +81,13 @@ export const pool = new Pool({
   // Postgres local (mirror de QA) no habla SSL; Supabase/Render sí.
   ssl: isLocalHost ? false : { rejectUnauthorized: false },
   application_name: "EntrenaConIA",
-  // 20: con 10 se agotaba en ráfagas (p.ej. varias confirmaciones/QA simultáneas).
-  // El pooler de Supabase (session mode) admite bastantes más por proyecto.
-  max: 20,
+  // Pooler Supabase (session mode, plan free) topa ~15 conexiones por proyecto:
+  // load test 2026-07-15 → con max:20 las conexiones 16-20 daban EMAXCONNSESSION
+  // (500s reales bajo ráfaga). Con 12 se deja margen bajo el tope: en un pico la
+  // app ENCOLA (espera connectionTimeoutMillis) en vez de devolver 500. Para
+  // escalar de verdad, migrar al pooler transaction (puerto 6543) con search_path
+  // a nivel de rol o nombres cualificados app.*.
+  max: 12,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 15000,
   keepAlive: true,
