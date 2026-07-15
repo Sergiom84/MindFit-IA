@@ -72,6 +72,20 @@ describe('findWeekInPlan', () => {
     assert.strictEqual(findWeekInPlan(undefined, 1), undefined);
     assert.strictEqual(findWeekInPlan(mockPlan.semanas, null), undefined);
   });
+
+  it('should map calendar weeks onto 0-based plans (MindFeed: semana 0 = calibración)', () => {
+    const plan = [
+      { semana: 0, sesiones: [{ dia: 'lunes', ejercicios: ['calibración'] }] },
+      { semana: 1, sesiones: [{ dia: 'martes', ejercicios: ['press'] }] },
+      { semana: 2, sesiones: [{ dia: 'jueves', ejercicios: ['sentadilla'] }] }
+    ];
+    // La semana calendario 1 (workout_schedule/mes son 1-based) es la semana 0 del plan
+    assert.strictEqual(findWeekInPlan(plan, 1)?.semana, 0);
+    assert.strictEqual(findWeekInPlan(plan, 2)?.semana, 1);
+    assert.strictEqual(findWeekInPlan(plan, 3)?.semana, 2);
+    // Y no existe semana calendario 4
+    assert.strictEqual(findWeekInPlan(plan, 4), undefined);
+  });
 });
 
 describe('normalizePlanDays', () => {

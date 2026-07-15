@@ -327,7 +327,9 @@ export default function TrainingPlanConfirmationModal({
                 <div key={`week-${weekIndex}`} className="bg-white/5 border border-white/10 rounded-lg">
                   <div className="px-3 sm:px-4 py-2 border-b border-white/10 flex items-center justify-between">
                     <span className="text-gray-200 font-medium text-sm sm:text-base">
-                      Semana {semana.numero || semana.semana}
+                      {/* Posicional, no el campo del plan: MindFeed numera internamente
+                          desde 0 (calibración) y aquí debe verse Semana 1..N */}
+                      Semana {weekIndex + 1}
                     </span>
                     <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-300 text-xs border border-yellow-400/20">
                       {semana.sesiones?.length || 0} sesiones

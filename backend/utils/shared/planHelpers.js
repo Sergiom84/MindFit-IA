@@ -29,11 +29,22 @@ export function findWeekInPlan(semanas, weekNumber) {
   const targetWeek = Number(weekNumber);
   if (isNaN(targetWeek)) return undefined;
 
-  return semanas.find(s => {
-    // Intentar múltiples campos para máxima compatibilidad
-    const weekValue = s.semana || s.numero || s.week || s.week_number;
-    return Number(weekValue) === targetWeek;
-  });
+  // ?? y no ||: una semana numerada 0 es válida (MindFeed) y con || se saltaba
+  // al siguiente campo, con lo que jamás podía matchear.
+  const weekValueOf = (s) => {
+    const v = Number(s?.semana ?? s?.numero ?? s?.week ?? s?.week_number);
+    return Number.isFinite(v) ? v : null;
+  };
+
+  // Los consumidores llaman SIEMPRE con semanas de calendario 1-based (así numeran
+  // workout_schedule y methodology_exercise_sessions, vía ensureScheduleV3). Algunos
+  // planes (HipertrofiaV2_MindFeed) numeran su plan_data desde 0 ("Semana 0" =
+  // calibración): para ellos la semana calendario N es su semana interna N-1.
+  const values = semanas.map(weekValueOf).filter(v => v !== null);
+  const base = values.length > 0 ? Math.min(...values) : 1;
+  const target = base === 0 ? targetWeek - 1 : targetWeek;
+
+  return semanas.find(s => weekValueOf(s) === target);
 }
 
 /**
