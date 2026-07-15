@@ -553,22 +553,10 @@ export const sessionControllers = {
         : null;
 
       // methodology_plan_id NO siempre llega del cliente: RoutineSessionModal se
-      // renderiza desde varios sitios y no todos rellenan session.methodologyPlanId,
-      // así que el save-set podía persistir methodology_plan_id NULL (rompe la
-      // analítica por-plan). La sesión SÍ conoce su plan: lo derivamos de ella como
-      // fuente de verdad cuando el cliente no lo manda.
-      let resolvedPlanId = methodologyPlanId ?? null;
-      if (!resolvedPlanId && sessionId) {
-        try {
-          const s = await pool.query(
-            'SELECT methodology_plan_id FROM app.methodology_exercise_sessions WHERE id = $1',
-            [sessionId]
-          );
-          resolvedPlanId = s.rows[0]?.methodology_plan_id ?? null;
-        } catch (e) {
-          logger.warn('⚠️  [SET] No se pudo derivar methodology_plan_id de la sesión:', e.message);
-        }
-      }
+      // renderiza desde varios sitios y no todos rellenan session.methodologyPlanId.
+      // La sesión SÍ conoce su plan: el INSERT/UPDATE lo derivan en SQL con
+      // COALESCE($plan, (SELECT ... FROM la sesión)) — sin round-trip extra y
+      // filtrando por user_id para no estampar el plan de una sesión ajena.
 
       // Idempotencia: un doble tap en "Guardar Serie" (o un retry del cliente) no debe
       // duplicar la serie: si ya existe esa serie para la sesión/ejercicio, se actualiza.
@@ -585,10 +573,14 @@ export const sessionControllers = {
           UPDATE app.hypertrophy_set_logs
           SET weight_used = $2, reps_completed = $3, rir_reported = $4,
               is_effective = $5, volume_load = $6, estimated_1rm = $7,
-              methodology_plan_id = COALESCE(methodology_plan_id, $8)
+              methodology_plan_id = COALESCE(methodology_plan_id, $8, (
+                SELECT mes.methodology_plan_id
+                FROM app.methodology_exercise_sessions mes
+                WHERE mes.id = $9 AND mes.user_id = $10
+              ))
           WHERE id = $1
           RETURNING *
-        `, [existing.rows[0].id, normalizedWeight, normalizedReps, normalizedRir, isEffective, volumeLoad, estimated1RM, resolvedPlanId]);
+        `, [existing.rows[0].id, normalizedWeight, normalizedReps, normalizedRir, isEffective, volumeLoad, estimated1RM, methodologyPlanId ?? null, sessionId ?? null, userId]);
         logger.debug('♻️ [SET] Serie existente actualizada (guardado idempotente)');
       } else {
         result = await pool.query(`
@@ -596,10 +588,14 @@ export const sessionControllers = {
             user_id, methodology_plan_id, session_id, exercise_id,
             exercise_name, set_number, weight_used, reps_completed,
             rir_reported, is_warmup, is_effective, volume_load, estimated_1rm
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          ) VALUES ($1, COALESCE($2, (
+            SELECT mes.methodology_plan_id
+            FROM app.methodology_exercise_sessions mes
+            WHERE mes.id = $3 AND mes.user_id = $1
+          )), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
           RETURNING *
         `, [
-          userId, resolvedPlanId, sessionId, normalizedExerciseId,
+          userId, methodologyPlanId ?? null, sessionId, normalizedExerciseId,
           normalizedExerciseName, normalizedSetNumber, normalizedWeight,
           normalizedReps, normalizedRir, normalizedIsWarmup, isEffective,
           volumeLoad, estimated1RM

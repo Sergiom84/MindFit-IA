@@ -9,7 +9,7 @@ import {
   pool
 } from '../../db.js';
 import {
-  findWeekInPlan
+  computeWeeklyTargets
 } from '../../utils/shared/planHelpers.js';
 
 const router = express.Router();
@@ -107,25 +107,10 @@ router.get('/progress-data', authenticateToken, async (req, res) => {
       [userId, methodology_plan_id]
     );
 
-    // Sesiones REALMENTE agendadas por semana (workout_schedule = lo que el usuario
-    // ve en el calendario). Cuando el plan arranca a mitad de semana, la 1ª semana es
-    // PARCIAL (p.ej. 2 sesiones en vez de 4); plan_data describe semanas ideales
-    // completas, así que usarlo como denominador dejaba esa semana en 2/4 para siempre
-    // (nunca al 100%). workout_schedule es la fuente de verdad del calendario real.
-    const scheduleQuery = await pool.query(
-      `SELECT week_number, COUNT(*) as scheduled_sessions
-         FROM app.workout_schedule
-        WHERE user_id = $1 AND methodology_plan_id = $2
-        GROUP BY week_number`,
-      [userId, methodology_plan_id]
-    );
-    const scheduledByWeek = new Map(
-      scheduleQuery.rows.map(r => [Number(r.week_number), Number(r.scheduled_sessions)])
-    );
-    const hasSchedule = scheduledByWeek.size > 0;
-    const totalScheduled = hasSchedule
-      ? [...scheduledByWeek.values()].reduce((a, b) => a + b, 0)
-      : null;
+    // Denominadores por semana: workout_schedule cuando la semana está agendada
+    // (semanas parciales cuentan lo real), plan_data para semanas sin agendar.
+    // Lógica compartida con /api/training-session/stats/progress-data.
+    const targets = await computeWeeklyTargets(pool, userId, methodology_plan_id, planData);
 
     // Obtener actividad reciente (solo sesiones completadas)
     const recentActivityQuery = await pool.query(
@@ -146,13 +131,7 @@ router.get('/progress-data', authenticateToken, async (req, res) => {
       [userId, methodology_plan_id]
     );
 
-    // Calcular totales del plan (desde el JSON)
-    const totalWeeks = planData?.semanas?.length || 0;
-    const totalSessionsInPlan = planData?.semanas?.reduce((acc, semana) =>
-      acc + (semana.sesiones?.length || 0), 0) || 0;
-    const totalExercisesInPlan = planData?.semanas?.reduce((acc, semana) =>
-      acc + semana.sesiones?.reduce((sessAcc, sesion) =>
-        sessAcc + (sesion.ejercicios?.length || 0), 0) || 0, 0) || 0;
+    const totalWeeks = targets.totalWeeks;
 
     // Construir respuesta
     const generalStats = generalStatsQuery.rows[0];
@@ -161,38 +140,27 @@ router.get('/progress-data', authenticateToken, async (req, res) => {
 
     // La semana actual ya fue calculada arriba basada en la fecha de inicio
 
-    // Construir progreso por semanas con datos reales
-    const weeklyProgressData = [];
-    for (let week = 1; week <= totalWeeks; week++) {
-      const weekData = weeklyProgress.find(w => w.week_number === week);
-      const weekInPlan = findWeekInPlan(planData?.semanas, week);
-      const weekSessions = weekInPlan?.sesiones?.length || 0;
-      const weekExercises = weekInPlan?.sesiones?.reduce(
-        (acc, ses) => acc + (ses.ejercicios?.length || 0), 0) || 0;
-
-      weeklyProgressData.push({
-        week,
-        // Denominador = sesiones agendadas reales (workout_schedule) si existen;
-        // si no (planes antiguos sin schedule), se cae al ideal de plan_data.
-        sessions: hasSchedule
-          ? (scheduledByWeek.get(week) ?? weekData?.total_sessions ?? 0)
-          : Math.max(weekSessions, weekData?.total_sessions || 0),
+    // Construir progreso por semanas con datos reales. El max con lo realmente
+    // iniciado evita mostrar 3/2 si el usuario entrenó más de lo agendado.
+    const weeklyProgressData = targets.weeks.map(target => {
+      const weekData = weeklyProgress.find(w => w.week_number === target.week);
+      return {
+        week: target.week,
+        sessions: Math.max(target.sessions, weekData?.total_sessions || 0),
         completed: weekData?.sessions_completed || 0,
-        exercises: Math.max(weekExercises, weekData?.total_exercises || 0),
+        exercises: Math.max(target.exercises, weekData?.total_exercises || 0),
         exercisesCompleted: weekData?.exercises_completed || 0,
         seriesCompleted: weekData?.series_completed || 0,
         timeSpentSeconds: weekData?.time_spent_seconds || 0
-      });
-    }
+      };
+    });
 
     const responseData = {
       totalWeeks,
       currentWeek,
-      totalSessions: hasSchedule
-        ? Math.max(totalScheduled, parseInt(generalStats.total_sessions_started) || 0)
-        : Math.max(totalSessionsInPlan, parseInt(generalStats.total_sessions_started) || 0),
+      totalSessions: Math.max(targets.totalSessions, parseInt(generalStats.total_sessions_started) || 0),
       completedSessions: parseInt(generalStats.total_sessions_completed) || 0,
-      totalExercises: Math.max(totalExercisesInPlan, parseInt(generalStats.total_exercises_attempted) || 0),
+      totalExercises: Math.max(targets.totalExercises, parseInt(generalStats.total_exercises_attempted) || 0),
       completedExercises: parseInt(generalStats.total_exercises_completed) || 0,
       totalSeriesCompleted: parseInt(generalStats.total_series_completed) || 0,
       totalTimeSpentSeconds: parseInt(generalStats.total_time_seconds) || 0,

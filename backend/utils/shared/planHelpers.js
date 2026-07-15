@@ -123,6 +123,71 @@ export function getSessionsForWeek(planDataJson, weekNumber) {
 }
 
 /**
+ * Denominadores de progreso por semana (sesiones/ejercicios "objetivo").
+ *
+ * Regla única para TODOS los endpoints de progreso: si la semana tiene filas en
+ * app.workout_schedule (el calendario real que ve el usuario), el objetivo es lo
+ * agendado — así una 1ª semana parcial (plan que arranca en martes/miércoles) puede
+ * llegar al 100%. Si la semana aún no está en el schedule (planes antiguos sin
+ * calendario, o mesociclos futuros que HipertrofiaV2 todavía no generó), el objetivo
+ * es el ideal de plan_data — así una semana futura no marca 100% con 1 sola sesión.
+ *
+ * @param {Object} pool - Pool de pg (se inyecta para mantener este módulo sin deps de BD)
+ * @param {number} userId
+ * @param {number} methodologyPlanId
+ * @param {Object} planDataJson - plan_data ya parseado ({ semanas: [...] })
+ * @returns {Promise<{totalWeeks:number,totalSessions:number,totalExercises:number,weeks:Array}>}
+ *          weeks[i] = { week, sessions, exercises, fromSchedule }
+ */
+export async function computeWeeklyTargets(pool, userId, methodologyPlanId, planDataJson) {
+  const totalWeeks = getTotalWeeksInPlan(planDataJson);
+
+  let scheduled = new Map();
+  try {
+    const q = await pool.query(
+      `SELECT week_number,
+              COUNT(*)::int AS sessions,
+              COALESCE(SUM(CASE WHEN jsonb_typeof(exercises) = 'array'
+                                THEN jsonb_array_length(exercises) ELSE 0 END), 0)::int AS exercises
+         FROM app.workout_schedule
+        WHERE user_id = $1 AND methodology_plan_id = $2
+        GROUP BY week_number`,
+      [userId, methodologyPlanId]
+    );
+    scheduled = new Map(q.rows.map(r => [Number(r.week_number), r]));
+  } catch (e) {
+    console.error('computeWeeklyTargets: fallo leyendo workout_schedule, uso plan_data', e.message);
+  }
+
+  const weeks = [];
+  let totalSessions = 0;
+  let totalExercises = 0;
+
+  for (let week = 1; week <= totalWeeks; week++) {
+    const ideal = findWeekInPlan(planDataJson?.semanas, week);
+    const idealSessions = ideal?.sesiones?.length || 0;
+    const idealExercises = ideal?.sesiones?.reduce(
+      (acc, ses) => acc + (ses.ejercicios?.length || 0), 0) || 0;
+
+    const sched = scheduled.get(week);
+    const entry = {
+      week,
+      sessions: sched ? sched.sessions : idealSessions,
+      // Algunos schedules antiguos guardan exercises vacío; en ese caso el ideal
+      // de plan_data sigue siendo mejor denominador que 0.
+      exercises: sched?.exercises > 0 ? sched.exercises : idealExercises,
+      fromSchedule: Boolean(sched)
+    };
+
+    totalSessions += entry.sessions;
+    totalExercises += entry.exercises;
+    weeks.push(entry);
+  }
+
+  return { totalWeeks, totalSessions, totalExercises, weeks };
+}
+
+/**
  * Encuentra una sesión por día dentro de una semana
  * @param {Object} planDataJson - Objeto del plan
  * @param {number} weekNumber - Número de semana

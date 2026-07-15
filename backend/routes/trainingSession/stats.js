@@ -8,7 +8,7 @@ import {
   pool
 } from '../../db.js';
 import {
-  findWeekInPlan
+  computeWeeklyTargets
 } from '../../utils/shared/planHelpers.js';
 
 const router = express.Router();
@@ -109,43 +109,36 @@ router.get('/stats/progress-data', authenticateToken, async (req, res) => {
         [userId, methodology_plan_id]
       );
 
-      // Calcular totales del plan
-      const totalWeeks = planData?.semanas?.length || 0;
-      const totalSessionsInPlan = planData?.semanas?.reduce((acc, semana) =>
-        acc + (semana.sesiones?.length || 0), 0) || 0;
-      const totalExercisesInPlan = planData?.semanas?.reduce((acc, semana) =>
-        acc + semana.sesiones?.reduce((sessAcc, sesion) =>
-          sessAcc + (sesion.ejercicios?.length || 0), 0) || 0, 0) || 0;
+      // Denominadores por semana: workout_schedule cuando la semana está agendada
+      // (semanas parciales cuentan lo real), plan_data para semanas sin agendar.
+      // Lógica compartida con /api/routines/progress-data.
+      const targets = await computeWeeklyTargets(pool, userId, methodology_plan_id, planData);
+      const totalWeeks = targets.totalWeeks;
 
       const generalStats = generalStatsQuery.rows[0];
       const weeklyProgress = weeklyProgressQuery.rows;
 
-      // Construir progreso por semanas con datos reales
-      const weeklyProgressData = [];
-      for (let week = 1; week <= totalWeeks; week++) {
-        const weekData = weeklyProgress.find(w => w.week_number === week);
-        const weekInPlan = findWeekInPlan(planData?.semanas, week);
-        const weekSessions = weekInPlan?.sesiones?.length || 0;
-        const weekExercises = weekInPlan?.sesiones?.reduce(
-          (acc, ses) => acc + (ses.ejercicios?.length || 0), 0) || 0;
-
-        weeklyProgressData.push({
-          week,
-          sessions: Math.max(weekSessions, weekData?.total_sessions || 0),
+      // Construir progreso por semanas con datos reales. El max con lo realmente
+      // iniciado evita mostrar 3/2 si el usuario entrenó más de lo agendado.
+      const weeklyProgressData = targets.weeks.map(target => {
+        const weekData = weeklyProgress.find(w => w.week_number === target.week);
+        return {
+          week: target.week,
+          sessions: Math.max(target.sessions, weekData?.total_sessions || 0),
           completed: weekData?.sessions_completed || 0,
-          exercises: Math.max(weekExercises, weekData?.total_exercises || 0),
+          exercises: Math.max(target.exercises, weekData?.total_exercises || 0),
           exercisesCompleted: weekData?.exercises_completed || 0,
           seriesCompleted: weekData?.series_completed || 0,
           timeSpentSeconds: weekData?.time_spent_seconds || 0
-        });
-      }
+        };
+      });
 
       const responseData = {
         totalWeeks,
         currentWeek,
-        totalSessions: Math.max(totalSessionsInPlan, parseInt(generalStats.total_sessions_started) || 0),
+        totalSessions: Math.max(targets.totalSessions, parseInt(generalStats.total_sessions_started) || 0),
         completedSessions: parseInt(generalStats.total_sessions_completed) || 0,
-        totalExercises: Math.max(totalExercisesInPlan, parseInt(generalStats.total_exercises_attempted) || 0),
+        totalExercises: Math.max(targets.totalExercises, parseInt(generalStats.total_exercises_attempted) || 0),
         completedExercises: parseInt(generalStats.total_exercises_completed) || 0,
         totalSeriesCompleted: parseInt(generalStats.total_series_completed) || 0,
         totalTimeSpentSeconds: parseInt(generalStats.total_time_seconds) || 0,
