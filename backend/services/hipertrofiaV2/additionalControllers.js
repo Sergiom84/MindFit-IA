@@ -552,6 +552,24 @@ export const sessionControllers = {
         ? normalizedWeight * (1 + normalizedReps * 0.0333)
         : null;
 
+      // methodology_plan_id NO siempre llega del cliente: RoutineSessionModal se
+      // renderiza desde varios sitios y no todos rellenan session.methodologyPlanId,
+      // así que el save-set podía persistir methodology_plan_id NULL (rompe la
+      // analítica por-plan). La sesión SÍ conoce su plan: lo derivamos de ella como
+      // fuente de verdad cuando el cliente no lo manda.
+      let resolvedPlanId = methodologyPlanId ?? null;
+      if (!resolvedPlanId && sessionId) {
+        try {
+          const s = await pool.query(
+            'SELECT methodology_plan_id FROM app.methodology_exercise_sessions WHERE id = $1',
+            [sessionId]
+          );
+          resolvedPlanId = s.rows[0]?.methodology_plan_id ?? null;
+        } catch (e) {
+          logger.warn('⚠️  [SET] No se pudo derivar methodology_plan_id de la sesión:', e.message);
+        }
+      }
+
       // Idempotencia: un doble tap en "Guardar Serie" (o un retry del cliente) no debe
       // duplicar la serie: si ya existe esa serie para la sesión/ejercicio, se actualiza.
       const existing = await pool.query(`
@@ -566,10 +584,11 @@ export const sessionControllers = {
         result = await pool.query(`
           UPDATE app.hypertrophy_set_logs
           SET weight_used = $2, reps_completed = $3, rir_reported = $4,
-              is_effective = $5, volume_load = $6, estimated_1rm = $7
+              is_effective = $5, volume_load = $6, estimated_1rm = $7,
+              methodology_plan_id = COALESCE(methodology_plan_id, $8)
           WHERE id = $1
           RETURNING *
-        `, [existing.rows[0].id, normalizedWeight, normalizedReps, normalizedRir, isEffective, volumeLoad, estimated1RM]);
+        `, [existing.rows[0].id, normalizedWeight, normalizedReps, normalizedRir, isEffective, volumeLoad, estimated1RM, resolvedPlanId]);
         logger.debug('♻️ [SET] Serie existente actualizada (guardado idempotente)');
       } else {
         result = await pool.query(`
@@ -580,7 +599,7 @@ export const sessionControllers = {
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
           RETURNING *
         `, [
-          userId, methodologyPlanId, sessionId, normalizedExerciseId,
+          userId, resolvedPlanId, sessionId, normalizedExerciseId,
           normalizedExerciseName, normalizedSetNumber, normalizedWeight,
           normalizedReps, normalizedRir, normalizedIsWarmup, isEffective,
           volumeLoad, estimated1RM
