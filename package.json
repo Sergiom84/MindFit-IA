@@ -40,10 +40,11 @@
     "render:logs:win": "scripts\\render-logs.bat",
     "render:tail": "render logs --tail",
     "render:deploy": "render services",
-    "mobile:sync": "npm run build && npx cap sync",
-    "ios:sync": "npm run build && npx cap sync ios",
+    "build:mobile": "vite build --mode mobile",
+    "mobile:sync": "npm run build:mobile && npx cap sync",
+    "ios:sync": "npm run build:mobile && npx cap sync ios",
     "ios:open": "npx cap open ios",
-    "android:sync": "npm run build && npx cap sync android"
+    "android:sync": "npm run build:mobile && npx cap sync android"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.67.0",

@@ -34,7 +34,11 @@ const ENVIRONMENT_CONFIG = {
     }
   },
   staging: {
-    API_URL: 'https://staging-api.entrenaconia.com',
+    // CONFIG-001: sin dominio hardcodeado inexistente. Usa VITE_API_URL si está
+    // definida (móvil/despliegue) o el mismo origen (web). Ver production.
+    API_URL: (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL)
+      ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
+      : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173'),
     DEBUG: true,
     ENABLE_MOCKS: false,
     LOG_LEVEL: 'info',
@@ -45,7 +49,12 @@ const ENVIRONMENT_CONFIG = {
     }
   },
   production: {
-    API_URL: 'https://api.entrenaconia.com',
+    // CONFIG-001: web en Render usa el MISMO origen (Express sirve API y SPA).
+    // El móvil (Capacitor) DEBE definir VITE_API_URL. Antes apuntaba a
+    // 'api.entrenaconia.com', un dominio que no es el de Render.
+    API_URL: (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL)
+      ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
+      : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173'),
     DEBUG: false,
     ENABLE_MOCKS: false,
     LOG_LEVEL: 'error',

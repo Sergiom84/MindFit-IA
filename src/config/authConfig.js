@@ -27,9 +27,13 @@ const ENVIRONMENTS = {
     MAX_LOGIN_ATTEMPTS: 10 // Más relajado en desarrollo
   },
   production: {
+    // CONFIG-001: web en Render usa el MISMO origen (Express sirve API y SPA),
+    // por eso el fallback es '' (rutas relativas /api/...). El móvil (Capacitor)
+    // DEBE definir VITE_API_URL con la URL absoluta del backend. Antes caía a
+    // 'api.entrenaconai.com' (dominio con typo e inexistente).
     API_BASE: ((typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL)
       ? import.meta.env.VITE_API_URL
-      : 'https://api.entrenaconai.com').replace(/\/$/, ''),
+      : '').replace(/\/$/, ''),
     TOKEN_REFRESH_THRESHOLD: 10 * 60 * 1000, // 10 minutos
     SESSION_TIMEOUT: 8 * 60 * 60 * 1000, // 8 horas
     INACTIVITY_TIMEOUT: 30 * 60 * 1000, // 30 minutos

@@ -56,7 +56,7 @@ export default function CalendarTab({ plan, planStartDate, methodologyPlanId, en
       setIsLoadingCalendar(true);
       try {
         const token = localStorage.getItem('authToken');
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/routines/calendar-schedule/${methodologyPlanId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/routines/calendar-schedule/${methodologyPlanId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
