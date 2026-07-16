@@ -31,15 +31,38 @@ pg_dump "$DATABASE_URL" \
 
 ## Cómo restaurar en una BD limpia (staging/test)
 
-Prerrequisitos en la BD destino (Supabase los trae de serie; en Postgres puro hay
-que crearlos antes): esquema `app`, y las extensiones `pgcrypto`/`uuid-ossp` si se
-usan (`gen_random_uuid` es nativo desde PG13). Luego:
+En Supabase estos objetos ya existen. En un **Postgres vanilla** (p. ej. el CI) hay
+que crear antes unos stubs que el baseline referencia: los roles gestionados por
+Supabase que aparecen en políticas RLS (`authenticated`, y por prudencia `anon` /
+`service_role`) y `auth.uid()`. El baseline ya crea su propio `CREATE SCHEMA app`.
 
 ```bash
-createdb entrenaconia_staging   # o el proyecto Supabase de test
-psql "$STAGING_DATABASE_URL" -c "CREATE SCHEMA IF NOT EXISTS app;"
-psql "$STAGING_DATABASE_URL" -f backend/db/baseline/app_schema_baseline.sql
+createdb baseline_check
+psql "$URL" -d baseline_check -v ON_ERROR_STOP=1 \
+  -c "CREATE ROLE anon NOLOGIN;" \
+  -c "CREATE ROLE authenticated NOLOGIN;" \
+  -c "CREATE ROLE service_role NOLOGIN;" \
+  -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;" \
+  -c "CREATE SCHEMA IF NOT EXISTS auth;" \
+  -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS 'SELECT NULL::uuid';"
+psql "$URL" -d baseline_check -v ON_ERROR_STOP=1 -f backend/db/baseline/app_schema_baseline.sql
 ```
+
+Restaura limpio (verificado): 125 tablas, 184 funciones, 99 FKs, 17 vistas. El job
+`db-baseline-restore` de `.github/workflows/ci.yml` ejecuta exactamente esto en un
+contenedor `postgres:17` en cada push/PR, así que si el baseline deja de restaurar,
+el CI se pone rojo.
+
+## Flujo de cambios de esquema (política DB-001)
+
+Para no volver al problema de "125 tablas reales vs 63 declaradas":
+
+1. **Nada de DDL manual en producción.** Todo cambio de esquema es una migración
+   numerada en `backend/migrations/` (`AAAAMMDD_descripcion.sql`), idempotente
+   cuando sea posible.
+2. Aplicar la migración a producción de forma controlada y **regenerar este
+   baseline** con el comando de arriba, para que no derive.
+3. El CI valida que el baseline sigue restaurando desde cero.
 
 ## Limitaciones / siguientes pasos de DB-001
 
