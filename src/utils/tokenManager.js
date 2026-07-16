@@ -68,6 +68,12 @@ class TokenManager {
       }
 
       localStorage.setItem(STORAGE_KEYS.TOKEN, token);
+      // Espejo de la clave legacy 'token': decenas de componentes la leen
+      // directamente. Sin esto, tras un refresh (que solo actualiza 'authToken')
+      // la clave 'token' quedaba obsoleta y esas partes fallaban de forma
+      // selectiva (AUTH-002). Mantener ambas en sync mientras se migra a
+      // tokenManager como fuente única.
+      localStorage.setItem('token', token);
 
       if (refreshToken) {
         localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
@@ -89,6 +95,7 @@ class TokenManager {
   removeTokens() {
     try {
       localStorage.removeItem(STORAGE_KEYS.TOKEN);
+      localStorage.removeItem('token'); // espejo legacy (ver setTokens / AUTH-002)
       localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
 
       // Cancelar timer de refresh

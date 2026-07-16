@@ -2,12 +2,13 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from '../db.js';
-import { 
-  logUserLogin, 
-  logUserLogout, 
+import {
+  logUserLogin,
+  logUserLogout,
   getUserActiveSessions,
   getUserSessionStats,
-  forceLogoutAllSessions 
+  forceLogoutAllSessions,
+  hashJWTToken
 } from '../utils/sessionUtils.js';
 import { authenticateToken } from '../middleware/auth.js';
 
@@ -394,11 +395,43 @@ router.post('/refresh', async (req, res) => {
       return res.status(401).json({ error: 'Token inválido o caducado' });
     }
 
+    // AUTH-001: no renovar una sesión revocada (logout). Fail-open si no hay
+    // registro de sesión, para no romper refresh de tokens legítimos sin fila.
+    const oldHash = hashJWTToken(candidate);
+    let sessionRow = null;
+    try {
+      const { rows } = await pool.query(
+        'SELECT session_id, is_active FROM app.user_sessions WHERE jwt_token_hash = $1 ORDER BY login_time DESC LIMIT 1',
+        [oldHash]
+      );
+      sessionRow = rows[0] || null;
+      if (sessionRow && sessionRow.is_active === false) {
+        return res.status(401).json({ error: 'Sesión cerrada. Vuelve a iniciar sesión.', code: 'SESSION_REVOKED' });
+      }
+    } catch (e) {
+      console.warn('refresh: no se pudo verificar la sesión:', e.message);
+    }
+
     const token = jwt.sign(
       { userId: payload.userId, email: payload.email },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    // Rotación deslizante: apuntar la sesión activa al nuevo token, de modo que
+    // el hash del token anterior deje de mapear a esta sesión.
+    if (sessionRow) {
+      try {
+        const newHash = hashJWTToken(token);
+        const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        await pool.query(
+          'UPDATE app.user_sessions SET jwt_token_hash = $1, jwt_expires_at = $2, last_activity = NOW(), updated_at = NOW() WHERE session_id = $3',
+          [newHash, newExpiry, sessionRow.session_id]
+        );
+      } catch (e) {
+        console.warn('refresh: no se pudo rotar la sesión:', e.message);
+      }
+    }
 
     res.json({ token });
   } catch (error) {

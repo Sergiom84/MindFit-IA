@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { pool } from '../db.js';
 import { updateSessionActivity } from '../utils/sessionUtils.js';
 
 const authenticateToken = (req, res, next) => {
@@ -22,7 +23,23 @@ const authenticateToken = (req, res, next) => {
       userId: decoded?.userId ?? decoded?.id,
     };
     req.user = normalized;
-    
+
+    // AUTH-001: rechazar tokens cuya sesión fue revocada (logout marca la fila
+    // is_active=FALSE). Fail-open ante errores o si no hay registro de sesión,
+    // para no bloquear tokens legítimos cuyo alta de sesión no se registrara.
+    try {
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      const { rows } = await pool.query(
+        'SELECT is_active FROM app.user_sessions WHERE jwt_token_hash = $1 ORDER BY login_time DESC LIMIT 1',
+        [tokenHash]
+      );
+      if (rows.length > 0 && rows[0].is_active === false) {
+        return res.status(401).json({ error: 'Sesión cerrada. Vuelve a iniciar sesión.', code: 'SESSION_REVOKED' });
+      }
+    } catch (e) {
+      console.warn('Warning: no se pudo verificar revocación de sesión:', e.message);
+    }
+
     // Actualizar actividad de sesión en background
     if (normalized.userId) {
       updateSessionActivity(normalized.userId, token).catch(err => {
