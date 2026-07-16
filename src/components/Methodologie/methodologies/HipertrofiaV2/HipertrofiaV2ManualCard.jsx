@@ -101,7 +101,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
     setEvaluating(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/hipertrofia-specialist/evaluate-profile`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/hipertrofia-specialist/evaluate-profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -201,7 +201,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
 
       // Llamar al nuevo endpoint de generación D1-D5
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/hipertrofiav2/generate-d1d5`,
+        `${import.meta.env.VITE_API_URL || ""}/api/hipertrofiav2/generate-d1d5`,
         {
           method: 'POST',
           headers: {

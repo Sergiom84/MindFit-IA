@@ -2,11 +2,10 @@ import express from 'express'
 // Nota: Requiere la columna jsonb en la tabla users:
 //   ALTER TABLE users ADD COLUMN IF NOT EXISTS historial_medico_docs jsonb;
 
-import fs from 'fs'
-import path from 'path'
 import multer from 'multer'
 import { pool } from '../db.js'
 import authenticateToken from '../middleware/auth.js'
+import { getSupabaseAdmin, MEDICAL_DOCS_BUCKET, medicalDocPath } from '../lib/supabaseStorage.js'
 
 const router = express.Router()
 
@@ -28,29 +27,31 @@ const ensureDocsColumn = async () => {
   }
 }
 
-// Storage para PDFs de documentación médica
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const userId = getUserId(req)
-    const dest = path.join('uploads', 'medical', String(userId))
-    fs.mkdirSync(dest, { recursive: true })
-    cb(null, dest)
-  },
-  filename: (req, file, cb) => {
-    const ts = Date.now()
-    const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')
-    cb(null, `${ts}-${safe}`)
-  }
-})
-
+// Los PDFs médicos se guardan en un bucket PRIVADO de Supabase Storage (no en el
+// disco efímero de Render, que se pierde en cada redeploy). Multer usa memoria
+// para tener el buffer y subirlo a Storage.
 const uploadPdf = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'application/pdf') return cb(null, true)
     return cb(new Error('Solo se permiten archivos PDF'))
   }
 })
+
+// Descarga el buffer de un documento desde Storage. Compatibilidad: los docs
+// antiguos guardaban `url` de disco local (ya no disponible); los nuevos guardan
+// `storagePath`. Devuelve { buffer } o { error }.
+const downloadDocBuffer = async (doc) => {
+  if (!doc?.storagePath) {
+    return { error: 'Documento almacenado en el sistema antiguo (disco efímero) y ya no disponible. Vuelve a subirlo.' }
+  }
+  const sb = getSupabaseAdmin()
+  const { data, error } = await sb.storage.from(MEDICAL_DOCS_BUCKET).download(doc.storagePath)
+  if (error) return { error: error.message }
+  const buffer = Buffer.from(await data.arrayBuffer())
+  return { buffer }
+}
 
 // GET: servir archivo PDF específico (del propio usuario)
 router.get('/:docId/view', async (req, res) => {
@@ -65,15 +66,12 @@ router.get('/:docId/view', async (req, res) => {
     const doc = docs.find(d => String(d.id) === String(docId))
     if (!doc) return res.status(404).json({ success: false, error: 'Documento no encontrado' })
 
-    const filePath = path.join(process.cwd(), doc.url.replace(/^\//, ''))
-
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ success: false, error: 'Archivo no encontrado en el servidor' })
-    }
+    const { buffer, error } = await downloadDocBuffer(doc)
+    if (error) return res.status(404).json({ success: false, error })
 
     res.setHeader('Content-Type', 'application/pdf')
     res.setHeader('Content-Disposition', `inline; filename="${doc.originalName}"`)
-    return res.sendFile(filePath)
+    return res.send(buffer)
   } catch (e) {
     console.error('Error sirviendo PDF:', e)
     return res.status(500).json({ success: false, error: e.message || 'Error interno' })
@@ -95,7 +93,7 @@ router.get('/', async (req, res) => {
   }
 })
 
-// POST: subir PDF y anexar metadatos en jsonb (al propio usuario)
+// POST: subir PDF a Storage y anexar metadatos en jsonb (al propio usuario)
 router.post('/', uploadPdf.single('file'), async (req, res) => {
   try {
     await ensureDocsColumn()
@@ -103,18 +101,36 @@ router.post('/', uploadPdf.single('file'), async (req, res) => {
     const file = req.file
     if (!file) return res.status(400).json({ success: false, error: 'Archivo no recibido' })
 
-    const url = `/uploads/medical/${userId}/${file.filename}`
+    const ts = Date.now()
+    const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const filename = `${ts}-${safe}`
+    const storagePath = medicalDocPath(userId, filename)
+
+    // Subir a bucket privado
+    const sb = getSupabaseAdmin()
+    const { error: upErr } = await sb.storage
+      .from(MEDICAL_DOCS_BUCKET)
+      .upload(storagePath, file.buffer, { contentType: file.mimetype, upsert: false })
+    if (upErr) {
+      console.error('Error subiendo a Storage:', upErr)
+      return res.status(502).json({ success: false, error: 'No se pudo almacenar el documento' })
+    }
+
     const current = await pool.query('SELECT historial_medico_docs FROM app.users WHERE id=$1', [userId])
-    if (current.rows.length === 0) return res.status(404).json({ success: false, error: 'Usuario no encontrado' })
+    if (current.rows.length === 0) {
+      // Limpieza: no dejar el fichero huérfano si el usuario no existe
+      await sb.storage.from(MEDICAL_DOCS_BUCKET).remove([storagePath]).catch(() => {})
+      return res.status(404).json({ success: false, error: 'Usuario no encontrado' })
+    }
 
     const prev = current.rows[0].historial_medico_docs || []
     const doc = {
-      id: String(Date.now()),
-      filename: file.filename,
+      id: String(ts),
+      filename,
       originalName: file.originalname,
       size: file.size,
       mimeType: file.mimetype,
-      url,
+      storagePath,
       uploadedAt: new Date().toISOString(),
       ai: null
     }
@@ -140,8 +156,6 @@ router.post('/:docId/extract', async (req, res) => {
     const doc = docs.find(d => String(d.id) === String(docId))
     if (!doc) return res.status(404).json({ success: false, error: 'Documento no encontrado' })
 
-    const filePath = path.join(process.cwd(), doc.url.replace(/^\//, ''))
-
     let pdfParse
     try {
       pdfParse = (await import('pdf-parse')).default
@@ -149,8 +163,10 @@ router.post('/:docId/extract', async (req, res) => {
       return res.status(501).json({ success: false, error: 'pdf-parse no instalado' })
     }
 
-    const dataBuffer = fs.readFileSync(filePath)
-    const parsed = await pdfParse(dataBuffer)
+    const { buffer, error } = await downloadDocBuffer(doc)
+    if (error) return res.status(404).json({ success: false, error })
+
+    const parsed = await pdfParse(buffer)
     return res.json({ success: true, plainText: parsed.text || '' })
   } catch (err) {
     console.error('Error extrayendo texto de PDF:', err)
@@ -176,18 +192,15 @@ router.delete('/:docId', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Documento no encontrado' })
     }
 
-    // Eliminar el archivo físico del servidor
-    const filePath = path.join(process.cwd(), docToDelete.url.replace(/^\//, ''))
-
-    if (fs.existsSync(filePath)) {
+    // Eliminar el objeto de Storage (si es un doc nuevo con storagePath)
+    if (docToDelete.storagePath) {
       try {
-        fs.unlinkSync(filePath)
-        console.log(`Archivo físico eliminado: ${filePath}`)
-      } catch (fileErr) {
-        console.error(`Error al eliminar el archivo físico ${filePath}:`, fileErr)
+        const sb = getSupabaseAdmin()
+        const { error } = await sb.storage.from(MEDICAL_DOCS_BUCKET).remove([docToDelete.storagePath])
+        if (error) console.warn(`No se pudo borrar el objeto de Storage ${docToDelete.storagePath}:`, error.message)
+      } catch (stErr) {
+        console.warn('Error borrando de Storage (se procede a limpiar metadato):', stErr.message)
       }
-    } else {
-      console.warn(`El archivo físico no se encontró para eliminar, pero se procederá a borrar el registro de la BBDD: ${filePath}`)
     }
 
     const nextDocs = docs.filter(d => String(d.id) !== String(docId))

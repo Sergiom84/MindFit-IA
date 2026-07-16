@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -76,6 +78,32 @@ if (process.env.NODE_ENV !== 'production') {
 const app = express();
 const PORT = process.env.PORT || 3010;
 
+// SEC-004: en Render el servicio está tras un proxy. Sin esto, el rate limiting
+// vería la IP del proxy (misma para todos) y express-rate-limit avisa.
+app.set('trust proxy', 1);
+
+// SEC-004: cabeceras defensivas (HSTS, X-Content-Type-Options, anti-clickjacking,
+// Referrer-Policy) y ocultar `x-powered-by`. La Content-Security-Policy se deja
+// DESACTIVADA a propósito: este mismo Express sirve la SPA (Vite) que carga
+// recursos externos (GIFs de buckets, imágenes de Spotify/YouTube, estilos
+// inline); una CSP por defecto rompería el frontend. Activarla requiere un pase
+// dedicado con verificación en navegador.
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
+
+// SEC-004: rate limit anti fuerza-bruta en autenticación. Solo login/registro
+// (NO heartbeat/refresh, que son frecuentes y automáticos). Fail-safe: cuenta
+// por IP y devuelve 429 con Retry-After.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 min
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados intentos. Inténtalo de nuevo en unos minutos.' },
+});
+
 // --- utilidades de path para servir el frontend ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -144,22 +172,30 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Middleware para logging de peticiones (sin imprimir datos masivos)
+// Middleware para logging de peticiones.
+// IMPORTANTE: NUNCA se registra el contenido del body. Muchas rutas (login,
+// registro, perfil, nutrición, visión IA) llevan contraseñas y datos de salud;
+// volcarlos dejaba secretos y datos médicos en los logs de Render. Solo se
+// registran método, ruta y (en desarrollo) las claves del body para diagnóstico.
 app.use((req, res, next) => {
   console.log(`📥 ${req.method} ${req.path} - ${getSpanishTimestamp()}`);
-  if (req.body && Object.keys(req.body).length > 0) {
-    // Solo mostrar las claves del body para evitar logs masivos
-    const bodyKeys = Object.keys(req.body);
-    console.log(`📦 Body keys: [${bodyKeys.join(', ')}]`);
-
-    // Si el body es pequeño (< 500 caracteres), mostrarlo completo
-    const bodyStr = JSON.stringify(req.body);
-    if (bodyStr.length < 500) {
-      console.log('📦 Body:', bodyStr);
-    }
+  if (process.env.NODE_ENV !== 'production' && req.body && Object.keys(req.body).length > 0) {
+    console.log(`📦 Body keys: [${Object.keys(req.body).join(', ')}]`);
   }
   next();
 });
+
+// Guard para endpoints administrativos/diagnóstico. Fail-closed: si no hay
+// ADMIN_TOKEN configurado en el entorno, se deniega siempre (antes bastaba
+// con no enviar cabecera porque `undefined === undefined` dejaba pasar).
+const requireAdmin = (req, res, next) => {
+  const expected = process.env.ADMIN_TOKEN;
+  const provided = req.headers['x-admin-token'];
+  if (!expected || !provided || provided !== expected) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  next();
+};
 
 // Info base de auth (evita 404 en GET /api/auth)
 app.get('/api/auth', (req, res) => {
@@ -410,6 +446,10 @@ app.use('/api/exercise-catalog', exerciseCatalogRoutes);
 app.use('/api/progress', progressReEvaluationRoutes);
 
 // === RUTAS NO AFECTADAS POR LA CONSOLIDACIÓN ===
+// SEC-004: rate limit solo en login/registro (fuerza bruta), no en el resto de
+// /api/auth (heartbeat/refresh son frecuentes).
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/medical-docs', medicalDocsRoutes);
@@ -451,7 +491,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Endpoints de administración de sesiones
-app.get('/api/admin/sessions/status', async (req, res) => {
+app.get('/api/admin/sessions/status', requireAdmin, async (req, res) => {
   try {
     const { getSessionSystemStatus } = await import('./utils/sessionMaintenance.js');
     const status = await getSessionSystemStatus();
@@ -464,7 +504,7 @@ app.get('/api/admin/sessions/status', async (req, res) => {
   }
 });
 
-app.post('/api/admin/sessions/maintenance', async (req, res) => {
+app.post('/api/admin/sessions/maintenance', requireAdmin, async (req, res) => {
   try {
     const { runManualMaintenance } = await import('./utils/sessionMaintenance.js');
     await runManualMaintenance();
@@ -489,7 +529,7 @@ app.get(/^(?!\/api).*/, (req, res) => {
 });
 
 // Endpoint de test para validar módulos IA
-app.get('/api/test-ai-modules', async (req, res) => {
+app.get('/api/test-ai-modules', requireAdmin, async (req, res) => {
   try {
     const { getOpenAIClient } = await import('./lib/openaiClient.js');
     const { getPrompt } = await import('./lib/promptRegistry.js');

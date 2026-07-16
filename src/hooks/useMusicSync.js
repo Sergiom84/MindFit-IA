@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 
+// El backend de Música exige JWT y deriva el usuario del token (no del :userId
+// de la URL). Sin esta cabecera, todas las llamadas devuelven 401.
+const authHeaders = (extra = {}) => {
+  const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+  return token ? { ...extra, Authorization: `Bearer ${token}` } : { ...extra };
+};
+
 export const useMusicSync = (userId, exerciseData = null) => {
   const [musicConfig, setMusicConfig] = useState(null);
   const [currentRecommendations, setCurrentRecommendations] = useState(null);
@@ -9,7 +16,9 @@ export const useMusicSync = (userId, exerciseData = null) => {
   // Define callback functions FIRST
   const loadMusicConfig = useCallback(async () => {
     try {
-      const response = await fetch(`/api/music/config/${userId}`);
+      const response = await fetch(`/api/music/config/${userId}`, {
+        headers: authHeaders()
+      });
       if (response.ok) {
         const config = await response.json();
         setMusicConfig(config);
@@ -29,14 +38,11 @@ export const useMusicSync = (userId, exerciseData = null) => {
     try {
       const response = await fetch('/api/music/recommendations', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           exerciseType: exerciseData.type,
           intensity: exerciseData.intensity,
-          duration: exerciseData.duration,
-          userId: userId
+          duration: exerciseData.duration
         })
       });
 
@@ -225,9 +231,7 @@ export const useMusicSync = (userId, exerciseData = null) => {
     try {
       const response = await fetch(`/api/music/config/${userId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(newConfig)
       });
 
@@ -251,12 +255,9 @@ export const useMusicSync = (userId, exerciseData = null) => {
     try {
       const response = await fetch('/api/music/spotify/refresh-token', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
-          refreshToken: musicConfig.spotify.refreshToken,
-          userId: userId
+          refreshToken: musicConfig.spotify.refreshToken
         })
       });
 
@@ -282,9 +283,7 @@ export const useMusicSync = (userId, exerciseData = null) => {
     try {
       const response = await fetch('/api/music/test-connection', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           platform,
           config: musicConfig[platform]

@@ -7,7 +7,10 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon --watch . server.js",
-    "test": "node --test tests/**/*.test.js",
+    "test": "node scripts/run-tests.mjs unit",
+    "test:unit": "node scripts/run-tests.mjs unit",
+    "test:integration": "node scripts/run-tests.mjs integration",
+    "test:all": "node --test tests/**/*.test.js",
     "migrate:nutrition-review": "node scripts/run-nutrition-review-migration.js",
     "migrate:nutrition-adjustments": "node scripts/run-nutrition-adjustments-migration.js",
     "migrate:nutrition-recipes": "node scripts/run-nutrition-recipes-migration.js",
@@ -28,17 +31,19 @@
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "node-cron": "^3.0.3",
     "node-fetch": "^3.3.2",
     "openai": "^4.104.0",
     "pdf-parse": "^1.1.1",
-    "pg": "^8.16.3",
-    "xlsx": "^0.18.5"
+    "pg": "^8.16.3"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "xlsx": "^0.18.5"
   },
   "keywords": [
     "fitness",

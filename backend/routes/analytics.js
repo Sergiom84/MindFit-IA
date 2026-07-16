@@ -74,9 +74,11 @@ router.get('/user-stats', authenticateToken, async (req, res) => {
 // Endpoint para obtener analytics globales (solo admin)
 router.get('/global-stats', async (req, res) => {
   try {
-    // Verificar permisos de admin
+    // Verificar permisos de admin (fail-closed): si ADMIN_TOKEN no está
+    // configurado, denegar siempre. Antes, con ADMIN_TOKEN sin definir y sin
+    // cabecera, `undefined !== undefined` era false y el endpoint quedaba abierto.
     const adminToken = req.headers['x-admin-token'];
-    if (adminToken !== process.env.ADMIN_TOKEN) {
+    if (!process.env.ADMIN_TOKEN || adminToken !== process.env.ADMIN_TOKEN) {
       return res.status(403).json({ error: 'No autorizado' });
     }
 

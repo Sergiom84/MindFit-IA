@@ -14,9 +14,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
 
+      # Dependencias de raíz (frontend) y de backend (los tests unit las necesitan)
       - run: npm ci
+      - run: npm ci --prefix backend
+
       - run: npm run lint
       - run: npm run build
+
+      # Tests UNIT reales (sin BD). Los de integración NO corren en CI: requieren
+      # una BD de test y se protegen del uso accidental contra producción
+      # (guard en backend/db.js con NODE_ENV=test).
       - run: npm run test
