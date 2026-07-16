@@ -37,6 +37,22 @@ let user = decodeURIComponent(parsed.username || "postgres");
 const password = decodeURIComponent(parsed.password || "");
 const sslmode = parsed.searchParams.get("sslmode");
 
+// --- 2.2) Guardia de seguridad para tests (CI-001) ---
+// En NODE_ENV=test, rechaza conectar a una BD que parezca de PRODUCCIÓN (Supabase
+// gestionado) salvo override explícito. Evita que la suite de integración escriba
+// en producción por accidente. El servidor NUNCA corre con NODE_ENV=test.
+if (process.env.NODE_ENV === "test") {
+  const looksProduction =
+    /\.supabase\.(co|com)$/.test(host) || host.includes(".pooler.supabase.com");
+  if (looksProduction && process.env.ALLOW_PROD_DB_TESTS !== "1") {
+    throw new Error(
+      `[test-safety] DATABASE_URL apunta a una BD de producción (${host}) con ` +
+        "NODE_ENV=test. Usa una base de datos de test o define ALLOW_PROD_DB_TESTS=1 " +
+        "de forma explícita si realmente quieres correr tests de integración ahí."
+    );
+  }
+}
+
 // --- 2.1) Fallback automático para pooler Supabase sin sufijo de tenant ---
 const isSupabasePooler = host?.includes(".pooler.supabase.com");
 const hasTenantSuffix = user?.includes(".");
