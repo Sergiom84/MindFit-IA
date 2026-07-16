@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -75,6 +77,32 @@ if (process.env.NODE_ENV !== 'production') {
 
 const app = express();
 const PORT = process.env.PORT || 3010;
+
+// SEC-004: en Render el servicio está tras un proxy. Sin esto, el rate limiting
+// vería la IP del proxy (misma para todos) y express-rate-limit avisa.
+app.set('trust proxy', 1);
+
+// SEC-004: cabeceras defensivas (HSTS, X-Content-Type-Options, anti-clickjacking,
+// Referrer-Policy) y ocultar `x-powered-by`. La Content-Security-Policy se deja
+// DESACTIVADA a propósito: este mismo Express sirve la SPA (Vite) que carga
+// recursos externos (GIFs de buckets, imágenes de Spotify/YouTube, estilos
+// inline); una CSP por defecto rompería el frontend. Activarla requiere un pase
+// dedicado con verificación en navegador.
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
+
+// SEC-004: rate limit anti fuerza-bruta en autenticación. Solo login/registro
+// (NO heartbeat/refresh, que son frecuentes y automáticos). Fail-safe: cuenta
+// por IP y devuelve 429 con Retry-After.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 min
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados intentos. Inténtalo de nuevo en unos minutos.' },
+});
 
 // --- utilidades de path para servir el frontend ---
 const __filename = fileURLToPath(import.meta.url);
@@ -418,6 +446,10 @@ app.use('/api/exercise-catalog', exerciseCatalogRoutes);
 app.use('/api/progress', progressReEvaluationRoutes);
 
 // === RUTAS NO AFECTADAS POR LA CONSOLIDACIÓN ===
+// SEC-004: rate limit solo en login/registro (fuerza bruta), no en el resto de
+// /api/auth (heartbeat/refresh son frecuentes).
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/medical-docs', medicalDocsRoutes);
