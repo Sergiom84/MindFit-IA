@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 
+// El backend de Música exige JWT y deriva el usuario del token (no del :userId
+// de la URL). Sin esta cabecera, todas las llamadas devuelven 401.
+const authHeaders = (extra = {}) => {
+  const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+  return token ? { ...extra, Authorization: `Bearer ${token}` } : { ...extra };
+};
+
 export const usePlaylistDB = (userId) => {
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -13,7 +20,9 @@ export const usePlaylistDB = (userId) => {
     setError(null);
     
     try {
-      const response = await fetch(`/api/music/playlists/${userId}`);
+      const response = await fetch(`/api/music/playlists/${userId}`, {
+        headers: authHeaders()
+      });
       if (response.ok) {
         const data = await response.json();
         setPlaylists(data);
@@ -48,9 +57,7 @@ export const usePlaylistDB = (userId) => {
     try {
       const response = await fetch(`/api/music/playlists/${userId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ name, tracks })
       });
       
@@ -96,9 +103,7 @@ export const usePlaylistDB = (userId) => {
     try {
       const response = await fetch(`/api/music/playlists/${playlistId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(updates)
       });
       
@@ -149,7 +154,8 @@ export const usePlaylistDB = (userId) => {
     
     try {
       const response = await fetch(`/api/music/playlists/${playlistId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: authHeaders()
       });
       
       if (response.ok) {
@@ -183,9 +189,7 @@ export const usePlaylistDB = (userId) => {
     try {
       const response = await fetch(`/api/music/playlists/${playlistId}/tracks`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ track })
       });
       
@@ -245,7 +249,8 @@ export const usePlaylistDB = (userId) => {
     
     try {
       const response = await fetch(`/api/music/playlists/${playlistId}/tracks/${trackId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: authHeaders()
       });
       
       if (response.ok) {

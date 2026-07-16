@@ -1,13 +1,22 @@
 import express from 'express';
 import { pool } from '../db.js';
+import authenticateToken from '../middleware/auth.js';
 
 const router = express.Router();
+
+// 🛡️ Todos los endpoints requieren autenticación. El usuario SIEMPRE se toma
+// del token (req.user.id); nunca de un parámetro de ruta o del body → evita
+// IDOR (acceso/escritura sobre config, playlists y tokens OAuth de otros
+// usuarios usando IDs arbitrarios).
+router.use(authenticateToken);
+
+const getUserId = (req) => req.user?.id || req.user?.userId;
 
 // Get user music configuration
 router.get('/config/:userId', async (req, res) => {
   try {
-    const { userId } = req.params;
-    
+    const userId = getUserId(req);
+
     const query = `
       SELECT music_config 
       FROM app.user_profiles 
@@ -36,7 +45,7 @@ router.get('/config/:userId', async (req, res) => {
 // Update user music configuration
 router.put('/config/:userId', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = getUserId(req);
     const musicConfig = req.body;
     
     const query = `
@@ -97,8 +106,9 @@ router.post('/test-connection', async (req, res) => {
 // Spotify OAuth callback
 router.post('/spotify/callback', async (req, res) => {
   try {
-    const { code, userId } = req.body;
-    
+    const { code } = req.body;
+    const userId = getUserId(req);
+
     const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
@@ -153,8 +163,9 @@ router.post('/spotify/callback', async (req, res) => {
 // Get exercise-based music recommendations
 router.post('/recommendations', async (req, res) => {
   try {
-    const { exerciseType, intensity, duration, userId } = req.body;
-    
+    const { exerciseType, intensity, duration } = req.body;
+    const userId = getUserId(req);
+
     // Get user's music config
     const configQuery = `
       SELECT music_config 
@@ -377,10 +388,10 @@ async function getYouTubeRecommendations(params, apiKey) {
 // Playlist management routes
 router.get('/playlists/:userId', async (req, res) => {
   try {
-    const { userId } = req.params;
-    
+    const userId = getUserId(req);
+
     const query = `
-      SELECT * FROM app.music_playlists 
+      SELECT * FROM app.music_playlists
       WHERE user_id = $1 
       ORDER BY created_at DESC
     `;
@@ -395,7 +406,7 @@ router.get('/playlists/:userId', async (req, res) => {
 
 router.post('/playlists/:userId', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = getUserId(req);
     const { name, tracks } = req.body;
     
     const query = `
@@ -415,32 +426,34 @@ router.post('/playlists/:userId', async (req, res) => {
 router.put('/playlists/:playlistId', async (req, res) => {
   try {
     const { playlistId } = req.params;
+    const userId = getUserId(req);
     const { name, tracks } = req.body;
-    
+
     const updates = [];
     const values = [];
     let valueIndex = 1;
-    
+
     if (name !== undefined) {
       updates.push(`name = $${valueIndex++}`);
       values.push(name);
     }
-    
+
     if (tracks !== undefined) {
       updates.push(`tracks = $${valueIndex++}`);
       values.push(JSON.stringify(tracks));
     }
-    
+
     updates.push(`updated_at = NOW()`);
     values.push(playlistId);
-    
+    values.push(userId);
+
     const query = `
-      UPDATE app.music_playlists 
+      UPDATE app.music_playlists
       SET ${updates.join(', ')}
-      WHERE id = $${valueIndex}
+      WHERE id = $${valueIndex} AND user_id = $${valueIndex + 1}
       RETURNING *
     `;
-    
+
     const result = await pool.query(query, values);
     
     if (result.rows.length === 0) {
@@ -457,14 +470,15 @@ router.put('/playlists/:playlistId', async (req, res) => {
 router.delete('/playlists/:playlistId', async (req, res) => {
   try {
     const { playlistId } = req.params;
-    
+    const userId = getUserId(req);
+
     const query = `
-      DELETE FROM app.music_playlists 
-      WHERE id = $1
+      DELETE FROM app.music_playlists
+      WHERE id = $1 AND user_id = $2
       RETURNING *
     `;
-    
-    const result = await pool.query(query, [playlistId]);
+
+    const result = await pool.query(query, [playlistId, userId]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Playlist not found' });
@@ -481,28 +495,29 @@ router.delete('/playlists/:playlistId', async (req, res) => {
 router.post('/playlists/:playlistId/tracks', async (req, res) => {
   try {
     const { playlistId } = req.params;
+    const userId = getUserId(req);
     const { track } = req.body;
-    
+
     // Get current tracks
-    const getQuery = `SELECT tracks FROM app.music_playlists WHERE id = $1`;
-    const currentResult = await pool.query(getQuery, [playlistId]);
-    
+    const getQuery = `SELECT tracks FROM app.music_playlists WHERE id = $1 AND user_id = $2`;
+    const currentResult = await pool.query(getQuery, [playlistId, userId]);
+
     if (currentResult.rows.length === 0) {
       return res.status(404).json({ error: 'Playlist not found' });
     }
-    
+
     const currentTracks = currentResult.rows[0].tracks || [];
     const updatedTracks = [...currentTracks, { ...track, id: Date.now().toString() }];
-    
+
     // Update with new tracks
     const updateQuery = `
-      UPDATE app.music_playlists 
+      UPDATE app.music_playlists
       SET tracks = $1, updated_at = NOW()
-      WHERE id = $2
+      WHERE id = $2 AND user_id = $3
       RETURNING *
     `;
-    
-    const result = await pool.query(updateQuery, [JSON.stringify(updatedTracks), playlistId]);
+
+    const result = await pool.query(updateQuery, [JSON.stringify(updatedTracks), playlistId, userId]);
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error adding track to playlist:', error);
@@ -514,27 +529,28 @@ router.post('/playlists/:playlistId/tracks', async (req, res) => {
 router.delete('/playlists/:playlistId/tracks/:trackId', async (req, res) => {
   try {
     const { playlistId, trackId } = req.params;
-    
+    const userId = getUserId(req);
+
     // Get current tracks
-    const getQuery = `SELECT tracks FROM app.music_playlists WHERE id = $1`;
-    const currentResult = await pool.query(getQuery, [playlistId]);
-    
+    const getQuery = `SELECT tracks FROM app.music_playlists WHERE id = $1 AND user_id = $2`;
+    const currentResult = await pool.query(getQuery, [playlistId, userId]);
+
     if (currentResult.rows.length === 0) {
       return res.status(404).json({ error: 'Playlist not found' });
     }
-    
+
     const currentTracks = currentResult.rows[0].tracks || [];
     const updatedTracks = currentTracks.filter(track => track.id !== trackId);
-    
+
     // Update with filtered tracks
     const updateQuery = `
-      UPDATE app.music_playlists 
+      UPDATE app.music_playlists
       SET tracks = $1, updated_at = NOW()
-      WHERE id = $2
+      WHERE id = $2 AND user_id = $3
       RETURNING *
     `;
-    
-    const result = await pool.query(updateQuery, [JSON.stringify(updatedTracks), playlistId]);
+
+    const result = await pool.query(updateQuery, [JSON.stringify(updatedTracks), playlistId, userId]);
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error removing track from playlist:', error);
@@ -545,8 +561,9 @@ router.delete('/playlists/:playlistId/tracks/:trackId', async (req, res) => {
 // Refresh Spotify token
 router.post('/spotify/refresh-token', async (req, res) => {
   try {
-    const { refreshToken, userId } = req.body;
-    
+    const { refreshToken } = req.body;
+    const userId = getUserId(req);
+
     const response = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {

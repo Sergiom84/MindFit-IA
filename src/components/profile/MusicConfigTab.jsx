@@ -97,10 +97,12 @@ const MusicConfigTab = ({ userId }) => {
   const testConnection = async (platform) => {
     setLoading(true);
     try {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
       const response = await fetch(`/api/music/test-connection`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
           platform,
