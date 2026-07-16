@@ -2,7 +2,6 @@
 -- PostgreSQL database dump
 --
 
-\restrict sRch3r51hK9QzGRb0iRhIBMhdjbrViAXHbIVf7OOzo6dDkoOgaXtO8cGi4iE98P
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.9
@@ -18072,5 +18071,4 @@ CREATE POLICY sel_foods_authenticated ON app.foods FOR SELECT USING ((auth.uid()
 -- PostgreSQL database dump complete
 --
 
-\unrestrict sRch3r51hK9QzGRb0iRhIBMhdjbrViAXHbIVf7OOzo6dDkoOgaXtO8cGi4iE98P
 

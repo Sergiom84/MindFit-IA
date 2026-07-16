@@ -27,3 +27,55 @@ jobs:
       # una BD de test y se protegen del uso accidental contra producción
       # (guard en backend/db.js con NODE_ENV=test).
       - run: npm run test
+
+  # DB-001: valida que el baseline del esquema reconstruye producción DESDE CERO
+  # en un Postgres limpio y efímero (contenedor), sin depender de ninguna
+  # infraestructura externa. Si el baseline deja de restaurar, el CI se pone rojo.
+  db-baseline-restore:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: baseline_check
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar roles Supabase (stubs) y extensiones
+        run: |
+          # El baseline incluye políticas RLS que referencian roles gestionados por
+          # Supabase (p. ej. "authenticated"). En un Postgres vanilla hay que crearlos
+          # como stubs sin login para que el restore no falle.
+          psql -h localhost -U postgres -d baseline_check -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE anon NOLOGIN;" \
+            -c "CREATE ROLE authenticated NOLOGIN;" \
+            -c "CREATE ROLE service_role NOLOGIN;" \
+            -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;" \
+            -c "CREATE SCHEMA IF NOT EXISTS auth;" \
+            -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS 'SELECT NULL::uuid';"
+
+      - name: Restaurar baseline en Postgres limpio
+        run: |
+          psql -h localhost -U postgres -d baseline_check -v ON_ERROR_STOP=1 \
+            -f backend/db/baseline/app_schema_baseline.sql
+
+      - name: Verificar objetos restaurados
+        run: |
+          TABLES=$(psql -h localhost -U postgres -d baseline_check -tAc \
+            "SELECT count(*) FROM information_schema.tables WHERE table_schema='app' AND table_type='BASE TABLE'")
+          FUNCS=$(psql -h localhost -U postgres -d baseline_check -tAc \
+            "SELECT count(*) FROM information_schema.routines WHERE routine_schema='app'")
+          FKS=$(psql -h localhost -U postgres -d baseline_check -tAc \
+            "SELECT count(*) FROM information_schema.table_constraints WHERE table_schema='app' AND constraint_type='FOREIGN KEY'")
+          echo "Restaurado -> tablas app: $TABLES | funciones: $FUNCS | FKs: $FKS"
+          test "$TABLES" -ge 120 || { echo "Esperaba >=120 tablas, obtuve $TABLES"; exit 1; }
