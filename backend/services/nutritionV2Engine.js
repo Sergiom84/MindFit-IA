@@ -19,8 +19,7 @@ import {
 } from '../services/nutritionHybridOrchestrator.js';
 import {
   evaluateRecipeHardRules,
-  computePairingPenaltyForRecipe,
-  evaluateMealNutrientBalance
+  computePairingPenaltyForRecipe
 } from '../services/menuHardRulesEngine.js';
 import { clampNumber, parseJsonObject, formatLocalDate, normalizeFoodName } from './nutritionUtils.js';
 // Normalizadores de perfil de usuario extraídos (ARCH-002). Se re-exportan más abajo
@@ -85,6 +84,20 @@ import {
   computeMealPalatabilityPenalty,
   registerMenuFoodsInVarietyContext
 } from './nutritionV2/varietyPalatability.js';
+// Helpers de selección de comida extraídos (ARCH-002). Re-exportados más abajo.
+import {
+  buildFoodCatalogFilters,
+  buildFoodFiltersFromUserPreferences,
+  parseMealMacros,
+  normalizeTemplateContext,
+  resolvePhaseContext,
+  resolveMealType,
+  resolveSnackSlotTag,
+  buildMealSelectionSeedSuffix,
+  extractFoodTagsSet,
+  matchesFoodFilters,
+  evaluateCandidateMealBalance
+} from './nutritionV2/mealSelectionHelpers.js';
 
 const VALID_MENU_GENERATION_MODES = ['deterministic', 'ai', 'hybrid_ai', 'recipe_examples'];
 const DETERMINISTIC_MAX_TEMPLATE_TRIES = 12;
@@ -96,210 +109,6 @@ const DETERMINISTIC_RECENT_FOOD_WINDOW_DAYS = 7;
 const SWAP_MEAL_RECALC_MAX_ERROR = 35;
 const HYBRID_FALLBACK_MODE = 'deterministic';
 const DEFAULT_HYBRID_MODEL = process.env.NUTRITION_HYBRID_MODEL || 'gpt-5.2';
-
-function buildFoodCatalogFilters({
-  search,
-  categoria,
-  categoriaDetalle,
-  diet,
-  allergensExclude,
-  estadoBase,
-  grupoFactor,
-  onlyVerified = true
-}) {
-  const whereClauses = ['1=1'];
-  const params = [];
-
-  if (onlyVerified) {
-    whereClauses.push('is_verified = TRUE');
-  }
-
-  if (search) {
-    whereClauses.push(`LOWER(nombre) LIKE LOWER($${params.length + 1})`);
-    params.push(`%${search}%`);
-  }
-
-  if (categoria) {
-    whereClauses.push(`LOWER(categoria) = LOWER($${params.length + 1})`);
-    params.push(categoria);
-  }
-
-  if (categoriaDetalle) {
-    whereClauses.push(`LOWER(categoria_detalle) = LOWER($${params.length + 1})`);
-    params.push(categoriaDetalle);
-  }
-
-  if (estadoBase) {
-    whereClauses.push(`estado_pesado_base = $${params.length + 1}`);
-    params.push(estadoBase);
-  }
-
-  if (grupoFactor) {
-    whereClauses.push(`LOWER(grupo_factor) = LOWER($${params.length + 1})`);
-    params.push(grupoFactor);
-  }
-
-  if (diet === 'vegetariano') {
-    whereClauses.push('COALESCE(is_vegetarian, FALSE) = TRUE');
-  } else if (diet === 'vegano') {
-    whereClauses.push('COALESCE(is_vegan, FALSE) = TRUE');
-  }
-
-  const allergens = normalizeStringArray(allergensExclude).map((allergen) => allergen.toLowerCase());
-  for (const allergen of allergens) {
-    whereClauses.push(`LOWER(COALESCE(tags::text, '')) NOT LIKE $${params.length + 1}`);
-    params.push(`%${allergen}%`);
-  }
-
-  return {
-    whereSql: whereClauses.join(' AND '),
-    params,
-    normalizedAllergens: [...new Set(allergens)]
-  };
-}
-
-function buildFoodFiltersFromUserPreferences(userPreferences = {}) {
-  const preferencias = parseJsonObject(userPreferences.preferencias, {});
-  const alergias = normalizeStringArray(userPreferences.alergias);
-
-  const allergensExclude = [...alergias];
-  if (preferencias.sin_gluten) {
-    allergensExclude.push('gluten');
-  }
-  if (preferencias.sin_lactosa) {
-    allergensExclude.push('lactosa', 'lacteo', 'lacteos', 'lácteo', 'lácteos');
-  }
-
-  const diet = preferencias.vegano ? 'vegano' : (preferencias.vegetariano ? 'vegetariano' : 'omnivoro');
-
-  return {
-    diet,
-    allergensExclude: [...new Set(allergensExclude.map((item) => String(item).trim()).filter(Boolean))],
-    preferencias,
-    alergias
-  };
-}
-
-function parseMealMacros(meal) {
-  const rawMacros = parseJsonObject(meal?.macros, {});
-  return {
-    protein_g: parseNumeric(rawMacros.protein_g) ?? 0,
-    carbs_g: parseNumeric(rawMacros.carbs_g) ?? 0,
-    fat_g: parseNumeric(rawMacros.fat_g) ?? 0
-  };
-}
-
-function normalizeTemplateContext(value) {
-  const raw = String(value || '').trim().toUpperCase();
-  if (!raw) return 'AMBOS';
-  if (raw === 'MANTENIMIENTO') return 'NORMO';
-  return raw;
-}
-
-function resolvePhaseContext(profile) {
-  const phaseRaw = String(profile?.current_phase || profile?.objetivo || '').trim().toLowerCase();
-  if (phaseRaw.includes('defin') || phaseRaw === 'cut') return 'DEFINICION';
-  if (phaseRaw.includes('volum') || phaseRaw === 'bulk') return 'VOLUMEN';
-  if (phaseRaw.includes('normo') || phaseRaw.includes('maint')) return 'NORMO';
-  return null;
-}
-
-function resolveMealType(meal) {
-  const explicitMealType = String(meal?.meal_type || '').trim().toUpperCase();
-  if (['DESAYUNO', 'SNACK', 'COMIDA', 'CENA'].includes(explicitMealType)) {
-    return explicitMealType;
-  }
-
-  const mealName = String(meal?.nombre || '').trim().toLowerCase();
-  if (mealName === 'primera comida') return 'COMIDA';
-  if (mealName === 'segunda comida') return 'CENA';
-  if (mealName.includes('desay')) return 'DESAYUNO';
-  if (mealName.includes('cena')) return 'CENA';
-  if (mealName.includes('almuerzo')) return 'SNACK';
-  if (mealName.includes('comida')) return 'COMIDA';
-  if (mealName.includes('snack') || mealName.includes('merienda')) return 'SNACK';
-
-  switch (Number.parseInt(meal?.orden, 10)) {
-    case 1: return 'DESAYUNO';
-    case 2: return 'SNACK';
-    case 3: return 'COMIDA';
-    case 4: return 'SNACK';
-    case 5: return 'CENA';
-    default: return 'SNACK';
-  }
-}
-
-function resolveSnackSlotTag(meal) {
-  const mealName = String(meal?.nombre || '').trim().toLowerCase();
-  if (mealName.includes('almuerzo')) return 'slot:almuerzo';
-  if (mealName.includes('merienda')) return 'slot:merienda';
-
-  const order = Number.parseInt(meal?.orden, 10);
-  if (order === 2) return 'slot:almuerzo';
-  if (order === 4) return 'slot:merienda';
-  if (order >= 5) return 'slot:merienda';
-  return null;
-}
-
-function buildMealSelectionSeedSuffix(meal) {
-  const mealName = normalizeFoodName(meal?.nombre || '');
-  const mealOrder = Number.parseInt(meal?.orden, 10);
-  return `${Number.isFinite(mealOrder) ? mealOrder : 0}|${mealName || 'meal'}`;
-}
-
-function extractFoodTagsSet(food) {
-  const tags = Array.isArray(food?.tags) ? food.tags : normalizeStringArray(food?.tags);
-  return new Set(tags.map((tag) => String(tag || '').trim().toLowerCase()).filter(Boolean));
-}
-
-function matchesFoodFilters(food, userFoodFilters) {
-  if (!food) return false;
-  const diet = userFoodFilters?.diet || 'omnivoro';
-  if (diet === 'vegano' && !food.is_vegan) return false;
-  if (diet === 'vegetariano' && !food.is_vegetarian) return false;
-
-  const allergens = normalizeStringArray(userFoodFilters?.allergensExclude).map((value) => value.toLowerCase());
-  if (allergens.length === 0) return true;
-
-  const tagSet = extractFoodTagsSet(food);
-  for (const allergen of allergens) {
-    if (!allergen) continue;
-    for (const tag of tagSet) {
-      if (tag.includes(allergen) || allergen.includes(tag)) {
-        return false;
-      }
-    }
-  }
-
-  return true;
-}
-
-function evaluateCandidateMealBalance(items, mealMacros, mealKcalTarget) {
-  const balanceEval = evaluateMealNutrientBalance(items, {
-    protein_g: mealMacros?.protein_g,
-    carbs_g: mealMacros?.carbs_g,
-    fat_g: mealMacros?.fat_g,
-    kcal: mealKcalTarget
-  });
-
-  const blockingCodes = new Set([
-    'low_protein_from_protein_roles',
-    'low_carbs_from_carbo_roles',
-    'low_fat_from_grasa_roles',
-    'high_kcal_from_verduras',
-    'vegetal_grams_too_high'
-  ]);
-  const blockingWarnings = balanceEval.warnings.filter((warning) => blockingCodes.has(warning.code));
-  const nonBlockingWarnings = balanceEval.warnings.filter((warning) => !blockingCodes.has(warning.code));
-
-  return {
-    ...balanceEval,
-    blockingWarnings,
-    nonBlockingWarnings,
-    blocksCandidate: blockingWarnings.length > 0,
-    penaltyScore: Number(((blockingWarnings.length * 10) + (nonBlockingWarnings.length * 2.5)).toFixed(4))
-  };
-}
 
 function extractMenuItemsForPersistence(menuData) {
   if (!menuData || !Array.isArray(menuData.items)) {
