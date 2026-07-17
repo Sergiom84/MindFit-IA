@@ -56,7 +56,7 @@ const logUserProfile = (user, userId) => {
         // Usar 'nivel' que es el campo que viene de la vista (COALESCE de nivel_actividad y nivel_entrenamiento)
         nivel_actividad: user.nivel || user.nivel_actividad || 'No especificado',
         nivel_entrenamiento: user.nivel_entrenamiento || user.nivel || 'No especificado',
-        años_entrenando: user["años_entrenando"] || user.anos_entrenando || user.años_entrenando || 'No especificado',
+        años_entrenando: user.anos_entrenando || user.años_entrenando || 'No especificado',
         objetivo_principal: user.objetivo_principal || 'No especificado'
       },
       'Composición Corporal': {

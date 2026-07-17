@@ -53,7 +53,6 @@ export const GoalProgressCard = ({
               <button
                 onClick={() =>
                   startEdit('goalProgress', {
-                    fecha_inicio_objetivo: userProfile.fecha_inicio_objetivo,
                     fecha_meta_objetivo: userProfile.fecha_meta_objetivo,
                     notas_progreso: userProfile.notas_progreso
                   })
@@ -72,15 +71,14 @@ export const GoalProgressCard = ({
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
-            <EditableField
-              label="Fecha de Inicio"
-              field="fecha_inicio_objetivo"
-              value={userProfile.fecha_inicio_objetivo}
-              type="date"
-              editing={isEditing}
-              editedData={editedData}
-              onInputChange={handleInputChange}
-            />
+            {/* Fecha de inicio del objetivo: gestionada por el sistema (baseline/reiniciar
+                progreso) vía la canónica objetivo_activo_desde. Solo lectura. */}
+            <div>
+              <p className="text-sm text-gray-300/70 mb-1">Fecha de Inicio</p>
+              <p className="text-white font-medium">
+                {userProfile.objetivo_activo_desde || '—'}
+              </p>
+            </div>
             <EditableField
               label="Fecha Meta"
               field="fecha_meta_objetivo"
