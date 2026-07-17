@@ -96,7 +96,13 @@ export async function generateD1D5Plan(dbClient, config) {
   } = config;
 
   const defaultWeeks = DEFAULT_WEEKS_BY_LEVEL[nivel] || 10;
-  const actualTotalWeeks = totalWeeks ?? defaultWeeks;
+  // Cota anti-DoS: totalWeeks llega del cliente; sin límite un plan gigante
+  // dispara memoria/JSON/DB. ~1 año es más que suficiente para cualquier nivel.
+  const MAX_TOTAL_WEEKS = 52;
+  const requestedWeeks = Number(totalWeeks ?? defaultWeeks);
+  const actualTotalWeeks = Number.isFinite(requestedWeeks) && requestedWeeks > 0
+    ? Math.min(Math.trunc(requestedWeeks), MAX_TOTAL_WEEKS)
+    : defaultWeeks;
 
   logger.info('🏋️ [MINDFEED] Generando plan D1-D5');
   logger.info(`📅 Nivel: ${nivel}, Semanas: ${actualTotalWeeks}, Week 0: ${includeWeek0}`);

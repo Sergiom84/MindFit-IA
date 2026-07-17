@@ -43,8 +43,11 @@ const router = express.Router();
 // Usar SIEMPRE después de authenticateToken.
 const enforceSelfParam = (req, res, next) => {
   const paramUserId = req.params?.userId;
+  if (!paramUserId) return next();
   const tokenUserId = req.user?.userId ?? req.user?.id;
-  if (paramUserId && tokenUserId && Number(paramUserId) !== Number(tokenUserId)) {
+  // Fail-closed: si la ruta lleva :userId debe haber id de token y coincidir.
+  // (Antes, un token sin id dejaba pasar la comprobación.)
+  if (!tokenUserId || Number(paramUserId) !== Number(tokenUserId)) {
     return res.status(403).json({ success: false, error: 'No autorizado' });
   }
   next();
@@ -112,9 +115,7 @@ router.post('/generate-d1d5', authenticateToken, async (req, res) => {
     logger.error('❌ [MINDFEED] Error:', error);
     res.status(500).json({
       success: false,
-      error: 'Error al generar plan MindFeed D1-D5',
-      details: error.message
-    });
+      error: 'Error al generar plan MindFeed D1-D5'    });
   } finally {
     dbClient.release();
   }
@@ -163,9 +164,7 @@ router.post('/generate-fullbody', authenticateToken, async (req, res) => {
     logger.error('❌ [FULLBODY] Error:', error);
     res.status(500).json({
       success: false,
-      error: 'Error al generar rutina Full Body',
-      details: error.message
-    });
+      error: 'Error al generar rutina Full Body'    });
   } finally {
     dbClient.release();
   }
@@ -219,9 +218,7 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
     logger.error('❌ [SINGLE-DAY] Error:', error);
     res.status(500).json({
       success: false,
-      error: 'Error al generar entrenamiento',
-      details: error.message
-    });
+      error: 'Error al generar entrenamiento'    });
   } finally {
     dbClient.release();
   }
@@ -235,7 +232,7 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
  * POST /api/hipertrofiav2/select-exercises
  * Selecciona ejercicios por categoría y nivel
  */
-router.post('/select-exercises', async (req, res) => {
+router.post('/select-exercises', authenticateToken, async (req, res) => {
   try {
     const { categoria, nivel, cantidad = 1 } = req.body;
 
@@ -277,7 +274,7 @@ router.post('/select-exercises', async (req, res) => {
  * POST /api/hipertrofiav2/select-exercises-by-type
  * Selecciona ejercicios por tipo (multiarticular/unilateral/analitico)
  */
-router.post('/select-exercises-by-type', async (req, res) => {
+router.post('/select-exercises-by-type', authenticateToken, async (req, res) => {
   try {
     const {
       tipo_ejercicio,
@@ -327,9 +324,7 @@ router.post('/select-exercises-by-type', async (req, res) => {
     logger.error('❌ Error seleccionando ejercicios por tipo:', error);
     res.status(500).json({
       success: false,
-      error: 'Error al seleccionar ejercicios',
-      details: error.message
-    });
+      error: 'Error al seleccionar ejercicios'    });
   }
 });
 
@@ -337,8 +332,8 @@ router.post('/select-exercises-by-type', async (req, res) => {
 // CONFIGURACIÓN DE SESIONES
 // ============================================================
 
-router.get('/session-config/:cycleDay', sessionControllers.getSessionConfig);
-router.get('/session-config-all', sessionControllers.getAllSessionConfigs);
+router.get('/session-config/:cycleDay', authenticateToken, sessionControllers.getSessionConfig);
+router.get('/session-config-all', authenticateToken, sessionControllers.getAllSessionConfigs);
 
 // ============================================================
 // TRACKING DE SERIES

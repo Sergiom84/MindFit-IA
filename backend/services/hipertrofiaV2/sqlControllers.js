@@ -185,9 +185,7 @@ async function callDbFunction(res, queryText, params, logPrefix = 'SQL') {
     logger.error(`❌ [${logPrefix}] Error:`, error);
     res.status(500).json({
       success: false,
-      error: `Error en ${logPrefix}`,
-      details: error.message
-    });
+      error: `Error en ${logPrefix}`    });
   }
 }
 
@@ -343,9 +341,7 @@ export const cycleControllers = {
       logger.error('❌ [CYCLE] Error avanzando:', error);
       res.status(500).json({
         success: false,
-        error: 'Error al avanzar ciclo',
-        details: error.message
-      });
+        error: 'Error al avanzar ciclo'      });
     }
   }
 };
@@ -476,9 +472,7 @@ export const priorityControllers = {
       logger.error('❌ [PRIORITY] Error obteniendo estado:', error);
       res.status(500).json({
         success: false,
-        error: 'Error al obtener estado de prioridad',
-        details: error.message
-      });
+        error: 'Error al obtener estado de prioridad'      });
     }
   }
 };
@@ -826,7 +820,7 @@ export const overlapControllers = {
       });
     } catch (error) {
       logger.error('❌ [SESSION+OVERLAP] Error:', error);
-      res.status(500).json({ success: false, error: error.message });
+      res.status(500).json({ success: false, error: 'Error al obtener la sesión con ajustes' });
     }
   }
 };
