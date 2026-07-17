@@ -24,6 +24,16 @@ import {
   isProcessedFood
 } from '../services/menuHardRulesEngine.js';
 import { clampNumber, parseJsonObject, formatLocalDate, normalizeFoodName } from './nutritionUtils.js';
+// Normalizadores de perfil de usuario extraídos (ARCH-002). Se re-exportan más abajo
+// para no romper el contrato con los consumidores de nutritionV2Engine.
+import {
+  USER_OBJECTIVE_TO_NUTRITION_GOAL,
+  normalizeSexo,
+  normalizeActividad,
+  mapUserObjectiveToNutritionGoal,
+  resolveNutritionObjectiveMismatch,
+  normalizeNivelEntrenamiento
+} from './nutritionV2/userProfileNormalizers.js';
 
 const VALID_ESTADOS_PESADO = ['crudo', 'cocido', 'escurrido', 'seco', 'tal_cual'];
 const VALID_DIET_FILTERS = ['omnivoro', 'vegetariano', 'vegano'];
@@ -2985,101 +2995,6 @@ function getHybridModelName() {
   return String(process.env.NUTRITION_HYBRID_MODEL || DEFAULT_HYBRID_MODEL).trim();
 }
 
-function normalizeSexo(value) {
-  if (!value) return null;
-  const normalized = String(value).trim().toLowerCase();
-
-  if (['hombre', 'masculino', 'male', 'm'].includes(normalized)) return 'hombre';
-  if (['mujer', 'femenino', 'female', 'f'].includes(normalized)) return 'mujer';
-
-  return null;
-}
-
-function normalizeActividad(value) {
-  if (!value) return null;
-  const normalized = String(value).trim().toLowerCase();
-
-  const mapping = {
-    sedentario: 'sedentario',
-    ligeramente_activo: 'ligeramente_activo',
-    'ligeramente activo': 'ligeramente_activo',
-    ligero: 'ligero',
-    moderado: 'moderado',
-    activo: 'activo',
-    muy_activo: 'muy_activo',
-    alto: 'alto',
-    muy_alto: 'muy_alto'
-  };
-
-  return mapping[normalized] || null;
-}
-
-const USER_OBJECTIVE_TO_NUTRITION_GOAL = {
-  perder_peso: 'cut',
-  ganar_musculo: 'bulk',
-  ganar_masa_muscular: 'bulk',
-  ganar_peso: 'bulk',
-  tonificar: 'mant',
-  mantener_forma: 'mant',
-  mantenimiento: 'mant',
-  mejorar_resistencia: 'mant',
-  fuerza: 'mant',
-  resistencia: 'mant',
-  rehabilitacion: 'mant',
-  flexibilidad: 'mant'
-};
-
-function mapUserObjectiveToNutritionGoal(value) {
-  if (!value) return null;
-  const normalized = String(value).trim().toLowerCase();
-  return USER_OBJECTIVE_TO_NUTRITION_GOAL[normalized] || null;
-}
-
-function resolveNutritionObjectiveMismatch({
-  userId,
-  userObjectivePrincipal,
-  nutritionObjective,
-  nutritionOverridesProfile
-}) {
-  const mappedUserObjective = mapUserObjectiveToNutritionGoal(userObjectivePrincipal);
-  if (!mappedUserObjective) {
-    return nutritionObjective || null;
-  }
-
-  if (!nutritionObjective || nutritionObjective === mappedUserObjective) {
-    return nutritionObjective || mappedUserObjective;
-  }
-
-  const resolvedObjective = nutritionOverridesProfile ? nutritionObjective : mappedUserObjective;
-
-  console.warn('[NutritionV2] Desajuste detectado entre onboarding/perfil y nutricion', {
-    userId,
-    userObjectivePrincipal,
-    nutritionObjective,
-    nutritionOverridesProfile,
-    resolvedObjective,
-    resolution: nutritionOverridesProfile ? 'nutrition_profile_override' : 'user_profile_sync'
-  });
-
-  return resolvedObjective;
-}
-
-function normalizeNivelEntrenamiento(value) {
-  if (!value) return null;
-  const normalized = String(value).trim().toLowerCase();
-
-  const mapping = {
-    beginner: 'principiante',
-    intermediate: 'intermedio',
-    advanced: 'avanzado',
-    principiante: 'principiante',
-    intermedio: 'intermedio',
-    avanzado: 'avanzado',
-    'intermedio+': 'intermedio'
-  };
-
-  return mapping[normalized] || normalized;
-}
 
 export {
   VALID_ESTADOS_PESADO,
