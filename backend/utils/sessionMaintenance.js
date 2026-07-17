@@ -6,6 +6,7 @@
 import cron from 'node-cron';
 import { performSessionCleanup } from './sessionUtils.js';
 import { pool } from '../db.js';
+import { withAdvisoryLock, LOCK_KEYS } from './advisoryLock.js';
 
 // ==========================================================================
 // CONFIGURACIÓN DE MANTENIMIENTO
@@ -224,19 +225,23 @@ export function initializeSessionMaintenance() {
     console.log('[SessionMaintenance] Inicializando sistema de mantenimiento...');
     
     // Scheduler principal de limpieza (cada 4 horas)
+    // OPS-001: advisory lock -> con varias instancias solo una limpia.
     cron.schedule(MAINTENANCE_CONFIG.cleanupSchedule, () => {
         console.log('[SessionMaintenance] Ejecutando limpieza automática...');
-        runSessionMaintenance();
+        withAdvisoryLock(LOCK_KEYS.sessionMaintenance, 'sessionMaintenance', runSessionMaintenance);
     }, {
         scheduled: true,
         timezone: "Europe/Madrid"
     });
-    
+
     // Scheduler de estadísticas diarias (2 AM todos los días)
+    // OPS-001: advisory lock -> con varias instancias solo una genera el reporte.
     cron.schedule(MAINTENANCE_CONFIG.statsSchedule, () => {
         console.log('[SessionMaintenance] Generando reporte diario...');
-        generateDailyStatsReport();
-        detectSuspiciousActivity();
+        withAdvisoryLock(LOCK_KEYS.sessionMaintenanceStats, 'sessionMaintenanceStats', async () => {
+            await generateDailyStatsReport();
+            await detectSuspiciousActivity();
+        });
     }, {
         scheduled: true,
         timezone: "Europe/Madrid"
@@ -247,9 +252,10 @@ export function initializeSessionMaintenance() {
     console.log(`  - Reporte diario: ${MAINTENANCE_CONFIG.statsSchedule}`);
     
     // Ejecutar una limpieza inicial al arrancar
+    // OPS-001: guardada con advisory lock -> evita N limpiezas al arranque de N réplicas.
     setTimeout(() => {
         console.log('[SessionMaintenance] Ejecutando limpieza inicial...');
-        runSessionMaintenance();
+        withAdvisoryLock(LOCK_KEYS.sessionMaintenance, 'sessionMaintenance', runSessionMaintenance);
     }, 30000); // 30 segundos después del inicio
 }
 
