@@ -1,3 +1,4 @@
+import { alertDialog } from '../ui/dialogService.jsx';
 import { useState, useEffect, useMemo } from 'react';
 import useVirtualizedList, { VirtualizedListSearch, VirtualizedListLoader } from '../../hooks/useVirtualizedList.jsx';
 import { ArrowLeft, Heart, ThumbsDown, Zap, Clock, TrendingUp, RotateCcw, Trash2, AlertTriangle, CheckCircle } from 'lucide-react';
@@ -59,13 +60,13 @@ const HomeTrainingPreferencesHistory = ({ onBack }) => {
       if (data.success) {
         // Recargar datos
         await loadPreferencesData();
-        alert(`✅ "${exerciseName}" ya no será rechazado`);
+        alertDialog(`✅ "${exerciseName}" ya no será rechazado`);
       } else {
         throw new Error(data.message);
       }
     } catch (error) {
       console.error('Error reactivating exercise:', error);
-      alert('Error al reactivar el ejercicio. Por favor, inténtalo de nuevo.');
+      alertDialog('Error al reactivar el ejercicio. Por favor, inténtalo de nuevo.');
     } finally {
       setIsReactivating(prev => ({ ...prev, [rejectionId]: false }));
     }

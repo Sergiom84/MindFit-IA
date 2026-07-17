@@ -3,6 +3,7 @@
  * Gestión de saltos de dieta con compensación automática
  */
 
+import { alertDialog } from '../ui/dialogService.jsx';
 import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
@@ -56,7 +57,7 @@ export default function CheatMealManager() {
         confidence_level: 'medio'
       });
     } catch (err) {
-      alert('Error: ' + err.message);
+      alertDialog('Error: ' + err.message);
     } finally {
       setLoading(false);
     }

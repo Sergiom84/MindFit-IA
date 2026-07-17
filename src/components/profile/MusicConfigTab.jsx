@@ -1,3 +1,4 @@
+import { alertDialog } from '../ui/dialogService.jsx';
 import React, { useState, useEffect } from 'react';
 import { Save, Music, Headphones, Smartphone, Volume2, Settings, ExternalLink, Check, X } from 'lucide-react';
 import { FaSpotify, FaYoutube, FaApple } from 'react-icons/fa';
@@ -84,7 +85,7 @@ const MusicConfigTab = ({ userId }) => {
 
   const connectSpotify = () => {
     if (!config.spotify.clientId) {
-      alert('Ingresa tu Client ID de Spotify primero');
+      alertDialog('Ingresa tu Client ID de Spotify primero');
       return;
     }
 

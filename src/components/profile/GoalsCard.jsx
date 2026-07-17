@@ -1,3 +1,4 @@
+import { confirmDialog } from '../ui/dialogService.jsx';
 import React from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -27,9 +28,11 @@ export const GoalsCard = ({
     : 0
 
   const handleResetProgress = async () => {
-    const confirmed = window.confirm(
-      'Se reiniciará el progreso y el peso actual pasará a ser tu nuevo peso de inicio del objetivo. ¿Continuar?'
-    )
+    const confirmed = await confirmDialog({
+      title: 'Reiniciar progreso',
+      description: 'Se reiniciará el progreso y el peso actual pasará a ser tu nuevo peso de inicio del objetivo. ¿Continuar?',
+      confirmText: 'Reiniciar'
+    })
     if (!confirmed) return
     await resetGoalProgress?.()
   }

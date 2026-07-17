@@ -1,3 +1,4 @@
+import { confirmDialog } from './ui/dialogService.jsx';
 import { motion } from 'framer-motion';
 import { LogOut, Home, UserCircle, BookOpen, Calendar, Apple, Shield, Droplet, MoreHorizontal } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -57,8 +58,13 @@ const Navigation = () => {
     [location.pathname]
   );
 
-  const handleLogout = useCallback(() => {
-    if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+  const handleLogout = useCallback(async () => {
+    const ok = await confirmDialog({
+      title: 'Cerrar sesión',
+      description: '¿Estás seguro de que quieres cerrar sesión?',
+      confirmText: 'Cerrar sesión'
+    });
+    if (ok) {
       logout();
     }
   }, [logout]);

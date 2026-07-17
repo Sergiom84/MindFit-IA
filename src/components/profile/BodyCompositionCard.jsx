@@ -1,3 +1,4 @@
+import { alertDialog } from '../ui/dialogService.jsx';
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -67,12 +68,12 @@ export const BodyCompositionCard = (props) => {
         }, 100)
       } else {
         console.error('❌ Error guardando composición corporal en BD')
-        alert('Error guardando los datos. Por favor, inténtalo de nuevo.')
+        alertDialog('Error guardando los datos. Por favor, inténtalo de nuevo.')
       }
       
     } catch (error) {
       console.error('❌ Error procesando resultados de calculadora:', error)
-      alert('Error procesando los resultados del cálculo.')
+      alertDialog('Error procesando los resultados del cálculo.')
     } finally {
       setIsSaving(false)
     }

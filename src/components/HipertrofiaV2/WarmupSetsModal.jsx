@@ -1,3 +1,4 @@
+import { confirmDialog } from '../ui/dialogService.jsx';
 import React, { useState, useEffect } from 'react';
 import { X, AlertCircle, CheckCircle, Timer, TrendingUp } from 'lucide-react';
 import { useTrace } from '../../contexts/TraceContext';
@@ -130,14 +131,19 @@ const WarmupSetsModal = ({
     onClose();
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
     track('warmup_skip_attempted', {
       exerciseName,
       userLevel,
       component: 'WarmupSetsModal'
     });
 
-    if (window.confirm('¿Seguro que quieres saltar el calentamiento? Esto aumenta el riesgo de lesión.')) {
+    if (await confirmDialog({
+      title: 'Saltar calentamiento',
+      description: '¿Seguro que quieres saltar el calentamiento? Esto aumenta el riesgo de lesión.',
+      confirmText: 'Saltar',
+      destructive: true
+    })) {
       track('warmup_skipped', {
         exerciseName,
         userLevel,

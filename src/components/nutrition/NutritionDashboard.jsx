@@ -8,6 +8,7 @@
  * - Navegación intuitiva por pestañas
  */
 
+import { alertDialog } from '../ui/dialogService.jsx';
 import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import BodyMeasurementsForm from './BodyMeasurementsForm';
@@ -34,9 +35,9 @@ export default function NutritionDashboard() {
   const handleMeasurementSuccess = (data) => {
     // Mostrar notificación de éxito
     if (data.progression_analysis?.requires_reevaluation) {
-      alert(`⚠️ ${data.progression_analysis.summary}\n\n${data.progression_analysis.recommendations.join('\n')}`);
+      alertDialog(`⚠️ ${data.progression_analysis.summary}\n\n${data.progression_analysis.recommendations.join('\n')}`);
     } else {
-      alert('✅ Medición registrada correctamente');
+      alertDialog('✅ Medición registrada correctamente');
     }
     // Recargar dashboard
     setActiveTab(TABS.OVERVIEW);

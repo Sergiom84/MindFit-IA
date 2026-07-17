@@ -1,3 +1,4 @@
+import { confirmDialog } from '../ui/dialogService.jsx';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, Square, SkipForward, X, Clock, Target, RotateCcw, CheckCircle, Star, Info } from 'lucide-react';
 import { getExerciseGifUrl } from '../../config/exerciseGifs';
@@ -312,9 +313,15 @@ const HomeTrainingExerciseModal = ({
     setTimeLeft(isTimeBased ? durValue : (customTimePerSeries ?? 45));
   };
 
-  const handleCancelExercise = () => {
+  const handleCancelExercise = async () => {
     // Confirmación antes de cancelar el ejercicio actual
-    const ok = window.confirm('¿Estás seguro de que quieres cancelar este ejercicio?');
+    const ok = await confirmDialog({
+      title: 'Cancelar ejercicio',
+      description: '¿Estás seguro de que quieres cancelar este ejercicio?',
+      confirmText: 'Cancelar ejercicio',
+      cancelText: 'Volver',
+      destructive: true
+    });
     if (!ok) return;
     if (typeof onCancel === 'function') onCancel();
     setIsRunning(false);

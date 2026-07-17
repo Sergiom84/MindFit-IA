@@ -11,6 +11,7 @@
  * @version 1.0.0 - Sistema de Re-evaluación Progresiva
  */
 
+import { alertDialog } from '../../ui/dialogService.jsx';
 import React, { useState, useEffect } from 'react';
 import tokenManager from '../../../utils/tokenManager';
 import {
@@ -258,7 +259,7 @@ const CalisteniaReEvalForm = ({
   const handleSubmitForm = () => {
     // Validación básica
     if (!sentiment) {
-      alert('Por favor selecciona cómo te has sentido estas semanas');
+      alertDialog('Por favor selecciona cómo te has sentido estas semanas');
       return;
     }
 

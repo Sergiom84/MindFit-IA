@@ -14,6 +14,7 @@
  * @version 1.0.0 - FASE 2 Módulo 1
  */
 
+import { alertDialog } from '../../../../ui/dialogService.jsx';
 import React, { useState } from 'react';
 import { X, AlertTriangle, CheckCircle, Activity } from 'lucide-react';
 import tokenManager from '../../../../../utils/tokenManager';
@@ -72,7 +73,7 @@ export default function FatigueReportModal({ show, onClose, onSubmit }) {
 
     } catch (error) {
       console.error('❌ [FATIGUE] Error enviando reporte:', error);
-      alert('Error al enviar reporte. Por favor, intenta de nuevo.');
+      alertDialog('Error al enviar reporte. Por favor, intenta de nuevo.');
     } finally {
       setIsSubmitting(false);
     }

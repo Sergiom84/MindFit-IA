@@ -1,5 +1,5 @@
 /**
- * 🚀 main.jsx - Entry Point Principal de Entrena con IA
+ * 🚀 main.jsx - Entry Point Principal de MindFit
  *
  * RESPONSABILIDADES:
  * - Punto de entrada de la aplicación React 18
@@ -169,7 +169,7 @@ function initializeApp() {
 
   // Logging de inicialización (solo en development)
   if (import.meta.env.DEV) {
-    console.log('🚀 Entrena con IA - Inicializando aplicación...');
+    console.log('🚀 MindFit - Inicializando aplicación...');
     console.log('📦 Modo:', import.meta.env.MODE);
     console.log('🌐 Base URL:', import.meta.env.BASE_URL);
     console.log('⚛️ React Version:', React.version);
