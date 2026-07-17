@@ -34,9 +34,18 @@ import {
   resolveNutritionObjectiveMismatch,
   normalizeNivelEntrenamiento
 } from './nutritionV2/userProfileNormalizers.js';
+// Normalizadores de texto/dieta extraídos (ARCH-002). Re-exportados más abajo.
+import {
+  VALID_ESTADOS_PESADO,
+  VALID_DIET_FILTERS,
+  normalizeStringArray,
+  normalizeDietFilter,
+  normalizeEstadoPesado,
+  normalizeComparableText,
+  resolveVegetablePortionProfile,
+  normalizePositiveInt
+} from './nutritionV2/dietNormalizers.js';
 
-const VALID_ESTADOS_PESADO = ['crudo', 'cocido', 'escurrido', 'seco', 'tal_cual'];
-const VALID_DIET_FILTERS = ['omnivoro', 'vegetariano', 'vegano'];
 const VALID_MENU_GENERATION_MODES = ['deterministic', 'ai', 'hybrid_ai', 'recipe_examples'];
 const DETERMINISTIC_MAX_TEMPLATE_TRIES = 12;
 const DETERMINISTIC_MAX_RECIPE_TRIES = 40;
@@ -59,118 +68,6 @@ const SLOT_ROLE_FALLBACKS = {
   SUPLEMENTO_PROTEINA: ['PROTEINA_VEGETAL']
 };
 
-function normalizeStringArray(value) {
-  if (Array.isArray(value)) {
-    return [...new Set(
-      value
-        .map((item) => String(item || '').trim())
-        .filter(Boolean)
-    )];
-  }
-
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return [];
-    }
-
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (Array.isArray(parsed)) {
-        return normalizeStringArray(parsed);
-      }
-    } catch {
-      // fallback a CSV cuando no es JSON.
-    }
-
-    return [...new Set(
-      trimmed
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean)
-    )];
-  }
-
-  return [];
-}
-
-function normalizeDietFilter(value) {
-  if (!value) return null;
-
-  const normalized = String(value)
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-
-  if (VALID_DIET_FILTERS.includes(normalized)) {
-    return normalized;
-  }
-
-  return null;
-}
-
-function normalizeEstadoPesado(value) {
-  if (!value) return null;
-
-  const normalized = String(value)
-    .trim()
-    .toLowerCase()
-    .replace(/[\s-]+/g, '_');
-
-  const aliases = {
-    talcual: 'tal_cual'
-  };
-
-  const resolved = aliases[normalized] || normalized;
-  return VALID_ESTADOS_PESADO.includes(resolved) ? resolved : null;
-}
-
-function normalizeComparableText(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-}
-
-function resolveVegetablePortionProfile(food = {}) {
-  const comparable = [
-    food?.nombre,
-    food?.slug,
-    food?.categoria,
-    food?.categoria_detalle
-  ]
-    .map((value) => normalizeComparableText(value))
-    .filter(Boolean)
-    .join(' ');
-
-  const leafyKeywords = ['rucula', 'lechuga', 'espinaca', 'canonigo', 'berro', 'escarola', 'endibia', 'acelga'];
-  const denseKeywords = ['zanahoria', 'remolacha', 'brocoli', 'coliflor', 'calabacin', 'berenjena', 'pimiento', 'cebolla', 'tomate', 'pepino', 'esparrago', 'seta', 'champi', 'judia verde', 'calabaza'];
-
-  if (leafyKeywords.some((keyword) => comparable.includes(keyword))) {
-    return { type: 'leafy', min: 30, max: 80 };
-  }
-
-  if (denseKeywords.some((keyword) => comparable.includes(keyword))) {
-    return { type: 'dense', min: 80, max: 150 };
-  }
-
-  return { type: 'generic', min: 50, max: 150 };
-}
-
-function normalizePositiveInt(value, defaultValue, maxValue = null) {
-  const parsed = Number.parseInt(value, 10);
-  if (Number.isNaN(parsed) || parsed <= 0) {
-    return defaultValue;
-  }
-
-  if (maxValue && parsed > maxValue) {
-    return maxValue;
-  }
-
-  return parsed;
-}
 
 function buildFoodCatalogFilters({
   search,
