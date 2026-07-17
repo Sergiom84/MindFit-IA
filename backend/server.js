@@ -1,8 +1,11 @@
+// Carga de entorno PRIMERO (M-04): garantiza process.env poblado antes de que
+// se evalúen los demás imports (db, OpenAI, JWT). Debe ir arriba del todo.
+import './loadEnv.js';
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -69,11 +72,6 @@ import homeTrainingRoutes from './routes/homeTraining.js';
 // ===============================================
 
 import { pool } from './db.js';
-
-// Solo cargar dotenv en desarrollo
-if (process.env.NODE_ENV !== 'production') {
-  dotenv.config();
-}
 
 const app = express();
 const PORT = process.env.PORT || 3010;
