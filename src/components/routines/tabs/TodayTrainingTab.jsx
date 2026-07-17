@@ -66,6 +66,7 @@ import { getTodaySessionStatus, getWeekendStatus } from '../api.js';
 // 🎯 COMPONENTES MODULARES - Refactorización incremental
 import { ExerciseList, RestDayCard, StartSessionCard } from './TodayTrainingTab/components';
 import { EFFORT_ENDPOINTS, resolveEffortMethodKey } from './TodayTrainingTab/effortConfig.js';
+import { computeGateCounts, computeGateLogic } from './TodayTrainingTab/gateLogic.js';
 
 // 🎯 ADAPTACIÓN - Nuevos componentes para evaluación de transición
 import AdaptationProgressPanel from '../../Methodologie/methodologies/HipertrofiaV2/components/AdaptationProgressPanel';
@@ -1551,90 +1552,26 @@ export default function TodayTrainingTab({
   // Estados para mostrar el entrenamiento de hoy.
   // Fuente de verdad: backend (`today-status.summary`) cuando existe. El estado
   // local solo se usa como fallback mientras llega la primera respuesta.
-  const backendSummary = todayStatus?.summary || null;
-  const hasBackendSummary = Boolean(backendSummary);
-  const localProgressValues = Object.values(exerciseProgress || {});
-
-  const totalCountForGate = hasBackendSummary
-    ? Number(backendSummary.total || 0)
-    : (todaySessionData?.ejercicios?.length || 0);
-
-  const completedCountForGate = (() => {
-    if (hasBackendSummary) {
-      return Number(backendSummary.completed || 0);
-    }
-    return localProgressValues.filter(p => String(p?.status || '').toLowerCase() === 'completed').length;
-  })();
-
-  const skippedCountForGate = (() => {
-    if (hasBackendSummary) {
-      return Number(backendSummary.skipped || 0);
-    }
-    return localProgressValues.filter(p => String(p?.status || '').toLowerCase() === 'skipped').length;
-  })();
-
-  const cancelledCountForGate = (() => {
-    if (hasBackendSummary) {
-      return Number(backendSummary.cancelled || 0);
-    }
-    return localProgressValues.filter(p => String(p?.status || '').toLowerCase() === 'cancelled').length;
-  })();
-
-  const pendingCountForGate = (() => {
-    if (hasBackendSummary) {
-      return Number(backendSummary.pending || 0);
-    }
-    if (!todaySessionData?.ejercicios?.length) {
-      return 0;
-    }
-    return todaySessionData.ejercicios.filter((_, i) => (
-      String(exerciseProgress?.[i]?.status || 'pending').toLowerCase() === 'pending'
-    )).length;
-  })();
-
-  const inProgressCountForGate = (() => {
-    if (hasBackendSummary) {
-      return Number(backendSummary.in_progress || 0);
-    }
-    return localProgressValues.filter(p => String(p?.status || '').toLowerCase() === 'in_progress').length;
-  })();
+  // Lógica pura extraída a ./TodayTrainingTab/gateLogic.js (ARCH-002).
+  const gateCounts = useMemo(
+    () => computeGateCounts({ todayStatus, todaySessionData, exerciseProgress }),
+    [todayStatus, todaySessionData, exerciseProgress]
+  );
+  const {
+    total: totalCountForGate,
+    completed: completedCountForGate,
+    skipped: skippedCountForGate,
+    cancelled: cancelledCountForGate,
+    pending: pendingCountForGate,
+    inProgress: inProgressCountForGate,
+    hasBackendSummary
+  } = gateCounts;
 
   // 🎯 CORRECCIÓN VISUAL: Lógica robusta estabilizada con useMemo para evitar recálculos
-  const gateLogic = useMemo(() => {
-    // 1. Hay ejercicios incompletos (no todos están "completed")
-    const hasIncompleteExercises = totalCountForGate > 0 && (completedCountForGate < totalCountForGate);
-
-    // 2. Todos los ejercicios fueron procesados (no quedan pending/in_progress)
-    const allProcessedToday = totalCountForGate > 0 && pendingCountForGate === 0 && inProgressCountForGate === 0;
-
-    // 3. Estado desde backend (para validación adicional)
-    const isFinishedToday = todayStatus?.session?.session_status === 'completed';
-
-    // 4. Calcular si puede reintentar - simplificado
-    const hasSkipped = (todayStatus?.summary?.skipped ?? 0) > 0;
-    const hasCancelled = (todayStatus?.summary?.cancelled ?? 0) > 0;
-    const canRetryToday = Boolean(todayStatus?.summary?.canRetry) || hasSkipped || hasCancelled;
-
-    // 5. Sesión completada exitosamente: manda el backend; local solo como fallback.
-    const hasCompletedSession = isFinishedToday || (totalCountForGate > 0 && completedCountForGate === totalCountForGate);
-
-    // 6. Mostrar CTA de comenzar/reanudar: hay ejercicios sin completar
-    // Incluye: pending, in_progress, skipped, cancelled
-    const hasUnfinishedWorkToday = !isFinishedToday && totalCountForGate > 0 && completedCountForGate < totalCountForGate;
-
-    // 7. Procesados pero no todos completados (skips/cancelaciones).
-    const allProcessedIncomplete = allProcessedToday && !hasCompletedSession;
-
-    return {
-      hasIncompleteExercises,
-      allProcessedToday,
-      isFinishedToday,
-      hasCompletedSession,
-      allProcessedIncomplete,
-      canRetryToday,
-      hasUnfinishedWorkToday
-    };
-  }, [totalCountForGate, completedCountForGate, pendingCountForGate, inProgressCountForGate, todayStatus?.session?.session_status, todayStatus?.summary?.skipped, todayStatus?.summary?.cancelled, todayStatus?.summary?.canRetry]);
+  const gateLogic = useMemo(
+    () => computeGateLogic({ counts: gateCounts, todayStatus }),
+    [gateCounts, todayStatus]
+  );
 
   // Extraer valores del objeto memoizado
   const {
