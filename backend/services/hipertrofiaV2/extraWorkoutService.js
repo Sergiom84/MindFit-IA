@@ -161,17 +161,21 @@ export async function generateFullBodyWorkout(dbClient, userId, nivel) {
   `, [methodologyPlanId, 1, 'Full Body - Sesión Completa', JSON.stringify(sessionData.ejercicios)]);
 
   // Crear entrada en workout_schedule
+  // Columnas reales de app.workout_schedule (antes usaba day_in_week/
+  // session_number/completed, que NO existen → la inserción erraba). El plan es
+  // nuevo cada vez, así que no colisiona con uq_workout_schedule_plan_user_date.
   await dbClient.query(`
     INSERT INTO app.workout_schedule (
       user_id,
       methodology_plan_id,
       scheduled_date,
       week_number,
-      day_in_week,
-      session_number,
-      completed,
+      session_order,
+      week_session_order,
+      session_title,
+      status,
       created_at
-    ) VALUES ($1, $2, CURRENT_DATE, 1, 1, 1, false, NOW())
+    ) VALUES ($1, $2, CURRENT_DATE, 1, 1, 1, 'Full Body - Sesión Completa', 'scheduled', NOW())
   `, [userId, methodologyPlanId]);
 
   // Guardar configuración
