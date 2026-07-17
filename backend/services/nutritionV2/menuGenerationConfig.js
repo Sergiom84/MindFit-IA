@@ -14,3 +14,19 @@ export const DETERMINISTIC_RECENT_FOOD_WINDOW_DAYS = 7;
 export const SWAP_MEAL_RECALC_MAX_ERROR = 35;
 export const HYBRID_FALLBACK_MODE = 'deterministic';
 export const DEFAULT_HYBRID_MODEL = process.env.NUTRITION_HYBRID_MODEL || 'gpt-5.2';
+
+export function parseBooleanEnv(value, defaultValue = false) {
+  if (value == null) return defaultValue;
+  const normalized = String(value).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return defaultValue;
+}
+
+export function isHybridAiEnabled() {
+  return parseBooleanEnv(process.env.NUTRITION_HYBRID_ENABLED, true);
+}
+
+export function getHybridModelName() {
+  return String(process.env.NUTRITION_HYBRID_MODEL || DEFAULT_HYBRID_MODEL).trim();
+}
