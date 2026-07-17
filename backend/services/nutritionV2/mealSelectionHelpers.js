@@ -210,6 +210,10 @@ export function matchesFoodFilters(food, userFoodFilters) {
   return true;
 }
 
+// Umbral de "macro globalmente cubierto": si el total de la comida alcanza este
+// porcentaje del objetivo, el déficit del rol canónico deja de bloquear (A-04).
+const MACRO_COVERED_RATIO = 0.9;
+
 export function evaluateCandidateMealBalance(items, mealMacros, mealKcalTarget) {
   const balanceEval = evaluateMealNutrientBalance(items, {
     protein_g: mealMacros?.protein_g,
@@ -218,13 +222,32 @@ export function evaluateCandidateMealBalance(items, mealMacros, mealKcalTarget) 
     kcal: mealKcalTarget
   });
 
+  // A-04: el optimizador cuadra los TOTALES de la comida, pero el gate bloqueaba
+  // por la distribución por ROL (proteína desde roles PROTEINA, etc.). Ambos
+  // criterios tiraban en direcciones opuestas y casi todos los candidatos caían
+  // en fallback. Solución: un déficit "low_X_from_Y_roles" solo bloquea si el
+  // macro TOTAL de la comida NO está cubierto (< 90% del objetivo). Si el macro
+  // está cubierto por otras fuentes, el menú es válido aunque la fuente no sea
+  // el rol canónico. Las reglas de verdura siguen bloqueando (son de sensatez,
+  // no de fuente de macro).
+  const safeItems = items || [];
+  const sumMacro = (key) => safeItems.reduce((sum, item) => sum + (Number(item?.macros?.[key]) || 0), 0);
+  const isCovered = (target, key) => {
+    const t = Number(target) || 0;
+    return t <= 0 || sumMacro(key) >= t * MACRO_COVERED_RATIO;
+  };
+  const proteinCovered = isCovered(mealMacros?.protein_g, 'protein_g');
+  const carbsCovered = isCovered(mealMacros?.carbs_g, 'carbs_g');
+  const fatCovered = isCovered(mealMacros?.fat_g, 'fat_g');
+
   const blockingCodes = new Set([
-    'low_protein_from_protein_roles',
-    'low_carbs_from_carbo_roles',
-    'low_fat_from_grasa_roles',
     'high_kcal_from_verduras',
     'vegetal_grams_too_high'
   ]);
+  if (!proteinCovered) blockingCodes.add('low_protein_from_protein_roles');
+  if (!carbsCovered) blockingCodes.add('low_carbs_from_carbo_roles');
+  if (!fatCovered) blockingCodes.add('low_fat_from_grasa_roles');
+
   const blockingWarnings = balanceEval.warnings.filter((warning) => blockingCodes.has(warning.code));
   const nonBlockingWarnings = balanceEval.warnings.filter((warning) => !blockingCodes.has(warning.code));
 
