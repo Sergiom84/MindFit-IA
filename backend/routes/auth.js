@@ -11,6 +11,32 @@ import {
   hashJWTToken
 } from '../utils/sessionUtils.js';
 import { authenticateToken } from '../middleware/auth.js';
+import {
+  newSessionId,
+  signAccessToken,
+  newRefreshToken,
+  hashRefreshToken,
+  sessionIdFromRefreshToken,
+  ACCESS_TOKEN_TTL,
+  REFRESH_TOKEN_TTL_DAYS,
+  AUTH_FAIL_CLOSED,
+} from '../utils/authTokens.js';
+
+// AUTH-001 (PR 3): deriva la fecha de expiración del access a partir del TTL configurado
+// (solo soporta 'Nd'/'Nh'/'Nm' o segundos; suficiente para '7d'/'15m'). Para el registro
+// de sesión; el TTL real lo aplica jwt.sign.
+function accessExpiresAt() {
+  const ttl = ACCESS_TOKEN_TTL;
+  const m = /^(\d+)([dhm])$/.exec(ttl);
+  let ms = 7 * 24 * 60 * 60 * 1000;
+  if (m) {
+    const n = Number(m[1]);
+    ms = m[2] === 'd' ? n * 86400000 : m[2] === 'h' ? n * 3600000 : n * 60000;
+  } else if (/^\d+$/.test(ttl)) {
+    ms = Number(ttl) * 1000;
+  }
+  return new Date(Date.now() + ms);
+}
 
 const router = express.Router();
 
@@ -276,12 +302,20 @@ router.post('/register', async (req, res) => {
       }
     }
 
-    // Generar JWT
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // AUTH-001 (PR 3): session_id antes de firmar (jti); refresh token rotatorio.
+    const sessionId = newSessionId();
+    const token = signAccessToken({ userId: user.id, email: user.email, jti: sessionId });
+    const refresh = newRefreshToken(sessionId);
+
+    const regSession = await logUserLogin(user.id, token, req, { loginMethod: 'register' }, {
+      sessionId,
+      refreshTokenHash: refresh.hash,
+      refreshExpiresAt: refresh.expiresAt,
+      jwtExpiresAt: accessExpiresAt(),
+    });
+    if (!regSession.success && AUTH_FAIL_CLOSED) {
+      return res.status(500).json({ error: 'No se pudo crear la sesión' });
+    }
 
     res.status(201).json({
       message: 'Usuario registrado exitosamente',
@@ -291,7 +325,8 @@ router.post('/register', async (req, res) => {
         apellido: user.apellido,
         email: user.email
       },
-      token
+      token,
+      refreshToken: refresh.token
     });
 
   } catch (error) {
@@ -338,21 +373,28 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Generar JWT
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // AUTH-001 (PR 3): session_id antes de firmar (jti); refresh token rotatorio.
+    const sessionId = newSessionId();
+    const token = signAccessToken({ userId: user.id, email: user.email, jti: sessionId });
+    const refresh = newRefreshToken(sessionId);
 
-    // Registrar sesión de login
+    // Registrar sesión de login (session_id explícito + hash del refresh)
     const loginResult = await logUserLogin(user.id, token, req, {
       loginMethod: 'email_password',
       userAgent: req.headers['user-agent'] || 'unknown'
+    }, {
+      sessionId,
+      refreshTokenHash: refresh.hash,
+      refreshExpiresAt: refresh.expiresAt,
+      jwtExpiresAt: accessExpiresAt(),
     });
 
     if (!loginResult.success) {
       console.warn('Warning: No se pudo registrar la sesión de login:', loginResult.error);
+      // Fail-closed: no entregar un token cuya sesión no se pudo crear (sería no revocable).
+      if (AUTH_FAIL_CLOSED) {
+        return res.status(500).json({ error: 'No se pudo crear la sesión' });
+      }
     }
 
     res.json({
@@ -364,7 +406,8 @@ router.post('/login', async (req, res) => {
         email: user.email
       },
       token,
-      sessionId: loginResult.success ? loginResult.sessionId : null
+      refreshToken: refresh.token,
+      sessionId: loginResult.success ? loginResult.sessionId : sessionId
     });
 
   } catch (error) {
@@ -376,14 +419,91 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Refresh de token (renovación deslizante): el frontend (tokenManager) llama a este
-// endpoint de forma proactiva ANTES de que el JWT caduque. Sin él, todo refresh
-// silencioso devolvía 404 y el cliente degradaba a logout.
+// AUTH-001 (PR 3): refresh rotatorio fail-closed con detección de reuso.
+// El cliente envía `refreshToken` (opaco, formato `<sessionId>.<random>`); se valida
+// su hash contra la sesión bloqueada con FOR UPDATE. En cada uso se ROTA (nuevo access
+// + nuevo refresh); reutilizar un refresh ya rotado revoca la familia (la sesión) y
+// registra el incidente. Para clientes legacy que aún mandan el JWT, se conserva la vía
+// deslizante anterior (fail-open) hasta que el PR 4 despliegue el nuevo cliente.
+async function refreshWithRotatingToken(req, res, refreshToken) {
+  const sessionId = sessionIdFromRefreshToken(refreshToken);
+  if (!sessionId) {
+    return res.status(401).json({ error: 'Refresh token inválido', code: 'REFRESH_INVALID' });
+  }
+  const presentedHash = hashRefreshToken(refreshToken);
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows } = await client.query(
+      `SELECT user_id, is_active, refresh_token_hash, refresh_expires_at, session_metadata
+         FROM app.user_sessions WHERE session_id = $1 FOR UPDATE`,
+      [sessionId]
+    );
+    const row = rows[0];
+    if (!row) {
+      await client.query('ROLLBACK');
+      return res.status(401).json({ error: 'Sesión no encontrada', code: 'REFRESH_INVALID' });
+    }
+    if (row.is_active === false) {
+      await client.query('ROLLBACK');
+      return res.status(401).json({ error: 'Sesión cerrada. Vuelve a iniciar sesión.', code: 'SESSION_REVOKED' });
+    }
+    if (!row.refresh_expires_at || new Date(row.refresh_expires_at).getTime() < Date.now()) {
+      await client.query('ROLLBACK');
+      return res.status(401).json({ error: 'Refresh caducado. Vuelve a iniciar sesión.', code: 'REFRESH_EXPIRED' });
+    }
+    // Detección de REUSO: el hash presentado no coincide con el vigente -> token ya
+    // rotado. Se revoca la familia (la sesión) y se registra el incidente.
+    if (row.refresh_token_hash !== presentedHash) {
+      await client.query(
+        `UPDATE app.user_sessions
+            SET is_active = FALSE, logout_time = NOW(), logout_type = 'refresh_reuse',
+                session_metadata = COALESCE(session_metadata, '{}'::jsonb) || $2::jsonb,
+                updated_at = NOW()
+          WHERE session_id = $1`,
+        [sessionId, JSON.stringify({ security: 'refresh_reuse_detected', at: new Date().toISOString() })]
+      );
+      await client.query('COMMIT');
+      console.warn(`[SECURITY] refresh reuse detectado; sesión ${sessionId} (user ${row.user_id}) revocada.`);
+      return res.status(401).json({ error: 'Reutilización detectada. Vuelve a iniciar sesión.', code: 'REFRESH_REUSE' });
+    }
+
+    // Válido: rotar access + refresh. Recuperar el email para conservar el payload.
+    const { rows: userRows } = await client.query('SELECT email FROM app.users WHERE id = $1', [row.user_id]);
+    const email = userRows[0]?.email;
+    const token = signAccessToken({ userId: row.user_id, email, jti: sessionId });
+    const nextRefresh = newRefreshToken(sessionId);
+    await client.query(
+      `UPDATE app.user_sessions
+          SET jwt_token_hash = $2, jwt_expires_at = $3,
+              refresh_token_hash = $4, refresh_expires_at = $5,
+              last_activity = NOW(), updated_at = NOW()
+        WHERE session_id = $1`,
+      [sessionId, hashJWTToken(token), accessExpiresAt(), nextRefresh.hash, nextRefresh.expiresAt]
+    );
+    await client.query('COMMIT');
+    return res.json({ token, refreshToken: nextRefresh.token });
+  } catch (e) {
+    try { await client.query('ROLLBACK'); } catch { /* noop */ }
+    console.error('Error en refresh rotatorio:', e.message);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  } finally {
+    client.release();
+  }
+}
+
 router.post('/refresh', async (req, res) => {
   try {
+    // Vía nueva: refresh token rotatorio.
+    const refreshToken = req.body?.refreshToken;
+    if (refreshToken) {
+      return await refreshWithRotatingToken(req, res, refreshToken);
+    }
+
+    // Vía legacy: el cliente antiguo manda el propio JWT (deslizante, fail-open).
     const bearer = req.headers.authorization?.split(' ')[1];
     const candidate = req.body?.token || bearer;
-
     if (!candidate) {
       return res.status(400).json({ error: 'Token requerido' });
     }
@@ -395,8 +515,6 @@ router.post('/refresh', async (req, res) => {
       return res.status(401).json({ error: 'Token inválido o caducado' });
     }
 
-    // AUTH-001: no renovar una sesión revocada (logout). Fail-open si no hay
-    // registro de sesión, para no romper refresh de tokens legítimos sin fila.
     const oldHash = hashJWTToken(candidate);
     let sessionRow = null;
     try {
@@ -408,25 +526,24 @@ router.post('/refresh', async (req, res) => {
       if (sessionRow && sessionRow.is_active === false) {
         return res.status(401).json({ error: 'Sesión cerrada. Vuelve a iniciar sesión.', code: 'SESSION_REVOKED' });
       }
+      if (!sessionRow && AUTH_FAIL_CLOSED) {
+        return res.status(401).json({ error: 'Sesión no encontrada. Vuelve a iniciar sesión.', code: 'SESSION_REVOKED' });
+      }
     } catch (e) {
       console.warn('refresh: no se pudo verificar la sesión:', e.message);
+      if (AUTH_FAIL_CLOSED) {
+        return res.status(401).json({ error: 'No se pudo verificar la sesión.', code: 'SESSION_CHECK_FAILED' });
+      }
     }
 
-    const token = jwt.sign(
-      { userId: payload.userId, email: payload.email },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // Preserva el jti si el token legacy ya lo tuviera (tokens emitidos por el PR 3).
+    const token = signAccessToken({ userId: payload.userId, email: payload.email, jti: payload.jti });
 
-    // Rotación deslizante: apuntar la sesión activa al nuevo token, de modo que
-    // el hash del token anterior deje de mapear a esta sesión.
     if (sessionRow) {
       try {
-        const newHash = hashJWTToken(token);
-        const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
         await pool.query(
           'UPDATE app.user_sessions SET jwt_token_hash = $1, jwt_expires_at = $2, last_activity = NOW(), updated_at = NOW() WHERE session_id = $3',
-          [newHash, newExpiry, sessionRow.session_id]
+          [hashJWTToken(token), accessExpiresAt(), sessionRow.session_id]
         );
       } catch (e) {
         console.warn('refresh: no se pudo rotar la sesión:', e.message);

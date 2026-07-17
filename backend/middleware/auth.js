@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { pool } from '../db.js';
 import { updateSessionActivity } from '../utils/sessionUtils.js';
+import { AUTH_FAIL_CLOSED, AUTH_LEGACY_GRACE } from '../utils/authTokens.js';
 
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -15,7 +16,7 @@ const authenticateToken = (req, res, next) => {
     if (err) {
       return res.status(403).json({ error: 'Token inválido' });
     }
-    
+
     // Normaliza para que siempre haya req.user.id disponible
     const normalized = {
       ...decoded,
@@ -24,20 +25,46 @@ const authenticateToken = (req, res, next) => {
     };
     req.user = normalized;
 
-    // AUTH-001: rechazar tokens cuya sesión fue revocada (logout marca la fila
-    // is_active=FALSE). Fail-open ante errores o si no hay registro de sesión,
-    // para no bloquear tokens legítimos cuyo alta de sesión no se registrara.
+    // AUTH-001: revocación de sesión.
+    //  · Tokens NUEVOS (con `jti` = session_id): se resuelve la sesión por session_id.
+    //    Con AUTH_FAIL_CLOSED, si no hay sesión activa o falla la consulta -> 401
+    //    (fail-closed). Sin el flag, se conserva el comportamiento permisivo actual.
+    //  · Tokens LEGACY (sin `jti`): durante la ventana de gracia (AUTH_LEGACY_GRACE)
+    //    se resuelven por hash del token (comportamiento actual, fail-open). Al retirar
+    //    la gracia en un despliegue posterior, se rechazan si el flag fail-closed está on.
+    const jti = decoded?.jti;
     try {
-      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-      const { rows } = await pool.query(
-        'SELECT is_active FROM app.user_sessions WHERE jwt_token_hash = $1 ORDER BY login_time DESC LIMIT 1',
-        [tokenHash]
-      );
-      if (rows.length > 0 && rows[0].is_active === false) {
-        return res.status(401).json({ error: 'Sesión cerrada. Vuelve a iniciar sesión.', code: 'SESSION_REVOKED' });
+      if (jti) {
+        const { rows } = await pool.query(
+          'SELECT is_active FROM app.user_sessions WHERE session_id = $1',
+          [jti]
+        );
+        const active = rows.length > 0 && rows[0].is_active !== false;
+        if (rows.length > 0 && rows[0].is_active === false) {
+          return res.status(401).json({ error: 'Sesión cerrada. Vuelve a iniciar sesión.', code: 'SESSION_REVOKED' });
+        }
+        if (!active && AUTH_FAIL_CLOSED) {
+          return res.status(401).json({ error: 'Sesión no encontrada. Vuelve a iniciar sesión.', code: 'SESSION_REVOKED' });
+        }
+      } else {
+        // Token legacy sin jti.
+        if (!AUTH_LEGACY_GRACE && AUTH_FAIL_CLOSED) {
+          return res.status(401).json({ error: 'Sesión no válida. Vuelve a iniciar sesión.', code: 'SESSION_LEGACY' });
+        }
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+        const { rows } = await pool.query(
+          'SELECT is_active FROM app.user_sessions WHERE jwt_token_hash = $1 ORDER BY login_time DESC LIMIT 1',
+          [tokenHash]
+        );
+        if (rows.length > 0 && rows[0].is_active === false) {
+          return res.status(401).json({ error: 'Sesión cerrada. Vuelve a iniciar sesión.', code: 'SESSION_REVOKED' });
+        }
       }
     } catch (e) {
       console.warn('Warning: no se pudo verificar revocación de sesión:', e.message);
+      if (AUTH_FAIL_CLOSED) {
+        return res.status(401).json({ error: 'No se pudo verificar la sesión.', code: 'SESSION_CHECK_FAILED' });
+      }
     }
 
     // Actualizar actividad de sesión en background
@@ -46,7 +73,7 @@ const authenticateToken = (req, res, next) => {
         console.warn('Warning: No se pudo actualizar actividad de sesión:', err.message);
       });
     }
-    
+
     next();
   });
 };
