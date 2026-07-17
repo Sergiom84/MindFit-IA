@@ -71,6 +71,13 @@ export default function NutritionScreen() {
         setNutritionPlan(planData);
       }
 
+      // M-01: si ya existe un plan activo, abrir su Calendario en vez de "Generar
+      // Plan". Antes se abría siempre Generar y el usuario podía creer que había
+      // perdido su dieta.
+      if (planRes.ok && planData && (planData.id || planData.plan_id || planData.kcal_objetivo)) {
+        setActiveTab('calendar-v2');
+      }
+
       if (!kcalValue && profileRes.ok) {
         const profileData = await profileRes.json();
         if (profileData?.kcal_objetivo) {
@@ -253,6 +260,11 @@ export default function NutritionScreen() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
+                  // M-01: el label está oculto en móvil (hidden sm:block); sin
+                  // aria-label/title el botón queda como icono sin nombre accesible.
+                  aria-label={tab.label}
+                  title={tab.label}
+                  aria-current={activeTab === tab.id ? 'page' : undefined}
                   className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-medium transition-all duration-200 ${
                     activeTab === tab.id
                       ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black border-transparent shadow-[0_12px_30px_-18px_rgba(250,204,21,0.75)]'
