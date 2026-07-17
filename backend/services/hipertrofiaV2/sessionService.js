@@ -78,12 +78,13 @@ export function resolveCycleSessions(sessionsConfig, frecuencia) {
   const D5 = byDay.get(5); // Tirón ligero (F2)
   const freq = Number(frecuencia);
 
-  // Sin dato fiable o 5+ días: ciclo completo original.
-  if (!Number.isFinite(freq) || freq >= 5 || !D1 || !D2 || !D3 || !D4 || !D5) {
+  // Sin dato fiable (null/0/NaN → Number(null)=0), <3 o 5+ días: ciclo completo
+  // original. Solo adaptamos para las frecuencias soportadas 3 y 4.
+  if (!Number.isFinite(freq) || freq < 3 || freq >= 5 || !D1 || !D2 || !D3 || !D4 || !D5) {
     return sessionsConfig;
   }
 
-  if (freq <= 3) {
+  if (freq === 3) {
     // PPL frecuencia 1.
     return [D1, D2, D3].map((s, idx) => ({ ...s, cycle_day: idx + 1 }));
   }
