@@ -59,7 +59,7 @@ const FULLBODY_CATEGORIES = [
  * @param {string} nivel - Nivel del usuario
  * @returns {Promise<object>} Plan generado con ID y ejercicios
  */
-export async function generateFullBodyWorkout(dbClient, userId, nivel) {
+export async function buildFullBodyWorkout(readClient, userId, nivel) {
   logger.info('💪 [FULLBODY] Generando rutina para usuario:', userId, 'Nivel:', nivel);
 
   // 🩹 Reglas de lesión del usuario (filtro compartido)
@@ -78,7 +78,7 @@ export async function generateFullBodyWorkout(dbClient, userId, nivel) {
 
   // Seleccionar ejercicios
   for (const config of categories) {
-    const exercises = await selectExercises(dbClient, {
+    const exercises = await selectExercises(readClient, {
       nivel,
       categoria: config.category,
       cantidad: config.count,
@@ -98,26 +98,42 @@ export async function generateFullBodyWorkout(dbClient, userId, nivel) {
 
   logger.info(`📊 [FULLBODY] Seleccionados ${fullBodyExercises.length} ejercicios`);
 
+  // A1: build NO escribe; devuelve lo necesario para persistir en tx corta.
+  return { userId, nivel, fullBodyExercises };
+}
+
+/**
+ * Persiste una rutina Full Body ya construida en una transacción corta.
+ * @param {object} writeClient - Cliente de base de datos EN transacción
+ * @param {object} built - Resultado de buildFullBodyWorkout
+ * @returns {Promise<object>} Plan persistido con ID
+ */
+export async function persistFullBodyWorkout(writeClient, built) {
+  const { userId, nivel, fullBodyExercises } = built;
+  const currentDate = new Date();
+  const dayName = DAY_NAMES[currentDate.getDay()];
+
   // Crear plan
-  const planResult = await dbClient.query(`
+  // FIX esquema: methodology_plans NO tiene training_days_per_week ni total_weeks
+  // (el INSERT antiguo las usaba → 500 "column does not exist"). Full Body = 1
+  // sesión → total_days=1 (columna válida, igual que single-day).
+  const planResult = await writeClient.query(`
     INSERT INTO app.methodology_plans (
       user_id,
       methodology_type,
       plan_name,
-      training_days_per_week,
-      total_weeks,
+      total_days,
       status,
       created_at,
       updated_at,
       plan_data,
       plan_description
-    ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7, $8)
+    ) VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), $6, $7)
     RETURNING id, methodology_type, plan_name
   `, [
     userId,
     'full-body',
     `Full Body ${nivel} - Fin de Semana`,
-    1,
     1,
     'active',
     JSON.stringify({
@@ -132,54 +148,50 @@ export async function generateFullBodyWorkout(dbClient, userId, nivel) {
 
   const methodologyPlanId = planResult.rows[0].id;
 
-  // Crear sesión
-  const sessionData = {
-    dia: 1,
-    sesion_numero: 1,
-    ejercicios: fullBodyExercises.map((exercise, index) => ({
-      orden: index + 1,
-      id: exercise.id,
-      exercise_id: exercise.id,
-      nombre: exercise.nombre,
-      categoria: exercise.categoria,
-      series: parseInt(exercise.series_reps_objetivo.split('x')[0].split('-')[0]),
-      reps_objetivo: exercise.series_reps_objetivo.split('x')[1] || '10-12',
-      descanso_seg: exercise.descanso_seg,
-      notas: exercise.notas_fullbody || exercise.notas,
-      patron: exercise.patron
-    }))
-  };
+  // Ejercicios normalizados de la sesión
+  const sessionExercises = fullBodyExercises.map((exercise, index) => ({
+    orden: index + 1,
+    id: exercise.id,
+    exercise_id: exercise.id,
+    nombre: exercise.nombre,
+    categoria: exercise.categoria,
+    series: parseInt(exercise.series_reps_objetivo.split('x')[0].split('-')[0]),
+    reps_objetivo: exercise.series_reps_objetivo.split('x')[1] || '10-12',
+    descanso_seg: exercise.descanso_seg,
+    notas: exercise.notas_fullbody || exercise.notas,
+    patron: exercise.patron
+  }));
 
-  await dbClient.query(`
+  // FIX esquema: methodology_exercise_sessions usa exercises_data/day_name/... (no
+  // session_number/exercises). Se modela igual que la sesión de single-day.
+  await writeClient.query(`
     INSERT INTO app.methodology_exercise_sessions (
-      methodology_plan_id,
-      session_number,
-      session_name,
-      exercises,
-      created_at
-    ) VALUES ($1, $2, $3, $4, NOW())
-  `, [methodologyPlanId, 1, 'Full Body - Sesión Completa', JSON.stringify(sessionData.ejercicios)]);
+      user_id, methodology_plan_id, methodology_type, methodology_level,
+      session_name, day_name, session_date, session_type, total_exercises,
+      session_status, day_of_month, month_name, month_number, year_number,
+      exercises_data, session_metadata, created_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
+  `, [
+    userId, methodologyPlanId, 'full-body', nivel,
+    'Full Body - Sesión Completa', dayName, currentDate, 'weekend-fullbody', sessionExercises.length,
+    'pending', currentDate.getDate(), MONTH_NAMES[currentDate.getMonth()], currentDate.getMonth() + 1, currentDate.getFullYear(),
+    JSON.stringify(sessionExercises),
+    JSON.stringify({ nivel, type: 'weekend_fullbody', generated_at: currentDate })
+  ]);
 
-  // Crear entrada en workout_schedule
-  // Columnas reales de app.workout_schedule (antes usaba day_in_week/
-  // session_number/completed, que NO existen → la inserción erraba). El plan es
-  // nuevo cada vez, así que no colisiona con uq_workout_schedule_plan_user_date.
-  await dbClient.query(`
+  // FIX esquema: workout_schedule requiere day_name, day_abbrev y exercises (NOT
+  // NULL) que el INSERT antiguo omitía. El plan es nuevo cada vez, así que no
+  // colisiona con uq_workout_schedule_plan_user_date.
+  await writeClient.query(`
     INSERT INTO app.workout_schedule (
-      user_id,
-      methodology_plan_id,
-      scheduled_date,
-      week_number,
-      session_order,
-      week_session_order,
-      session_title,
-      status,
-      created_at
-    ) VALUES ($1, $2, CURRENT_DATE, 1, 1, 1, 'Full Body - Sesión Completa', 'scheduled', NOW())
-  `, [userId, methodologyPlanId]);
+      user_id, methodology_plan_id, scheduled_date, week_number,
+      session_order, week_session_order, day_name, day_abbrev,
+      session_title, exercises, status, created_at
+    ) VALUES ($1, $2, CURRENT_DATE, 1, 1, 1, $3, $4, 'Full Body - Sesión Completa', $5, 'scheduled', NOW())
+  `, [userId, methodologyPlanId, dayName, dayName.slice(0, 3), JSON.stringify(sessionExercises)]);
 
   // Guardar configuración
-  await savePlanStartConfig(dbClient, methodologyPlanId);
+  await savePlanStartConfig(writeClient, methodologyPlanId, userId);
 
   return {
     methodologyPlanId,
@@ -195,6 +207,15 @@ export async function generateFullBodyWorkout(dbClient, userId, nivel) {
 }
 
 /**
+ * Genera y persiste una rutina Full Body en el mismo cliente (compatibilidad).
+ * Prefiere buildFullBodyWorkout(pool) + persistFullBodyWorkout(tx).
+ */
+export async function generateFullBodyWorkout(dbClient, userId, nivel) {
+  const built = await buildFullBodyWorkout(dbClient, userId, nivel);
+  return persistFullBodyWorkout(dbClient, built);
+}
+
+/**
  * Genera entrenamiento de día único
  * @param {object} dbClient - Cliente de base de datos
  * @param {number} userId - ID del usuario
@@ -202,7 +223,7 @@ export async function generateFullBodyWorkout(dbClient, userId, nivel) {
  * @param {boolean} isWeekendExtra - Si es entrenamiento extra de fin de semana
  * @returns {Promise<object>} Sesión generada
  */
-export async function generateSingleDayWorkout(dbClient, userId, nivel, isWeekendExtra = false, options = {}) {
+export async function buildSingleDayWorkout(readClient, userId, nivel, isWeekendExtra = false, options = {}) {
   logger.info('🏋️ [SINGLE-DAY] Generando para usuario:', userId, 'Nivel:', nivel, 'Opciones:', options);
 
   const { selectionMode = 'full_body', focusGroup = null } = options || {};
@@ -232,7 +253,7 @@ export async function generateSingleDayWorkout(dbClient, userId, nivel, isWeeken
   let fullBodyExercises = [];
 
   for (const group of targetGroups) {
-    const exercises = await selectExercisesWithHistory(dbClient, {
+    const exercises = await selectExercisesWithHistory(readClient, {
       userId,
       nivel,
       categoria: group.categoria,
@@ -267,7 +288,7 @@ export async function generateSingleDayWorkout(dbClient, userId, nivel, isWeeken
       // Intentar buscar ejercicios extra de categorías básicas
       for (let i = 0; i < needed; i++) {
         const cat = fallbackCategories[i % fallbackCategories.length];
-        const extra = await selectExercises(dbClient, {
+        const extra = await selectExercises(readClient, {
           nivel,
           categoria: cat,
           cantidad: 1,
@@ -306,7 +327,7 @@ export async function generateSingleDayWorkout(dbClient, userId, nivel, isWeeken
     for (const extraCat of extraCategories) {
       if (fullBodyExercises.length >= minExercises) break;
       const needed = minExercises - fullBodyExercises.length;
-      const extra = await selectExercisesWithHistory(dbClient, {
+      const extra = await selectExercisesWithHistory(readClient, {
         userId,
         nivel,
         categoria: extraCat,
@@ -335,8 +356,43 @@ export async function generateSingleDayWorkout(dbClient, userId, nivel, isWeeken
     ? `Sesión de ${focusGroupNormalized} - Fin de Semana`
     : 'Entrenamiento Extra Fin de Semana';
 
+  // A1: build NO escribe; devuelve lo necesario para persistir en tx corta.
+  return {
+    userId,
+    nivel,
+    nivelNormalized,
+    isWeekendExtra,
+    selectionMode,
+    focusGroupNormalized,
+    sessionLabel,
+    planLabel,
+    currentDate,
+    shuffledExercises
+  };
+}
+
+/**
+ * Persiste un entrenamiento de día único ya construido en una transacción corta.
+ * @param {object} writeClient - Cliente de base de datos EN transacción
+ * @param {object} built - Resultado de buildSingleDayWorkout
+ * @returns {Promise<object>} Sesión persistida
+ */
+export async function persistSingleDayWorkout(writeClient, built) {
+  const {
+    userId,
+    nivel,
+    nivelNormalized,
+    isWeekendExtra,
+    selectionMode,
+    focusGroupNormalized,
+    sessionLabel,
+    planLabel,
+    currentDate,
+    shuffledExercises
+  } = built;
+
   // Crear plan temporal
-  const planResult = await dbClient.query(`
+  const planResult = await writeClient.query(`
     INSERT INTO app.methodology_plans (
       user_id,
       methodology_type,
@@ -364,7 +420,7 @@ export async function generateSingleDayWorkout(dbClient, userId, nivel, isWeeken
   const planId = planResult.rows[0].id;
 
   // Crear sesión
-  const sessionResult = await dbClient.query(`
+  const sessionResult = await writeClient.query(`
     INSERT INTO app.methodology_exercise_sessions (
       user_id,
       methodology_plan_id,
@@ -416,7 +472,7 @@ export async function generateSingleDayWorkout(dbClient, userId, nivel, isWeeken
 
   // Crear tracking para ejercicios
   for (const exercise of shuffledExercises) {
-    await dbClient.query(`
+    await writeClient.query(`
       INSERT INTO app.exercise_session_tracking (
         methodology_session_id,
         user_id,
@@ -455,6 +511,15 @@ export async function generateSingleDayWorkout(dbClient, userId, nivel, isWeeken
       exercises: shuffledExercises
     }
   };
+}
+
+/**
+ * Genera y persiste un entrenamiento de día único en el mismo cliente (compat).
+ * Prefiere buildSingleDayWorkout(pool) + persistSingleDayWorkout(tx).
+ */
+export async function generateSingleDayWorkout(dbClient, userId, nivel, isWeekendExtra = false, options = {}) {
+  const built = await buildSingleDayWorkout(dbClient, userId, nivel, isWeekendExtra, options);
+  return persistSingleDayWorkout(dbClient, built);
 }
 
 /**
@@ -576,9 +641,11 @@ function shuffleArray(arr) {
  * @param {object} dbClient - Cliente de base de datos
  * @param {number} methodologyPlanId - ID del plan
  */
-async function savePlanStartConfig(dbClient, methodologyPlanId) {
+async function savePlanStartConfig(dbClient, methodologyPlanId, userId) {
   const currentDayOfWeek = new Date().getDay();
 
+  // FIX esquema: plan_start_config.user_id es NOT NULL; la versión de fullbody no
+  // lo pasaba → violación de not-null. Se añade user_id ($9).
   await dbClient.query(`
     INSERT INTO app.plan_start_config (
       methodology_plan_id,
@@ -589,8 +656,10 @@ async function savePlanStartConfig(dbClient, methodologyPlanId) {
       regular_pattern,
       day_mappings,
       warnings,
+      user_id,
+      start_date,
       created_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_DATE, NOW())
     ON CONFLICT (methodology_plan_id) DO UPDATE SET
       warnings = $8,
       first_week_pattern = $5
@@ -609,6 +678,7 @@ async function savePlanStartConfig(dbClient, methodologyPlanId) {
         title: 'Rutina Full Body',
         message: 'Esta es una rutina especial de cuerpo completo para el fin de semana.'
       }
-    ])
+    ]),
+    userId
   ]);
 }

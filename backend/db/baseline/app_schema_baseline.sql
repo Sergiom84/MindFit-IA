@@ -130,7 +130,8 @@ BEGIN
   SELECT COALESCE(current_week, v_planned_week)
   INTO v_week_number
   FROM app.methodology_plans
-  WHERE id = p_methodology_plan_id;
+  WHERE id = p_methodology_plan_id
+    AND user_id = p_user_id; -- 🛡️ anti-BOLA: solo el plan del propio usuario
 
   IF p_reason = 'planificado' THEN
     v_target_week := v_planned_week;
@@ -163,6 +164,7 @@ BEGIN
   INTO v_plan_data
   FROM app.methodology_plans
   WHERE id = p_methodology_plan_id
+    AND user_id = p_user_id -- 🛡️ anti-BOLA: no leer el plan de otro usuario
   FOR UPDATE;
 
   IF v_plan_data IS NOT NULL THEN
@@ -188,7 +190,8 @@ BEGIN
         UPDATE app.methodology_plans
         SET plan_data = v_plan_data,
             updated_at = NOW()
-        WHERE id = p_methodology_plan_id;
+        WHERE id = p_methodology_plan_id
+          AND user_id = p_user_id; -- 🛡️ anti-BOLA: no reescribir el plan de otro usuario
       END IF;
     END IF;
   END IF;
@@ -2773,7 +2776,8 @@ BEGIN
     COUNT(*) FILTER (WHERE rir_reported < 2)
   INTO v_mean_rir, v_underperformed_sets
   FROM app.hypertrophy_set_logs
-  WHERE session_id = p_session_id;
+  WHERE session_id = p_session_id
+    AND user_id = p_user_id; -- 🛡️ anti-BOLA: solo series del propio usuario
 
   -- Si no hay datos de RIR, salir
   IF v_mean_rir IS NULL THEN

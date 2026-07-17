@@ -8,8 +8,8 @@ import pool from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 // Importar servicios
-import { generateD1D5Plan } from '../services/hipertrofiaV2/planGenerationService.js';
-import { generateFullBodyWorkout, generateSingleDayWorkout } from '../services/hipertrofiaV2/extraWorkoutService.js';
+import { buildD1D5Plan, persistD1D5Plan } from '../services/hipertrofiaV2/planGenerationService.js';
+import { buildFullBodyWorkout, persistFullBodyWorkout, buildSingleDayWorkout, persistSingleDayWorkout } from '../services/hipertrofiaV2/extraWorkoutService.js';
 import { selectExercises } from '../services/hipertrofiaV2/exerciseSelector.js';
 
 // Importar controladores
@@ -43,8 +43,11 @@ const router = express.Router();
 // Usar SIEMPRE después de authenticateToken.
 const enforceSelfParam = (req, res, next) => {
   const paramUserId = req.params?.userId;
+  if (!paramUserId) return next();
   const tokenUserId = req.user?.userId ?? req.user?.id;
-  if (paramUserId && tokenUserId && Number(paramUserId) !== Number(tokenUserId)) {
+  // Fail-closed: si la ruta lleva :userId debe haber id de token y coincidir.
+  // (Antes, un token sin id dejaba pasar la comprobación.)
+  if (!tokenUserId || Number(paramUserId) !== Number(tokenUserId)) {
     return res.status(403).json({ success: false, error: 'No autorizado' });
   }
   next();
@@ -59,17 +62,15 @@ const enforceSelfParam = (req, res, next) => {
  * Genera plan completo D1-D5 (Motor MindFeed)
  */
 router.post('/generate-d1d5', authenticateToken, async (req, res) => {
-  const dbClient = await pool.connect();
+  const userId = req.user?.userId || req.user?.id;
+  const {
+    nivel = 'Principiante',
+    totalWeeks,
+    startConfig,
+    includeWeek0 = true
+  } = req.body;
 
   try {
-    const userId = req.user?.userId || req.user?.id;
-    const {
-      nivel = 'Principiante',
-      totalWeeks,
-      startConfig,
-      includeWeek0 = true
-    } = req.body;
-
     logger.always('🏋️ [MINDFEED] Generando plan D1-D5 para usuario:', userId);
 
     // 🧹 LIMPIEZA PRE-GENERACIÓN: Cerrar sesiones huérfanas antes de generar nuevo plan
@@ -78,10 +79,10 @@ router.post('/generate-d1d5', authenticateToken, async (req, res) => {
       logger.info(`🧹 [MINDFEED] Pre-limpieza: ${cleanupResult.cleaned} sesiones/drafts limpiados`);
     }
 
-    await dbClient.query('BEGIN');
-    await cleanUserDrafts(userId, dbClient);
-
-    const result = await generateD1D5Plan(dbClient, {
+    // A1 · Fase 1: construcción (solo lecturas). Se hace sobre el pool para NO
+    // retener una conexión de transacción durante todo el montaje del plan
+    // (agravaba el agotamiento del pooler, pool_size=15).
+    const built = await buildD1D5Plan(pool, {
       userId,
       nivel,
       totalWeeks,
@@ -89,7 +90,20 @@ router.post('/generate-d1d5', authenticateToken, async (req, res) => {
       includeWeek0
     });
 
-    await dbClient.query('COMMIT');
+    // A1 · Fase 2: persistencia atómica en una transacción CORTA (3 escrituras).
+    const dbClient = await pool.connect();
+    let result;
+    try {
+      await dbClient.query('BEGIN');
+      await cleanUserDrafts(userId, dbClient);
+      result = await persistD1D5Plan(dbClient, built);
+      await dbClient.query('COMMIT');
+    } catch (txError) {
+      await dbClient.query('ROLLBACK');
+      throw txError;
+    } finally {
+      dbClient.release();
+    }
 
     logger.always(`✅ [MINDFEED] Plan generado: ID ${result.methodologyPlanId}`);
 
@@ -108,15 +122,11 @@ router.post('/generate-d1d5', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    await dbClient.query('ROLLBACK');
     logger.error('❌ [MINDFEED] Error:', error);
     res.status(500).json({
       success: false,
-      error: 'Error al generar plan MindFeed D1-D5',
-      details: error.message
+      error: 'Error al generar plan MindFeed D1-D5'
     });
-  } finally {
-    dbClient.release();
   }
 });
 
@@ -125,24 +135,33 @@ router.post('/generate-d1d5', authenticateToken, async (req, res) => {
  * Genera rutina Full Body para fin de semana
  */
 router.post('/generate-fullbody', authenticateToken, async (req, res) => {
-  const dbClient = await pool.connect();
+  const userId = req.user?.userId || req.user?.id;
+  const { nivel = 'Principiante' } = req.body;
 
   try {
-    const userId = req.user?.userId || req.user?.id;
-    const { nivel = 'Principiante' } = req.body;
-
     // 🧹 LIMPIEZA PRE-GENERACIÓN: Cerrar sesiones huérfanas
     const cleanupResult = await cleanupUserStaleSessions(userId);
     if (cleanupResult.cleaned > 0) {
       logger.info(`🧹 [FULLBODY] Pre-limpieza: ${cleanupResult.cleaned} sesiones/drafts limpiados`);
     }
 
-    await dbClient.query('BEGIN');
-    await cleanUserDrafts(userId, dbClient);
+    // A1 · Fase 1: construcción (solo lecturas, sin retener conexión de transacción).
+    const built = await buildFullBodyWorkout(pool, userId, nivel);
 
-    const result = await generateFullBodyWorkout(dbClient, userId, nivel);
-
-    await dbClient.query('COMMIT');
+    // A1 · Fase 2: persistencia atómica en transacción corta.
+    const dbClient = await pool.connect();
+    let result;
+    try {
+      await dbClient.query('BEGIN');
+      await cleanUserDrafts(userId, dbClient);
+      result = await persistFullBodyWorkout(dbClient, built);
+      await dbClient.query('COMMIT');
+    } catch (txError) {
+      await dbClient.query('ROLLBACK');
+      throw txError;
+    } finally {
+      dbClient.release();
+    }
 
     logger.always('✅ [FULLBODY] Rutina generada exitosamente');
 
@@ -159,15 +178,11 @@ router.post('/generate-fullbody', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    await dbClient.query('ROLLBACK');
     logger.error('❌ [FULLBODY] Error:', error);
     res.status(500).json({
       success: false,
-      error: 'Error al generar rutina Full Body',
-      details: error.message
+      error: 'Error al generar rutina Full Body'
     });
-  } finally {
-    dbClient.release();
   }
 });
 
@@ -176,31 +191,40 @@ router.post('/generate-fullbody', authenticateToken, async (req, res) => {
  * Genera entrenamiento de día único
  */
 router.post('/generate-single-day', authenticateToken, async (req, res) => {
-  const dbClient = await pool.connect();
+  const userId = req.user?.userId || req.user?.id;
+  const {
+    nivel = 'Principiante',
+    isWeekendExtra = false,
+    selectionMode = 'full_body',
+    focusGroup = null
+  } = req.body;
 
   try {
-    const userId = req.user?.userId || req.user?.id;
-    const {
-      nivel = 'Principiante',
-      isWeekendExtra = false,
-      selectionMode = 'full_body',
-      focusGroup = null
-    } = req.body;
-
     // 🧹 LIMPIEZA PRE-GENERACIÓN: Cerrar sesiones huérfanas
     const cleanupResult = await cleanupUserStaleSessions(userId);
     if (cleanupResult.cleaned > 0) {
       logger.info(`🧹 [SINGLE-DAY] Pre-limpieza: ${cleanupResult.cleaned} sesiones/drafts limpiados`);
     }
 
-    await dbClient.query('BEGIN');
-
-    const result = await generateSingleDayWorkout(dbClient, userId, nivel, isWeekendExtra, {
+    // A1 · Fase 1: construcción (solo lecturas, sin retener conexión de transacción).
+    const built = await buildSingleDayWorkout(pool, userId, nivel, isWeekendExtra, {
       selectionMode,
       focusGroup
     });
 
-    await dbClient.query('COMMIT');
+    // A1 · Fase 2: persistencia atómica en transacción corta.
+    const dbClient = await pool.connect();
+    let result;
+    try {
+      await dbClient.query('BEGIN');
+      result = await persistSingleDayWorkout(dbClient, built);
+      await dbClient.query('COMMIT');
+    } catch (txError) {
+      await dbClient.query('ROLLBACK');
+      throw txError;
+    } finally {
+      dbClient.release();
+    }
 
     res.json({
       success: true,
@@ -215,15 +239,11 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    await dbClient.query('ROLLBACK');
     logger.error('❌ [SINGLE-DAY] Error:', error);
     res.status(500).json({
       success: false,
-      error: 'Error al generar entrenamiento',
-      details: error.message
+      error: 'Error al generar entrenamiento'
     });
-  } finally {
-    dbClient.release();
   }
 });
 
@@ -235,7 +255,7 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
  * POST /api/hipertrofiav2/select-exercises
  * Selecciona ejercicios por categoría y nivel
  */
-router.post('/select-exercises', async (req, res) => {
+router.post('/select-exercises', authenticateToken, async (req, res) => {
   try {
     const { categoria, nivel, cantidad = 1 } = req.body;
 
@@ -277,7 +297,7 @@ router.post('/select-exercises', async (req, res) => {
  * POST /api/hipertrofiav2/select-exercises-by-type
  * Selecciona ejercicios por tipo (multiarticular/unilateral/analitico)
  */
-router.post('/select-exercises-by-type', async (req, res) => {
+router.post('/select-exercises-by-type', authenticateToken, async (req, res) => {
   try {
     const {
       tipo_ejercicio,
@@ -327,9 +347,7 @@ router.post('/select-exercises-by-type', async (req, res) => {
     logger.error('❌ Error seleccionando ejercicios por tipo:', error);
     res.status(500).json({
       success: false,
-      error: 'Error al seleccionar ejercicios',
-      details: error.message
-    });
+      error: 'Error al seleccionar ejercicios'    });
   }
 });
 
@@ -337,8 +355,8 @@ router.post('/select-exercises-by-type', async (req, res) => {
 // CONFIGURACIÓN DE SESIONES
 // ============================================================
 
-router.get('/session-config/:cycleDay', sessionControllers.getSessionConfig);
-router.get('/session-config-all', sessionControllers.getAllSessionConfigs);
+router.get('/session-config/:cycleDay', authenticateToken, sessionControllers.getSessionConfig);
+router.get('/session-config-all', authenticateToken, sessionControllers.getAllSessionConfigs);
 
 // ============================================================
 // TRACKING DE SERIES

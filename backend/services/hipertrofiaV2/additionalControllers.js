@@ -80,9 +80,7 @@ export const fatigueControllers = {
       logger.error('❌ [FATIGUE] Error reportando:', error);
       res.status(500).json({
         success: false,
-        error: 'Error al reportar estado de fatiga',
-        details: error.message
-      });
+        error: 'Error al reportar estado de fatiga'      });
     }
   },
 
@@ -117,9 +115,7 @@ export const fatigueControllers = {
       logger.error('❌ [FATIGUE] Error obteniendo estado:', error);
       res.status(500).json({
         success: false,
-        error: 'Error al obtener estado de fatiga',
-        details: error.message
-      });
+        error: 'Error al obtener estado de fatiga'      });
     }
   },
 
@@ -149,9 +145,7 @@ export const fatigueControllers = {
       logger.error('❌ [FATIGUE] Error aplicando ajustes:', error);
       res.status(500).json({
         success: false,
-        error: 'Error al aplicar ajustes de fatiga',
-        details: error.message
-      });
+        error: 'Error al aplicar ajustes de fatiga'      });
     }
   },
 
@@ -185,9 +179,7 @@ export const fatigueControllers = {
       logger.error('❌ [FATIGUE] Error detectando:', error);
       res.status(500).json({
         success: false,
-        error: 'Error al detectar fatiga automática',
-        details: error.message
-      });
+        error: 'Error al detectar fatiga automática'      });
     }
   },
 
@@ -220,9 +212,7 @@ export const fatigueControllers = {
       logger.error('❌ [FATIGUE] Error obteniendo historial:', error);
       res.status(500).json({
         success: false,
-        error: 'Error al obtener historial de fatiga',
-        details: error.message
-      });
+        error: 'Error al obtener historial de fatiga'      });
     }
   }
 };

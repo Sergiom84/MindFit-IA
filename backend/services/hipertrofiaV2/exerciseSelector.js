@@ -23,6 +23,11 @@ export async function selectExercises(dbClient, filters) {
   const { nivel, categoria, tipo_ejercicio, cantidad = 1, excludeNames = [], injuryRules = [] } = filters;
   const hasInjuryRules = Array.isArray(injuryRules) && injuryRules.length > 0;
 
+  // Cota anti-DoS: `cantidad` puede venir del cliente (endpoints select-*). Sin
+  // límite, un valor enorme fuerza LIMIT gigante / slices desproporcionados.
+  const MAX_CANTIDAD = 50;
+  const safeCantidad = Math.min(Math.max(1, Math.trunc(Number(cantidad) || 1)), MAX_CANTIDAD);
+
   // Comparación case-insensitive: los datos están capitalizados (Pecho, Principiante)
   // pero los callers/clientes pueden enviar minúsculas (pecho) → LOWER en ambos lados.
   let whereConditions = ['LOWER(nivel) = LOWER($1)', 'LOWER(categoria) = LOWER($2)'];
@@ -56,7 +61,7 @@ export async function selectExercises(dbClient, filters) {
   `;
 
   if (!hasInjuryRules) {
-    params.push(cantidad);
+    params.push(safeCantidad);
   }
 
   const result = await dbClient.query(query, params);
@@ -69,7 +74,7 @@ export async function selectExercises(dbClient, filters) {
   // vacía, simplemente devolvemos menos (NO reintroducimos contraindicados);
   // el caller decide cómo compensar con otros grupos seguros.
   const safe = result.rows.filter((ex) => !isContraindicated(ex, injuryRules));
-  return safe.slice(0, cantidad);
+  return safe.slice(0, safeCantidad);
 }
 
 /**
