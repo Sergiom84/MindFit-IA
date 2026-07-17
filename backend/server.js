@@ -5,7 +5,6 @@ import './loadEnv.js';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -13,6 +12,7 @@ import { preloadAllPrompts } from './lib/promptRegistry.js';
 import { validateAPIKeys } from './lib/openaiClient.js';
 import { initializeSessionMaintenance } from './utils/sessionMaintenance.js';
 import { startCleanupScheduler } from './jobs/sessionCleanupJob.js';
+import { authLimiter, aiLimiter } from './middleware/rateLimiters.js';
 import { startMissedSessionsScheduler } from './jobs/missedSessionsJob.js';
 
 // Helper function for Spanish timezone (UTC+2/UTC+1 depending on DST)
@@ -115,16 +115,8 @@ app.use(helmet({
   },
 }));
 
-// SEC-004: rate limit anti fuerza-bruta en autenticación. Solo login/registro
-// (NO heartbeat/refresh, que son frecuentes y automáticos). Fail-safe: cuenta
-// por IP y devuelve 429 con Retry-After.
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 min
-  max: 30,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Demasiados intentos. Inténtalo de nuevo en unos minutos.' },
-});
+// SEC-004: `authLimiter` (fuerza-bruta en auth) y `aiLimiter` (IA costosa) viven en
+// middleware/rateLimiters.js (centralizados y testeables). Se aplican más abajo.
 
 // --- utilidades de path para servir el frontend ---
 const __filename = fileURLToPath(import.meta.url);
@@ -461,6 +453,22 @@ app.post('/api/methodology/generate', authenticateToken, (req, res, next) => {
 // ===============================================
 // 🎯 RUTAS PRINCIPALES CONSOLIDADAS
 // ===============================================
+
+// SEC-004 (contención, PR 1): montar aiLimiter ANTES de los routers, solo sobre los
+// subpaths de generación IA. El proxy /api/methodology/generate re-despacha (next())
+// a estos mismos subpaths, por lo que queda cubierto sin doble conteo. nutrition-v2 y
+// progress se limitan por subpath para no frenar sus lecturas normales.
+app.use('/api/ai', aiLimiter);
+app.use('/api/ai-photo-correction', aiLimiter);
+app.use('/api/routine-generation', aiLimiter);
+app.use('/api/hipertrofiav2/generate-d1d5', aiLimiter);
+app.use('/api/hipertrofiav2/generate-fullbody', aiLimiter);
+app.use('/api/hipertrofiav2/generate-single-day', aiLimiter);
+app.use('/api/nutrition-v2/generate-plan', aiLimiter);
+app.use('/api/nutrition-v2/generate-menu', aiLimiter);
+app.use('/api/nutrition-v2/generate-full-day-menus', aiLimiter);
+app.use('/api/progress/re-evaluation', aiLimiter);
+
 app.use('/api/routine-generation', routineGenerationRoutes);
 app.use('/api/training-session', trainingSessionRoutes);
 app.use('/api/training', trainingStateRoutes);
