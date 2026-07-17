@@ -183,7 +183,8 @@ export async function generateSessionExercises(
 
   // Mapear con parámetros de entrenamiento
   let exercisesWithParams = mapExercisesWithTrainingParams(sessionExercises, sessionConfig, isFemale, {
-    restSecondsByType: ruleset?.restSecondsByType || null
+    restSecondsByType: ruleset?.restSecondsByType || null,
+    rirTarget: ruleset?.rirTarget || null
   });
 
   // Aplicar ajustes de priorización si corresponde

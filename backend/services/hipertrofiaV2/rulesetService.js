@@ -2,6 +2,14 @@ import { logger } from './logger.js';
 
 const DEFAULT_SCOPE = 'hipertrofia_v2_principiante';
 
+// Scope de ruleset por nivel (A-02). Antes los tres niveles usaban el de
+// principiante; ahora cada uno carga su propio ruleset sembrado en BD.
+const SCOPE_BY_LEVEL = {
+  Principiante: 'hipertrofia_v2_principiante',
+  Intermedio: 'hipertrofia_v2_intermedio',
+  Avanzado: 'hipertrofia_v2_avanzado'
+};
+
 const DEFAULT_RULESET = {
   restSecondsByType: {
     multiarticular: 90,
@@ -23,15 +31,24 @@ const DEFAULT_RULESET = {
     partialAdjustmentFactor: 0.975,
     highAdjustmentFactor: 0.95
   },
+  // RIR objetivo por defecto; los rulesets por nivel lo endurecen
+  // (Intermedio 1-2, Avanzado 0-2).
+  rirTarget: '2-3',
   volumeProfiles: {}
 };
 
-function resolveScopeForLevel(nivel) {
-  if (nivel === 'Principiante') {
-    return DEFAULT_SCOPE;
-  }
-
-  // Mientras no haya rulesets por nivel, usamos el de principiante como fallback.
+/**
+ * Resuelve el scope de ruleset para un nivel. Normaliza el nivel para tolerar
+ * mayúsculas/acentos y cae en el de principiante si no reconoce el valor.
+ */
+export function resolveScopeForLevel(nivel) {
+  const key = String(nivel || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+  if (key.startsWith('interm')) return SCOPE_BY_LEVEL.Intermedio;
+  if (key.startsWith('avanz')) return SCOPE_BY_LEVEL.Avanzado;
   return DEFAULT_SCOPE;
 }
 
@@ -64,16 +81,20 @@ export async function loadMindfeedRuleset(dbClient, nivel) {
         ...DEFAULT_RULESET.overlapRules,
         ...(dbRules.overlapRules || {})
       },
-      volumeProfiles: dbRules.volumeProfiles || {}
+      rirTarget: dbRules.rirTarget || DEFAULT_RULESET.rirTarget,
+      volumeProfiles: dbRules.volumeProfiles || {},
+      // Scope efectivamente cargado, para trazabilidad en el plan (evita el
+      // ruleset_scope hardcodeado que antes marcaba siempre "principiante").
+      _scope: scope
     };
 
-    logger.info(`📚 [RULESET] Scope=${scope} cargado`);
+    logger.info(`📚 [RULESET] Scope=${scope} cargado (RIR=${merged.rirTarget})`);
     return merged;
   } catch (error) {
     logger.warn('⚠️ [RULESET] No se pudo cargar ruleset desde BD, usando fallback', {
       error: error.message,
       scope
     });
-    return { ...DEFAULT_RULESET };
+    return { ...DEFAULT_RULESET, _scope: scope };
   }
 }

@@ -300,14 +300,16 @@ export async function buildD1D5Plan(readClient, config) {
     configuracion: {
       progression_type: 'microcycle',
       progression_increment: 2.5,
-      deload_trigger: 6,
-      rir_target: '2-3',
+      deload_trigger: (ruleset?.deloadRules?.deloadWeeks || [6])[0] || 6,
+      rir_target: ruleset?.rirTarget || '2-3',
       tracking_enabled: true,
       week_0_intensity: WEEK_0_CONFIG.intensity,
       duration_weeks: actualTotalWeeks,
       sex_adjusted: isFemale,
       rest_adjustment_factor: isFemale ? 0.85 : 1.0,
-      ruleset_scope: ruleset?.meta?.level ? 'hipertrofia_v2_principiante' : 'hipertrofia_v2_principiante',
+      // Scope real del ruleset cargado (antes estaba hardcodeado a principiante
+      // en ambas ramas del ternario, ocultando intermedio/avanzado).
+      ruleset_scope: ruleset?._scope || 'hipertrofia_v2_principiante',
       ruleset_version: ruleset?.meta?.spec || 'MindFeed_Compliance_Spec_v1',
       deload_weeks: ruleset?.deloadRules?.deloadWeeks || [6],
       rest_seconds_by_type: ruleset?.restSecondsByType || null
