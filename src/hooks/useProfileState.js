@@ -373,9 +373,15 @@ export const useProfileState = () => {
       mejorar_resistencia: 'Mejorar Resistencia',
       mejorar_flexibilidad: 'Mejorar Flexibilidad',
       salud_general: 'Salud General',
-      mantenimiento: 'Mantenimiento'
+      // M-03: el alta usa 'mantener_forma'; se persistía como 'mantenimiento' y
+      // Rutinas mostraba "No especificado". Cubrimos ambas nomenclaturas.
+      mantenimiento: 'Mantenimiento',
+      mantener_forma: 'Mantenimiento',
+      mantener: 'Mantenimiento'
     }
-    return labels[objetivo] || 'No especificado'
+    // Normaliza (minúsculas, sin espacios) por si llega con otra caja/formato.
+    const key = String(objetivo || '').trim().toLowerCase()
+    return labels[key] || 'No especificado'
   }
 
   // Listas para suplementación y alimentos (simuladas por ahora)
