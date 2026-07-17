@@ -86,7 +86,7 @@ function resolveStartDateValue(rawStartDate) {
  * @param {object} config - Configuración del plan
  * @returns {Promise<object>} Plan generado con ID
  */
-export async function generateD1D5Plan(dbClient, config) {
+export async function buildD1D5Plan(readClient, config) {
   const {
     userId,
     nivel = 'Principiante',
@@ -108,7 +108,7 @@ export async function generateD1D5Plan(dbClient, config) {
   logger.info(`📅 Nivel: ${nivel}, Semanas: ${actualTotalWeeks}, Week 0: ${includeWeek0}`);
 
   // Obtener información del usuario
-  const userResult = await dbClient.query(
+  const userResult = await readClient.query(
     `SELECT sexo FROM app.users WHERE id = $1`,
     [userId]
   );
@@ -118,7 +118,7 @@ export async function generateD1D5Plan(dbClient, config) {
   logger.debug('👤 Sexo:', userSex, 'Ajuste femenino:', isFemale);
 
   // Cargar ruleset normativo MindFeed v1
-  const ruleset = await loadMindfeedRuleset(dbClient, nivel);
+  const ruleset = await loadMindfeedRuleset(readClient, nivel);
 
   // 🩹 Resolver reglas de lesión del usuario (filtro compartido). Si hay lesión,
   // la selección excluirá movimientos contraindicados por zona.
@@ -128,7 +128,7 @@ export async function generateD1D5Plan(dbClient, config) {
   }
 
   // Obtener prioridad muscular activa
-  const priorityResult = await dbClient.query(
+  const priorityResult = await readClient.query(
     `SELECT priority_muscle FROM app.hipertrofia_v2_state WHERE user_id = $1`,
     [userId]
   );
@@ -168,14 +168,14 @@ export async function generateD1D5Plan(dbClient, config) {
   }
 
   // Cargar configuración de sesiones D1-D5
-  const sessionsConfig = await loadSessionsConfig(dbClient);
+  const sessionsConfig = await loadSessionsConfig(readClient);
 
   // Generar ejercicios para cada sesión del ciclo
   const sessionsWithExercises = [];
 
   for (const sessionConfig of sessionsConfig) {
     const session = await generateSessionExercises(
-      dbClient,
+      readClient,
       sessionConfig,
       nivel,
       isFemale,
@@ -321,8 +321,23 @@ export async function generateD1D5Plan(dbClient, config) {
     }
   };
 
+  // A1: build NO escribe. Devuelve todo lo necesario para persistir en una
+  // transacción corta (ver persistD1D5Plan). Así la generación pesada (lecturas
+  // + montaje de JSON) NO retiene una conexión de transacción del pooler.
+  return { userId, planData, trainingDays, startConfig };
+}
+
+/**
+ * Persiste un plan D1-D5 ya construido dentro de una transacción corta.
+ * @param {object} writeClient - Cliente de base de datos EN transacción
+ * @param {object} built - Resultado de buildD1D5Plan
+ * @returns {Promise<object>} Plan persistido con ID
+ */
+export async function persistD1D5Plan(writeClient, built) {
+  const { userId, planData, trainingDays, startConfig } = built;
+
   // Guardar plan en DB
-  const planResult = await dbClient.query(`
+  const planResult = await writeClient.query(`
     INSERT INTO app.methodology_plans (
       user_id, methodology_type, plan_data, generation_mode, status, created_at
     )
@@ -333,7 +348,7 @@ export async function generateD1D5Plan(dbClient, config) {
   const methodologyPlanId = planResult.rows[0].id;
 
   // Crear estado inicial
-  await dbClient.query(`
+  await writeClient.query(`
     INSERT INTO app.hipertrofia_v2_state (
       user_id,
       methodology_plan_id,
@@ -352,7 +367,7 @@ export async function generateD1D5Plan(dbClient, config) {
 
   // Guardar configuración de inicio
   if (startConfig) {
-    await savePlanStartConfig(dbClient, methodologyPlanId, userId, startConfig, trainingDays, CYCLE_LENGTH);
+    await savePlanStartConfig(writeClient, methodologyPlanId, userId, startConfig, trainingDays, CYCLE_LENGTH);
   }
 
   logger.info(`✅ [MINDFEED] Plan generado con ID: ${methodologyPlanId}`);
@@ -362,6 +377,19 @@ export async function generateD1D5Plan(dbClient, config) {
     planId: methodologyPlanId,
     plan: planData
   };
+}
+
+/**
+ * Genera y persiste un plan D1-D5 en el mismo cliente (compatibilidad).
+ * Prefiere buildD1D5Plan(pool) + persistD1D5Plan(tx) para acortar la
+ * transacción; este wrapper mantiene la firma previa para callers existentes.
+ * @param {object} dbClient - Cliente de base de datos
+ * @param {object} config - Configuración del plan
+ * @returns {Promise<object>} Plan generado con ID
+ */
+export async function generateD1D5Plan(dbClient, config) {
+  const built = await buildD1D5Plan(dbClient, config);
+  return persistD1D5Plan(dbClient, built);
 }
 
 /**

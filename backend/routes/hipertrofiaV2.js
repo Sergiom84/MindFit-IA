@@ -8,7 +8,7 @@ import pool from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 // Importar servicios
-import { generateD1D5Plan } from '../services/hipertrofiaV2/planGenerationService.js';
+import { buildD1D5Plan, persistD1D5Plan } from '../services/hipertrofiaV2/planGenerationService.js';
 import { generateFullBodyWorkout, generateSingleDayWorkout } from '../services/hipertrofiaV2/extraWorkoutService.js';
 import { selectExercises } from '../services/hipertrofiaV2/exerciseSelector.js';
 
@@ -62,17 +62,15 @@ const enforceSelfParam = (req, res, next) => {
  * Genera plan completo D1-D5 (Motor MindFeed)
  */
 router.post('/generate-d1d5', authenticateToken, async (req, res) => {
-  const dbClient = await pool.connect();
+  const userId = req.user?.userId || req.user?.id;
+  const {
+    nivel = 'Principiante',
+    totalWeeks,
+    startConfig,
+    includeWeek0 = true
+  } = req.body;
 
   try {
-    const userId = req.user?.userId || req.user?.id;
-    const {
-      nivel = 'Principiante',
-      totalWeeks,
-      startConfig,
-      includeWeek0 = true
-    } = req.body;
-
     logger.always('🏋️ [MINDFEED] Generando plan D1-D5 para usuario:', userId);
 
     // 🧹 LIMPIEZA PRE-GENERACIÓN: Cerrar sesiones huérfanas antes de generar nuevo plan
@@ -81,10 +79,10 @@ router.post('/generate-d1d5', authenticateToken, async (req, res) => {
       logger.info(`🧹 [MINDFEED] Pre-limpieza: ${cleanupResult.cleaned} sesiones/drafts limpiados`);
     }
 
-    await dbClient.query('BEGIN');
-    await cleanUserDrafts(userId, dbClient);
-
-    const result = await generateD1D5Plan(dbClient, {
+    // A1 · Fase 1: construcción (solo lecturas). Se hace sobre el pool para NO
+    // retener una conexión de transacción durante todo el montaje del plan
+    // (agravaba el agotamiento del pooler, pool_size=15).
+    const built = await buildD1D5Plan(pool, {
       userId,
       nivel,
       totalWeeks,
@@ -92,7 +90,20 @@ router.post('/generate-d1d5', authenticateToken, async (req, res) => {
       includeWeek0
     });
 
-    await dbClient.query('COMMIT');
+    // A1 · Fase 2: persistencia atómica en una transacción CORTA (3 escrituras).
+    const dbClient = await pool.connect();
+    let result;
+    try {
+      await dbClient.query('BEGIN');
+      await cleanUserDrafts(userId, dbClient);
+      result = await persistD1D5Plan(dbClient, built);
+      await dbClient.query('COMMIT');
+    } catch (txError) {
+      await dbClient.query('ROLLBACK');
+      throw txError;
+    } finally {
+      dbClient.release();
+    }
 
     logger.always(`✅ [MINDFEED] Plan generado: ID ${result.methodologyPlanId}`);
 
@@ -111,13 +122,11 @@ router.post('/generate-d1d5', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    await dbClient.query('ROLLBACK');
     logger.error('❌ [MINDFEED] Error:', error);
     res.status(500).json({
       success: false,
-      error: 'Error al generar plan MindFeed D1-D5'    });
-  } finally {
-    dbClient.release();
+      error: 'Error al generar plan MindFeed D1-D5'
+    });
   }
 });
 
