@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useUserContext } from '@/contexts/UserContext';
 import MetabolicQuestionnaire from './MetabolicQuestionnaire';
+import tokenManager from '../../utils/tokenManager';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
 
@@ -452,7 +453,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
 
     const fetchTrainingPlanInfo = async () => {
       try {
-        const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+        const token = tokenManager.getToken() || tokenManager.getToken();
         if (!token) {
           if (isMounted) {
             setTrainingPlanInfo({
@@ -739,7 +740,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    const token = tokenManager.getToken() || tokenManager.getToken();
 
     const loadProfile = async () => {
       try {
@@ -873,7 +874,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     let wasSaved = false;
 
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       if (!token) {
         throw new Error('No se encontro un token de autenticacion');
       }
@@ -942,7 +943,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     setPlanSuccess(false);
 
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       if (!token) {
         throw new Error('No se encontro un token de autenticacion');
       }

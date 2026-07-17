@@ -29,6 +29,7 @@ import { getOposicionData } from './methodologies/shared/oposicionesData.js';
 import TrainingPlanConfirmationModal from '../routines/TrainingPlanConfirmationModal.jsx';
 import WarmupModal from '../routines/WarmupModal.jsx';
 import RoutineSessionModal from '../routines/RoutineSessionModal.jsx';
+import tokenManager from '../../utils/tokenManager';
 
 // Configuración de oposiciones
 const OPOSICIONES = [
@@ -238,7 +239,7 @@ export default function OposicionesScreen() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         },
         body: JSON.stringify({
           methodology_plan_id: methodologyPlanId

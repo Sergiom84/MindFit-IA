@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import tokenManager from '../../../utils/tokenManager';
 import {
   Heart,
   Frown,
@@ -212,7 +213,7 @@ const CalisteniaReEvalForm = ({
           `/api/progress/key-exercises?methodology_plan_id=${planId}&week=${currentWeek}`,
           {
             headers: {
-              'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+              'Authorization': `Bearer ${tokenManager.getToken()}`
             }
           }
         );

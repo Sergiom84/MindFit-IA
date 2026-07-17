@@ -7,6 +7,7 @@
  */
 
 import React from 'react';
+import tokenManager from '../../../utils/tokenManager';
 
 // Configuración centralizada de API
 const RAW_API_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) ? import.meta.env.VITE_API_URL : '';
@@ -44,7 +45,7 @@ const APIUtils = {
    */
   getAuthToken() {
     try {
-      return localStorage.getItem('authToken') || localStorage.getItem('token');
+      return tokenManager.getToken() || tokenManager.getToken();
     } catch (error) {
       Logger.error('Error accessing localStorage for auth token', error);
       return null;

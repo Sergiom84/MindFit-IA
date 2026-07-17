@@ -15,6 +15,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Alert } from '../ui/alert';
 import { useUserContext } from '@/contexts/UserContext';
+import tokenManager from '../../utils/tokenManager';
 
 export default function BodyMeasurementsForm({ onSuccess, onCancel }) {
   const { userData, refreshProfile } = useUserContext();
@@ -62,7 +63,7 @@ export default function BodyMeasurementsForm({ onSuccess, onCancel }) {
     setError(null);
 
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       const response = await fetch('/api/body-measurements', {
         method: 'POST',
         headers: {

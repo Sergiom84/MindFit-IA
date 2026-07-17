@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import tokenManager from '../../utils/tokenManager';
 
 export default function UserEquipmentSummaryCard() {
   const [curated, setCurated] = useState([]);
@@ -7,7 +8,7 @@ export default function UserEquipmentSummaryCard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = tokenManager.getToken();
     if (!token) return;
     fetch('/api/equipment/user', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())

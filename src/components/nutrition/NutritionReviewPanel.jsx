@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Alert } from "../ui/alert";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import tokenManager from '../../utils/tokenManager';
 
 function formatLocalIsoDate(date = new Date()) {
   const year = date.getFullYear();
@@ -65,7 +66,7 @@ function StatusPill({ tone = "neutral", children }) {
 }
 
 async function fetchJsonWithAuth(url, options = {}) {
-  const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+  const token = tokenManager.getToken() || tokenManager.getToken();
 
   const headers = { ...(options.headers || {}) };
   if (token) {

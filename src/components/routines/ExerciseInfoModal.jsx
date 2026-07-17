@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { X, Info, Dumbbell, AlertTriangle, CheckCircle } from 'lucide-react';
+import tokenManager from '../../utils/tokenManager';
 
 export default function ExerciseInfoModal({ show, exercise, onClose, isNested = false }) {
   const [tab, setTab] = useState('ejecucion'); // ejecucion | consejos | errores
@@ -15,7 +16,7 @@ export default function ExerciseInfoModal({ show, exercise, onClose, isNested = 
       try {
         setLoading(true);
         setError('');
-        const token = localStorage.getItem('token');
+        const token = tokenManager.getToken();
         const res = await fetch('/api/ia-home-training/exercise-info', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },

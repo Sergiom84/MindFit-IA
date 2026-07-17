@@ -355,7 +355,7 @@ export const AuthProvider = ({ children }) => {
       // intentar recuperar datos desde la clave legacy 'user' para evitar logout por recarga.
       const token = (typeof tokenManager?.getToken === 'function')
         ? tokenManager.getToken()
-        : (localStorage.getItem('authToken') || localStorage.getItem('token'));
+        : (tokenManager.getToken() || tokenManager.getToken());
       const legacyUser = StorageManager.get('user');
       if (token && legacyUser && legacyUser.id) {
         // Sincronizar con la clave moderna y continuar

@@ -10,6 +10,7 @@ import HomeTrainingWarmupModal from './HomeTrainingWarmupModal';
 import UserEquipmentSummaryCard from './UserEquipmentSummaryCard';
 import logger from '../../utils/logger';
 import { useTrace } from '../../contexts/TraceContext';
+import tokenManager from '../../utils/tokenManager';
 
 
 const HomeTrainingSection = () => {
@@ -124,7 +125,7 @@ const HomeTrainingSection = () => {
   // Función para cancelar completamente la rutina (optimizada con useCallback)
   const cancelRoutineCompletely = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       if (!token) {
         resetToInitialState();
         return;
@@ -167,7 +168,7 @@ const HomeTrainingSection = () => {
         logger.info('Usuario abandonando sesión, guardando progreso', null, 'HomeTraining');
 
         // Usar sendBeacon para envío asíncrono confiable
-        const token = localStorage.getItem('token');
+        const token = tokenManager.getToken();
         const abandonData = {
           currentProgress: exercisesProgress,
           reason: 'beforeunload'
@@ -190,7 +191,7 @@ const HomeTrainingSection = () => {
     const handleVisibilityChange = async () => {
       if (!currentSession) return;
 
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
 
       if (document.hidden) {
         // Usuario cambió de tab/minimizó - marcar como abandonado temporalmente
@@ -235,7 +236,7 @@ const HomeTrainingSection = () => {
   // Función para cargar el plan actual del usuario
   const loadCurrentPlan = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       if (!token) return;
 
       const response = await fetch('/api/home-training/current-plan', {
@@ -273,7 +274,7 @@ const HomeTrainingSection = () => {
   // Función para cargar estadísticas del usuario
   const loadUserStats = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       if (!token) return;
 
       const response = await fetch('/api/home-training/stats', {
@@ -294,7 +295,7 @@ const HomeTrainingSection = () => {
   // Función para cargar el progreso de la sesión
   const loadSessionProgress = async (sessionId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       const response = await fetch(`/api/home-training/sessions/${sessionId}/progress`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -351,7 +352,7 @@ const HomeTrainingSection = () => {
     if (!selectedEquipment || !selectedTrainingType) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       if (!token) {
         alert('Debes iniciar sesión para generar tu entrenamiento');
         return;
@@ -415,7 +416,7 @@ const HomeTrainingSection = () => {
   // Función para guardar el plan en la base de datos
   const savePlanToDatabase = async (plan, equipment, trainingType) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       if (!token) return;
 
       await fetch('/api/home-training/plans', {
@@ -442,7 +443,7 @@ const HomeTrainingSection = () => {
   // Función para cerrar sesiones activas
   const closeActiveSessions = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       if (!token) return;
 
       await fetch('/api/home-training/close-active-sessions', {
@@ -459,7 +460,7 @@ const HomeTrainingSection = () => {
   // Función para manejar el rechazo de ejercicios
   const handleExerciseRejections = async (rejections) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       if (!token) {
         alert('Debes iniciar sesión para guardar preferencias');
         return;
@@ -546,7 +547,7 @@ const HomeTrainingSection = () => {
       setShowWarmupModal(false);
 
       // Cerrar sesiones activas
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       if (token) {
         const closeResponse = await fetch('/api/home-training/close-active-sessions', {
           method: 'PUT',
@@ -575,7 +576,7 @@ const HomeTrainingSection = () => {
     setPendingRegenerateAfterRejection(false);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       if (!token) {
         alert('Debes iniciar sesión para generar tu entrenamiento');
         return;
@@ -650,7 +651,7 @@ const HomeTrainingSection = () => {
   // Función para comenzar el entrenamiento
   const startTraining = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       if (!token) {
         alert('Debes iniciar sesión para comenzar el entrenamiento');
         return;
@@ -772,7 +773,7 @@ const HomeTrainingSection = () => {
     if (sending) return;
     setSending(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       const exercise = generatedPlan.plan_entrenamiento.ejercicios[currentExerciseIndex];
 
       // ⚠️ IMPORTANTE: Solo actualizar duration si el ejercicio ya está completado
@@ -860,7 +861,7 @@ const HomeTrainingSection = () => {
     if (sending) return;
     setSending(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
 
       await fetch(`/api/home-training/sessions/${currentSession.id}/exercise/${currentExerciseIndex}`, {
         method: 'PUT',
@@ -902,7 +903,7 @@ const HomeTrainingSection = () => {
     if (sending) return;
     setSending(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
 
       await fetch(`/api/home-training/sessions/${currentSession.id}/exercise/${currentExerciseIndex}`, {
         method: 'PUT',
@@ -944,7 +945,7 @@ const HomeTrainingSection = () => {
     if (sendingProgress) return;
     setSendingProgress(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       const status = seriesCompleted === totalSeries ? 'completed' : 'in_progress';
       const exerciseName = generatedPlan?.plan_entrenamiento?.ejercicios?.[exerciseIndex]?.nombre || `Ejercicio ${exerciseIndex + 1}`;
 

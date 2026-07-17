@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import tokenManager from '../../utils/tokenManager';
 import { 
   Brain,
   Zap,
@@ -32,7 +33,7 @@ export default function NutritionAI({ userData, currentRoutine, userMacros, onPl
     setIsGenerating(true);
     
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       const response = await fetch('/api/nutrition/generate-plan', {
         method: 'POST',
         headers: {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, TrendingUp, TrendingDown, AlertCircle, CheckCircle, ChevronRight, BarChart3 } from 'lucide-react';
 import { useTrace } from '../../contexts/TraceContext';
+import tokenManager from '../../utils/tokenManager';
 
 /**
  * Modal de Re-evaluación de Nivel
@@ -37,7 +38,7 @@ const LevelReevaluationModal = ({
     try {
       const response = await fetch(`/api/hipertrofiav2/check-reevaluation/${userId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         }
       });
 
@@ -98,7 +99,7 @@ const LevelReevaluationModal = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         },
         body: JSON.stringify({
           reevaluationId: evaluation.pendingReevaluation.id,

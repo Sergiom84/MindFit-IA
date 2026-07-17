@@ -9,6 +9,7 @@ import { Target, CheckCircle, AlertTriangle, Loader, Shield } from 'lucide-react
 import { OPOSICION_LEVELS, getOposicionLevelConfig } from './OposicionLevels.js';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserContext } from '@/contexts/UserContext';
+import tokenManager from '../../../../utils/tokenManager';
 
 const initialState = {
   currentStep: 'evaluation',
@@ -42,7 +43,7 @@ function reducer(state, action) {
 }
 
 async function apiRequest(endpoint, body) {
-  const token = localStorage.getItem('authToken');
+  const token = tokenManager.getToken();
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3010';
   const res = await fetch(`${baseUrl}${endpoint}`, {
     method: 'POST',

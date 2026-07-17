@@ -10,6 +10,7 @@
 
 import { useState, useCallback } from 'react';
 import logger from '../utils/logger';
+import tokenManager from '../utils/tokenManager';
 
 /**
  * Hook para manejar operaciones asíncronas con estados de loading, error y data
@@ -128,7 +129,7 @@ export const useApiRequest = (initialData = null, context = 'API') => {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Authorization': `Bearer ${tokenManager.getToken()}`,
           ...options.headers
         },
         ...options
@@ -155,7 +156,7 @@ export const useApiRequest = (initialData = null, context = 'API') => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Authorization': `Bearer ${tokenManager.getToken()}`,
           ...options.headers
         },
         body: JSON.stringify(body),
@@ -184,7 +185,7 @@ export const useApiRequest = (initialData = null, context = 'API') => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Authorization': `Bearer ${tokenManager.getToken()}`,
           ...options.headers
         },
         body: JSON.stringify(body),

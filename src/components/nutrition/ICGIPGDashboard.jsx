@@ -13,6 +13,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Alert } from '../ui/alert';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import tokenManager from '../../utils/tokenManager';
 
 export default function ICGIPGDashboard({ userId }) {
   const [progression, setProgression] = useState(null);
@@ -32,7 +33,7 @@ export default function ICGIPGDashboard({ userId }) {
 
   const loadProgressionData = async () => {
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       const response = await fetch('/api/body-measurements/progression-check', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -57,7 +58,7 @@ export default function ICGIPGDashboard({ userId }) {
     setBridgeError(null);
 
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       const [weeklyRes, bridgeRes] = await Promise.all([
         fetch('/api/diet-deviation/weekly', {
           headers: { 'Authorization': `Bearer ${token}` }

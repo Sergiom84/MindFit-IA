@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import useVirtualizedList, { VirtualizedListSearch, VirtualizedListLoader } from '../../hooks/useVirtualizedList.jsx';
 import { ArrowLeft, Heart, ThumbsDown, Zap, Clock, TrendingUp, RotateCcw, Trash2, AlertTriangle, CheckCircle } from 'lucide-react';
+import tokenManager from '../../utils/tokenManager';
 
 const HomeTrainingPreferencesHistory = ({ onBack }) => {
   const [preferences, setPreferences] = useState(null);
@@ -22,7 +23,7 @@ const HomeTrainingPreferencesHistory = ({ onBack }) => {
 
   const loadPreferencesData = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       if (!token) return;
 
       const response = await fetch('/api/home-training/preferences-history', {
@@ -46,7 +47,7 @@ const HomeTrainingPreferencesHistory = ({ onBack }) => {
     try {
       setIsReactivating(prev => ({ ...prev, [rejectionId]: true }));
       
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       const response = await fetch(`/api/home-training/rejections/${rejectionId}`, {
         method: 'DELETE',
         headers: {

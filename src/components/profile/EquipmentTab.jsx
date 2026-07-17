@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import tokenManager from '../../utils/tokenManager';
 
 export function EquipmentTab({ onEquipmentChange }) {
   const [catalog, setCatalog] = useState([]);
@@ -13,7 +14,7 @@ export function EquipmentTab({ onEquipmentChange }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = tokenManager.getToken();
     if (!token) return;
     Promise.all([
       fetch('/api/equipment/catalog', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
@@ -70,7 +71,7 @@ export function EquipmentTab({ onEquipmentChange }) {
   const curatedKeys = useMemo(() => new Set(curated.map(i => i.key)), [curated]);
 
   const toggleCurated = async (code, labelFallback = null, levelFallback = null) => {
-    const token = localStorage.getItem('token');
+    const token = tokenManager.getToken();
     if (!token) return;
     if (noEquipment) return;
     const isSelected = curatedKeys.has(code);
@@ -96,7 +97,7 @@ export function EquipmentTab({ onEquipmentChange }) {
   const addCustom = async () => {
     const name = newCustom.trim();
     if (!name) return;
-    const token = localStorage.getItem('token');
+    const token = tokenManager.getToken();
     if (!token) return;
     if (noEquipment) return;
     setAdding(true);
@@ -116,7 +117,7 @@ export function EquipmentTab({ onEquipmentChange }) {
   };
 
   const removeCustom = async (id) => {
-    const token = localStorage.getItem('token');
+    const token = tokenManager.getToken();
     if (!token) return;
     try {
       await fetch(`/api/equipment/custom/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
@@ -128,7 +129,7 @@ export function EquipmentTab({ onEquipmentChange }) {
   };
 
   const toggleNoEquipment = async (checked) => {
-    const token = localStorage.getItem('token');
+    const token = tokenManager.getToken();
     if (!token) return;
     try {
       if (checked) {

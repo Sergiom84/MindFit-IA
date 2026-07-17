@@ -13,6 +13,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, AlertCircle, CheckCircle, Loader, Target } from 'lucide-react';
+import tokenManager from '../../../../../utils/tokenManager';
 
 export default function CycleStatusBadge({ userId, methodologyPlanId, className = '' }) {
   const [cycleState, setCycleState] = useState(null);
@@ -29,7 +30,7 @@ export default function CycleStatusBadge({ userId, methodologyPlanId, className 
     const fetchCycleStatus = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('authToken');
+        const token = tokenManager.getToken();
 
         // Fetch cycle status
         const cycleResponse = await fetch(

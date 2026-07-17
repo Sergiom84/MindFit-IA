@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Droplet, Zap, Moon, Heart, AlertCircle, ChevronRight, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import tokenManager from '../../utils/tokenManager';
 
 /**
  * Tarjeta de ciclo menstrual para el Home
@@ -24,7 +25,7 @@ const CycleHomeCard = ({ userId }) => {
   useEffect(() => {
     const loadCycleData = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = tokenManager.getToken();
         const response = await fetch('/api/menstrual-cycle/training-adjustment', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -49,7 +50,7 @@ const CycleHomeCard = ({ userId }) => {
   const handleQuickSave = async () => {
     setSaving(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       const today = new Date().toISOString().split('T')[0];
 
       await fetch('/api/menstrual-cycle/log', {
@@ -85,7 +86,7 @@ const CycleHomeCard = ({ userId }) => {
   const handlePeriodStart = async () => {
     setSaving(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       const today = new Date().toISOString().split('T')[0];
 
       await fetch('/api/menstrual-cycle/log', {

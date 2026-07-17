@@ -15,6 +15,7 @@ import { Trophy, X, TrendingUp, Clock, Target, AlertCircle } from 'lucide-react'
 import CalisteniaReEvalForm from './forms/CalisteniaReEvalForm';
 // import HipertrofiaReEvalForm from './forms/HipertrofiaReEvalForm';
 // import CrossFitReEvalForm from './forms/CrossFitReEvalForm';
+import tokenManager from '../../utils/tokenManager';
 // ... más metodologías
 
 // =============================================================================
@@ -202,7 +203,7 @@ const ReEvaluationModal = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         },
         body: JSON.stringify({
           methodology,

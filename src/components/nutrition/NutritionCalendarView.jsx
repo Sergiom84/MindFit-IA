@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Dumbbell, Moon, ChevronLeft, ChevronRight, Loader2, RefreshCw, Sparkles } from 'lucide-react';
 import MealDetailView from './MealDetailView';
+import tokenManager from '../../utils/tokenManager';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
 
@@ -110,7 +111,7 @@ export default function NutritionCalendarView() {
     }
 
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       const response = await fetch(`${API_URL}/api/nutrition-v2/active-plan`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -164,7 +165,7 @@ const generateMenusForDay = async (day) => {
     setGeneratingDay(day.day_id);
     setInfoMessage(null);
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       const response = await fetch(`${API_URL}/api/nutrition-v2/generate-full-day-menus`, {
         method: 'POST',
         headers: {

@@ -12,6 +12,7 @@ import { useExerciseTimer } from './session/useExerciseTimer';
 import { useExerciseProgress } from './session/useExerciseProgress';
 import { ExerciseSessionView } from './session/ExerciseSessionView';
 import { SessionSummaryModal } from './session/SessionSummaryModal';
+import tokenManager from '../../utils/tokenManager';
 
 /**
  * Modal de sesión de ejercicios - REFACTORIZADO
@@ -123,7 +124,7 @@ export default function RoutineSessionModal({
     if (!exerciseId) return null;
 
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       let userId = null;
       try {
         userId = JSON.parse(localStorage.getItem('user'))?.id
@@ -219,7 +220,7 @@ export default function RoutineSessionModal({
 
     const loadAdjustedSession = async () => {
       try {
-        const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+        const token = tokenManager.getToken() || tokenManager.getToken();
         let userProfile = {};
         try {
           userProfile = JSON.parse(localStorage.getItem('user'))
@@ -439,7 +440,7 @@ export default function RoutineSessionModal({
       // Claves canónicas de la app: el token se guarda como 'token' y el usuario
       // como 'user'. (Antes se leían 'authToken'/'userProfile', que ya no existen,
       // por lo que userId/token salían null y el guardado fallaba antes del fetch.)
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       let userId = null;
       try {
         userId = JSON.parse(localStorage.getItem('user'))?.id

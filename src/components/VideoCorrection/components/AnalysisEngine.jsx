@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserContext } from '@/contexts/UserContext';
 import { useVideoAnalysis } from '../contexts/VideoAnalysisContext';
 import VoiceFeedback from '../shared/VoiceFeedback';
+import tokenManager from '../../../utils/tokenManager';
 
 export default function AnalysisEngine() {
   const { user } = useAuth();
@@ -65,7 +66,7 @@ export default function AnalysisEngine() {
       const response = await fetch('/api/ai/advanced-correction', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         },
         body: formData
       });
@@ -172,7 +173,7 @@ export default function AnalysisEngine() {
       const response = await fetch('/api/ai/advanced-correction', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         },
         body: formData
       });

@@ -3,6 +3,7 @@ import { Play, Pause, Square, SkipForward, X, Clock, Target, RotateCcw, CheckCir
 import { getExerciseGifUrl } from '../../config/exerciseGifs';
 import ExerciseFeedbackModal from './ExerciseFeedbackModal';
 import ExerciseInfoModal from '../routines/ExerciseInfoModal';
+import tokenManager from '../../utils/tokenManager';
 
 const HomeTrainingExerciseModal = ({
   exercise,
@@ -81,7 +82,7 @@ const HomeTrainingExerciseModal = ({
 
     const loadExistingFeedback = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = tokenManager.getToken();
         const response = await fetch(`/api/home-training/sessions/${sessionId}/feedback`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -827,7 +828,7 @@ const HomeTrainingExerciseModal = ({
               try {
                 console.log('Enviando feedback ejercicio:', payload);
                 if (sessionId != null) {
-                  const token = localStorage.getItem('token');
+                  const token = tokenManager.getToken();
                   await fetch(`/api/home-training/sessions/${sessionId}/exercise/${exerciseIndex}/feedback`, {
                     method: 'POST',
                     headers: {

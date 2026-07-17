@@ -16,6 +16,7 @@
 
 import React, { useState } from 'react';
 import { X, AlertTriangle, CheckCircle, Activity } from 'lucide-react';
+import tokenManager from '../../../../../utils/tokenManager';
 
 export default function FatigueReportModal({ show, onClose, onSubmit }) {
   const [formData, setFormData] = useState({
@@ -40,7 +41,7 @@ export default function FatigueReportModal({ show, onClose, onSubmit }) {
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = tokenManager.getToken();
       const response = await fetch(
         `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/hipertrofiav2/submit-fatigue-report`,
         {

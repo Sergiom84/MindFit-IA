@@ -39,6 +39,7 @@ import { getSentimentIcon } from '../../../utils/exerciseUtils';
 import { CalendarExerciseCard } from './components/CalendarExerciseCard';
 
 import { useTrace } from '@/contexts/TraceContext.jsx';
+import tokenManager from '../../../utils/tokenManager';
 
 export default function CalendarTab({ plan, planStartDate, methodologyPlanId, ensureMethodologyPlan, refreshTrigger }) {
   const { track } = useTrace();
@@ -55,7 +56,7 @@ export default function CalendarTab({ plan, planStartDate, methodologyPlanId, en
 
       setIsLoadingCalendar(true);
       try {
-        const token = localStorage.getItem('authToken');
+        const token = tokenManager.getToken();
         const response = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/routines/calendar-schedule/${methodologyPlanId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,

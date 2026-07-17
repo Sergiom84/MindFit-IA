@@ -9,6 +9,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Alert } from '../ui/alert';
+import tokenManager from '../../utils/tokenManager';
 
 export default function CheatMealManager() {
   const [formData, setFormData] = useState({
@@ -28,7 +29,7 @@ export default function CheatMealManager() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       const response = await fetch('/api/diet-deviation/register', {
         method: 'POST',
         headers: {

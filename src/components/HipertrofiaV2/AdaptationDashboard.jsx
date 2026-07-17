@@ -6,6 +6,7 @@ import {
   AlertTriangle, ThumbsUp, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useTrace } from '../../contexts/TraceContext';
+import tokenManager from '../../utils/tokenManager';
 
 /**
  * Dashboard del Bloque de Adaptación
@@ -45,7 +46,7 @@ const AdaptationDashboard = ({
     try {
       const response = await fetch('/api/adaptation/progress', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         }
       });
 
@@ -93,7 +94,7 @@ const AdaptationDashboard = ({
     try {
       const response = await fetch('/api/adaptation/problem-exercises', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         }
       });
 
@@ -132,7 +133,7 @@ const AdaptationDashboard = ({
       const response = await fetch('/api/adaptation/transition', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         }
       });
 
@@ -196,7 +197,7 @@ const AdaptationDashboard = ({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${tokenManager.getToken()}`
           },
           body: JSON.stringify({
             exerciseId,

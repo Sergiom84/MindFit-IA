@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import tokenManager from '../../utils/tokenManager';
 import {
   Settings,
   Clock,
@@ -91,7 +92,7 @@ const ReEvaluationConfig = ({ userId }) => {
       setIsLoading(true);
       const response = await fetch('/api/progress/config', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         }
       });
 
@@ -121,7 +122,7 @@ const ReEvaluationConfig = ({ userId }) => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         },
         body: JSON.stringify(config)
       });

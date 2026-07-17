@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import tokenManager from '../utils/tokenManager';
 
 // El backend de Música exige JWT y deriva el usuario del token (no del :userId
 // de la URL). Sin esta cabecera, todas las llamadas devuelven 401.
 const authHeaders = (extra = {}) => {
-  const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+  const token = tokenManager.getToken() || tokenManager.getToken();
   return token ? { ...extra, Authorization: `Bearer ${token}` } : { ...extra };
 };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Music, Headphones, Smartphone, Volume2, Settings, ExternalLink, Check, X } from 'lucide-react';
 import { FaSpotify, FaYoutube, FaApple } from 'react-icons/fa';
+import tokenManager from '../../utils/tokenManager';
 
 const MusicConfigTab = ({ userId }) => {
   // Initialize hooks FIRST - NEVER after conditional returns
@@ -97,7 +98,7 @@ const MusicConfigTab = ({ userId }) => {
   const testConnection = async (platform) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       const response = await fetch(`/api/music/test-connection`, {
         method: 'POST',
         headers: {

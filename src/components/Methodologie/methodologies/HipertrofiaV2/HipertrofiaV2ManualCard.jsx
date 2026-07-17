@@ -24,6 +24,7 @@ import AdaptationTrackingBadge from './components/AdaptationTrackingBadge.jsx';
 import AdaptationTransitionModal from './components/AdaptationTransitionModal.jsx';
 import AdaptationDashboard from '../../../HipertrofiaV2/AdaptationDashboard.jsx';
 import { useTrace } from '../../../../contexts/TraceContext';
+import tokenManager from '../../../../utils/tokenManager';
 
 export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, startConfig }) {
   const { user } = useAuth();
@@ -48,7 +49,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
   const fetchAdaptationProgress = async () => {
     setAdaptation((prev) => ({ ...prev, loading: true }));
     try {
-      const token = localStorage.getItem('authToken');
+      const token = tokenManager.getToken();
       const resp = await fetch(
         `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/adaptation/progress`,
         {
@@ -105,7 +106,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         },
         body: JSON.stringify({
           userId: user.id
@@ -206,7 +207,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            'Authorization': `Bearer ${tokenManager.getToken()}`
           },
           body: JSON.stringify({
             nivel: userLevel,
@@ -302,7 +303,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
     });
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = tokenManager.getToken();
       const resp = await fetch(
         `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/adaptation/generate`,
         {
@@ -359,7 +360,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
   // Transicionar a D1-D5
   const handleTransition = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = tokenManager.getToken();
       const resp = await fetch(
         `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/adaptation/transition`,
         {
