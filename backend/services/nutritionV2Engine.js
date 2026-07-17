@@ -98,17 +98,19 @@ import {
   matchesFoodFilters,
   evaluateCandidateMealBalance
 } from './nutritionV2/mealSelectionHelpers.js';
-
-const VALID_MENU_GENERATION_MODES = ['deterministic', 'ai', 'hybrid_ai', 'recipe_examples'];
-const DETERMINISTIC_MAX_TEMPLATE_TRIES = 12;
-const DETERMINISTIC_MAX_RECIPE_TRIES = 40;
-const DETERMINISTIC_COORDINATE_ITERATIONS = 120;
-const DETERMINISTIC_MAX_SLOT_OPTIONS = 8;
-const DETERMINISTIC_MAX_SLOT_COMBINATIONS = 400;
-const DETERMINISTIC_RECENT_FOOD_WINDOW_DAYS = 7;
-const SWAP_MEAL_RECALC_MAX_ERROR = 35;
-const HYBRID_FALLBACK_MODE = 'deterministic';
-const DEFAULT_HYBRID_MODEL = process.env.NUTRITION_HYBRID_MODEL || 'gpt-5.2';
+// Config de generación de menús extraída (ARCH-002). Re-exportada más abajo.
+import {
+  VALID_MENU_GENERATION_MODES,
+  DETERMINISTIC_MAX_TEMPLATE_TRIES,
+  DETERMINISTIC_MAX_RECIPE_TRIES,
+  DETERMINISTIC_COORDINATE_ITERATIONS,
+  DETERMINISTIC_MAX_SLOT_OPTIONS,
+  DETERMINISTIC_MAX_SLOT_COMBINATIONS,
+  DETERMINISTIC_RECENT_FOOD_WINDOW_DAYS,
+  SWAP_MEAL_RECALC_MAX_ERROR,
+  HYBRID_FALLBACK_MODE,
+  DEFAULT_HYBRID_MODEL
+} from './nutritionV2/menuGenerationConfig.js';
 
 function extractMenuItemsForPersistence(menuData) {
   if (!menuData || !Array.isArray(menuData.items)) {
