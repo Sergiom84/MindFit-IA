@@ -82,9 +82,9 @@ const USER_PROFILE_QUERY = `
     u.nivel_actividad, u.cintura, u.pecho, u.brazos,
     u.muslo, u.cuello, u.antebrazos, u.gemelo, u.pliegue_abdominal,
     u.historial_medico,
-    u.alergias, u.medicamentos, u.lesiones, u.meta_peso, u.meta_grasa,
+    u.alergias, u.medicamentos, u.lesiones, u.meta_peso,
     u.peso_inicio_objetivo, u.objetivo_activo_desde,
-    u.fecha_inicio_objetivo, u.fecha_meta_objetivo, u.notas_progreso,
+    u.fecha_meta_objetivo, u.notas_progreso,
     u.meta_grasa_corporal, u.enfoque_entrenamiento, u.horario_preferido,
     u.comidas_por_dia, u.suplementacion, u.alimentos_excluidos,
     u.grasa_corporal, u.masa_magra, u.agua_corporal, u.metabolismo_basal,
@@ -107,9 +107,6 @@ const enrichUserProfile = (row) => {
     targetWeight: user.meta_peso
   });
 
-  if (user.fecha_inicio_objetivo) {
-    user.fecha_inicio_objetivo = formatDateToDDMMYYYY(user.fecha_inicio_objetivo);
-  }
   if (user.fecha_meta_objetivo) {
     user.fecha_meta_objetivo = formatDateToDDMMYYYY(user.fecha_meta_objetivo);
   }
@@ -192,8 +189,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
       'nivel_entrenamiento', 'anos_entrenando', 'frecuencia_semanal',
       'nivel_actividad', 'cintura', 'pecho', 'brazos',
       'muslo', 'cuello', 'antebrazos', 'gemelo', 'pliegue_abdominal', 'historial_medico',
-      'alergias', 'medicamentos', 'lesiones', 'meta_peso', 'meta_grasa',
-      'fecha_inicio_objetivo', 'fecha_meta_objetivo', 'notas_progreso',
+      'alergias', 'medicamentos', 'lesiones', 'meta_peso',
+      'fecha_meta_objetivo', 'notas_progreso',
       'meta_grasa_corporal', 'enfoque_entrenamiento', 'horario_preferido',
       'comidas_por_dia', 'suplementacion', 'alimentos_excluidos',
       'grasa_corporal', 'masa_magra', 'agua_corporal', 'metabolismo_basal', 'cadera'

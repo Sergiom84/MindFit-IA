@@ -36,7 +36,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
     await dbClient.query('BEGIN');
 
     const userResult = await dbClient.query(
-      `SELECT id, edad, nivel_entrenamiento, anos_entrenando, "años_entrenando", frecuencia_semanal
+      `SELECT id, edad, nivel_entrenamiento, anos_entrenando, frecuencia_semanal
        FROM app.users
        WHERE id = $1`,
       [userId]

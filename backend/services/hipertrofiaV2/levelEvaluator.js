@@ -48,7 +48,7 @@ const RECOMMENDATION_BY_LEVEL = {
  */
 export async function evaluateHipertrofiaLevel(dbClient, userId) {
   const result = await dbClient.query(
-    `SELECT nivel_entrenamiento, anos_entrenando, "años_entrenando"
+    `SELECT nivel_entrenamiento, anos_entrenando
        FROM app.users WHERE id = $1`,
     [userId]
   );
@@ -58,7 +58,7 @@ export async function evaluateHipertrofiaLevel(dbClient, userId) {
   }
 
   const row = result.rows[0];
-  const years = row.anos_entrenando ?? row['años_entrenando'] ?? null;
+  const years = row.anos_entrenando ?? null;
   const declared = normalizeDeclaredLevel(row.nivel_entrenamiento);
   const derived = deriveLevelFromYears(years);
 

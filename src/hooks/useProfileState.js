@@ -35,7 +35,6 @@ export const useProfileState = () => {
     peso_inicio_objetivo: '',
     objetivo_activo_desde: '',
     goal_progress_pct: 0,
-    fecha_inicio_objetivo: '',
     fecha_meta_objetivo: '',
     notas_progreso: '',
     // Salud
@@ -148,11 +147,11 @@ export const useProfileState = () => {
       // Objetivos y Metas
       objetivo_principal: u.objetivo_principal || u.u_objetivo_principal || '',
       meta_peso: u.meta_peso ?? '',
-      meta_grasa: u.meta_grasa ?? '',
+      // UI key 'meta_grasa' -> DB canónica 'meta_grasa_corporal' (dup 'meta_grasa' retirada, DATA-003)
+      meta_grasa: u.meta_grasa_corporal ?? u.meta_grasa ?? '',
       peso_inicio_objetivo: u.peso_inicio_objetivo ?? '',
       objetivo_activo_desde: u.objetivo_activo_desde ?? '',
       goal_progress_pct: u.goal_progress_pct ?? 0,
-      fecha_inicio_objetivo: u.fecha_inicio_objetivo || '',
       fecha_meta_objetivo: u.fecha_meta_objetivo || '',
       notas_progreso: u.notas_progreso || '',
       // Salud
@@ -196,8 +195,12 @@ export const useProfileState = () => {
       payload.enfoque_entrenamiento = payload.enfoque
       delete payload.enfoque
     }
+    if ('meta_grasa' in payload) {
+      payload.meta_grasa_corporal = toNumber(payload.meta_grasa)
+      delete payload.meta_grasa
+    }
     // Normalizar numéricos comunes
-    ;['edad','peso','altura','grasa_corporal','masa_magra','agua_corporal','metabolismo_basal','cintura','pecho','brazos','muslo','cuello','antebrazos','cadera','gemelo','pliegue_abdominal','frecuencia_semanal','meta_peso','meta_grasa']
+    ;['edad','peso','altura','grasa_corporal','masa_magra','agua_corporal','metabolismo_basal','cintura','pecho','brazos','muslo','cuello','antebrazos','cadera','gemelo','pliegue_abdominal','frecuencia_semanal','meta_peso','meta_grasa_corporal']
       .forEach(k => { if (k in payload) payload[k] = toNumber(payload[k]) })
     return payload
   }

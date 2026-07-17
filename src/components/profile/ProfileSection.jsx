@@ -211,7 +211,6 @@ const ProfileSection = () => {
       { key: 'objetivo_principal', label: 'Objetivo principal', category: 'Objetivos', type: 'select', options: profileState.objetivosOptions },
       { key: 'meta_peso', label: 'Meta de peso (kg)', category: 'Objetivos', type: 'number' },
       { key: 'meta_grasa', label: 'Meta de grasa corporal (%)', category: 'Objetivos', type: 'number' },
-      { key: 'fecha_inicio_objetivo', label: 'Fecha de inicio', category: 'Seguimiento de progreso', type: 'date' },
       { key: 'fecha_meta_objetivo', label: 'Fecha meta', category: 'Seguimiento de progreso', type: 'date' },
       { key: 'notas_progreso', label: 'Notas de progreso', category: 'Seguimiento de progreso', type: 'textarea', isRelevant: () => false },
       { key: 'alergias', label: 'Alergias', category: 'Salud', type: 'list', noneOptionLabel: 'No tengo alergias', noneOptionValue: 'Ninguna' },
