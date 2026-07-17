@@ -27,6 +27,7 @@ import {
   Brain
 } from 'lucide-react';
 import { useTrace } from '@/contexts/TraceContext.jsx';
+import tokenManager from '../../utils/tokenManager';
 
 
 
@@ -84,7 +85,7 @@ export default function TrainingPlanConfirmationModal({
 
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
 
       console.log(`🗑️ Eliminando draft ${draftId}...`);
 

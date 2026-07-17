@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Dumbbell, Save, X } from 'lucide-react';
+import tokenManager from '../../utils/tokenManager';
 
 const TrainingPreferencesCard = () => {
   const [loading, setLoading] = useState(false);
@@ -30,7 +31,7 @@ const TrainingPreferencesCard = () => {
   const loadPreferences = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       const userId = JSON.parse(localStorage.getItem('userProfile'))?.id;
 
       if (!token || !userId) {
@@ -113,7 +114,7 @@ const TrainingPreferencesCard = () => {
         return;
       }
 
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       const userId = JSON.parse(localStorage.getItem('userProfile'))?.id;
 
       if (!token || !userId) {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import tokenManager from '../utils/tokenManager';
 
 /**
  * Hook para obtener los ajustes de entrenamiento basados en el ciclo menstrual
@@ -24,7 +25,7 @@ const useCycleAdjustment = () => {
 
   const loadCycleData = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       if (!token) {
         setCycleData(prev => ({ ...prev, loading: false }));
         return;

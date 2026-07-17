@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
+import tokenManager from '../../utils/tokenManager';
 
 export default function BodyMeasurementsHistory() {
   const [measurements, setMeasurements] = useState([]);
@@ -25,7 +26,7 @@ export default function BodyMeasurementsHistory() {
 
   const loadHistory = async () => {
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const token = tokenManager.getToken() || tokenManager.getToken();
 
       // Cargar historial
       const historyRes = await fetch('/api/body-measurements/history?limit=10', {

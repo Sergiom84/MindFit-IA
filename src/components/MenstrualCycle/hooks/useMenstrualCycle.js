@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import tokenManager from '../../../utils/tokenManager';
 
 // Devuelve la fecha local (no UTC) en formato YYYY-MM-DD para evitar desfases por zona horaria
 const getLocalDate = () => {
@@ -23,7 +24,7 @@ export const useMenstrualCycle = (userId) => {
     if (!userId) return;
     
     try {
-      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       const response = await fetch('/api/menstrual-cycle/config', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -43,7 +44,7 @@ export const useMenstrualCycle = (userId) => {
     if (!userId) return;
     
     try {
-      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       const today = getLocalDate();
       const response = await fetch(`/api/menstrual-cycle/log/${today}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -63,7 +64,7 @@ export const useMenstrualCycle = (userId) => {
     if (!userId) return;
 
     try {
-      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       const response = await fetch('/api/menstrual-cycle/training-adjustment', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -93,7 +94,7 @@ export const useMenstrualCycle = (userId) => {
   // Guardar configuración inicial (onboarding)
   const saveConfig = useCallback(async (configData) => {
     try {
-      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       const response = await fetch('/api/menstrual-cycle/config', {
         method: 'POST',
         headers: {
@@ -119,7 +120,7 @@ export const useMenstrualCycle = (userId) => {
   // Registrar "Hoy me bajó"
   const logPeriodStart = useCallback(async () => {
     try {
-      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       const today = getLocalDate();
       
       const response = await fetch('/api/menstrual-cycle/log', {
@@ -149,7 +150,7 @@ export const useMenstrualCycle = (userId) => {
   // Registrar síntomas del día
   const logSymptoms = useCallback(async (symptoms) => {
     try {
-      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       const today = getLocalDate();
       
       const response = await fetch('/api/menstrual-cycle/log', {

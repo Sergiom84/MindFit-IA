@@ -14,6 +14,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, TrendingUp, Calendar, Target, AlertTriangle, CheckCircle } from 'lucide-react';
+import tokenManager from '../../../../../utils/tokenManager';
 
 const MUSCLE_GROUPS = [
   { id: 'Pecho', label: 'Pecho', emoji: '💪', description: 'Press banca, aperturas' },
@@ -57,7 +58,7 @@ export default function MusclePriorityModal({ show, onClose, currentPriority = n
     setError(null);
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = tokenManager.getToken();
       const response = await fetch(
         `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/hipertrofiav2/activate-priority`,
         {
@@ -98,7 +99,7 @@ export default function MusclePriorityModal({ show, onClose, currentPriority = n
     setError(null);
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = tokenManager.getToken();
       const response = await fetch(
         `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/hipertrofiav2/deactivate-priority`,
         {

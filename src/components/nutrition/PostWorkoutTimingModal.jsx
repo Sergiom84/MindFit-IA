@@ -13,6 +13,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Alert } from '../ui/alert';
 import { Badge } from '../ui/badge';
+import tokenManager from '../../utils/tokenManager';
 
 export default function PostWorkoutTimingModal({
   sessionData,
@@ -49,7 +50,7 @@ export default function PostWorkoutTimingModal({
 
   const loadRecommendation = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       const response = await fetch('/api/carb-timing/session-completed', {
         method: 'POST',
         headers: {

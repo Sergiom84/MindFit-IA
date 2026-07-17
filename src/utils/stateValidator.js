@@ -1,3 +1,4 @@
+import tokenManager from './tokenManager';
 // Utilidades para validar y mantener consistencia del estado
 
 /**
@@ -120,7 +121,7 @@ export const getStateSnapshot = () => {
   return {
     timestamp: new Date().toISOString(),
     auth: {
-      token: !!localStorage.getItem('token'),
+      token: !!tokenManager.getToken(),
       user: !!localStorage.getItem('user')
     },
     routine: {

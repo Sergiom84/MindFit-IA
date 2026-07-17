@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import tokenManager from '../../utils/tokenManager';
 import { 
   Calendar,
   ChevronLeft,
@@ -59,7 +60,7 @@ export default function NutritionCalendar({ nutritionPlan, userMacros, onPlanUpd
 
       setIsLoading(true);
       try {
-        const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+        const token = tokenManager.getToken() || tokenManager.getToken();
 
         // Generar las fechas de la semana actual
         const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -303,7 +304,7 @@ export default function NutritionCalendar({ nutritionPlan, userMacros, onPlanUpd
     // 2. Guardar en BD
     setIsSaving(true);
     try {
-      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+      const token = tokenManager.getToken() || tokenManager.getToken();
 
       // Construir el objeto de progreso del día
       const dayMealsProgress = {};

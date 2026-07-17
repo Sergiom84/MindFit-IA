@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import tokenManager from '../utils/tokenManager';
 
 export const useProfileState = () => {
   const defaultProfile = useMemo(() => ({
@@ -66,7 +67,7 @@ export const useProfileState = () => {
   const [editedData, setEditedData] = useState({})
 
   const getAuthSession = useCallback(() => {
-    const token = localStorage.getItem('token')
+    const token = tokenManager.getToken()
     if (!token) return { token: null, userId: null }
 
     const userKeys = ['user', 'userProfile', 'userData']

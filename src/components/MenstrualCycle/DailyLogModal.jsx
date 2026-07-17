@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Droplet, Frown, Moon, X, Zap } from "lucide-react";
+import tokenManager from '../../utils/tokenManager';
 
 const DEFAULT_FORM = {
   is_period_day: false,
@@ -73,7 +74,7 @@ const DailyLogModal = ({ isOpen, date, onClose, onSaved }) => {
       setLoading(true);
       setError(null);
       try {
-        const token = localStorage.getItem("authToken") || localStorage.getItem("token");
+        const token = tokenManager.getToken() || tokenManager.getToken();
         const resp = await fetch(`/api/menstrual-cycle/log/${date}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -103,7 +104,7 @@ const DailyLogModal = ({ isOpen, date, onClose, onSaved }) => {
     setSaving(true);
     setError(null);
     try {
-      const token = localStorage.getItem("authToken") || localStorage.getItem("token");
+      const token = tokenManager.getToken() || tokenManager.getToken();
       const payload = {
         log_date: date,
         is_period_day: formData.is_period_day,

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { User, Activity, Target, Utensils, AlertCircle, CheckCircle2, Brain } from 'lucide-react';
 import MetabolicQuestionnaire from './MetabolicQuestionnaire.jsx';
+import tokenManager from '../../utils/tokenManager';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
 
@@ -50,7 +51,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
 
   const loadProfile = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = tokenManager.getToken();
       const response = await fetch(`${API_URL}/api/nutrition-v2/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -137,7 +138,7 @@ export default function NutritionProfileSetup({ onProfileSaved }) {
     setSuccess(false);
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = tokenManager.getToken();
       const response = await fetch(`${API_URL}/api/nutrition-v2/profile`, {
         method: 'POST',
         headers: {

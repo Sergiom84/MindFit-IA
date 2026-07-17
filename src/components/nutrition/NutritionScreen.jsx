@@ -8,6 +8,7 @@ import { Calendar, Target, TrendingUp } from 'lucide-react';
 import NutritionPlanGenerator from './NutritionPlanGenerator';
 import NutritionCalendarView from './NutritionCalendarView';
 import NutritionDashboard from './NutritionDashboard';
+import tokenManager from '../../utils/tokenManager';
 
 export default function NutritionScreen() {
   const { userData } = useUserContext();
@@ -33,7 +34,7 @@ export default function NutritionScreen() {
   const fetchUserNutritionData = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const token = tokenManager.getToken() || tokenManager.getToken();
 
       const [profileRes, planRes] = await Promise.all([
         fetch('/api/nutrition-v2/profile', {

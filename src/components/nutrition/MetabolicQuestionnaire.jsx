@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Brain, CheckCircle2, AlertCircle, Activity } from "lucide-react";
+import tokenManager from '../../utils/tokenManager';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3010";
 
@@ -60,7 +61,7 @@ export default function MetabolicQuestionnaire({ onResult, objective = null }) {
     setLoading(true);
     setStatus(null);
     try {
-      const token = localStorage.getItem("authToken");
+      const token = tokenManager.getToken();
       const response = await fetch(`${API_URL}/api/metabolic-profile/evaluate`, {
         method: "POST",
         headers: {

@@ -70,6 +70,7 @@ import { ExerciseList, RestDayCard, StartSessionCard } from './TodayTrainingTab/
 import AdaptationProgressPanel from '../../Methodologie/methodologies/HipertrofiaV2/components/AdaptationProgressPanel';
 import AdaptationTransitionModal from '../../Methodologie/methodologies/HipertrofiaV2/components/AdaptationTransitionModal';
 import { useAdaptationEvaluation } from '@/hooks/useAdaptationEvaluation';
+import tokenManager from '../../../utils/tokenManager';
 
 // 🎯 CONTRATO COMÚN DE CIERRE — endpoint de autorregulación por metodología.
 // Hipertrofia queda fuera a propósito (tiene su propio subsistema D1-D5).
@@ -247,7 +248,7 @@ export default function TodayTrainingTab({
   const fetchAdaptationProgress = useCallback(async () => {
     try {
       setAdaptationState((prev) => ({ ...prev, loading: true }));
-      const token = localStorage.getItem('authToken');
+      const token = tokenManager.getToken();
       if (!token) {
         setAdaptationState((prev) => ({ ...prev, loading: false }));
         return;
@@ -343,7 +344,7 @@ export default function TodayTrainingTab({
     setLoadingTodayStatus(true);
     try {
       // Verificar que tenemos un token válido
-      const token = localStorage.getItem('authToken');
+      const token = tokenManager.getToken();
       if (!token) {
         console.error('❌ No hay token de autenticación');
         setTodayStatus(null);
@@ -492,7 +493,7 @@ export default function TodayTrainingTab({
     /*
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = tokenManager.getToken();
       const response = await fetch(`/api/training-session/progress/${session.sessionId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1407,7 +1408,7 @@ export default function TodayTrainingTab({
         const response = await fetch(url, {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+            'Authorization': `Bearer ${tokenManager.getToken()}`,
             'Content-Type': 'application/json'
           }
         });
@@ -1469,7 +1470,7 @@ export default function TodayTrainingTab({
 
     const fetchPriority = async () => {
       try {
-        const token = localStorage.getItem('authToken');
+        const token = tokenManager.getToken();
         const response = await fetch(
           `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/hipertrofiav2/priority-status/${userId}`,
           {

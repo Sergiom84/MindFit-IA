@@ -3,6 +3,7 @@ import { LogOut, Home, UserCircle, BookOpen, Calendar, Apple, Shield, Droplet, M
 import { useNavigate, useLocation } from 'react-router-dom';
 import { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import tokenManager from '../utils/tokenManager';
 
 const Navigation = () => {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ const Navigation = () => {
       if (!isAuthenticated) return;
 
       try {
-        const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+        const token = tokenManager.getToken() || tokenManager.getToken();
         if (!token) {
           setShowCycleTab(user?.sexo === 'femenino');
           return;

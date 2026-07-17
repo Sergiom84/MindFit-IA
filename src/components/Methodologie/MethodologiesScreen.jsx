@@ -46,6 +46,7 @@ import apiClient from '@/lib/apiClient';
 
 // 🎯 HOOKS MODULARES - Refactorización incremental
 import { useMethodologyValidation } from './hooks/useMethodologyValidation';
+import tokenManager from '../../utils/tokenManager';
 
 // ===============================================
 // 🎯 ESTADO LOCAL MÍNIMO PARA ESTA PANTALLA
@@ -952,7 +953,7 @@ export default function MethodologiesScreen() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         },
         body: JSON.stringify({
           methodology_plan_id: plan.methodologyPlanId,
@@ -1006,7 +1007,7 @@ export default function MethodologiesScreen() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         },
         body: JSON.stringify({
           methodology_plan_id: plan.methodologyPlanId,
@@ -1966,7 +1967,7 @@ export default function MethodologiesScreen() {
                 await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
                   method: 'PUT',
                   headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                    'Authorization': `Bearer ${tokenManager.getToken()}`,
                     'Content-Type': 'application/json'
                   },
                   body: JSON.stringify({
@@ -1992,7 +1993,7 @@ export default function MethodologiesScreen() {
                 await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
                   method: 'PUT',
                   headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                    'Authorization': `Bearer ${tokenManager.getToken()}`,
                     'Content-Type': 'application/json'
                   },
                   body: JSON.stringify({
@@ -2018,7 +2019,7 @@ export default function MethodologiesScreen() {
                 await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
                   method: 'PUT',
                   headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                    'Authorization': `Bearer ${tokenManager.getToken()}`,
                     'Content-Type': 'application/json'
                   },
                   body: JSON.stringify({
@@ -2212,7 +2213,7 @@ export default function MethodologiesScreen() {
               await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
                 method: 'PUT',
                 headers: {
-                  'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                  'Authorization': `Bearer ${tokenManager.getToken()}`,
                   'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
@@ -2262,7 +2263,7 @@ export default function MethodologiesScreen() {
                 await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
                   method: 'PUT',
                   headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                    'Authorization': `Bearer ${tokenManager.getToken()}`,
                     'Content-Type': 'application/json'
                   },
                   body: JSON.stringify({
@@ -2287,7 +2288,7 @@ export default function MethodologiesScreen() {
                 await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
                   method: 'PUT',
                   headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                    'Authorization': `Bearer ${tokenManager.getToken()}`,
                     'Content-Type': 'application/json'
                   },
                   body: JSON.stringify({
@@ -2312,7 +2313,7 @@ export default function MethodologiesScreen() {
                 await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
                   method: 'PUT',
                   headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                    'Authorization': `Bearer ${tokenManager.getToken()}`,
                     'Content-Type': 'application/json'
                   },
                   body: JSON.stringify({

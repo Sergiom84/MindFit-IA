@@ -98,11 +98,12 @@ import { HALTEROFILIA_MUSCLE_GROUPS, getAllMuscleGroups } from './HalterofiliaMu
 // Importar contextos
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserContext } from '@/contexts/UserContext';
+import tokenManager from '../../../../utils/tokenManager';
 
 // Utilidades de API centralizadas
 const APIUtils = {
   async makeRequest(endpoint, options = {}) {
-    const token = localStorage.getItem('authToken');
+    const token = tokenManager.getToken();
     const defaultHeaders = {
       'Content-Type': 'application/json',
       ...(token && { 'Authorization': `Bearer ${token}` })

@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Alert } from '../ui/alert';
+import tokenManager from '../../utils/tokenManager';
 
 export default function CarbTimingGuide() {
   const [guide, setGuide] = useState(null);
@@ -21,7 +22,7 @@ export default function CarbTimingGuide() {
 
   const loadGuide = async () => {
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       const response = await fetch(`/api/carb-timing/quick-guide?methodology=${methodology}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });

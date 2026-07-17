@@ -22,6 +22,7 @@ import { HealthTab } from './HealthTab';
 import { SettingsTab } from './SettingsTab';
 import { EquipmentTab } from './EquipmentTab';
 import MusicConfigTab from './MusicConfigTab';
+import tokenManager from '../../utils/tokenManager';
 
 const ProfileSection = () => {
   // Leer ?tab=... para navegación directa
@@ -122,7 +123,7 @@ const ProfileSection = () => {
   ];
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = tokenManager.getToken();
     if (!token) {
       setEquipmentState(prev => ({ ...prev, loading: false }));
       return;
@@ -377,7 +378,7 @@ const ProfileSection = () => {
   };
 
   const handleNoEquipmentToggle = async (checked) => {
-    const token = localStorage.getItem('token');
+    const token = tokenManager.getToken();
     if (!token) return;
 
     try {

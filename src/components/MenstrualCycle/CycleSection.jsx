@@ -11,6 +11,7 @@ import CycleCalendar from './CycleCalendar';
 import DailyLogModal from './DailyLogModal';
 import CycleDayCard from './CycleDayCard';
 import CycleOnboarding from './CycleOnboarding';
+import tokenManager from '../../utils/tokenManager';
 
 /**
  * Sección principal del Ciclo Menstrual
@@ -40,7 +41,7 @@ const CycleSection = () => {
 
   const loadCalendarLogs = useCallback(async () => {
     try {
-      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+      const token = tokenManager.getToken() || tokenManager.getToken();
       const year = selectedMonth.getFullYear();
       const month = selectedMonth.getMonth() + 1;
       

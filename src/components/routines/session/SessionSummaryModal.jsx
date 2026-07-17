@@ -4,6 +4,7 @@ import { useTrace } from '@/contexts/TraceContext.jsx';
 import FatigueReportModal from '../../Methodologie/methodologies/HipertrofiaV2/components/FatigueReportModal';
 import WeeklyReviewModal from '../../Methodologie/methodologies/HipertrofiaV2/components/WeeklyReviewModal';
 import { extractSessionPatterns } from '@/utils/exerciseUtils.js';
+import tokenManager from '../../../utils/tokenManager';
 
 /**
  * Modal de resumen final de sesión
@@ -72,7 +73,7 @@ export const SessionSummaryModal = ({
       if (isMindfeedSession && sessionId) {
         try {
           console.log('🤖 [FATIGUE] Detectando fatiga automática para sesión', sessionId);
-          const token = localStorage.getItem('authToken');
+          const token = tokenManager.getToken();
           const fatigueResponse = await fetch(
             `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/hipertrofiav2/detect-auto-fatigue`,
             {
@@ -111,7 +112,7 @@ export const SessionSummaryModal = ({
           console.log(`🔄 [MINDFEED] Avanzando ciclo desde ${cycleDay}...`);
 
           try {
-            const token = localStorage.getItem('authToken');
+            const token = tokenManager.getToken();
             const response = await fetch(
               `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/hipertrofiav2/advance-cycle`,
               {
@@ -329,7 +330,7 @@ export const SessionSummaryModal = ({
               setShowWeeklyReview(true);
 
               try {
-                const token = localStorage.getItem('authToken');
+                const token = tokenManager.getToken();
                 const response = await fetch(
                   `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/adaptation/auto-evaluate-week`,
                   {

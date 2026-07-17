@@ -10,6 +10,7 @@ import CalendarTab from './tabs/CalendarTab.jsx';
 import ProgressTab from './tabs/ProgressTab.jsx';
 import HistoricalTab from './tabs/HistoricalTab.jsx';
 import { getWeekendStatus } from './api.js';
+import tokenManager from '../../utils/tokenManager';
 
 // ===============================================
 // 🚀 RoutineScreen - Versión Integrada con WorkoutContext
@@ -209,7 +210,7 @@ const RoutineScreen = () => {
 
       setIsLoadingCalendarSummary(true);
       try {
-        const token = localStorage.getItem('authToken');
+        const token = tokenManager.getToken();
         const response = await fetch(
           `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/routines/calendar-schedule/${effectiveMethodologyPlanId}`,
           {

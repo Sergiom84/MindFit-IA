@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import tokenManager from '../../utils/tokenManager';
 import {
   X,
   Utensils,
@@ -102,7 +103,7 @@ function formatGrams(value) {
 }
 
 function getAuthToken() {
-  return localStorage.getItem("token") || localStorage.getItem("authToken");
+  return tokenManager.getToken() || tokenManager.getToken();
 }
 
 async function fetchJsonWithAuth(url, options = {}) {

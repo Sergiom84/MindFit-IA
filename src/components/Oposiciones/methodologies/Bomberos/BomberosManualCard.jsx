@@ -105,11 +105,12 @@ import { PRUEBAS_OFICIALES, getPruebaInfo, ESTRATEGIAS_EXAMEN, NOTA_BAREMOS } fr
 // Importar contextos
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserContext } from '@/contexts/UserContext';
+import tokenManager from '../../../../utils/tokenManager';
 
 // Utilidades de API centralizadas
 const APIUtils = {
   async makeRequest(endpoint, options = {}) {
-    const token = localStorage.getItem('authToken');
+    const token = tokenManager.getToken();
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3010';
     const fullUrl = `${baseUrl}${endpoint}`;
 

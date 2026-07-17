@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import tokenManager from '../utils/tokenManager';
 
 // Componente ligero para encapsular la llamada al backend IA y devolver el plan
 // Props:
@@ -13,7 +14,7 @@ export default function IAHomeTraining({ equipment, training, onPlanReady, onErr
     if (!equipment || !training) return;
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenManager.getToken();
       const resp = await fetch('/api/ia-home-training/generate', {
         method: 'POST',
         headers: {

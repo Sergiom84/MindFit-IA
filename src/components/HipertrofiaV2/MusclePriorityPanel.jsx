@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Target, TrendingUp, Clock, AlertCircle, CheckCircle, X, Info } from 'lucide-react';
 import { useTrace } from '../../contexts/TraceContext';
+import tokenManager from '../../utils/tokenManager';
 
 /**
  * Panel de Priorización Muscular
@@ -45,7 +46,7 @@ const MusclePriorityPanel = ({
     try {
       const response = await fetch(`/api/hipertrofiav2/priority-status/${userId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         }
       });
       const data = await response.json();
@@ -113,7 +114,7 @@ const MusclePriorityPanel = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         },
         body: JSON.stringify({
           muscleGroup: selectedMuscle
@@ -186,7 +187,7 @@ const MusclePriorityPanel = ({
       const response = await fetch('/api/hipertrofiav2/deactivate-priority', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${tokenManager.getToken()}`
         }
       });
 
