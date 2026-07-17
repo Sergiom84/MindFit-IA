@@ -58,8 +58,11 @@ import {
   getRoleMacroWeights,
   calculateMacroTotals,
   getPrimaryRoleFromRoles,
-  computeMacrosAndKcalFromFood
+  computeMacrosAndKcalFromFood,
+  areRoleSetsCompatible
 } from './nutritionV2/macroMath.js';
+// Constantes de rol extraídas (ARCH-002); usadas por el generador y re-exportadas.
+import { SLOT_ROLE_FALLBACKS } from './nutritionV2/roleConstants.js';
 
 const VALID_MENU_GENERATION_MODES = ['deterministic', 'ai', 'hybrid_ai', 'recipe_examples'];
 const DETERMINISTIC_MAX_TEMPLATE_TRIES = 12;
@@ -71,17 +74,6 @@ const DETERMINISTIC_RECENT_FOOD_WINDOW_DAYS = 7;
 const SWAP_MEAL_RECALC_MAX_ERROR = 35;
 const HYBRID_FALLBACK_MODE = 'deterministic';
 const DEFAULT_HYBRID_MODEL = process.env.NUTRITION_HYBRID_MODEL || 'gpt-5.2';
-const SLOT_ROLE_FALLBACKS = {
-  PROTEINA_ANIMAL: ['PROTEINA_ANIMAL_MAGRA', 'PROTEINA_ANIMAL_GRASA', 'PROTEINA_VEGETAL'],
-  PROTEINA_ANIMAL_MAGRA: ['PROTEINA_ANIMAL', 'PROTEINA_VEGETAL'],
-  PROTEINA_VEGETAL: ['LEGUMBRE', 'SUPLEMENTO_PROTEINA'],
-  CARBO_BASE: ['CARBO_COCIDO', 'CARBO_PAN', 'CARBO_AVENA'],
-  GRASA_BASE: ['GRASA_ACEITE', 'GRASA_FRUTOS_SECOS', 'GRASA_CREMAS', 'GRASA_SEMILLAS'],
-  LACTEO_PROTEICO_MAGRO: ['LACTEO_BASE', 'PROTEINA_VEGETAL', 'SUPLEMENTO_PROTEINA'],
-  HUEVO: ['PROTEINA_ANIMAL_MAGRA', 'PROTEINA_VEGETAL'],
-  LEGUMBRE: ['PROTEINA_VEGETAL', 'CARBO_BASE'],
-  SUPLEMENTO_PROTEINA: ['PROTEINA_VEGETAL']
-};
 
 
 function buildFoodCatalogFilters({
@@ -363,33 +355,6 @@ function evaluateCandidateMealBalance(items, mealMacros, mealKcalTarget) {
 }
 
 
-function areRoleSetsCompatible(oldRoles = [], newRoles = []) {
-  if (!Array.isArray(oldRoles) || oldRoles.length === 0) return true;
-  if (!Array.isArray(newRoles) || newRoles.length === 0) return true;
-
-  const oldSet = new Set(oldRoles.map((role) => String(role || '').trim().toUpperCase()).filter(Boolean));
-  const newSet = new Set(newRoles.map((role) => String(role || '').trim().toUpperCase()).filter(Boolean));
-
-  for (const role of oldSet) {
-    if (newSet.has(role)) return true;
-  }
-
-  for (const oldRole of oldSet) {
-    const oldFallbacks = SLOT_ROLE_FALLBACKS[oldRole] || [];
-    for (const fallbackRole of oldFallbacks) {
-      if (newSet.has(fallbackRole)) return true;
-    }
-  }
-
-  for (const newRole of newSet) {
-    const newFallbacks = SLOT_ROLE_FALLBACKS[newRole] || [];
-    for (const fallbackRole of newFallbacks) {
-      if (oldSet.has(fallbackRole)) return true;
-    }
-  }
-
-  return false;
-}
 
 
 function computeSwapBaseGrams({

@@ -5,6 +5,7 @@
 
 import { parseNumeric } from './baseUtils.js';
 import { parseJsonObject } from '../nutritionUtils.js';
+import { SLOT_ROLE_FALLBACKS } from './roleConstants.js';
 
 export function getRoleMacroWeights(roleValue) {
   const role = String(roleValue || '').toUpperCase();
@@ -86,6 +87,36 @@ export function getPrimaryRoleFromRoles(roles = [], fallbackMacros = null) {
   }
 
   return 'CARBO_BASE';
+}
+
+// Compatibilidad de conjuntos de roles para swaps: dos conjuntos son compatibles si
+// comparten un rol o un fallback (SLOT_ROLE_FALLBACKS) en cualquier dirección.
+export function areRoleSetsCompatible(oldRoles = [], newRoles = []) {
+  if (!Array.isArray(oldRoles) || oldRoles.length === 0) return true;
+  if (!Array.isArray(newRoles) || newRoles.length === 0) return true;
+
+  const oldSet = new Set(oldRoles.map((role) => String(role || '').trim().toUpperCase()).filter(Boolean));
+  const newSet = new Set(newRoles.map((role) => String(role || '').trim().toUpperCase()).filter(Boolean));
+
+  for (const role of oldSet) {
+    if (newSet.has(role)) return true;
+  }
+
+  for (const oldRole of oldSet) {
+    const oldFallbacks = SLOT_ROLE_FALLBACKS[oldRole] || [];
+    for (const fallbackRole of oldFallbacks) {
+      if (newSet.has(fallbackRole)) return true;
+    }
+  }
+
+  for (const newRole of newSet) {
+    const newFallbacks = SLOT_ROLE_FALLBACKS[newRole] || [];
+    for (const fallbackRole of newFallbacks) {
+      if (oldSet.has(fallbackRole)) return true;
+    }
+  }
+
+  return false;
 }
 
 export function computeMacrosAndKcalFromFood(food, gramsBase) {
