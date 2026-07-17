@@ -58,10 +58,14 @@ export default function NutritionScreen() {
           Number.isFinite(currentEstimateKcal) &&
           Math.abs(activePlanKcal - currentEstimateKcal) >= 250;
 
-        kcalValue = hasCurrentEstimateDrift ? currentEstimateKcal : activePlanKcal;
-        source = hasCurrentEstimateDrift ? 'current_estimate' : 'plan';
+        // M-02: la cifra mostrada es SIEMPRE la del plan activo (lo que el usuario
+        // come de verdad = fuente de verdad). Antes, ante drift, se mostraba la
+        // estimación del perfil en su lugar, confundiendo sobre qué cifra es la
+        // real. Ahora el drift se comunica como aviso, sin sustituir el valor.
+        kcalValue = activePlanKcal;
+        source = 'plan';
         if (hasCurrentEstimateDrift) {
-          note = 'Estimacion actual del perfil. Regenera el plan para actualizar el activo.';
+          note = `Tu perfil estima ~${Math.round(currentEstimateKcal)} kcal/día. Regenera el plan para actualizarlo.`;
         }
       } else if (planData?.current_estimate?.kcal_objetivo) {
         kcalValue = planData.current_estimate.kcal_objetivo;
