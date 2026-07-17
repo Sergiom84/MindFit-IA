@@ -9,7 +9,7 @@ import { authenticateToken } from '../middleware/auth.js';
 
 // Importar servicios
 import { buildD1D5Plan, persistD1D5Plan } from '../services/hipertrofiaV2/planGenerationService.js';
-import { generateFullBodyWorkout, generateSingleDayWorkout } from '../services/hipertrofiaV2/extraWorkoutService.js';
+import { buildFullBodyWorkout, persistFullBodyWorkout, buildSingleDayWorkout, persistSingleDayWorkout } from '../services/hipertrofiaV2/extraWorkoutService.js';
 import { selectExercises } from '../services/hipertrofiaV2/exerciseSelector.js';
 
 // Importar controladores
@@ -135,24 +135,33 @@ router.post('/generate-d1d5', authenticateToken, async (req, res) => {
  * Genera rutina Full Body para fin de semana
  */
 router.post('/generate-fullbody', authenticateToken, async (req, res) => {
-  const dbClient = await pool.connect();
+  const userId = req.user?.userId || req.user?.id;
+  const { nivel = 'Principiante' } = req.body;
 
   try {
-    const userId = req.user?.userId || req.user?.id;
-    const { nivel = 'Principiante' } = req.body;
-
     // 🧹 LIMPIEZA PRE-GENERACIÓN: Cerrar sesiones huérfanas
     const cleanupResult = await cleanupUserStaleSessions(userId);
     if (cleanupResult.cleaned > 0) {
       logger.info(`🧹 [FULLBODY] Pre-limpieza: ${cleanupResult.cleaned} sesiones/drafts limpiados`);
     }
 
-    await dbClient.query('BEGIN');
-    await cleanUserDrafts(userId, dbClient);
+    // A1 · Fase 1: construcción (solo lecturas, sin retener conexión de transacción).
+    const built = await buildFullBodyWorkout(pool, userId, nivel);
 
-    const result = await generateFullBodyWorkout(dbClient, userId, nivel);
-
-    await dbClient.query('COMMIT');
+    // A1 · Fase 2: persistencia atómica en transacción corta.
+    const dbClient = await pool.connect();
+    let result;
+    try {
+      await dbClient.query('BEGIN');
+      await cleanUserDrafts(userId, dbClient);
+      result = await persistFullBodyWorkout(dbClient, built);
+      await dbClient.query('COMMIT');
+    } catch (txError) {
+      await dbClient.query('ROLLBACK');
+      throw txError;
+    } finally {
+      dbClient.release();
+    }
 
     logger.always('✅ [FULLBODY] Rutina generada exitosamente');
 
@@ -169,13 +178,11 @@ router.post('/generate-fullbody', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    await dbClient.query('ROLLBACK');
     logger.error('❌ [FULLBODY] Error:', error);
     res.status(500).json({
       success: false,
-      error: 'Error al generar rutina Full Body'    });
-  } finally {
-    dbClient.release();
+      error: 'Error al generar rutina Full Body'
+    });
   }
 });
 
@@ -184,31 +191,40 @@ router.post('/generate-fullbody', authenticateToken, async (req, res) => {
  * Genera entrenamiento de día único
  */
 router.post('/generate-single-day', authenticateToken, async (req, res) => {
-  const dbClient = await pool.connect();
+  const userId = req.user?.userId || req.user?.id;
+  const {
+    nivel = 'Principiante',
+    isWeekendExtra = false,
+    selectionMode = 'full_body',
+    focusGroup = null
+  } = req.body;
 
   try {
-    const userId = req.user?.userId || req.user?.id;
-    const {
-      nivel = 'Principiante',
-      isWeekendExtra = false,
-      selectionMode = 'full_body',
-      focusGroup = null
-    } = req.body;
-
     // 🧹 LIMPIEZA PRE-GENERACIÓN: Cerrar sesiones huérfanas
     const cleanupResult = await cleanupUserStaleSessions(userId);
     if (cleanupResult.cleaned > 0) {
       logger.info(`🧹 [SINGLE-DAY] Pre-limpieza: ${cleanupResult.cleaned} sesiones/drafts limpiados`);
     }
 
-    await dbClient.query('BEGIN');
-
-    const result = await generateSingleDayWorkout(dbClient, userId, nivel, isWeekendExtra, {
+    // A1 · Fase 1: construcción (solo lecturas, sin retener conexión de transacción).
+    const built = await buildSingleDayWorkout(pool, userId, nivel, isWeekendExtra, {
       selectionMode,
       focusGroup
     });
 
-    await dbClient.query('COMMIT');
+    // A1 · Fase 2: persistencia atómica en transacción corta.
+    const dbClient = await pool.connect();
+    let result;
+    try {
+      await dbClient.query('BEGIN');
+      result = await persistSingleDayWorkout(dbClient, built);
+      await dbClient.query('COMMIT');
+    } catch (txError) {
+      await dbClient.query('ROLLBACK');
+      throw txError;
+    } finally {
+      dbClient.release();
+    }
 
     res.json({
       success: true,
@@ -223,13 +239,11 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    await dbClient.query('ROLLBACK');
     logger.error('❌ [SINGLE-DAY] Error:', error);
     res.status(500).json({
       success: false,
-      error: 'Error al generar entrenamiento'    });
-  } finally {
-    dbClient.release();
+      error: 'Error al generar entrenamiento'
+    });
   }
 });
 
