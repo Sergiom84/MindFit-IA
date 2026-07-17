@@ -31,6 +31,11 @@ test("today-status no referencia columnas inexistentes al hacer fallback multime
 
 test("TodayTrainingTab mantiene cierre 7/7 y CrossFit usa WOD player desde plan", () => {
   const source = readRepoFile("src/components/routines/tabs/TodayTrainingTab.jsx");
+  // ARCH-002: los EFFORT_ENDPOINTS se extrajeron a effortConfig.js (importado por
+  // TodayTrainingTab). El contrato de cierre 7/7 se verifica ahora sobre ese módulo.
+  const effortConfigSource = readRepoFile(
+    "src/components/routines/tabs/TodayTrainingTab/effortConfig.js",
+  );
 
   const endpoints = [
     "/methodology-session/calistenia/session-result",
@@ -43,8 +48,12 @@ test("TodayTrainingTab mantiene cierre 7/7 y CrossFit usa WOD player desde plan"
   ];
 
   for (const endpoint of endpoints) {
-    assert.match(source, new RegExp(endpoint.replace(/[/-]/g, (m) => `\\${m}`)));
+    assert.match(effortConfigSource, new RegExp(endpoint.replace(/[/-]/g, (m) => `\\${m}`)));
   }
+
+  // TodayTrainingTab debe seguir cableado a effortConfig (EFFORT_ENDPOINTS + resolver).
+  assert.match(source, /EFFORT_ENDPOINTS/);
+  assert.match(source, /from '\.\/TodayTrainingTab\/effortConfig/);
 
   for (const modalName of [
     "CalisteniaEffortModal",
