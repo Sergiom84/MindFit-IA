@@ -5,7 +5,7 @@
 
 import { CYCLE_LENGTH, DEFAULT_WEEKS_BY_LEVEL, WEEK_0_CONFIG } from './constants.js';
 import { buildTrainingCalendar, getDefaultDayMapping } from './calendarService.js';
-import { loadSessionsConfig, generateSessionExercises } from './sessionService.js';
+import { loadSessionsConfig, generateSessionExercises, resolveCycleSessions } from './sessionService.js';
 import { loadMindfeedRuleset } from './rulesetService.js';
 import { resolveUserInjuryRules } from './injuryFilter.js';
 import { logger } from './logger.js';
@@ -109,13 +109,15 @@ export async function buildD1D5Plan(readClient, config) {
 
   // Obtener información del usuario
   const userResult = await readClient.query(
-    `SELECT sexo FROM app.users WHERE id = $1`,
+    `SELECT sexo, frecuencia_semanal FROM app.users WHERE id = $1`,
     [userId]
   );
   const userSex = userResult.rows[0]?.sexo || 'male';
   const isFemale = ['female', 'f', 'mujer', 'femenino'].includes(userSex.toLowerCase());
+  // Frecuencia declarada por el usuario. La config puede forzar otra (p. ej. QA).
+  const frecuenciaSemanal = Number(config.frecuencia ?? userResult.rows[0]?.frecuencia_semanal) || null;
 
-  logger.debug('👤 Sexo:', userSex, 'Ajuste femenino:', isFemale);
+  logger.debug('👤 Sexo:', userSex, 'Ajuste femenino:', isFemale, 'Frecuencia:', frecuenciaSemanal);
 
   // Cargar ruleset normativo MindFeed v1
   const ruleset = await loadMindfeedRuleset(readClient, nivel);
@@ -138,6 +140,14 @@ export async function buildD1D5Plan(readClient, config) {
     logger.info(`🎯 [PRIORIDAD] Músculo prioritario: ${priorityMuscle}`);
   }
 
+  // Cargar configuración de sesiones D1-D5 y adaptarla a la frecuencia declarada
+  // (A-03): 3 días → PPL, 4 días → Torso/Pierna, 5+ → ciclo completo. Se resuelve
+  // ANTES del calendario porque su longitud (cycleLength) gobierna el mapeo de días.
+  const sessionsConfig = await loadSessionsConfig(readClient);
+  const cycleSessions = resolveCycleSessions(sessionsConfig, frecuenciaSemanal);
+  const cycleLength = cycleSessions.length;
+  logger.info(`🗓️ [MINDFEED] Frecuencia=${frecuenciaSemanal ?? 'por defecto'} → ciclo de ${cycleLength} días`);
+
   // Calcular calendario cíclico
   let trainingDays = null;
   let dynamicDayMapping = {};
@@ -151,7 +161,7 @@ export async function buildD1D5Plan(readClient, config) {
       startDate: resolvedStartDate,
       includeSaturday: startConfig.distributionOption === 'saturdays' || startConfig.includeSaturdays,
       totalWeeks: actualTotalWeeks,
-      cycleLength: CYCLE_LENGTH
+      cycleLength
     });
 
     trainingDays = calendar.trainingDays;
@@ -159,7 +169,7 @@ export async function buildD1D5Plan(readClient, config) {
 
     logger.info(`📅 Calendario generado: ${trainingDays.length} sesiones`);
   } else {
-    dynamicDayMapping = getDefaultDayMapping(CYCLE_LENGTH);
+    dynamicDayMapping = getDefaultDayMapping(cycleLength);
     if (startConfig?.startDate) {
       logger.warn('⚠️ startDate inválida, usando mapeo por defecto');
     } else {
@@ -167,13 +177,10 @@ export async function buildD1D5Plan(readClient, config) {
     }
   }
 
-  // Cargar configuración de sesiones D1-D5
-  const sessionsConfig = await loadSessionsConfig(readClient);
-
   // Generar ejercicios para cada sesión del ciclo
   const sessionsWithExercises = [];
 
-  for (const sessionConfig of sessionsConfig) {
+  for (const sessionConfig of cycleSessions) {
     const session = await generateSessionExercises(
       readClient,
       sessionConfig,
@@ -212,7 +219,7 @@ export async function buildD1D5Plan(readClient, config) {
 
   // Semana 0 de calibración
   if (includeWeek0) {
-    const semana0Sessions = Array.from({ length: CYCLE_LENGTH }, (_, idx) => {
+    const semana0Sessions = Array.from({ length: cycleLength }, (_, idx) => {
       const cycleDay = idx + 1;
       const template = templateByCycleDay.get(cycleDay);
       const actualDayName = trainingDays?.[idx]?.dayName || dynamicDayMapping[`D${cycleDay}`] || `D${cycleDay}`;
@@ -251,9 +258,9 @@ export async function buildD1D5Plan(readClient, config) {
   // Semanas regulares
   for (let weekIndex = 0; weekIndex < actualTotalWeeks; weekIndex++) {
     const weekNumber = weekIndex + 1;
-    let weekSessions = Array.from({ length: CYCLE_LENGTH }, (_, idx) => {
-      const sessionNumber = weekIndex * CYCLE_LENGTH + idx;
-      const cycleDay = (sessionNumber % CYCLE_LENGTH) + 1;
+    let weekSessions = Array.from({ length: cycleLength }, (_, idx) => {
+      const sessionNumber = weekIndex * cycleLength + idx;
+      const cycleDay = (sessionNumber % cycleLength) + 1;
       const template = templateByCycleDay.get(cycleDay);
       const calendarDay = startConfig?.startDate && trainingDays
         ? trainingDays[sessionNumber]
@@ -293,7 +300,7 @@ export async function buildD1D5Plan(readClient, config) {
     total_weeks: actualTotalWeeks,
     has_week_0: includeWeek0,
     duracion_total_semanas: includeWeek0 ? actualTotalWeeks + 1 : actualTotalWeeks,
-    frecuencia_semanal: CYCLE_LENGTH,
+    frecuencia_semanal: cycleLength,
     fecha_inicio: new Date().toISOString(),
     sessions: sessionsWithExercises,
     semanas,
@@ -326,7 +333,7 @@ export async function buildD1D5Plan(readClient, config) {
   // A1: build NO escribe. Devuelve todo lo necesario para persistir en una
   // transacción corta (ver persistD1D5Plan). Así la generación pesada (lecturas
   // + montaje de JSON) NO retiene una conexión de transacción del pooler.
-  return { userId, planData, trainingDays, startConfig };
+  return { userId, planData, trainingDays, startConfig, cycleLength };
 }
 
 /**
@@ -336,7 +343,7 @@ export async function buildD1D5Plan(readClient, config) {
  * @returns {Promise<object>} Plan persistido con ID
  */
 export async function persistD1D5Plan(writeClient, built) {
-  const { userId, planData, trainingDays, startConfig } = built;
+  const { userId, planData, trainingDays, startConfig, cycleLength = CYCLE_LENGTH } = built;
 
   // Guardar plan en DB
   const planResult = await writeClient.query(`
@@ -369,7 +376,7 @@ export async function persistD1D5Plan(writeClient, built) {
 
   // Guardar configuración de inicio
   if (startConfig) {
-    await savePlanStartConfig(writeClient, methodologyPlanId, userId, startConfig, trainingDays, CYCLE_LENGTH);
+    await savePlanStartConfig(writeClient, methodologyPlanId, userId, startConfig, trainingDays, cycleLength);
   }
 
   logger.info(`✅ [MINDFEED] Plan generado con ID: ${methodologyPlanId}`);
