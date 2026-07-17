@@ -1,3 +1,4 @@
+import { confirmDialog, alertDialog } from '../ui/dialogService.jsx';
 import React, { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -60,13 +61,13 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
 
     // Validar tipo de archivo
     if (file.type !== 'application/pdf') {
-      alert('Solo se permiten archivos PDF')
+      alertDialog('Solo se permiten archivos PDF')
       return
     }
 
     // Validar tamaño (máximo 25MB para coincidir con el backend)
     if (file.size > 25 * 1024 * 1024) {
-      alert('El archivo es demasiado grande. Máximo 25MB.')
+      alertDialog('El archivo es demasiado grande. Máximo 25MB.')
       return
     }
 
@@ -95,13 +96,13 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
           fileInputRef.current.value = ''
         }
 
-        alert('Documento subido exitosamente')
+        alertDialog('Documento subido exitosamente')
       } else {
         throw new Error(data.error || 'Error al subir el archivo')
       }
     } catch (error) {
       console.error('Error subiendo archivo:', error)
-      alert('Error al subir el archivo: ' + error.message)
+      alertDialog('Error al subir el archivo: ' + error.message)
     } finally {
       setUploading(false)
     }
@@ -132,7 +133,13 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
   }
 
   const handleDelete = async (docId) => {
-    if (confirm('¿Estás seguro de que quieres eliminar este documento?')) {
+    const confirmed = await confirmDialog({
+      title: 'Eliminar documento',
+      description: '¿Estás seguro de que quieres eliminar este documento?',
+      confirmText: 'Eliminar',
+      destructive: true
+    });
+    if (confirmed) {
       try {
         const response = await fetch(`/api/medical-docs/${docId}`, {
           method: 'DELETE',
@@ -144,13 +151,13 @@ export const MedicalDocsCard = ({ userProfile, setUserProfile }) => {
         if (data.success) {
           // Actualizar la lista de documentos
           setMedicalDocs(data.docs || [])
-          alert('Documento eliminado exitosamente')
+          alertDialog('Documento eliminado exitosamente')
         } else {
           throw new Error(data.error || 'Error al eliminar el documento')
         }
       } catch (error) {
         console.error('Error eliminando documento:', error)
-        alert('Error al eliminar el documento: ' + error.message)
+        alertDialog('Error al eliminar el documento: ' + error.message)
       }
     }
   }

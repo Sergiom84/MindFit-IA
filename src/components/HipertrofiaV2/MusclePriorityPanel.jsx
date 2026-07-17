@@ -1,3 +1,4 @@
+import { confirmDialog, alertDialog } from '../ui/dialogService.jsx';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Target, TrendingUp, Clock, AlertCircle, CheckCircle, X, Info } from 'lucide-react';
 import { useTrace } from '../../contexts/TraceContext';
@@ -97,7 +98,7 @@ const MusclePriorityPanel = ({
         userId,
         component: 'MusclePriorityPanel'
       });
-      alert('Selecciona un grupo muscular');
+      alertDialog('Selecciona un grupo muscular');
       return;
     }
 
@@ -143,7 +144,7 @@ const MusclePriorityPanel = ({
           error: data.error,
           component: 'MusclePriorityPanel'
         });
-        alert(data.error || 'Error activando prioridad');
+        alertDialog(data.error || 'Error activando prioridad');
       }
     } catch (error) {
       track('muscle_priority_activate_exception', {
@@ -153,7 +154,7 @@ const MusclePriorityPanel = ({
         component: 'MusclePriorityPanel'
       });
       console.error('Error:', error);
-      alert('Error al activar prioridad');
+      alertDialog('Error al activar prioridad');
     } finally {
       setLoading(false);
     }
@@ -166,7 +167,11 @@ const MusclePriorityPanel = ({
       component: 'MusclePriorityPanel'
     });
 
-    if (!confirm('¿Seguro que quieres desactivar la priorización actual?')) {
+    if (!(await confirmDialog({
+      title: 'Desactivar priorización',
+      description: '¿Seguro que quieres desactivar la priorización actual?',
+      confirmText: 'Desactivar'
+    }))) {
       track('muscle_priority_deactivate_cancelled', {
         userId,
         activeMuscle: priorityStatus?.priority_muscle,

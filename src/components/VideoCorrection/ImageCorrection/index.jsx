@@ -1,3 +1,4 @@
+import { alertDialog } from '../../ui/dialogService.jsx';
 import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -138,12 +139,12 @@ export default function ImageCorrection() {
 
   const handleAnalyzePhotos = async () => {
     if (!photos.length) {
-      alert('Por favor, sube al menos una imagen para analizar.');
+      alertDialog('Por favor, sube al menos una imagen para analizar.');
       return;
     }
 
     if (!user?.id) {
-      alert('Necesitas estar autenticado para usar el Análisis IA de Fotos.');
+      alertDialog('Necesitas estar autenticado para usar el Análisis IA de Fotos.');
       return;
     }
 
@@ -254,10 +255,10 @@ export default function ImageCorrection() {
       setShowResults(true);
 
       // Mostrar mensaje de éxito
-      alert('¡Análisis IA de fotos completado exitosamente! Los resultados se muestran a continuación.');
+      alertDialog('¡Análisis IA de fotos completado exitosamente! Los resultados se muestran a continuación.');
     } catch (err) {
       console.error('Error en Análisis IA de Fotos:', err);
-      alert(`No se pudo ejecutar el Análisis IA de Fotos: ${err.message}`);
+      alertDialog(`No se pudo ejecutar el Análisis IA de Fotos: ${err.message}`);
     } finally {
       setIsAnalyzing(false);
     }

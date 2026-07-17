@@ -1,3 +1,4 @@
+import { alertDialog } from '../../ui/dialogService.jsx';
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,7 +32,7 @@ export default function CameraControls() {
   const startCamera = async () => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Tu navegador no soporta el acceso a la cámara. Usa Chrome, Firefox o Safari moderno.');
+        alertDialog('Tu navegador no soporta el acceso a la cámara. Usa Chrome, Firefox o Safari moderno.');
         return;
       }
 
@@ -54,7 +55,7 @@ export default function CameraControls() {
       console.log('✅ Cámara activada correctamente');
     } catch (error) {
       console.error('❌ Error activando cámara:', error);
-      alert(`No se pudo acceder a la cámara: ${error.message}`);
+      alertDialog(`No se pudo acceder a la cámara: ${error.message}`);
     }
   };
 
@@ -78,7 +79,7 @@ export default function CameraControls() {
   const startRecording = () => {
     try {
       if (!mediaStreamRef.current) {
-        alert('Primero debes activar la cámara para poder grabar.');
+        alertDialog('Primero debes activar la cámara para poder grabar.');
         return;
       }
 
@@ -100,7 +101,7 @@ export default function CameraControls() {
       console.log('🎬 Grabación iniciada');
     } catch (error) {
       console.error('❌ Error iniciando grabación:', error);
-      alert(`Error al iniciar la grabación: ${error.message}`);
+      alertDialog(`Error al iniciar la grabación: ${error.message}`);
     }
   };
 

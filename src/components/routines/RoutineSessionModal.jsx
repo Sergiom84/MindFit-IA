@@ -1,3 +1,4 @@
+import { alertDialog } from '../ui/dialogService.jsx';
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { X as IconX, TrendingUp } from 'lucide-react';
 import { formatExerciseName, extractSessionPatterns } from '../../utils/exerciseUtils';
@@ -514,7 +515,7 @@ export default function RoutineSessionModal({
 
     } catch (error) {
       console.error('❌ Error guardando tracking:', error);
-      alert('Error al guardar la serie. Por favor, intenta de nuevo.');
+      alertDialog('Error al guardar la serie. Por favor, intenta de nuevo.');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, session?.methodologyPlanId, progressState.seriesTotal, timerState.phase, timerState.timeLeft, handleRestEnd]);

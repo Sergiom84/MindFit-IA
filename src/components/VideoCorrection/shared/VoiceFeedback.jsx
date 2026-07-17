@@ -1,3 +1,4 @@
+import { alertDialog } from '../../ui/dialogService.jsx';
 import React, { useRef, useEffect } from 'react';
 
 export default function VoiceFeedback() {
@@ -17,7 +18,7 @@ export default function VoiceFeedback() {
 
   const speakText = (text) => {
     if (!('speechSynthesis' in window)) {
-      alert('Lo siento, tu navegador no soporta síntesis de voz.');
+      alertDialog('Lo siento, tu navegador no soporta síntesis de voz.');
       return;
     }
     // Cancel any ongoing speech to avoid overlap
@@ -41,7 +42,7 @@ export default function VoiceFeedback() {
 
   const speakCorrections = (result) => {
     if (!result || !result.correcciones_priorizadas) {
-      alert('No hay correcciones disponibles para reproducir.');
+      alertDialog('No hay correcciones disponibles para reproducir.');
       return;
     }
 
