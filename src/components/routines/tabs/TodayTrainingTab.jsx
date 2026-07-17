@@ -65,6 +65,7 @@ import { getTodaySessionStatus, getWeekendStatus } from '../api.js';
 
 // 🎯 COMPONENTES MODULARES - Refactorización incremental
 import { ExerciseList, RestDayCard, StartSessionCard } from './TodayTrainingTab/components';
+import { EFFORT_ENDPOINTS, resolveEffortMethodKey } from './TodayTrainingTab/effortConfig.js';
 
 // 🎯 ADAPTACIÓN - Nuevos componentes para evaluación de transición
 import AdaptationProgressPanel from '../../Methodologie/methodologies/HipertrofiaV2/components/AdaptationProgressPanel';
@@ -74,31 +75,6 @@ import tokenManager from '../../../utils/tokenManager';
 
 // 🎯 CONTRATO COMÚN DE CIERRE — endpoint de autorregulación por metodología.
 // Hipertrofia queda fuera a propósito (tiene su propio subsistema D1-D5).
-const EFFORT_ENDPOINTS = {
-  calistenia: '/methodology-session/calistenia/session-result',
-  casa: '/methodology-session/casa/session-result',
-  funcional: '/methodology-session/funcional/session-result',
-  crossfit: '/methodology-session/crossfit/wod-result',
-  halterofilia: '/methodology-session/halterofilia/session-result',
-  powerlifting: '/methodology-session/powerlifting/session-result',
-  'heavy-duty': '/methodology-session/heavy-duty/session-result'
-};
-
-// Normaliza la cadena de metodología del plan a una clave de cierre.
-// Tolerante a variantes ('Heavy Duty'/'heavy_duty', 'Gimnasio'→funcional, etc.).
-function resolveEffortMethodKey(raw) {
-  const m = String(raw || '').toLowerCase();
-  if (!m) return null;
-  if (m.includes('calistenia')) return 'calistenia';
-  if (m.includes('crossfit') || m.includes('cross-fit') || m.includes('cross fit')) return 'crossfit';
-  if (m.includes('halterofilia') || m.includes('weightlifting')) return 'halterofilia';
-  if (m.includes('powerlifting') || m.includes('power lifting')) return 'powerlifting';
-  if (m.includes('heavy')) return 'heavy-duty';
-  if (m.includes('funcional') || m.includes('functional') || m.includes('gimnasio')) return 'funcional';
-  if (m.includes('casa') || m.includes('home')) return 'casa';
-  return null; // hipertrofia y desconocidos: sin modal de esfuerzo común
-}
-
 export default function TodayTrainingTab({
   routinePlan,
   methodologyPlanId,
