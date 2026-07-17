@@ -374,9 +374,17 @@ export async function persistD1D5Plan(writeClient, built) {
       updated_at = NOW()
   `, [userId, methodologyPlanId, 1, 0]);
 
-  // Guardar configuración de inicio
+  // Guardar configuración de inicio con metadatos reales del plan (A-07).
   if (startConfig) {
-    await savePlanStartConfig(writeClient, methodologyPlanId, userId, startConfig, trainingDays, cycleLength);
+    // Semanas totales incluyendo Week 0. expected_sessions = semanas × ciclo para
+    // que cuadre con total_weeks y con el calendario real (que incluye Week 0);
+    // trainingDays no cuenta la Week 0, por eso no lo usamos aquí.
+    const totalWeeks = Number(planData?.duracion_total_semanas) || Number(planData?.total_weeks) || null;
+    const expectedSessions = totalWeeks ? totalWeeks * cycleLength : (trainingDays?.length ?? null);
+    await savePlanStartConfig(writeClient, methodologyPlanId, userId, startConfig, trainingDays, cycleLength, {
+      totalWeeks,
+      expectedSessions
+    });
   }
 
   logger.info(`✅ [MINDFEED] Plan generado con ID: ${methodologyPlanId}`);
@@ -404,8 +412,15 @@ export async function generateD1D5Plan(dbClient, config) {
 /**
  * Guarda configuración de inicio del plan
  */
-async function savePlanStartConfig(dbClient, methodologyPlanId, userId, startConfig, trainingDays, cycleLength) {
+async function savePlanStartConfig(dbClient, methodologyPlanId, userId, startConfig, trainingDays, cycleLength, planMeta = {}) {
   logger.debug('💾 Guardando configuración de inicio...');
+
+  // A-07: total_weeks y expected_sessions tenían defaults fijos (4/12) que el
+  // INSERT nunca sobreescribía, contradiciendo el calendario real. Los guardamos
+  // con los valores reales del plan (incluyendo Week 0).
+  const totalWeeks = Number(planMeta.totalWeeks) || null;
+  const expectedSessions = Number(planMeta.expectedSessions)
+    || (trainingDays?.length ?? (totalWeeks ? totalWeeks * cycleLength : null));
 
   const startDate = startConfig.startDate === 'today'
     ? new Date()
@@ -430,13 +445,17 @@ async function savePlanStartConfig(dbClient, methodologyPlanId, userId, startCon
       start_date,
       first_week_pattern,
       include_saturdays,
+      total_weeks,
+      expected_sessions,
       created_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    ) VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 4), COALESCE($8, 12), NOW())
     ON CONFLICT (methodology_plan_id) DO UPDATE SET
       start_day_of_week = EXCLUDED.start_day_of_week,
       start_date = EXCLUDED.start_date,
       first_week_pattern = EXCLUDED.first_week_pattern,
       include_saturdays = EXCLUDED.include_saturdays,
+      total_weeks = EXCLUDED.total_weeks,
+      expected_sessions = EXCLUDED.expected_sessions,
       updated_at = NOW()
   `, [
     methodologyPlanId,
@@ -444,7 +463,9 @@ async function savePlanStartConfig(dbClient, methodologyPlanId, userId, startCon
     startDate.getDay(),
     startDate.toISOString().split('T')[0],
     firstWeekPattern,
-    includeSaturdays
+    includeSaturdays,
+    totalWeeks,
+    expectedSessions
   ]);
 
   logger.info('✅ Configuración de inicio guardada');

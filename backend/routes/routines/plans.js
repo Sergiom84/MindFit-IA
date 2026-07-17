@@ -381,7 +381,13 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
             );
 
             if (existingSession.rowCount === 0) {
-              // Crear la sesión
+              // Nivel real del plan para methodology_level (A-07): antes se dejaba
+              // el default 'básico' de la columna en TODAS las sesiones, ignorando
+              // el nivel del plan.
+              const planLevel = plan?.plan_data?.nivel || plan?.plan_data?.nivel_hipertrofia || 'básico';
+              // Crear la sesión. session_status='pending' (estado inicial canónico
+              // de la máquina de estados); 'not_started' violaba check_session_status
+              // y el INSERT fallaba silenciosamente (A-06).
               const sessionResult = await client.query(
                 `INSERT INTO app.methodology_exercise_sessions (
                   user_id,
@@ -390,8 +396,9 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
                   week_number,
                   day_name,
                   session_status,
+                  methodology_level,
                   created_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
                 RETURNING id`,
                 [
                   userId,
@@ -399,7 +406,8 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
                   scheduleRow.scheduled_date,
                   scheduleRow.week_number,
                   scheduleRow.day_abbrev,
-                  'not_started'
+                  'pending',
+                  planLevel
                 ]
               );
 
