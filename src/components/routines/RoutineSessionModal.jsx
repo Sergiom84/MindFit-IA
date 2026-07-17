@@ -575,8 +575,10 @@ export default function RoutineSessionModal({
 
   return (
     <>
-      {/* Modal principal */}
-      <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      {/* Modal principal. z-[60] para cubrir la barra de navegación inferior
+          (Navigation, z-50); con z-50 empataban y la barra capturaba el toque
+          sobre "Comenzar", permitiendo abandonar la sesión sin querer (A-05). */}
+      <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
         <div className="bg-gray-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
           {/* Botón de cierre en la esquina superior derecha */}
           <button
@@ -728,7 +730,7 @@ export default function RoutineSessionModal({
 
       {/* Toast: Ejercicio completado */}
       {showExerciseToast && (
-        <div className="fixed inset-0 z-40 flex items-start justify-center pt-24 pointer-events-none">
+        <div className="fixed inset-0 z-[62] flex items-start justify-center pt-24 pointer-events-none">
           <div className="bg-green-600 text-white px-4 py-2 rounded shadow-lg">
             Ejercicio completado
           </div>
@@ -748,9 +750,9 @@ export default function RoutineSessionModal({
         navigateToRoutines={navigateToRoutines}
       />
 
-      {/* Modal de confirmación de salida */}
+      {/* Modal de confirmación de salida. Por encima del reproductor (z-[60]). */}
       {showExitConfirmModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[75] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80" onClick={() => setShowExitConfirmModal(false)} />
           <div className="relative bg-gray-800 border border-gray-700 rounded-xl p-6 w-full max-w-md">
             <h3 className="text-white text-lg font-semibold mb-3">⚠️ Ejercicio en progreso</h3>
@@ -793,7 +795,7 @@ export default function RoutineSessionModal({
 
       {/* Mensaje de solapamiento neural */}
       {neuralOverlapInfo?.overlap && neuralOverlapInfo.overlap !== 'none' && (
-        <div className="fixed top-12 left-1/2 -translate-x-1/2 z-40">
+        <div className="fixed top-12 left-1/2 -translate-x-1/2 z-[62]">
           <div className="bg-orange-900/80 border border-orange-500/50 px-4 py-2 rounded-lg text-sm text-orange-100 shadow-lg">
             🧠 Solapamiento {neuralOverlapInfo.overlap === 'high' ? 'alto' : 'parcial'} detectado.
             Ajuste sugerido: {Math.round((neuralOverlapInfo.adjustment || 0) * 100)}%

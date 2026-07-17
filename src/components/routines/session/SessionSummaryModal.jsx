@@ -176,7 +176,7 @@ export const SessionSummaryModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pt-[calc(6rem+env(safe-area-inset-top))] pb-[calc(7rem+env(safe-area-inset-bottom))]">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center px-4 pt-[calc(6rem+env(safe-area-inset-top))] pb-[calc(7rem+env(safe-area-inset-bottom))]">
       <div
         className="absolute inset-0 bg-black/60"
         onClick={() => {
