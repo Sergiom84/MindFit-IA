@@ -132,7 +132,9 @@ export function mapExercisesWithTrainingParams(exercises, sessionConfig, isFemal
     patron_movimiento: ex.patron_movimiento,
     series: Number(ex.sets_override ?? sessionConfig.default_sets),
     reps_objetivo: sessionConfig.default_reps_range,
-    rir_target: sessionConfig.default_rir_target,
+    // RIR del ruleset por nivel (Intermedio 1-2, Avanzado 0-2); si no lo define,
+    // se usa el de la configuración de sesión.
+    rir_target: overrides?.rirTarget || sessionConfig.default_rir_target,
     descanso_seg: calculateRestTime(ex, isFemale, restSecondsByType),
     notas: ex.notas,
     gif_url: ex.gif_url || null,

@@ -42,6 +42,81 @@ export async function loadSessionsConfig(dbClient) {
 }
 
 /**
+ * Construye una sesión de "Torso" para el split de 4 días tomando `base` como
+ * plantilla (reps, RIR, descripción) y una lista EXPLÍCITA de grupos musculares.
+ * Se reparte el torso entre dos sesiones para que ninguna quede sobrecargada
+ * (un merge ingenuo de empuje+tirón+complementarios daba sesiones de 17+ ejercicios).
+ */
+function buildTorsoSession(base, { cycleDay, sessionName, isHeavyDay, intensity, groups }) {
+  return {
+    ...base,
+    cycle_day: cycleDay,
+    session_name: sessionName,
+    muscle_groups: groups,
+    is_heavy_day: isHeavyDay,
+    intensity_percentage: intensity ?? base.intensity_percentage
+  };
+}
+
+/**
+ * Resuelve las sesiones del ciclo según la frecuencia semanal declarada (A-03).
+ * El catálogo define un ciclo PPL de 5 días (D1-D5); aquí lo adaptamos:
+ *  - 5+ días → D1-D5 tal cual (PPL frecuencia 2).
+ *  - 3 días  → D1/D2/D3 (Empuje/Tirón/Piernas, frecuencia 1).
+ *  - 4 días  → Torso/Pierna/Torso/Pierna (frecuencia 2).
+ * Devuelve las sesiones con cycle_day reasignado 1..N.
+ * @param {Array} sessionsConfig - Filas de app.hipertrofia_v2_session_config (ordenadas por cycle_day)
+ * @param {number} frecuencia - Días/semana declarados por el usuario
+ * @returns {Array} Sesiones del ciclo a generar
+ */
+export function resolveCycleSessions(sessionsConfig, frecuencia) {
+  const byDay = new Map(sessionsConfig.map((s) => [Number(s.cycle_day), s]));
+  const D1 = byDay.get(1); // Empuje pesado
+  const D2 = byDay.get(2); // Tirón pesado
+  const D3 = byDay.get(3); // Piernas
+  const D4 = byDay.get(4); // Empuje ligero (F2)
+  const D5 = byDay.get(5); // Tirón ligero (F2)
+  const freq = Number(frecuencia);
+
+  // Sin dato fiable o 5+ días: ciclo completo original.
+  if (!Number.isFinite(freq) || freq >= 5 || !D1 || !D2 || !D3 || !D4 || !D5) {
+    return sessionsConfig;
+  }
+
+  if (freq <= 3) {
+    // PPL frecuencia 1.
+    return [D1, D2, D3].map((s, idx) => ({ ...s, cycle_day: idx + 1 }));
+  }
+
+  // freq === 4 → Torso/Pierna/Torso/Pierna (frecuencia 2 para todo). El torso se
+  // reparte en dos sesiones equilibradas: la pesada prioriza pecho/espalda +
+  // brazos; la ligera reparte pecho/espalda + hombro/core.
+  const torsoPesado = buildTorsoSession(D1, {
+    cycleDay: 1,
+    sessionName: 'Torso Pesado (Pecho, Espalda, Brazos)',
+    isHeavyDay: true,
+    intensity: D1.intensity_percentage,
+    groups: ['Pecho', 'Espalda', 'Tríceps', 'Bíceps']
+  });
+  const piernaPesada = { ...D3, cycle_day: 2, is_heavy_day: true };
+  const torsoLigero = buildTorsoSession(D4, {
+    cycleDay: 3,
+    sessionName: 'Torso Ligero (Pecho, Espalda, Hombro, Core)',
+    isHeavyDay: false,
+    intensity: D4.intensity_percentage,
+    groups: ['Pecho', 'Espalda', 'Hombro', 'Core']
+  });
+  const piernaLigera = {
+    ...D3,
+    cycle_day: 4,
+    session_name: 'Piernas Frecuencia 2 (Ligero)',
+    is_heavy_day: false,
+    intensity_percentage: D4.intensity_percentage
+  };
+  return [torsoPesado, piernaPesada, torsoLigero, piernaLigera];
+}
+
+/**
  * Parsea grupos musculares desde diferentes formatos
  * @param {*} muscleGroupsRaw - Grupos musculares en cualquier formato
  * @returns {Array} Array de grupos musculares
@@ -183,7 +258,8 @@ export async function generateSessionExercises(
 
   // Mapear con parámetros de entrenamiento
   let exercisesWithParams = mapExercisesWithTrainingParams(sessionExercises, sessionConfig, isFemale, {
-    restSecondsByType: ruleset?.restSecondsByType || null
+    restSecondsByType: ruleset?.restSecondsByType || null,
+    rirTarget: ruleset?.rirTarget || null
   });
 
   // Aplicar ajustes de priorización si corresponde

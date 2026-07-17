@@ -9,6 +9,7 @@ import { authenticateToken } from '../middleware/auth.js';
 
 // Importar servicios
 import { buildD1D5Plan, persistD1D5Plan } from '../services/hipertrofiaV2/planGenerationService.js';
+import { evaluateHipertrofiaLevel } from '../services/hipertrofiaV2/levelEvaluator.js';
 import { buildFullBodyWorkout, persistFullBodyWorkout, buildSingleDayWorkout, persistSingleDayWorkout } from '../services/hipertrofiaV2/extraWorkoutService.js';
 import { selectExercises } from '../services/hipertrofiaV2/exerciseSelector.js';
 
@@ -52,6 +53,26 @@ const enforceSelfParam = (req, res, next) => {
   }
   next();
 };
+
+// ============================================================
+// EVALUACIÓN DE NIVEL
+// ============================================================
+
+/**
+ * POST /api/hipertrofiav2/evaluate-level
+ * Evalúa el nivel (Principiante/Intermedio/Avanzado) del usuario a partir de su
+ * perfil real (A-01). Sustituye al alias genérico que devolvía siempre un default.
+ */
+router.post('/evaluate-level', authenticateToken, async (req, res) => {
+  const userId = req.user?.userId || req.user?.id;
+  try {
+    const evaluation = await evaluateHipertrofiaLevel(pool, userId);
+    res.json(evaluation);
+  } catch (error) {
+    logger.error('❌ [NIVEL HpV2] Error evaluando nivel:', error);
+    res.status(500).json({ success: false, error: 'Error al evaluar el nivel del usuario' });
+  }
+});
 
 // ============================================================
 // GENERACIÓN DE PLANES
