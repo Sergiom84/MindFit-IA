@@ -83,14 +83,38 @@ const PORT = process.env.PORT || 3010;
 app.set('trust proxy', 1);
 
 // SEC-004: cabeceras defensivas (HSTS, X-Content-Type-Options, anti-clickjacking,
-// Referrer-Policy) y ocultar `x-powered-by`. La Content-Security-Policy se deja
-// DESACTIVADA a propósito: este mismo Express sirve la SPA (Vite) que carga
-// recursos externos (GIFs de buckets, imágenes de Spotify/YouTube, estilos
-// inline); una CSP por defecto rompería el frontend. Activarla requiere un pase
-// dedicado con verificación en navegador.
+// Referrer-Policy) y ocultar `x-powered-by`, más una Content-Security-Policy.
+// El build de Vite genera un ÚNICO script externo sin nada inline y el código no
+// usa eval/Function, por eso script-src puede ser estricto ('self' + SDK de
+// Spotify) sin 'unsafe-inline'. Los recursos (img/media/connect/font) se dejan
+// permisivos en https para no romper GIFs (Tenor/Wikimedia/Supabase), imágenes y
+// APIs de Spotify/YouTube. style-src permite inline (React/animaciones inyectan
+// estilos; no es vector de XSS de scripts).
 app.use(helmet({
-  contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      'default-src': ["'self'"],
+      'script-src': ["'self'", 'https://sdk.scdn.co'],
+      'style-src': ["'self'", "'unsafe-inline'"],
+      'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+      'media-src': ["'self'", 'blob:', 'https:'],
+      'font-src': ["'self'", 'data:'],
+      'connect-src': ["'self'", 'https:', 'wss:'],
+      'frame-src': [
+        "'self'",
+        'https://open.spotify.com',
+        'https://www.youtube.com',
+        'https://www.youtube-nocookie.com',
+      ],
+      'worker-src': ["'self'", 'blob:'],
+      'object-src': ["'none'"],
+      'base-uri': ["'self'"],
+      'frame-ancestors': ["'self'"],
+      'upgrade-insecure-requests': [],
+    },
+  },
 }));
 
 // SEC-004: rate limit anti fuerza-bruta en autenticación. Solo login/registro
