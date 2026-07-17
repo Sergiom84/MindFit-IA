@@ -40,7 +40,6 @@ import { WorkoutProvider } from './contexts/WorkoutContext';
 // 🎵 GLOBAL COMPONENTS (No Lazy Loading)
 // =============================================================================
 import AudioBubble from './components/AudioBubble';
-import SessionManager from './components/SessionManager';
 
 // =============================================================================
 // 🔄 LAZY LOADING DE RUTAS PRINCIPALES
@@ -343,9 +342,6 @@ function AppContent() {
 
   return (
     <>
-      {/* Gestores globales */}
-      <SessionManager />
-
       <Routes>
         <Route path="/" element={<Layout />}>
           {/* 🚀 Rutas automáticas generadas desde ROUTE_CONFIG */}
