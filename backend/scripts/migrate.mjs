@@ -29,6 +29,36 @@ const MIGRATIONS_DIR = path.join(__dirname, '..', 'migrations');
 
 const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
 
+// DB-001 (PR 2): allowlist CERRADA de reconciliación 2026-07-17. Todas estas
+// migraciones son POSTERIORES al corte del baseline (2026-07-16) y se aplicaron a
+// producción fuera del runner. Se verificó READ ONLY contra la BD real que cada
+// objeto declarado existe y está validado (ver backend/migrations/RECONCILIATION.md).
+// `reconcile` SOLO toca estas versiones y SOLO escribe en el ledger (cero DDL).
+//   - adopt:      pendientes ya aplicadas -> INSERT baseline=false (no baseline: post-corte).
+//   - rechecksum: aplicadas con checksum divergente (fichero editado tras aplicar,
+//                 sin divergencia de efecto) -> UPDATE checksum al del fichero actual.
+const RECONCILE_ALLOWLIST = {
+  adopt: [
+    '20260717_data003_fk_ambiguous_ids.sql',
+    '20260717_data003_fk_exercise_id_empty_tables.sql',
+    '20260717_data003_fk_exercise_id.sql',
+    '20260717_data003_users_drop_dead_dupes.sql',
+    '20260717_data003_users_drop_live_pairs.sql',
+    '20260717_data003_users_reconcile_live_pairs.sql',
+    '20260717_fix_allergen_tags_soja.sql',
+    '20260717_seed_rulesets_intermedio_avanzado.sql',
+  ],
+  rechecksum: [
+    '20260717_data003_fk_plan_session_not_valid.sql',
+    '20260717_data003_fk_user_id_not_valid.sql',
+    '20260717_data003_validate_fks.sql',
+    '20260717_documenta_ledger_schema_migrations.sql',
+    '20260717_sec_bola_deload_fatigue_ownership.sql',
+    '20260717_sec006_revoke_public_execute_app.sql',
+    '20260717_workout_schedule_unique_plan_user_date.sql',
+  ],
+};
+
 function listMigrationFiles() {
   return fs
     .readdirSync(MIGRATIONS_DIR)
@@ -87,6 +117,58 @@ async function cmdStatus() {
     } else {
       console.log('\n✅ Sin migraciones pendientes.');
     }
+
+    // DB-001 (PR 2): en CI, `status --check` falla si el ledger no está limpio
+    // (pendientes o drift de checksum), para bloquear el merge ante desincronización.
+    if (process.argv.includes('--check') && (pending.length || drift.length)) {
+      console.error(`\n❌ Ledger desincronizado: ${pending.length} pendiente(s), ${drift.length} con checksum divergente.`);
+      process.exitCode = 1;
+    }
+  } finally {
+    await client.end();
+  }
+}
+
+// DB-001 (PR 2): reconciliación EXPLÍCITA del ledger (solo versiones de la allowlist).
+// Escribe únicamente en app.schema_migrations (cero DDL de esquema).
+async function cmdReconcile() {
+  const client = connect();
+  await client.connect();
+  try {
+    await ensureLedger(client);
+    const applied = await getApplied(client);
+    const files = new Set(listMigrationFiles());
+    let adopted = 0; let rechecked = 0; const skipped = [];
+
+    // adopt: pendientes ya aplicadas -> INSERT baseline=false.
+    for (const f of RECONCILE_ALLOWLIST.adopt) {
+      if (!files.has(f)) throw new Error(`allowlist adopt: no existe el fichero ${f}`);
+      if (applied.has(f)) { skipped.push(`adopt ya registrada: ${f}`); continue; }
+      await client.query(
+        'INSERT INTO app.schema_migrations (version, checksum, baseline) VALUES ($1, $2, false)',
+        [f, sha256(readMigration(f))]
+      );
+      console.log(`  + adopt   ${f}`);
+      adopted += 1;
+    }
+
+    // rechecksum: aplicadas con checksum divergente -> UPDATE al checksum actual.
+    for (const f of RECONCILE_ALLOWLIST.rechecksum) {
+      if (!files.has(f)) throw new Error(`allowlist rechecksum: no existe el fichero ${f}`);
+      const row = applied.get(f);
+      const current = sha256(readMigration(f));
+      if (!row) throw new Error(`rechecksum: ${f} no está en el ledger (esperado registrado)`);
+      if (row.checksum === current) { skipped.push(`rechecksum ya coincide: ${f}`); continue; }
+      await client.query(
+        'UPDATE app.schema_migrations SET checksum = $2 WHERE version = $1',
+        [f, current]
+      );
+      console.log(`  ~ rechk   ${f}`);
+      rechecked += 1;
+    }
+
+    console.log(`\n✅ Reconcile: ${adopted} adoptadas, ${rechecked} re-checksum. ${skipped.length} sin cambios.`);
+    skipped.forEach((s) => console.log(`   · ${s}`));
   } finally {
     await client.end();
   }
@@ -182,7 +264,7 @@ function cmdNew(slug) {
 }
 
 const [cmd, arg] = process.argv.slice(2);
-const run = { status: cmdStatus, baseline: cmdBaseline, up: cmdUp }[cmd];
+const run = { status: cmdStatus, baseline: cmdBaseline, up: cmdUp, reconcile: cmdReconcile }[cmd];
 if (run) {
   run().catch((e) => {
     console.error('Error:', e.message);
@@ -191,6 +273,6 @@ if (run) {
 } else if (cmd === 'new') {
   cmdNew(arg);
 } else {
-  console.log('Comandos: status | baseline | up | new <slug>');
+  console.log('Comandos: status [--check] | baseline | up | reconcile | new <slug>');
   process.exitCode = cmd ? 1 : 0;
 }

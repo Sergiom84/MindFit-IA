@@ -48,8 +48,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+    env:
+      # BD efímera solo del job; el guard de db.js la permite (no es host Supabase).
+      DATABASE_URL: postgresql://postgres@localhost:5432/baseline_check
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci --prefix backend
 
       - name: Preparar roles Supabase (stubs) y extensiones
         run: |
@@ -79,6 +86,16 @@ jobs:
             "SELECT count(*) FROM information_schema.table_constraints WHERE table_schema='app' AND constraint_type='FOREIGN KEY'")
           echo "Restaurado -> tablas app: $TABLES | funciones: $FUNCS | FKs: $FKS"
           test "$TABLES" -ge 120 || { echo "Esperaba >=120 tablas, obtuve $TABLES"; exit 1; }
+
+      # DB-001 (PR 2): ejercita el runner sobre la BD restaurada DESDE CERO. El baseline
+      # ya contiene el esquema completo, así que adoptamos el ledger con `baseline`
+      # (marca las migraciones como aplicadas SIN re-ejecutarlas: evita doble aplicación)
+      # y exigimos que `migrate:check` quede limpio (0 pendientes / 0 checksum divergente).
+      # Prueba que la adopción del runner sobre un restore es reproducible y sin drift.
+      - name: Adoptar ledger y verificar que queda limpio
+        run: |
+          npm --prefix backend run migrate:baseline
+          npm --prefix backend run migrate:check
 
   # CI-001: tests de INTEGRACIÓN contra una BD efímera (postgres:17) restaurada
   # desde el baseline. No toca producción y no necesita un Supabase de staging.
