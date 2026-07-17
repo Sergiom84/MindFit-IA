@@ -198,7 +198,7 @@ export default function ShoppingList({ nutritionPlan }) {
     });
 
     text += '\n' + '═'.repeat(40) + '\n';
-    text += 'Generado por Entrena con IA\n';
+    text += 'Generado por MindFit\n';
     text += new Date().toLocaleDateString('es-ES', {
       weekday: 'long',
       year: 'numeric',

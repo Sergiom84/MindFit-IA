@@ -2,9 +2,10 @@
 
 ## 📋 Overview
 
-Implementación completa de la metodología **Heavy Duty de Mike Mentzer** para la aplicación Entrena con IA.
+Implementación completa de la metodología **Heavy Duty de Mike Mentzer** para la aplicación MindFit.
 
 ### Principios Heavy Duty:
+
 - **Máxima intensidad**: 1-2 series al fallo muscular absoluto
 - **Mínimo volumen**: Menos es más
 - **Descansos prolongados**: 4-7 días entre grupos musculares
@@ -27,6 +28,7 @@ HeavyDuty/
 ## 🎯 Niveles Heavy Duty
 
 ### 1. **Principiante** 🌱
+
 - **Frecuencia**: 2 sesiones/semana
 - **Intensidad**: 70-80% 1RM
 - **Series**: 1-2 por ejercicio
@@ -34,6 +36,7 @@ HeavyDuty/
 - **Equipamiento**: Máquinas y poleas (seguridad)
 
 **Hitos**:
+
 - Dominar técnica perfecta
 - Alcanzar fallo muscular controlado
 - Comprender descansos prolongados
@@ -41,6 +44,7 @@ HeavyDuty/
 ---
 
 ### 2. **Intermedio** ⚡
+
 - **Frecuencia**: 2-3 sesiones/semana
 - **Intensidad**: 80-90% 1RM
 - **Series**: 1 por ejercicio (al fallo absoluto)
@@ -48,6 +52,7 @@ HeavyDuty/
 - **Equipamiento**: Barras libres, mancuernas
 
 **Hitos**:
+
 - Fallo muscular absoluto con seguridad
 - Recuperación óptima entre sesiones
 - Progresión constante en cargas
@@ -55,6 +60,7 @@ HeavyDuty/
 ---
 
 ### 3. **Avanzado** 💪
+
 - **Frecuencia**: 2 sesiones/semana
 - **Intensidad**: 85-95% 1RM
 - **Series**: 1 por ejercicio (máxima intensidad)
@@ -62,6 +68,7 @@ HeavyDuty/
 - **Equipamiento**: Barras + técnicas avanzadas (cadenas, bandas)
 
 **Hitos**:
+
 - Una serie = máximo estímulo posible
 - Descansos de 7+ días sin pérdida de fuerza
 - Control mental extremo
@@ -70,20 +77,21 @@ HeavyDuty/
 
 ## 💪 Grupos Musculares
 
-| Grupo | Ejercicios Principales | Frecuencia |
-|-------|------------------------|------------|
-| **Pecho** | Press de banca, Fondos | 1x semana |
-| **Espalda** | Dominadas, Remo con barra | 1x semana |
-| **Piernas** | Sentadilla, Peso muerto | 1x semana |
-| **Hombros** | Press militar | 1x semana |
-| **Brazos** | Curl con barra, Press francés | 1x semana |
-| **Core** | Plancha, Rueda abdominal | 2x semana |
+| Grupo       | Ejercicios Principales        | Frecuencia |
+| ----------- | ----------------------------- | ---------- |
+| **Pecho**   | Press de banca, Fondos        | 1x semana  |
+| **Espalda** | Dominadas, Remo con barra     | 1x semana  |
+| **Piernas** | Sentadilla, Peso muerto       | 1x semana  |
+| **Hombros** | Press militar                 | 1x semana  |
+| **Brazos**  | Curl con barra, Press francés | 1x semana  |
+| **Core**    | Plancha, Rueda abdominal      | 2x semana  |
 
 ---
 
 ## 🏋️ Splits de Entrenamiento
 
 ### **Push/Pull Split (2 días/semana)** - Recomendado
+
 ```
 Lunes: Empuje
   - Pecho
@@ -97,6 +105,7 @@ Jueves: Tracción + Piernas
 ```
 
 ### **Push/Pull/Legs (3 días/semana)** - Intermedio
+
 ```
 Lunes: Push
   - Pecho
@@ -118,12 +127,12 @@ Viernes: Legs
 ### **Integración en MethodologiesScreen.jsx**
 
 ```javascript
-import HeavyDutyManualCard from './methodologies/HeavyDuty/HeavyDutyManualCard.jsx';
+import HeavyDutyManualCard from "./methodologies/HeavyDuty/HeavyDutyManualCard.jsx";
 
 // En el handler de clic de tarjeta
 const handleManualCardClick = (methodology) => {
-  if (methodology.name === 'Heavy Duty') {
-    ui.showModal('heavyDutyManual');
+  if (methodology.name === "Heavy Duty") {
+    ui.showModal("heavyDutyManual");
     return;
   }
   // ... resto del código
@@ -132,25 +141,30 @@ const handleManualCardClick = (methodology) => {
 // Handler de generación
 const handleHeavyDutyManualGenerate = async (heavyDutyData) => {
   const result = await generatePlan({
-    mode: 'manual',
-    methodology: 'heavy-duty',
-    heavyDutyData
+    mode: "manual",
+    methodology: "heavy-duty",
+    heavyDutyData,
   });
   // ... proceso de confirmación
 };
 
 // En el render
-{ui.showHeavyDutyManual && (
-  <Dialog open={ui.showHeavyDutyManual} onOpenChange={() => ui.hideModal('heavyDutyManual')}>
-    <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-      <HeavyDutyManualCard
-        onGenerate={handleHeavyDutyManualGenerate}
-        isLoading={ui.isLoading}
-        error={ui.error}
-      />
-    </DialogContent>
-  </Dialog>
-)}
+{
+  ui.showHeavyDutyManual && (
+    <Dialog
+      open={ui.showHeavyDutyManual}
+      onOpenChange={() => ui.hideModal("heavyDutyManual")}
+    >
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+        <HeavyDutyManualCard
+          onGenerate={handleHeavyDutyManualGenerate}
+          isLoading={ui.isLoading}
+          error={ui.error}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
 ```
 
 ---
@@ -158,11 +172,13 @@ const handleHeavyDutyManualGenerate = async (heavyDutyData) => {
 ## 🔌 API Endpoints
 
 ### **Evaluación de Perfil**
+
 ```
 POST /api/heavy-duty-specialist/evaluate-profile
 ```
 
 **Request**:
+
 ```json
 {
   "source": "modal_evaluation_v1.0"
@@ -170,6 +186,7 @@ POST /api/heavy-duty-specialist/evaluate-profile
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -196,11 +213,13 @@ POST /api/heavy-duty-specialist/evaluate-profile
 ```
 
 ### **Generación de Plan**
+
 ```
 POST /api/heavy-duty-specialist/generate
 ```
 
 **Request**:
+
 ```json
 {
   "heavyDutyData": {
@@ -223,11 +242,13 @@ POST /api/heavy-duty-specialist/generate
 ## 🗄️ Base de Datos
 
 ### **Tabla de Ejercicios**
+
 ```
 app.Ejercicios_Heavy_Duty
 ```
 
 **Estructura** (17 columnas):
+
 - `id` (SERIAL PRIMARY KEY)
 - `exercise_id` (TEXT NOT NULL UNIQUE)
 - `nombre` (TEXT NOT NULL)
@@ -252,25 +273,26 @@ app.Ejercicios_Heavy_Duty
 
 ## 📊 Estadísticas de Ejercicios
 
-| Nivel | Cantidad |
-|-------|----------|
-| Básico | 37 |
-| Intermedio | 7 |
+| Nivel      | Cantidad |
+| ---------- | -------- |
+| Básico     | 37       |
+| Intermedio | 7        |
 
 | Grupo Muscular | Ejercicios |
-|----------------|------------|
-| Pecho | 6 |
-| Espalda | 5 |
-| Piernas | 5 |
-| Hombros | 2 |
-| Brazos | 4 |
-| Core | 2 |
+| -------------- | ---------- |
+| Pecho          | 6          |
+| Espalda        | 5          |
+| Piernas        | 5          |
+| Hombros        | 2          |
+| Brazos         | 4          |
+| Core           | 2          |
 
 ---
 
 ## ✅ Checklist de Implementación
 
 ### **Frontend**
+
 - [x] HeavyDutyLevels.js creado
 - [x] HeavyDutyMuscleGroups.js creado
 - [x] HeavyDutyManualCard.jsx creado
@@ -280,6 +302,7 @@ app.Ejercicios_Heavy_Duty
 - [ ] RoutineSessionModal integrado
 
 ### **Backend**
+
 - [x] Tabla `Ejercicios_Heavy_Duty` creada
 - [x] 44 ejercicios importados
 - [ ] Endpoint `/api/heavy-duty-specialist/evaluate-profile`
@@ -288,6 +311,7 @@ app.Ejercicios_Heavy_Duty
 - [ ] Configuración en `aiConfigs.js`
 
 ### **Testing**
+
 - [ ] Evaluación IA funciona correctamente
 - [ ] Generación de plan con IA funciona
 - [ ] Selección manual de nivel funciona
@@ -329,6 +353,7 @@ Navigate a TodayTrainingTab
 ## 📝 Notas Técnicas
 
 ### **Diferencias clave con Calistenia**:
+
 1. **Énfasis en intensidad**: Heavy Duty usa RPE 10/10, Calistenia usa progresiones
 2. **Volumen**: Heavy Duty = 1-2 series, Calistenia = 3-5 series
 3. **Descansos**: Heavy Duty = 4-7 días, Calistenia = 1-2 días
@@ -336,6 +361,7 @@ Navigate a TodayTrainingTab
 5. **Fallo muscular**: Heavy Duty = obligatorio, Calistenia = opcional
 
 ### **Consideraciones de recuperación**:
+
 - Heavy Duty requiere descansos MUY largos (4-7 días mínimo)
 - No se puede entrenar el mismo grupo muscular antes de recuperación completa
 - El sistema debe validar que hayan pasado los días mínimos de descanso

@@ -2,7 +2,7 @@
 
 ## 09.07.2026
 
-- iOS (safe-area / notch): `index.html` no declaraba `viewport-fit=cover`, así que en iOS con notch/Dynamic Island `env(safe-area-inset-*)` devolvía siempre 0 y todos los paddings de safe-area ya presentes en el código (Navigation, modales, nutrición…) no surtían efecto dentro del WebView. Añadido `viewport-fit=cover` al meta viewport; ahora esos insets funcionan. De paso, metadatos iOS del WebView: `theme-color`, `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style=black-translucent`, `apple-mobile-web-app-title` y `<title>` real ("Entrena con IA", antes "Vite + React"). Verificado el pipeline completo en esta sesión: `npm run build` + `npx cap sync ios` copian el nuevo `index.html` a `ios/App/App/public` sin errores (assets generados siguen fuera de git). No toca `src/` ni backend. El build/firma final sigue requiriendo Mac+Xcode.
+- iOS (safe-area / notch): `index.html` no declaraba `viewport-fit=cover`, así que en iOS con notch/Dynamic Island `env(safe-area-inset-*)` devolvía siempre 0 y todos los paddings de safe-area ya presentes en el código (Navigation, modales, nutrición…) no surtían efecto dentro del WebView. Añadido `viewport-fit=cover` al meta viewport; ahora esos insets funcionan. De paso, metadatos iOS del WebView: `theme-color`, `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style=black-translucent`, `apple-mobile-web-app-title` y `<title>` real ("MindFit", antes "Vite + React"). Verificado el pipeline completo en esta sesión: `npm run build` + `npx cap sync ios` copian el nuevo `index.html` a `ios/App/App/public` sin errores (assets generados siguen fuera de git). No toca `src/` ni backend. El build/firma final sigue requiriendo Mac+Xcode.
 
 ## 07.07.2026
 

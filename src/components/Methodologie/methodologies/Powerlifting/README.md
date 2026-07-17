@@ -2,7 +2,7 @@
 
 ## Descripción
 
-Módulo completo de metodología **Powerlifting** para la aplicación **Entrena con IA**. Sigue el patrón arquitectónico establecido en Calistenia e Hipertrofia.
+Módulo completo de metodología **Powerlifting** para la aplicación **MindFit**. Sigue el patrón arquitectónico establecido en Calistenia e Hipertrofia.
 
 ## 📁 Estructura de Archivos
 
@@ -17,6 +17,7 @@ Powerlifting/
 ## 🎯 Características
 
 ### PowerliftingManualCard.jsx
+
 - **Evaluación IA automática** del nivel del usuario
 - **Selección manual** de nivel con información detallada
 - **Generación de plan** personalizado
@@ -24,21 +25,24 @@ Powerlifting/
 - **API endpoints**: `/api/powerlifting-specialist/evaluate-profile`
 
 ### PowerliftingLevels.js
+
 **4 Niveles de progresión:**
 
-| Nivel | Experiencia | Frecuencia | Intensidad | Series |
-|-------|-------------|------------|------------|--------|
-| **Novato** | 0-6 meses | 3 días/sem | 60-75% 1RM | 3-5 series |
-| **Intermedio** | 6m-2 años | 4 días/sem | 70-85% 1RM | 4-6 series |
-| **Avanzado** | 2-5 años | 4-5 días/sem | 75-90% 1RM | 5-8 series |
-| **Elite** | +5 años | 5-6 días/sem | 80-95% 1RM | 6-10 series |
+| Nivel          | Experiencia | Frecuencia   | Intensidad | Series      |
+| -------------- | ----------- | ------------ | ---------- | ----------- |
+| **Novato**     | 0-6 meses   | 3 días/sem   | 60-75% 1RM | 3-5 series  |
+| **Intermedio** | 6m-2 años   | 4 días/sem   | 70-85% 1RM | 4-6 series  |
+| **Avanzado**   | 2-5 años    | 4-5 días/sem | 75-90% 1RM | 5-8 series  |
+| **Elite**      | +5 años     | 5-6 días/sem | 80-95% 1RM | 6-10 series |
 
 **Funciones principales:**
+
 - `getLevelConfig(levelId)` - Obtener configuración de nivel
 - `getLevelRecommendations(level)` - Obtener recomendaciones por nivel
 - `canProgressToNextLevel(currentLevel, lifts)` - Validar progresión
 
 ### PowerliftingMuscleGroups.js
+
 **5 Grupos de movimientos:**
 
 1. **Sentadilla** (main lift)
@@ -62,6 +66,7 @@ Powerlifting/
    - Color: purple-500
 
 **Funciones principales:**
+
 - `getMuscleGroupInfo(groupId)` - Información de grupo muscular
 - `getRecommendedGroupsByLevel(level)` - Grupos recomendados por nivel
 - `generateBalancedSplit(level, daysPerWeek)` - Generar split de entrenamiento
@@ -90,6 +95,7 @@ graph TD
 ## 🎨 Tema Visual
 
 **Colores principales:**
+
 - Primary: `yellow-400` (consistente con app)
 - Powerlifting: `red-600` (fuerza y potencia)
 - Success: `green-400`
@@ -97,6 +103,7 @@ graph TD
 - Error: `red-400`
 
 **Iconos:**
+
 - Novato: 🔰
 - Intermedio: 💪
 - Avanzado: 🏋️
@@ -106,17 +113,20 @@ graph TD
 ## 📡 Integración Backend
 
 ### Endpoints necesarios:
+
 ```javascript
-POST /api/powerlifting-specialist/evaluate-profile
-POST /api/powerlifting-specialist/generate-plan
+POST / api / powerlifting - specialist / evaluate - profile;
+POST / api / powerlifting - specialist / generate - plan;
 ```
 
 ### Base de datos:
+
 ```sql
 app."Ejercicios_Powerlifting"
 ```
 
 ### Prompt especializado:
+
 ```
 backend/prompts/powerlifting_specialist.md
 ```
@@ -124,6 +134,7 @@ backend/prompts/powerlifting_specialist.md
 ## 🧪 Testing
 
 ### Pruebas necesarias:
+
 1. ✅ Evaluación IA devuelve nivel válido
 2. ✅ Selección manual genera plan correcto
 3. ✅ Validación de progresión de niveles
@@ -131,6 +142,7 @@ backend/prompts/powerlifting_specialist.md
 5. ✅ Integración con modales del flujo
 
 ### Comando de test:
+
 ```bash
 npm run test:powerlifting
 ```
@@ -138,27 +150,28 @@ npm run test:powerlifting
 ## 🛠️ Uso del Componente
 
 ```jsx
-import PowerliftingManualCard from './methodologies/Powerlifting/PowerliftingManualCard.jsx';
+import PowerliftingManualCard from "./methodologies/Powerlifting/PowerliftingManualCard.jsx";
 
 // En MethodologiesScreen.jsx
 const handlePowerliftingGenerate = async (powerliftingData) => {
   await generatePlan({
     ...powerliftingData,
-    mode: 'manual',
-    methodology: 'powerlifting'
+    mode: "manual",
+    methodology: "powerlifting",
   });
 };
 
 <PowerliftingManualCard
   onGenerate={handlePowerliftingGenerate}
-  isLoading={plan.status === 'generating'}
+  isLoading={plan.status === "generating"}
   error={plan.error}
-/>
+/>;
 ```
 
 ## 📊 Datos Esperados
 
 ### Input (onGenerate):
+
 ```javascript
 {
   methodology: 'Powerlifting Specialist' | 'Powerlifting Manual',
@@ -174,6 +187,7 @@ const handlePowerliftingGenerate = async (powerliftingData) => {
 ```
 
 ### Output (evaluación IA):
+
 ```javascript
 {
   success: true,
@@ -191,6 +205,7 @@ const handlePowerliftingGenerate = async (powerliftingData) => {
 ## 🔧 Configuración
 
 ### Constantes modificables:
+
 ```javascript
 // PowerliftingLevels.js
 TRAINING_CONSTANTS = {
@@ -203,6 +218,7 @@ TRAINING_CONSTANTS = {
 ## 🐛 Debugging
 
 ### Logs importantes:
+
 ```javascript
 console.log('🏋️ Iniciando evaluación Powerlifting v1.0...');
 console.log('✅ Evaluación Powerlifting completada:', {...});
@@ -210,6 +226,7 @@ console.log('🚀 Generando plan Powerlifting con IA especializada...');
 ```
 
 ### Errores comunes:
+
 1. **API endpoint no encontrado**: Verificar redirecciones en `server.js`
 2. **Nivel inválido**: Validar que sea uno de los 4 niveles válidos
 3. **Tabla no existe**: Verificar `Ejercicios_Powerlifting` en Supabase

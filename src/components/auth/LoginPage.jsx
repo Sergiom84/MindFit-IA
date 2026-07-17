@@ -88,7 +88,7 @@ const LoginPage = () => {
           >
             <div className="text-center mb-8">
               <h2 className="text-2xl font-semibold font-urbanist text-white mb-2">Iniciar Sesión</h2>
-              <p className="text-gray-300/80">Accede a tu cuenta Entrena con IA</p>
+              <p className="text-gray-300/80">Accede a tu cuenta MindFit</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
