@@ -101,7 +101,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
     setEvaluating(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/hipertrofia-specialist/evaluate-profile`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/hipertrofiav2/evaluate-level`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
