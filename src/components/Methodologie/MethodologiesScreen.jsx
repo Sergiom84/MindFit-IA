@@ -48,165 +48,19 @@ import apiClient from '@/lib/apiClient';
 import { useMethodologyValidation } from './hooks/useMethodologyValidation';
 import tokenManager from '../../utils/tokenManager';
 
-// ===============================================
-// 🎯 ESTADO LOCAL MÍNIMO PARA ESTA PANTALLA
-// ===============================================
-
-// Metodologías que usan el flujo "single-day" in-app (modal fin de semana →
-// elección de foco → calentamiento → reproductor de ejercicios).
-const SINGLE_DAY_METHODOLOGIES = ['HipertrofiaV2', 'Calistenia', 'CrossFit', 'Entrenamiento en Casa', 'Funcional', 'Halterofilia', 'Powerlifting', 'Heavy Duty'];
-
-// Grupos focales por metodología para el modal de "¿Qué prefieres entrenar?".
-const CALISTENIA_FOCUS_GROUPS = [
-  { id: 'Empuje', label: 'Empuje' },
-  { id: 'Tracción', label: 'Tracción' },
-  { id: 'Piernas', label: 'Piernas' },
-  { id: 'Core', label: 'Core' },
-  { id: 'Equilibrio/Soporte', label: 'Equilibrio' }
-];
-
-// Para CrossFit el "foco" es el formato de WOD o el dominio principal.
-const CROSSFIT_FOCUS_GROUPS = [
-  { id: 'amrap', label: 'AMRAP' },
-  { id: 'for_time', label: 'For Time' },
-  { id: 'emom', label: 'EMOM' },
-  { id: 'chipper', label: 'Chipper' },
-  { id: 'Weightlifting', label: 'Halterofilia' },
-  { id: 'Gymnastic', label: 'Gimnásticos' }
-];
-
-// Para Entrenamiento en Casa el "foco" es el tipo de trabajo (mapea a categorías
-// reales del catálogo disciplina='casa').
-const CASA_FOCUS_GROUPS = [
-  { id: 'Fuerza', label: 'Fuerza' },
-  { id: 'Funcional', label: 'Funcional' },
-  { id: 'Cardio', label: 'Cardio' },
-  { id: 'Movilidad', label: 'Movilidad' }
-];
-
-// Para Funcional el "foco" es el patrón de movimiento (mapea a categorías
-// reales del catálogo disciplina='funcional').
-const FUNCIONAL_FOCUS_GROUPS = [
-  { id: 'Empuje', label: 'Empuje' },
-  { id: 'Tracción', label: 'Tracción' },
-  { id: 'Piernas', label: 'Piernas' },
-  { id: 'Core', label: 'Core' },
-  { id: 'Movilidad', label: 'Movilidad' }
-];
-
-// Para Halterofilia el "foco" es la categoría olímpica (mapea a categorías
-// reales del catálogo disciplina='halterofilia').
-const HALTEROFILIA_FOCUS_GROUPS = [
-  { id: 'Snatch', label: 'Snatch' },
-  { id: 'Clean & Jerk', label: 'Clean & Jerk' },
-  { id: 'Técnica', label: 'Técnica' },
-  { id: 'Fuerza Base', label: 'Fuerza' }
-];
-
-// Para Powerlifting el "foco" es uno de los 3 básicos de competición (mapea a
-// categorías reales del catálogo disciplina='powerlifting').
-const POWERLIFTING_FOCUS_GROUPS = [
-  { id: 'Sentadilla', label: 'Sentadilla' },
-  { id: 'Press Banca', label: 'Press Banca' },
-  { id: 'Peso Muerto', label: 'Peso Muerto' }
-];
-
-// Para Heavy Duty (HIT/Mentzer) el "foco" es el grupo muscular (agrupa las
-// categorías reales del catálogo disciplina='heavy_duty' por ILIKE en backend).
-const HEAVY_DUTY_FOCUS_GROUPS = [
-  { id: 'Pecho', label: 'Pecho' },
-  { id: 'Espalda', label: 'Espalda' },
-  { id: 'Piernas', label: 'Piernas' },
-  { id: 'Hombros', label: 'Hombros' },
-  { id: 'Brazos', label: 'Brazos' },
-  { id: 'Core', label: 'Core' }
-];
-
-// Mapea el nombre de metodología del frontend a la clave de API single-day.
-const methodologyApiKey = (name) => {
-  if (name === 'Calistenia') return 'calistenia';
-  if (name === 'CrossFit') return 'crossfit';
-  if (name === 'Entrenamiento en Casa') return 'casa';
-  if (name === 'Funcional') return 'funcional';
-  if (name === 'Halterofilia') return 'halterofilia';
-  if (name === 'Powerlifting') return 'powerlifting';
-  if (name === 'Heavy Duty') return 'heavy_duty';
-  return 'hipertrofia';
-};
-
-// ===============================================
-// 🎨 MethodologyCard (nivel de módulo: referencia estable, sin remontajes)
-// ===============================================
-function MethodologyCard({ methodology, manualActive, onDetails, onSelect }) {
-  // Nombre visible (puede diferir del identificador interno `name`).
-  const label = methodology.displayName || methodology.name;
-  return (
-    <Card
-      className={`bg-neutral-900/70 border border-white/10 border-l-2 border-l-yellow-400/30 ring-1 ring-white/5 backdrop-blur-lg transition-all duration-300 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] ${
-        manualActive
-          ? 'hover:border-yellow-400/40 hover:border-l-yellow-400/60 hover:shadow-[0_25px_60px_-45px_rgba(250,204,21,0.35)]'
-          : 'hover:border-white/20 hover:border-l-yellow-400/50'
-      }`}
-      aria-label={`Tarjeta de metodología ${label}`}
-    >
-      <div className="p-4 pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-            {methodology.icon && <methodology.icon className="w-7 h-7 text-yellow-300" />}
-            <h3 className="text-white text-base sm:text-xl font-semibold font-urbanist leading-tight break-words">
-              {label}
-            </h3>
-          </div>
-          <span className="text-xs px-2 py-1 border border-white/10 bg-white/5 text-gray-200 rounded">
-            {methodology.level}
-          </span>
-        </div>
-        <p className="text-gray-300 mt-2 text-sm">{methodology.description}</p>
-      </div>
-      <div className="px-4 pb-4 space-y-3">
-        <div className="space-y-2">
-          {[
-            { label: 'Frecuencia', value: methodology.frequency },
-            { label: 'Volumen', value: methodology.volume },
-            { label: 'Intensidad', value: methodology.intensity }
-          ].map(({ label, value }) => (
-            <div key={label} className="flex justify-between text-sm">
-              <span className="text-gray-400">{label}:</span>
-              <span className="text-white">{value}</span>
-            </div>
-          ))}
-        </div>
-        <div className="flex gap-2 pt-2">
-          <Button
-            variant="outline"
-            className="flex-1 border border-white/10 text-gray-200 hover:bg-white/10 hover:text-white"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDetails(methodology);
-            }}
-            aria-label={`Ver detalles de ${label}`}
-          >
-            Ver Detalles
-          </Button>
-          <Button
-            className={`flex-1 ${manualActive
-              ? 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)]'
-              : 'bg-gradient-to-r from-yellow-300/70 via-yellow-400/70 to-amber-500/70 text-black hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400'
-            }`}
-            onClick={(e) => {
-              e.stopPropagation();
-              // Activar modo manual (si hace falta) y seleccionar en un solo clic.
-              onSelect(methodology, !manualActive);
-            }}
-            aria-label={`Seleccionar metodología ${label}`}
-          >
-            Seleccionar
-          </Button>
-        </div>
-      </div>
-    </Card>
-  );
-}
+// 🎯 CONFIG Y SUBCOMPONENTES EXTRAÍDOS (ARCH-002)
+import MethodologyCard from './MethodologyCard.jsx';
+import {
+  SINGLE_DAY_METHODOLOGIES,
+  CALISTENIA_FOCUS_GROUPS,
+  CROSSFIT_FOCUS_GROUPS,
+  CASA_FOCUS_GROUPS,
+  FUNCIONAL_FOCUS_GROUPS,
+  HALTEROFILIA_FOCUS_GROUPS,
+  POWERLIFTING_FOCUS_GROUPS,
+  HEAVY_DUTY_FOCUS_GROUPS,
+  methodologyApiKey
+} from './MethodologiesScreen.focusGroups.js';
 
 
 export default function MethodologiesScreen() {
