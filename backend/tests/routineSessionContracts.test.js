@@ -76,11 +76,22 @@ test("TodayTrainingTab mantiene cierre 7/7 y CrossFit usa WOD player desde plan"
 
 test("TodayTrainingTab prioriza today-status.summary como fuente de verdad del gate", () => {
   const source = readRepoFile("src/components/routines/tabs/TodayTrainingTab.jsx");
+  // ARCH-002: la lógica pura del gate (contadores + estados) se extrajo a
+  // TodayTrainingTab/gateLogic.js. El contrato "summary manda" se verifica ahora
+  // sobre ese módulo; TodayTrainingTab debe seguir cableado a él.
+  const gateLogicSource = readRepoFile(
+    "src/components/routines/tabs/TodayTrainingTab/gateLogic.js",
+  );
 
-  assert.match(source, /const backendSummary = todayStatus\?\.summary \|\| null/);
-  assert.match(source, /const hasBackendSummary = Boolean\(backendSummary\)/);
-  assert.match(source, /hasBackendSummary\s*\?\s*Number\(backendSummary\.total \|\| 0\)/);
-  assert.match(source, /const hasCompletedSession = isFinishedToday \|\|/);
+  assert.match(gateLogicSource, /const backendSummary = todayStatus\?\.summary \|\| null/);
+  assert.match(gateLogicSource, /const hasBackendSummary = Boolean\(backendSummary\)/);
+  assert.match(gateLogicSource, /hasBackendSummary\s*\?\s*Number\(backendSummary\.total \|\| 0\)/);
+  assert.match(gateLogicSource, /const hasCompletedSession = isFinishedToday \|\|/);
+
+  // TodayTrainingTab debe seguir cableado a gateLogic y exponer el dataSource.
+  assert.match(source, /from '\.\/TodayTrainingTab\/gateLogic/);
+  assert.match(source, /computeGateCounts/);
+  assert.match(source, /computeGateLogic/);
   assert.match(source, /dataSource: hasBackendSummary \? 'backend \(today-status\.summary\)'/);
 });
 
