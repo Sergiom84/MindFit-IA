@@ -4,6 +4,7 @@
  */
 
 import { systemWideCleanup } from '../utils/sessionCleanup.js';
+import { withAdvisoryLock, LOCK_KEYS } from '../utils/advisoryLock.js';
 
 /**
  * Ejecuta la limpieza automática del sistema
@@ -32,12 +33,17 @@ async function runCleanupJob() {
 export function startCleanupScheduler(intervalMinutes = 60) {
   console.log(`🕐 Iniciando programador de limpieza (cada ${intervalMinutes} minutos)`);
 
+  // OPS-001: guardado con advisory lock para que, con varias instancias, solo una
+  // ejecute la limpieza (tanto la inmediata al arranque como las periódicas).
+  const guardedCleanup = () =>
+    withAdvisoryLock(LOCK_KEYS.sessionCleanup, "sessionCleanup", runCleanupJob);
+
   // Ejecutar inmediatamente al iniciar
-  runCleanupJob();
+  guardedCleanup();
 
   // Programar ejecuciones periódicas
   const intervalMs = intervalMinutes * 60 * 1000;
-  const intervalId = setInterval(runCleanupJob, intervalMs);
+  const intervalId = setInterval(guardedCleanup, intervalMs);
 
   return intervalId;
 }

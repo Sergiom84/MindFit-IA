@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { pool } from "../db.js";
 import { finalizePlanIfCompleted } from "../services/methodologyPlansService.js";
+import { withAdvisoryLock, LOCK_KEYS } from "../utils/advisoryLock.js";
 
 const TIMEZONE = 'Europe/Madrid';
 const CUTOFF_TIME = '23:49:00';
@@ -146,7 +147,8 @@ export function startMissedSessionsScheduler() {
   const task = cron.schedule(
     "50 23 * * *", // Ejecutar a las 23:50 (después del cutoff de 23:49)
     () => {
-      markMissedSessions();
+      // OPS-001: en despliegues multi-instancia, solo una ejecuta el job.
+      withAdvisoryLock(LOCK_KEYS.missedSessions, "missedSessions", markMissedSessions);
     },
     {
       timezone: TIMEZONE,
