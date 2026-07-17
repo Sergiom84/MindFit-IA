@@ -23,7 +23,7 @@ import {
   evaluateMealNutrientBalance,
   isProcessedFood
 } from '../services/menuHardRulesEngine.js';
-import { clampNumber, parseJsonObject, formatLocalDate, normalizeFoodName } from './nutritionUtils.js';
+import { clampNumber, parseJsonObject, formatLocalDate, normalizeFoodName, foodTriggersAllergen, expandAllergenTerms } from './nutritionUtils.js';
 
 const VALID_ESTADOS_PESADO = ['crudo', 'cocido', 'escurrido', 'seco', 'tal_cual'];
 const VALID_DIET_FILTERS = ['omnivoro', 'vegetariano', 'vegano'];
@@ -210,10 +210,35 @@ function buildFoodCatalogFilters({
     whereClauses.push('COALESCE(is_vegan, FALSE) = TRUE');
   }
 
-  const allergens = normalizeStringArray(allergensExclude).map((allergen) => allergen.toLowerCase());
+  // Excluye por alérgeno de forma semántica: cada alérgeno se expande a sus
+  // derivados (soja→natto/tofu/tempeh/miso...) y se veta tanto en el NOMBRE como
+  // en los tags. Antes solo se comparaba contra tags, dejando pasar alimentos con
+  // etiquetado incompleto (p. ej. "Natto" a un alérgico a la soja).
+  const allergens = normalizeStringArray(allergensExclude);
+  const allergenTerms = new Set();
   for (const allergen of allergens) {
-    whereClauses.push(`LOWER(COALESCE(tags::text, '')) NOT LIKE $${params.length + 1}`);
-    params.push(`%${allergen}%`);
+    for (const term of expandAllergenTerms(allergen)) {
+      allergenTerms.add(term);
+    }
+  }
+  // Los términos vienen ya sin acentos (normalizeFoodName). Quitamos también los
+  // acentos del nombre en BD con translate() porque la extensión `unaccent` no
+  // está instalada en producción (p. ej. "Seitán" → "seitan").
+  const stripAccents = (col) =>
+    `translate(LOWER(${col}), 'áàäâéèëêíìïîóòöôúùüûñ', 'aaaaeeeeiiiioooouuuun')`;
+  for (const term of allergenTerms) {
+    const nameLike = params.length + 1;
+    const nameNeg = params.length + 2;
+    const tagsLike = params.length + 3;
+    const tagsNeg = params.length + 4;
+    // Excluir el alimento solo si el término aparece de forma NO negada. Así un
+    // "Arroz sin gluten" o un tag "sin gluten" no se descarta para un alérgico
+    // al gluten (la subcadena existe pero significa ausencia).
+    whereClauses.push(
+      `NOT (${stripAccents('nombre')} LIKE $${nameLike} AND ${stripAccents('nombre')} NOT LIKE $${nameNeg}) ` +
+      `AND NOT (LOWER(COALESCE(tags::text, '')) LIKE $${tagsLike} AND LOWER(COALESCE(tags::text, '')) NOT LIKE $${tagsNeg})`
+    );
+    params.push(`%${term}%`, `%sin ${term}%`, `%${term}%`, `%sin ${term}%`);
   }
 
   return {
@@ -428,16 +453,16 @@ function matchesFoodFilters(food, userFoodFilters) {
   if (diet === 'vegano' && !food.is_vegan) return false;
   if (diet === 'vegetariano' && !food.is_vegetarian) return false;
 
-  const allergens = normalizeStringArray(userFoodFilters?.allergensExclude).map((value) => value.toLowerCase());
+  const allergens = normalizeStringArray(userFoodFilters?.allergensExclude);
   if (allergens.length === 0) return true;
 
-  const tagSet = extractFoodTagsSet(food);
+  // Detección semántica: revisa NOMBRE y tags contra el alérgeno y sus derivados
+  // (soja→natto/tofu/tempeh/miso...), no solo el tag literal. Un tag incompleto
+  // en el catálogo ya no deja pasar un alimento peligroso.
+  const foodTags = Array.isArray(food?.tags) ? food.tags : normalizeStringArray(food?.tags);
   for (const allergen of allergens) {
-    if (!allergen) continue;
-    for (const tag of tagSet) {
-      if (tag.includes(allergen) || allergen.includes(tag)) {
-        return false;
-      }
+    if (foodTriggersAllergen(food?.nombre, foodTags, allergen)) {
+      return false;
     }
   }
 
