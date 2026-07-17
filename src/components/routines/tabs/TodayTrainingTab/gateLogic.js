@@ -50,6 +50,42 @@ export function computeGateCounts({ todayStatus, todaySessionData, exerciseProgr
  * Deriva los estados booleanos del gate a partir de los contadores y del backend.
  * @returns {{hasIncompleteExercises:boolean, allProcessedToday:boolean, isFinishedToday:boolean, hasCompletedSession:boolean, allProcessedIncomplete:boolean, canRetryToday:boolean, hasUnfinishedWorkToday:boolean}}
  */
+/**
+ * Estadísticas de progreso para el header (completados/total/skip/cancel).
+ * Prioriza `todayStatus.exercises`; si no, el progreso local; y `summary`
+ * (backend) pisa los valores cuando existe.
+ * @returns {{completed:number, total:number, skipped:number, cancelled:number}}
+ */
+export function computeHeaderProgressStats({ todayStatus, todaySessionData, exerciseProgress }) {
+  const total = (todaySessionData?.ejercicios?.length) || (todayStatus?.summary?.total) || 0;
+  let completed = 0, skipped = 0, cancelled = 0;
+
+  if (Array.isArray(todayStatus?.exercises)) {
+    for (const ex of todayStatus.exercises) {
+      const s = norm(ex?.status);
+      if (s === 'completed') completed++;
+      else if (s === 'skipped') skipped++;
+      else if (s === 'cancelled') cancelled++;
+    }
+  } else if (exerciseProgress && typeof exerciseProgress === 'object') {
+    for (const p of Object.values(exerciseProgress)) {
+      const s = norm(p?.status);
+      if (s === 'completed') completed++;
+      else if (s === 'skipped') skipped++;
+      else if (s === 'cancelled') cancelled++;
+    }
+  }
+
+  // Fallback a summary si existe (prioriza datos de backend)
+  if (todayStatus?.summary) {
+    completed = todayStatus.summary.completed ?? completed;
+    skipped = todayStatus.summary.skipped ?? skipped;
+    cancelled = todayStatus.summary.cancelled ?? cancelled;
+  }
+
+  return { completed, total, skipped, cancelled };
+}
+
 export function computeGateLogic({ counts, todayStatus }) {
   const { total, completed, pending, inProgress } = counts;
 

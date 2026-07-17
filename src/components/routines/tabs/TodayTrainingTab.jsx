@@ -66,7 +66,7 @@ import { getTodaySessionStatus, getWeekendStatus } from '../api.js';
 // 🎯 COMPONENTES MODULARES - Refactorización incremental
 import { ExerciseList, RestDayCard, StartSessionCard } from './TodayTrainingTab/components';
 import { EFFORT_ENDPOINTS, resolveEffortMethodKey } from './TodayTrainingTab/effortConfig.js';
-import { computeGateCounts, computeGateLogic } from './TodayTrainingTab/gateLogic.js';
+import { computeGateCounts, computeGateLogic, computeHeaderProgressStats } from './TodayTrainingTab/gateLogic.js';
 
 // 🎯 ADAPTACIÓN - Nuevos componentes para evaluación de transición
 import AdaptationProgressPanel from '../../Methodologie/methodologies/HipertrofiaV2/components/AdaptationProgressPanel';
@@ -1601,35 +1601,10 @@ export default function TodayTrainingTab({
 
 
   // Progreso para header (completados/total/skip/cancel)
-  const headerProgressStats = useMemo(() => {
-    const total = (todaySessionData?.ejercicios?.length) || (todayStatus?.summary?.total) || 0;
-    let completed = 0, skipped = 0, cancelled = 0;
-
-    if (Array.isArray(todayStatus?.exercises)) {
-      for (const ex of todayStatus.exercises) {
-        const s = String(ex?.status || '').toLowerCase();
-        if (s === 'completed') completed++;
-        else if (s === 'skipped') skipped++;
-        else if (s === 'cancelled') cancelled++;
-      }
-    } else if (exerciseProgress && typeof exerciseProgress === 'object') {
-      for (const p of Object.values(exerciseProgress)) {
-        const s = String(p?.status || '').toLowerCase();
-        if (s === 'completed') completed++;
-        else if (s === 'skipped') skipped++;
-        else if (s === 'cancelled') cancelled++;
-      }
-    }
-
-    // Fallback a summary si existe (prioriza datos de backend)
-    if (todayStatus?.summary) {
-      completed = todayStatus.summary.completed ?? completed;
-      skipped = todayStatus.summary.skipped ?? skipped;
-      cancelled = todayStatus.summary.cancelled ?? cancelled;
-    }
-
-    return { completed, total, skipped, cancelled };
-  }, [todayStatus?.exercises, todayStatus?.summary, exerciseProgress, todaySessionData?.ejercicios?.length]);
+  const headerProgressStats = useMemo(
+    () => computeHeaderProgressStats({ todayStatus, todaySessionData, exerciseProgress }),
+    [todayStatus, todaySessionData, exerciseProgress]
+  );
 
   // 🔍 DEBUG: Verificar qué está pasando antes del render (incluyendo estados de carga)
   console.log('🔍 DEBUG TodayTrainingTab SECTIONS:', {
