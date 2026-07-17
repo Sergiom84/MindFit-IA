@@ -72,3 +72,9 @@ scripts/.local-db/
 
 # Playwright storage state (contiene authToken de sesión — NEVER commit)
 output/qa-e2e/storageState.json
+
+# Capturas QA pesadas (evidencia E2E regenerable, ~178 MiB) — REPO-001
+output/**/*.png
+
+# Dataset ExerciseDB regenerable (~15 MiB) — REPO-001
+backend/output/catalog-audit/exercisedb_numeric.json

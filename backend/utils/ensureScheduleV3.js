@@ -792,12 +792,13 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
         // fecha del mismo plan (p.ej. dos "Sesion 6" el mismo viernes). Nunca debe
         // haber dos sesiones programadas del mismo plan en la misma fecha.
         await client.query(
+          // ON CONFLICT DO NOTHING sobre el índice único
+          // uq_workout_schedule_plan_user_date: race-proof (dos generaciones
+          // simultáneas ya no crean duplicados; antes el guard NOT EXISTS tenía
+          // una condición de carrera TOCTOU). Ver DATA-002.
           `INSERT INTO app.workout_schedule (methodology_plan_id, user_id, week_number, session_order, week_session_order, scheduled_date, day_name, day_abbrev, session_title, exercises, status)
-           SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11
-           WHERE NOT EXISTS (
-             SELECT 1 FROM app.workout_schedule
-             WHERE methodology_plan_id = $1 AND user_id = $2 AND scheduled_date = $6
-           )`,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+           ON CONFLICT (methodology_plan_id, user_id, scheduled_date) DO NOTHING`,
           [
             methodologyPlanId,
             userId,

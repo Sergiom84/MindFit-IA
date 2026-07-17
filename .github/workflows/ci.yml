@@ -79,3 +79,44 @@ jobs:
             "SELECT count(*) FROM information_schema.table_constraints WHERE table_schema='app' AND constraint_type='FOREIGN KEY'")
           echo "Restaurado -> tablas app: $TABLES | funciones: $FUNCS | FKs: $FKS"
           test "$TABLES" -ge 120 || { echo "Esperaba >=120 tablas, obtuve $TABLES"; exit 1; }
+
+  # CI-001: tests de INTEGRACIÓN contra una BD efímera (postgres:17) restaurada
+  # desde el baseline. No toca producción y no necesita un Supabase de staging.
+  integration-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: app_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # BD de test efímera; el guard de db.js permite este host (no es Supabase).
+      DATABASE_URL: postgresql://postgres@localhost:5432/app_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci --prefix backend
+
+      - name: Preparar stubs Supabase y restaurar baseline
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE anon NOLOGIN;" \
+            -c "CREATE ROLE authenticated NOLOGIN;" \
+            -c "CREATE ROLE service_role NOLOGIN;" \
+            -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;" \
+            -c "CREATE SCHEMA IF NOT EXISTS auth;" \
+            -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS 'SELECT NULL::uuid';" \
+            -f backend/db/baseline/app_schema_baseline.sql
+
+      - name: Tests de integración (BD efímera)
+        run: npm --prefix backend run test:integration
