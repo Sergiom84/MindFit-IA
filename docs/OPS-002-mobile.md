@@ -10,6 +10,8 @@
 - **Verificación 2026-07-18**: `bundleRelease` completó 118 tareas y generó
   `android/app/build/outputs/bundle/release/app-release.aab`; las cinco últimas ejecuciones
   del workflow Android en `main` estaban en verde.
+- **Google Play**: AAB firmado `1.0.1` (`versionCode=2`) publicado mediante Android
+  Publisher API en la pista `internal` de `com.entrenaconia.app`; estado `completed`.
 - **iOS**: publicación adicional bloqueada externamente por macOS + Xcode + certificados
   y cuenta Apple Developer. No bloquea el gate de la auditoría, cubierto por Android.
 - **Release web**: reproducible vía `npm run build` (verificado en CI `build-test`, servido

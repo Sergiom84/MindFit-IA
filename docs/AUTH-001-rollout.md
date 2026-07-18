@@ -37,9 +37,11 @@ soporta la vía rotatoria.
 2. **Deploy 2 — activar rotación corta + fail-closed**: `ACCESS_TOKEN_TTL=15m` y
    `AUTH_FAIL_CLOSED=1`. Requiere que el cliente compatible (Deploy 1) esté ya en manos de
    los usuarios. Los tokens legacy (7d, sin `jti`) siguen aceptados por la gracia.
+   **Activado en Render el 2026-07-18**, con `REFRESH_TOKEN_TTL_DAYS=30` y
+   `AUTH_LEGACY_GRACE=1`; deploy verificado `live` y `/api/health` correcto.
 3. **Deploy 3 — retirar la gracia legacy**: `AUTH_LEGACY_GRACE=0`, cuando la mayoría de
    tokens de 7d hayan caducado (≥7 días tras el Deploy 2). A partir de aquí, un token sin
-   `jti` se rechaza con fail-closed.
+   `jti` se rechaza con fail-closed. **No ejecutar antes del 2026-07-25**.
 
 **Rollback**: poner los flags a sus valores por defecto revierte al comportamiento actual
 sin cambios de esquema (las columnas nuevas son nullable e inertes con los flags off).
