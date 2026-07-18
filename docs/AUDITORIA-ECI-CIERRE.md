@@ -15,7 +15,7 @@ Expediente índice del programa de cierre de la Auditoría Integral (fuente orig
 | -------- | --------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | SEC-004  | P2        | **Cerrado**                                                           | rate limit IA por IP + clasificado por usuario (`backend/middleware/rateLimiters.js`)     |
 | DB-001   | P1        | **Cerrado**                                                           | ledger reconciliado 95/95 + CI restore-from-zero (`backend/migrations/RECONCILIATION.md`) |
-| AUTH-001 | P1        | **Backend/cliente listos; activación fasada pendiente en Render**     | [AUTH-001-rollout.md](AUTH-001-rollout.md)                                                |
+| AUTH-001 | P1        | **Cerrado; fase 2 activa en Render, gracia legacy temporal**          | [AUTH-001-rollout.md](AUTH-001-rollout.md)                                                |
 | AI-001   | P1        | **Cerrado**                                                           | Corrección Foto/Vídeo reparada (frames en cliente)                                        |
 | DEP-001  | P1        | **Cerrado** (prod limpia) + Dependabot/SBOM                           | [DEP-001-security.md](DEP-001-security.md)                                                |
 | ARCH-001 | P2        | **Cerrado**                                                           | [ARCH-001-ADAPTER-UNICO.md](ARCH-001-ADAPTER-UNICO.md)                                   |
@@ -29,14 +29,15 @@ Expediente índice del programa de cierre de la Auditoría Integral (fuente orig
 ## Gate para nuevas funcionalidades (auditoría)
 
 - 0 P0 abiertos: ✅
-- P1 de auth/DB/CI/config cerrados: ✅ (AUTH-001 requiere solo el flip de flags en Render)
+- P1 de auth/DB/CI/config cerrados: ✅ (AUTH-001 fase 2 activa en Render)
 - Restore de staging desde Git demostrado: ✅ (CI job `db-baseline-restore`)
 - Suite central en CI sin acceso a producción: ✅
 - Un release web y uno móvil reproducibles: web ✅ / Android AAB ✅
 
 ## Acciones pendientes fuera del código
 
-1. **Render (Sergio)**: activación fasada de AUTH-001 — ver [AUTH-001-rollout.md](AUTH-001-rollout.md).
+1. **Render, desde 2026-07-25**: retirar la gracia legacy con `AUTH_LEGACY_GRACE=0`
+   tras cumplirse la ventana de siete días — ver [AUTH-001-rollout.md](AUTH-001-rollout.md).
 2. **Móvil opcional**: certificados/cuenta iOS para publicar en TestFlight; no bloquea el
    gate, que queda cubierto por el AAB Android reproducible.
 

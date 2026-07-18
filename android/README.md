@@ -63,8 +63,10 @@ Política: incrementar `appVersionCode` en cada subida a Play Console (entero
 monótono) y `appVersionName` con SemVer visible al usuario. Mantener sincronizado
 con la versión web/API cuando se etiquete un release.
 
-## Pendiente (fuera de OPS-002)
+## Automatización actual
 
-- CI nativa (workflow que ejecute `android:sync` + `bundleRelease` con JDK 21) — hoy
-  el único workflow (`.github/workflows/ci.yml`) no compila Android.
-- iOS: requiere Xcode + archive; no cubierto aquí.
+- `.github/workflows/android.yml` compila el AAB con Node 22 y JDK 21 en cada cambio
+  móvil relevante de `main` y permite firma mediante secretos de GitHub.
+- El 2026-07-18 se publicó en Google Play `internal` el AAB firmado
+  `versionName=1.0.1`, `versionCode=2` para `com.entrenaconia.app`.
+- iOS requiere Xcode + archive y se publica posteriormente desde macOS.

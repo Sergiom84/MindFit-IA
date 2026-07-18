@@ -6,6 +6,7 @@
 - **Flujo de entrega autónomo**: `CLAUDE_RULES.md` permite desde ahora crear commit y publicar una rama cuando la implementación solicitada esté completa y verificada; las operaciones destructivas de Git continúan requiriendo autorización expresa.
 - **Cierre técnico ECI**: cerrado ARCH-001 al centralizar la URL de API y el token en adapters únicos; retirado SheetJS en favor de `exceljs`; formalizada la terminología MindFit/MindFeed y añadidos accesos directos a Casa y Corrección por IA; consolidados los gates de accesibilidad y rendimiento; verificado el AAB Android local con Java 21 y documentado el estado final de OPS-002.
 - **Protección de `main`**: configurados como obligatorios `build-test`, `db-baseline-restore`, `integration-tests`, `dependency-audit` y `a11y-audit`; activada la resolución de conversaciones y bloqueados force-push y borrado de la rama.
+- **Rollout AUTH + Google Play**: activada en Render la fase 2 de AUTH-001 (`ACCESS_TOKEN_TTL=15m`, refresh 30 días, fail-closed y gracia legacy temporal), despliegue `live` con health correcto; generado y publicado por API el AAB firmado MindFit `1.0.1`/`versionCode 2` en Google Play `internal`, y sincronizadas las fuentes de versión del repositorio.
 
 ## 09.07.2026
 
