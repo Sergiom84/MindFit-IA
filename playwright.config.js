@@ -41,20 +41,28 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
     {
+      name: 'audit-ui',
+      testMatch: /auditoria-hipertrofia-nutricion\.spec\.js/,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 390, height: 844 },
+      },
+    },
+    {
       name: 'chromium',
-      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js/,
+      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js/,
       use: { ...devices['Desktop Chrome'] },
     },
 
     {
       name: 'firefox',
-      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js/,
+      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js/,
       use: { ...devices['Desktop Firefox'] },
     },
 
     {
       name: 'webkit',
-      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js/,
+      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js/,
       use: { ...devices['Desktop Safari'] },
     },
 
@@ -79,10 +87,12 @@ export default defineConfig({
     // },
   ],
 
-  /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://127.0.0.1:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
+  /* El gate visual usa el bundle productivo. En CI reutiliza el preview que ya
+   * levanta el job de accesibilidad; en local Playwright lo inicia y lo cierra. */
+  webServer: {
+    command: 'npm run preview -- --port 4173 --strictPort',
+    url: 'http://localhost:4173/login',
+    reuseExistingServer: true,
+    timeout: 30000,
+  },
 });

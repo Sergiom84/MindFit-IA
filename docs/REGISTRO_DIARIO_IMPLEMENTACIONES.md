@@ -446,3 +446,7 @@
 ## 2026-07-10
 
 - Reglas operativas: se permite iniciar o reiniciar frontend/backend cuando exista una autorización general del usuario para la tarea, manteniendo la solicitud previa en los demás casos.
+
+## 2026-07-18
+
+- Cierre de la auditoría HipertrofiaV2/Nutrición: lecturas de perfil y plan activo deduplicadas mediante caché compartida e invalidación tras mutaciones (B-01), retirada la última redirección ejecutable de Hipertrofia legacy (B-02), ampliado el gate de menús a las 12 comidas del recorrido (A-04) y añadido Playwright móvil 390×844 para verificar que el reproductor captura el toque por encima de la navegación (A-05/M-05).

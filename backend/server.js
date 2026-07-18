@@ -394,9 +394,6 @@ app.post('/api/methodology/generate', authenticateToken, (req, res, next) => {
         startConfig: src.startConfig,
         includeWeek0: src.includeWeek0 !== undefined ? src.includeWeek0 : true
       };
-    } else if (methodology === 'hipertrofia') {
-      console.log('🏋️ Hipertrofia manual detectada - specialist/hipertrofia/generate');
-      req.url = '/api/routine-generation/specialist/hipertrofia/generate';
     } else if (methodology === 'oposicion' || methodology === 'oposiciones') {
       console.log('🏃 Oposiciones detectada - specialist/oposicion/generate');
       req.url = '/api/routine-generation/specialist/oposicion/generate';
