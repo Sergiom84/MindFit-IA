@@ -275,6 +275,39 @@ router.post('/register', async (req, res) => {
 
     const user = result.rows[0];
 
+    // Crear la fila espejo en app.user_profiles con los datos del onboarding.
+    // Motivo: la generación de rutinas (getUserFullProfile) y el display del perfil
+    // leen objetivo_principal / metodologia_preferida / limitaciones_fisicas desde
+    // user_profiles (alias p). Sin esta fila, esos campos del alta quedaban invisibles
+    // para el motor (caía al default 'general') hasta que el usuario reguardaba el perfil.
+    // limitaciones_fisicas en users es text[]; en user_profiles es text -> se aplana.
+    try {
+      const limitacionesFisicasText = Array.isArray(limitacionesFisicasValue)
+        ? (limitacionesFisicasValue.join('. ') || null)
+        : (toNullIfEmpty(limitacionesFisicasValue));
+
+      await pool.query(
+        `INSERT INTO app.user_profiles (
+           user_id, objetivo_principal, metodologia_preferida, limitaciones_fisicas
+         ) VALUES ($1, $2, $3, $4)
+         ON CONFLICT (user_id) DO UPDATE SET
+           objetivo_principal = COALESCE(app.user_profiles.objetivo_principal, EXCLUDED.objetivo_principal),
+           metodologia_preferida = COALESCE(app.user_profiles.metodologia_preferida, EXCLUDED.metodologia_preferida),
+           limitaciones_fisicas = COALESCE(NULLIF(app.user_profiles.limitaciones_fisicas, ''), EXCLUDED.limitaciones_fisicas),
+           updated_at = NOW()`,
+        [
+          user.id,
+          normalizeObjetivoPrincipal(objetivoPrincipal),
+          toNullIfEmpty(metodologiaPreferida),
+          limitacionesFisicasText
+        ]
+      );
+      console.log(`🧬 Perfil (user_profiles) creado para usuario ${user.id} desde el onboarding`);
+    } catch (profileError) {
+      // No fallar el registro; la lectura tiene además un COALESCE de respaldo con users.
+      console.error('Error creando user_profiles en el registro:', profileError);
+    }
+
     // Si es mujer y activó el seguimiento del ciclo, crear configuración
     if (normalizeSexo(sexo) === 'femenino' && cycleTrackingEnabled) {
       try {

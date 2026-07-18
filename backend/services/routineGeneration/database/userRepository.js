@@ -32,7 +32,10 @@ export async function getUserFullProfile(userId) {
         -- Nota: user_profiles.limitaciones_fisicas es text y users es text[],
         -- por eso se normaliza a texto con array_to_string.
         COALESCE(NULLIF(p.limitaciones_fisicas, ''), array_to_string(u.limitaciones_fisicas, '. ')) AS limitaciones_fisicas,
-        p.objetivo_principal, p.metodologia_preferida,
+        -- Onboarding escribe estos campos en users; user_profiles ahora se rellena en el
+        -- registro, pero el COALESCE cubre a los usuarios antiguos (fila p inexistente/vacía).
+        COALESCE(p.objetivo_principal, u.objetivo_principal) AS objetivo_principal,
+        COALESCE(p.metodologia_preferida, u.metodologia_preferida) AS metodologia_preferida,
         p.usar_preferencias_ia, p.dias_preferidos_entrenamiento,
         p.ejercicios_por_dia_preferido, p.semanas_entrenamiento
       FROM app.users u
