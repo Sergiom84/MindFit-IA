@@ -30,6 +30,10 @@ jobs:
 
       - run: npm ci
       - name: Build web (modo móvil) + sync Capacitor
+        env:
+          # CONFIG-001: el build móvil exige una URL ABSOLUTA y pública del backend
+          # (localhost no funciona en el WebView). Producción en Render.
+          VITE_API_URL: ${{ vars.MOBILE_API_URL || 'https://entrenaconia.onrender.com' }}
         run: |
           npm run build:mobile
           npx cap sync android
