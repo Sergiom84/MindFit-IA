@@ -5,11 +5,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import express from 'express';
-import { createAiLimiter, createAuthLimiter } from '../middleware/rateLimiters.js';
+import jwt from 'jsonwebtoken';
 
-// Levanta un app con el middleware dado, hace N peticiones GET a "/" y devuelve
-// la lista de códigos de estado. Cierra el servidor al terminar.
-async function hitN(middleware, n) {
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-ratelimit';
+const { createAiLimiter, createAuthLimiter } = await import('../middleware/rateLimiters.js');
+
+// Levanta un app con el middleware dado, hace N peticiones GET a "/" con los headers
+// dados y devuelve la lista de códigos de estado. Cierra el servidor al terminar.
+async function hitN(middleware, n, headers = { 'X-Forwarded-For': '203.0.113.7' }) {
   const app = express();
   app.set('trust proxy', 1);
   app.use(middleware);
@@ -23,10 +26,7 @@ async function hitN(middleware, n) {
   try {
     const codes = [];
     for (let i = 0; i < n; i += 1) {
-      // Fijamos X-Forwarded-For para que el conteo por IP sea estable entre peticiones.
-      const res = await fetch(`http://127.0.0.1:${port}/`, {
-        headers: { 'X-Forwarded-For': '203.0.113.7' },
-      });
+      const res = await fetch(`http://127.0.0.1:${port}/`, { headers });
       codes.push(res.status);
     }
     return codes;
@@ -34,6 +34,11 @@ async function hitN(middleware, n) {
     await new Promise((resolve) => server.close(resolve));
   }
 }
+
+const bearer = (userId) => ({
+  Authorization: `Bearer ${jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '5m' })}`,
+  'X-Forwarded-For': '203.0.113.9',
+});
 
 test('aiLimiter permite hasta el máximo y luego responde 429', async () => {
   const limiter = createAiLimiter({ max: 3, windowMs: 60 * 1000 });
@@ -51,4 +56,14 @@ test('authLimiter aplica su propio umbral independiente', async () => {
   assert.deepEqual(codes.slice(0, 2), [200, 200]);
   assert.equal(codes[2], 429);
   assert.equal(codes[3], 429);
+});
+
+test('aiLimiter keyea POR USUARIO: dos usuarios tienen cubos separados', async () => {
+  // Mismo limitador compartido entre las dos tandas (mismo store en memoria).
+  const limiter = createAiLimiter({ max: 2, windowMs: 60 * 1000 });
+  const a = await hitN(limiter, 3, bearer(1001));
+  const b = await hitN(limiter, 3, bearer(2002));
+
+  assert.deepEqual(a, [200, 200, 429], 'usuario A: 2 ok y luego 429');
+  assert.deepEqual(b, [200, 200, 429], 'usuario B no hereda el consumo de A');
 });

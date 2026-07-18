@@ -12,7 +12,7 @@ import { preloadAllPrompts } from './lib/promptRegistry.js';
 import { validateAPIKeys } from './lib/openaiClient.js';
 import { initializeSessionMaintenance } from './utils/sessionMaintenance.js';
 import { startCleanupScheduler } from './jobs/sessionCleanupJob.js';
-import { authLimiter, aiLimiter } from './middleware/rateLimiters.js';
+import { authLimiter, aiLimiter, uploadLimiter, heartbeatLimiter } from './middleware/rateLimiters.js';
 import { startMissedSessionsScheduler } from './jobs/missedSessionsJob.js';
 
 // Helper function for Spanish timezone (UTC+2/UTC+1 depending on DST)
@@ -454,10 +454,11 @@ app.post('/api/methodology/generate', authenticateToken, (req, res, next) => {
 // 🎯 RUTAS PRINCIPALES CONSOLIDADAS
 // ===============================================
 
-// SEC-004 (contención, PR 1): montar aiLimiter ANTES de los routers, solo sobre los
-// subpaths de generación IA. El proxy /api/methodology/generate re-despacha (next())
-// a estos mismos subpaths, por lo que queda cubierto sin doble conteo. nutrition-v2 y
-// progress se limitan por subpath para no frenar sus lecturas normales.
+// SEC-004: aiLimiter montado ANTES de los routers, solo sobre los subpaths de
+// generación IA. PR 5: keyea POR USUARIO (verifica el bearer en keyGenerator; fallback
+// IP IPv6-safe). El proxy /api/methodology/generate re-despacha (next()) a estos mismos
+// subpaths, cubierto sin doble conteo. nutrition-v2 y progress se limitan por subpath
+// para no frenar sus lecturas normales.
 app.use('/api/ai', aiLimiter);
 app.use('/api/ai-photo-correction', aiLimiter);
 app.use('/api/routine-generation', aiLimiter);
@@ -476,10 +477,13 @@ app.use('/api/exercise-catalog', exerciseCatalogRoutes);
 app.use('/api/progress', progressReEvaluationRoutes);
 
 // === RUTAS NO AFECTADAS POR LA CONSOLIDACIÓN ===
-// SEC-004: rate limit solo en login/registro (fuerza bruta), no en el resto de
-// /api/auth (heartbeat/refresh son frecuentes).
+// SEC-004 (PR 5): rate limiting clasificado. Auth (fuerza bruta) por IP en
+// login/registro/refresh; heartbeat con límite GENEROSO por usuario (es frecuente);
+// el resto de /api/auth (logout/verify/sessions) sin límite específico.
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/refresh', authLimiter);
+app.use('/api/auth/heartbeat', heartbeatLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/medical-docs', medicalDocsRoutes);
@@ -487,6 +491,7 @@ app.use('/api/equipment', equipmentRoutes);
 app.use('/api/ai', aiVideoCorrection);
 app.use('/api/ai-photo-correction', aiPhotoCorrection);
 app.use('/api/body-composition', bodyCompositionRoutes);
+app.use('/api/uploads', uploadLimiter); // SEC-004 (PR 5): límite de subidas por usuario
 app.use('/api/uploads', uploadsRoutes);
 // Legacy routes mantidas temporalmente para compatibilidad
 app.use('/api/routines', routinesRoutes);
