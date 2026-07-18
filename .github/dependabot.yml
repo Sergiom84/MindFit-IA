@@ -1,0 +1,30 @@
+# DEP-001: actualizaciones automáticas de dependencias (raíz + backend).
+# Agrupadas para reducir ruido de PRs; los majors van sueltos para revisarlos con cuidado.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      root-minor-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "root"]
+
+  - package-ecosystem: "npm"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      backend-minor-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "backend"]
+
+  # Mantener actualizadas las GitHub Actions del CI.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "ci"]
