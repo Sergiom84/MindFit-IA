@@ -38,7 +38,7 @@ export const useAuth = () => {
         throw new Error(data.error || 'Error de autenticación');
       }
 
-      contextLogin(data.user, data.token);
+      contextLogin(data.user, data.token, data.refreshToken);
       navigate('/');
 
       return { success: true };

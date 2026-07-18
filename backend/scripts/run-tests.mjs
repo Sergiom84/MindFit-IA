@@ -47,6 +47,11 @@ const env = { ...process.env };
 if (mode === 'integration') {
   // Activa el guard de db.js: si DATABASE_URL es de producción, abortará.
   env.NODE_ENV = 'test';
+} else if (mode === 'unit' && !env.DATABASE_URL) {
+  // Los tests UNIT no tocan la BD (usan mocks), pero algunos importan servicios que a
+  // su vez importan db.js, que LANZA al cargar si falta DATABASE_URL. En CI no hay .env,
+  // así que damos un placeholder inofensivo: el pool es lazy y nunca llega a conectar.
+  env.DATABASE_URL = 'postgresql://127.0.0.1:5432/placeholder_unit_no_connect';
 }
 
 console.log(`▶ Ejecutando ${files.length} tests (${mode}):`);

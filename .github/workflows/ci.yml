@@ -23,6 +23,9 @@ jobs:
       - run: npm run lint
       - run: npm run build
 
+      # PERF-001: budget de tamaño de bundle (falla si un chunk supera el presupuesto).
+      - run: npm run perf:budget
+
       # Tests UNIT reales (sin BD). Los de integración NO corren en CI: requieren
       # una BD de test y se protegen del uso accidental contra producción
       # (guard en backend/db.js con NODE_ENV=test).
@@ -48,8 +51,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+    env:
+      # BD efímera solo del job; el guard de db.js la permite (no es host Supabase).
+      DATABASE_URL: postgresql://postgres@localhost:5432/baseline_check
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci --prefix backend
 
       - name: Preparar roles Supabase (stubs) y extensiones
         run: |
@@ -79,6 +89,16 @@ jobs:
             "SELECT count(*) FROM information_schema.table_constraints WHERE table_schema='app' AND constraint_type='FOREIGN KEY'")
           echo "Restaurado -> tablas app: $TABLES | funciones: $FUNCS | FKs: $FKS"
           test "$TABLES" -ge 120 || { echo "Esperaba >=120 tablas, obtuve $TABLES"; exit 1; }
+
+      # DB-001 (PR 2): ejercita el runner sobre la BD restaurada DESDE CERO. El baseline
+      # ya contiene el esquema completo, así que adoptamos el ledger con `baseline`
+      # (marca las migraciones como aplicadas SIN re-ejecutarlas: evita doble aplicación)
+      # y exigimos que `migrate:check` quede limpio (0 pendientes / 0 checksum divergente).
+      # Prueba que la adopción del runner sobre un restore es reproducible y sin drift.
+      - name: Adoptar ledger y verificar que queda limpio
+        run: |
+          npm --prefix backend run migrate:baseline
+          npm --prefix backend run migrate:check
 
   # CI-001: tests de INTEGRACIÓN contra una BD efímera (postgres:17) restaurada
   # desde el baseline. No toca producción y no necesita un Supabase de staging.
@@ -120,3 +140,60 @@ jobs:
 
       - name: Tests de integración (BD efímera)
         run: npm --prefix backend run test:integration
+
+  # DEP-001: gate de seguridad de dependencias + SBOM CycloneDX.
+  dependency-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - run: npm ci --prefix backend
+
+      # Gate DURO: PRODUCCIÓN no puede introducir vulnerabilidades high/critical.
+      - name: Audit producción (raíz)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Audit producción (backend)
+        run: npm --prefix backend audit --omit=dev --audit-level=high
+
+      # Informativo: árbol completo (incluye dev tooling). No bloquea el merge; hace
+      # visible la deuda de dev. Excepciones conocidas documentadas en docs/DEP-001-security.md.
+      - name: Audit árbol completo (informativo)
+        run: |
+          echo "== raíz ==" && npm audit || true
+          echo "== backend ==" && npm --prefix backend audit || true
+
+      # SBOM CycloneDX (raíz y backend) como artefactos del build.
+      - name: Generar SBOM raíz (CycloneDX)
+        run: npx --yes @cyclonedx/cyclonedx-npm --output-file sbom-root.json
+      - name: Generar SBOM backend (CycloneDX)
+        working-directory: backend
+        run: npx --yes @cyclonedx/cyclonedx-npm --output-file ../sbom-backend.json
+      - name: Subir SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: |
+            sbom-root.json
+            sbom-backend.json
+
+  # QA-001: auditoría de accesibilidad (axe) sobre las páginas públicas del build.
+  a11y-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Servir build y auditar a11y
+        env:
+          A11Y_BASE_URL: http://localhost:4173
+        run: |
+          npx vite preview --port 4173 &
+          for i in $(seq 1 30); do curl -sf http://localhost:4173/login >/dev/null && break || sleep 2; done
+          npm run test:a11y

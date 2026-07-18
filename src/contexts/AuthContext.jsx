@@ -640,13 +640,15 @@ export const AuthProvider = ({ children }) => {
     sessionManager.dismissInactivityWarning();
   }, []);
 
-  // Función de login simplificada para compatibilidad hacia atrás
-  const simpleLogin = (userData, token) => {
+  // Función de login simplificada para compatibilidad hacia atrás.
+  // AUTH-001 (PR 4): acepta y persiste el refreshToken rotatorio (si el servidor lo
+  // envía). Sin él, tokenManager cae al flujo legacy (envía el JWT en /refresh).
+  const simpleLogin = (userData, token, refreshToken = null) => {
     // Guardar con el nuevo sistema pero mantener interfaz anterior
     StorageManager.set('token', token); // Compatibilidad
     StorageManager.set('user', userData); // Compatibilidad
 
-    tokenManager.setTokens(token);
+    tokenManager.setTokens(token, refreshToken);
     StorageManager.set(STORAGE_KEYS.USER, userData);
     setUser(userData);
     setIsAuthenticated(true);

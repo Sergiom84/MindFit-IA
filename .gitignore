@@ -78,3 +78,11 @@ output/**/*.png
 
 # Dataset ExerciseDB regenerable (~15 MiB) — REPO-001
 backend/output/catalog-audit/exercisedb_numeric.json
+
+# DEP-001: SBOM generados en CI (artefactos, no versionar)
+sbom-*.json
+_sbom_test.json
+
+# OPS-002: keystore inyectado en CI (nunca versionar)
+android/app/*.keystore
+android/app/release.keystore

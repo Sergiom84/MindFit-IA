@@ -149,61 +149,62 @@ export function hashJWTToken(token) {
 }
 
 /**
- * Registra una nueva sesión de login
+ * Registra una nueva sesión de login.
+ *
+ * AUTH-001 (PR 3): `sessionFields` opcional permite fijar el session_id (para ligarlo
+ * como `jti` del access token) y guardar el refresh token rotatorio (solo su hash):
+ *   { sessionId, refreshTokenHash, refreshExpiresAt, jwtExpiresAt }
+ * Si no se pasan, se conserva el comportamiento legacy (session_id por defecto de la BD,
+ * sin refresh, expiración a 7 días).
  */
-export async function logUserLogin(userId, token, req, additionalMetadata = {}) {
+export async function logUserLogin(userId, token, req, additionalMetadata = {}, sessionFields = {}) {
     try {
         const deviceInfo = buildDeviceInfo(req);
         const tokenHash = hashJWTToken(token);
-        
+
         // Extraer IP para almacenamiento directo
-        const clientIP = (req.headers['x-forwarded-for'] || 
-                         req.headers['x-real-ip'] || 
-                         req.connection?.remoteAddress || 
-                         req.socket?.remoteAddress || 
-                         req.ip || 
+        const clientIP = (req.headers['x-forwarded-for'] ||
+                         req.headers['x-real-ip'] ||
+                         req.connection?.remoteAddress ||
+                         req.socket?.remoteAddress ||
+                         req.ip ||
                          'unknown').split(',')[0].trim();
-        
-        // Calcular expiración del JWT (normalmente 7 días según el código)
-        const jwtExpiresAt = new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)); // 7 días
-        
+
+        // Expiración del access token: la que indique el llamador (deriva de ACCESS_TOKEN_TTL)
+        // o el legacy de 7 días.
+        const jwtExpiresAt = sessionFields.jwtExpiresAt
+            || new Date(Date.now() + (7 * 24 * 60 * 60 * 1000));
+
         const sessionMetadata = {
             ...additionalMetadata,
             loginMethod: 'password',
             source: 'web-app'
         };
-        
-        const result = await pool.query(`
-            INSERT INTO app.user_sessions (
-                user_id, 
-                ip_address, 
-                user_agent, 
-                device_info, 
-                jwt_token_hash, 
-                jwt_expires_at,
-                session_metadata
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING session_id, login_time
-        `, [
-            userId,
-            clientIP,
-            req.headers['user-agent'] || 'unknown',
-            JSON.stringify(deviceInfo),
-            tokenHash,
-            jwtExpiresAt,
-            JSON.stringify(sessionMetadata)
-        ]);
-        
+
+        // Columnas base + (opcional) session_id explícito y refresh rotatorio.
+        const cols = ['user_id', 'ip_address', 'user_agent', 'device_info', 'jwt_token_hash', 'jwt_expires_at', 'session_metadata'];
+        const vals = [userId, clientIP, req.headers['user-agent'] || 'unknown', JSON.stringify(deviceInfo), tokenHash, jwtExpiresAt, JSON.stringify(sessionMetadata)];
+        if (sessionFields.sessionId) { cols.push('session_id'); vals.push(sessionFields.sessionId); }
+        if (sessionFields.refreshTokenHash) { cols.push('refresh_token_hash'); vals.push(sessionFields.refreshTokenHash); }
+        if (sessionFields.refreshExpiresAt) { cols.push('refresh_expires_at'); vals.push(sessionFields.refreshExpiresAt); }
+        const placeholders = vals.map((_, i) => `$${i + 1}`).join(', ');
+
+        const result = await pool.query(
+            `INSERT INTO app.user_sessions (${cols.join(', ')}) VALUES (${placeholders})
+             RETURNING session_id, login_time`,
+            vals
+        );
+
         const session = result.rows[0];
-        
+
         console.log(`Nueva sesión registrada - User: ${userId}, Session: ${session.session_id}, IP: ${clientIP}`);
-        
+
         return {
             success: true,
             sessionId: session.session_id,
             loginTime: session.login_time
         };
-        
+
     } catch (error) {
         console.error('Error registrando sesión de login:', error);
         return {

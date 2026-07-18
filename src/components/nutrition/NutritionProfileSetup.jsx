@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { User, Activity, Target, Utensils, AlertCircle, CheckCircle2, Brain } from 'lucide-react';
 import MetabolicQuestionnaire from './MetabolicQuestionnaire.jsx';
 import tokenManager from '../../utils/tokenManager';
+import { getApiBaseUrl } from '../../config/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
+// ARCH-001: base URL canónica desde el adapter de config (VITE_API_URL o same-origin).
+const API_URL = getApiBaseUrl();
 
 /**
  * Componente de configuración de perfil nutricional

@@ -34,21 +34,27 @@ export default defineConfig({
       testMatch: /regresion-.*\.spec\.js/,
       fullyParallel: false,
     },
+    /* QA-001: auditoría de accesibilidad (axe) sobre páginas públicas. */
+    {
+      name: 'a11y',
+      testMatch: /a11y\.spec\.js/,
+      use: { ...devices['Desktop Chrome'] },
+    },
     {
       name: 'chromium',
-      testIgnore: /regresion-.*\.spec\.js/,
+      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js/,
       use: { ...devices['Desktop Chrome'] },
     },
 
     {
       name: 'firefox',
-      testIgnore: /regresion-.*\.spec\.js/,
+      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js/,
       use: { ...devices['Desktop Firefox'] },
     },
 
     {
       name: 'webkit',
-      testIgnore: /regresion-.*\.spec\.js/,
+      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js/,
       use: { ...devices['Desktop Safari'] },
     },
 

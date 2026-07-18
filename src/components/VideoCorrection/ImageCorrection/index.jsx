@@ -16,6 +16,7 @@ import {
   Target
 } from 'lucide-react';
 
+import tokenManager from '../../../utils/tokenManager';
 import ExerciseSelector from '../shared/ExerciseSelector';
 import AnalysisResult from '../shared/AnalysisResult';
 import VoiceFeedback from '../shared/VoiceFeedback';
@@ -239,8 +240,12 @@ export default function ImageCorrection() {
         .map(([key, value]) => key);
       console.log('✅ Campos con datos:', fieldsWithData);
 
-      // Llamar a la ruta específica de análisis de fotos
-      const res = await fetch('/api/ai-photo-correction/analyze', { method: 'POST', body: fd });
+      // Llamar a la ruta específica de análisis de fotos (AI-001: requiere JWT)
+      const res = await fetch('/api/ai-photo-correction/analyze', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokenManager.getToken()}` },
+        body: fd,
+      });
       if (!res.ok) {
         const errorText = await res.text();
         throw new Error(`Análisis IA no disponible: ${errorText}`);

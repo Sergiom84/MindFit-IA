@@ -1,0 +1,71 @@
+# OPS-002: build reproducible del AAB de Android en CI (Java 21).
+# - Sin secretos de firma: compila un AAB RELEASE SIN FIRMAR (valida el build nativo).
+# - Con secretos (ANDROID_KEYSTORE_BASE64 + passwords): compila el AAB FIRMADO de staging.
+# El versionado se pasa en una sola fuente: versionName = package.json, versionCode = run.
+name: Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - "src/**"
+      - "package.json"
+      - "capacitor.config.json"
+      - ".github/workflows/android.yml"
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - run: npm ci
+      - name: Build web (modo móvil) + sync Capacitor
+        run: |
+          npm run build:mobile
+          npx cap sync android
+
+      - name: Configurar firma si hay secretos
+        id: signing
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > android/app/release.keystore
+            # Los valores llegan por %s (env, desde GitHub Secrets); nunca se escriben
+            # literales en el repo.
+            printf 'storeFile=release.keystore\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+              "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/keystore.properties
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+            echo "Firma configurada (AAB de release firmado)."
+          else
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "Sin secretos de firma: AAB de release SIN FIRMAR (solo valida el build)."
+          fi
+
+      - name: Build AAB (bundleRelease)
+        working-directory: android
+        run: |
+          VC="${GITHUB_RUN_NUMBER:-1}"
+          VN="$(node -p "require('../package.json').version")"
+          chmod +x gradlew
+          ./gradlew bundleRelease -PappVersionCode="$VC" -PappVersionName="$VN" --no-daemon --stacktrace
+
+      - name: Subir AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aab-${{ steps.signing.outputs.signed == 'true' && 'signed' || 'unsigned' }}
+          path: android/app/build/outputs/bundle/**/*.aab
+          if-no-files-found: error

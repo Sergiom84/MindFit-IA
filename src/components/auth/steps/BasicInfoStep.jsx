@@ -113,6 +113,7 @@ const BasicInfoStep = ({ formData, onInputChange, errors = {} }) => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -148,6 +149,7 @@ const BasicInfoStep = ({ formData, onInputChange, errors = {} }) => {
           <div>
             <label className={LABEL_STYLES}>Sexo {REQUIRED_INDICATOR}</label>
             <select
+              aria-label="Sexo"
               name="sexo"
               value={formData.sexo}
               onChange={handleChange}
@@ -205,6 +207,7 @@ const BasicInfoStep = ({ formData, onInputChange, errors = {} }) => {
           <div>
             <label className={LABEL_STYLES}>Nivel de Entrenamiento</label>
             <select
+              aria-label="Nivel de Entrenamiento"
               name="nivelEntrenamiento"
               value={formData.nivelEntrenamiento}
               onChange={handleChange}
@@ -254,6 +257,7 @@ const BasicInfoStep = ({ formData, onInputChange, errors = {} }) => {
           <div>
             <label className={LABEL_STYLES}>Metodología Preferida</label>
             <select
+              aria-label="Metodología Preferida"
               name="metodologiaPreferida"
               value={formData.metodologiaPreferida}
               onChange={handleChange}
@@ -275,6 +279,7 @@ const BasicInfoStep = ({ formData, onInputChange, errors = {} }) => {
           <div className="md:col-span-2">
             <label className={LABEL_STYLES}>Nivel de Actividad</label>
             <select
+              aria-label="Nivel de Actividad"
               name="nivelActividad"
               value={formData.nivelActividad}
               onChange={handleChange}

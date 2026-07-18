@@ -11,6 +11,15 @@ export default defineConfig([
     'android/**/build/**',
     '.kilocode',
     '.kilocode/**',
+    // Worktrees ocultos de kilo: copias obsoletas (a veces con conflictos sin resolver)
+    // que NO forman parte del runtime. Rompían `eslint .` (CI en rojo).
+    '.kilo',
+    '.kilo/**',
+    // Artefactos de test/reporte de Playwright.
+    'playwright-report',
+    'playwright-report/**',
+    'test-results',
+    'test-results/**',
     'backend/routes/crossfit_endpoints.js',
     'backend/routes/funcional_endpoints.tmp.js',
   ]),

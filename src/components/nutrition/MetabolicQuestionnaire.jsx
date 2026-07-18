@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { Brain, CheckCircle2, AlertCircle, Activity } from "lucide-react";
 import tokenManager from '../../utils/tokenManager';
+import { getApiBaseUrl } from '../../config/api';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3010";
+// ARCH-001: base URL canónica desde el adapter de config (VITE_API_URL o same-origin).
+const API_URL = getApiBaseUrl();
 
 const PROFILE_LABELS = {
   tolerante: "Mas carbo",

@@ -28,7 +28,7 @@ export const useRegistration = () => {
 
       // Registro exitoso - login automático si hay token
       if (data.token && data.user) {
-        contextLogin(data.user, data.token);
+        contextLogin(data.user, data.token, data.refreshToken);
 
         // Limpiar datos guardados del formulario
         localStorage.removeItem('register_form_progress');

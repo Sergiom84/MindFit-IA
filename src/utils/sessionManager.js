@@ -11,6 +11,7 @@
  */
 
 import { TIMEOUT_CONFIG, STORAGE_KEYS, ANALYTICS_CONFIG } from '../config/authConfig';
+import tokenManager from './tokenManager';
 
 // =============================================================================
 // 🕐 GESTIÓN DE SESIONES Y TIMEOUTS
@@ -361,12 +362,12 @@ class SessionManager {
     try {
       if (!this.isOnline) return;
 
-      const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+      // ARCH-001: token vía el adapter (tokenManager), no localStorage directo.
+      const token = tokenManager.getToken();
       if (!token) return;
 
-      // Enviar ping al servidor
-      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
-      const response = await fetch(`${baseURL}/api/auth/heartbeat`, {
+      // ARCH-001: URL relativa (proxy en dev, same-origin en prod); sin base URL manual.
+      const response = await fetch('/api/auth/heartbeat', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

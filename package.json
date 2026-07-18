@@ -20,6 +20,8 @@
     "sync-dev": "scripts/sync-dev.bat",
     "lint": "eslint --config .eslint.config.mjs .",
     "build": "vite build",
+    "perf:budget": "node scripts/check-bundle-budget.mjs",
+    "test:a11y": "playwright test --project=a11y --reporter=list",
     "test": "npm --prefix backend run test:unit",
     "test:backend": "npm --prefix backend run test:unit",
     "test:backend:integration": "npm --prefix backend run test:integration",
@@ -82,9 +84,11 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^3.4.17",
     "vite": "^6.3.5",
+    "web-vitals": "^4.2.4",
     "zod": "^3.24.4"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@capacitor/assets": "^3.0.5",
     "@eslint/js": "^9.33.0",
     "@types/react": "^19.1.10",
