@@ -14,6 +14,7 @@
 // =============================================================================
 import React, { StrictMode, Component } from 'react';
 import { createRoot } from 'react-dom/client';
+import { initWebVitals } from './utils/webVitals';
 
 // =============================================================================
 // 🧭 ROUTING
@@ -195,6 +196,9 @@ function initializeApp() {
       </GlobalErrorBoundary>
     </StrictMode>
   );
+
+  // PERF-001: instrumentación de Web Vitals (LCP/INP/CLS/FCP/TTFB).
+  initWebVitals();
 
   // Logging de tiempo de inicialización
   if (import.meta.env.DEV) {
