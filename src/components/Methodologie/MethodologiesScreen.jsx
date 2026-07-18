@@ -35,19 +35,17 @@ import StartDayConfirmationModal from '../routines/modals/StartDayConfirmationMo
 import SessionDistributionModal from '../routines/modals/SessionDistributionModal.jsx';
 import HipertrofiaWeekendModal from '../routines/modals/HipertrofiaWeekendModal.jsx';
 import HipertrofiaFocusModal from '../routines/modals/HipertrofiaFocusModal.jsx';
-import CalisteniaEffortModal from '../routines/modals/CalisteniaEffortModal.jsx';
-import CrossFitEffortModal from '../routines/modals/CrossFitEffortModal.jsx';
-import HalterofiliaEffortModal from '../routines/modals/HalterofiliaEffortModal.jsx';
-import FuncionalEffortModal from '../routines/modals/FuncionalEffortModal.jsx';
-import CasaEffortModal from '../routines/modals/CasaEffortModal.jsx';
-import HeavyDutyEffortModal from '../routines/modals/HeavyDutyEffortModal.jsx';
-import PowerliftingEffortModal from '../routines/modals/PowerliftingEffortModal.jsx';
 import CasaEquipmentModal from '../routines/modals/CasaEquipmentModal.jsx';
+import EffortModals from './EffortModals.jsx';
 import apiClient from '@/lib/apiClient';
+import { getApiBaseUrl } from '../../config/api';
 
 // 🎯 HOOKS MODULARES - Refactorización incremental
 import { useMethodologyValidation } from './hooks/useMethodologyValidation';
 import tokenManager from '../../utils/tokenManager';
+
+// ARCH-001 residual: sin base URL hardcodeada; usa getApiBaseUrl() (respeta VITE_API_URL/origen).
+const API_URL = getApiBaseUrl();
 
 // 🎯 CONFIG Y SUBCOMPONENTES EXTRAÍDOS (ARCH-002)
 import MethodologyCard from './MethodologyCard.jsx';
@@ -1819,7 +1817,7 @@ export default function MethodologiesScreen() {
               const sid = session.sessionId;
               const exerciseOrder = exerciseIndex + 1;
               try {
-                await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
+                await fetch(`${API_URL}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
                   method: 'PUT',
                   headers: {
                     'Authorization': `Bearer ${tokenManager.getToken()}`,
@@ -1845,7 +1843,7 @@ export default function MethodologiesScreen() {
               const sid = session.sessionId;
               const exerciseOrder = exerciseIndex + 1;
               try {
-                await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
+                await fetch(`${API_URL}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
                   method: 'PUT',
                   headers: {
                     'Authorization': `Bearer ${tokenManager.getToken()}`,
@@ -1871,7 +1869,7 @@ export default function MethodologiesScreen() {
               const sid = session.sessionId;
               const exerciseOrder = exerciseIndex + 1;
               try {
-                await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
+                await fetch(`${API_URL}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
                   method: 'PUT',
                   headers: {
                     'Authorization': `Bearer ${tokenManager.getToken()}`,
@@ -1953,75 +1951,25 @@ export default function MethodologiesScreen() {
         onClose={closeHipertrofiaWeekendModals}
       />
 
-      {/* Autorregulación Calistenia: auto-evaluación de esfuerzo al completar sesión */}
-      <CalisteniaEffortModal
-        isOpen={localState.showCalisteniaEffort}
-        isLoading={localState.isSavingEffort}
-        result={localState.autoregDecision}
-        onSubmit={handleCalisteniaEffortSubmit}
-        onSkip={finishCalisteniaEffort}
-        onContinue={finishCalisteniaEffort}
-      />
-
-      {/* Autorregulación CrossFit: auto-evaluación de esfuerzo al completar el WOD */}
-      <CrossFitEffortModal
-        isOpen={localState.showCrossfitEffort}
-        isLoading={localState.isSavingEffort}
-        result={localState.crossfitDecision}
-        defaultScale={localState.crossfitWodScale || 'rx'}
-        onSubmit={handleCrossfitEffortSubmit}
-        onSkip={finishCrossfitEffort}
-        onContinue={finishCrossfitEffort}
-      />
-
-      {/* Autorregulación Halterofilia: auto-evaluación de esfuerzo (RPE/carga/técnica) al completar la sesión */}
-      <HalterofiliaEffortModal
-        isOpen={localState.showHalterofiliaEffort}
-        isLoading={localState.isSavingEffort}
-        result={localState.halterofiliaDecision}
-        onSubmit={handleHalterofiliaEffortSubmit}
-        onSkip={finishHalterofiliaEffort}
-        onContinue={finishHalterofiliaEffort}
-      />
-
-      {/* Autorregulación Powerlifting: auto-evaluación de esfuerzo (RPE/carga/técnica) al completar la sesión */}
-      <PowerliftingEffortModal
-        isOpen={localState.showPowerliftingEffort}
-        isLoading={localState.isSavingEffort}
-        result={localState.powerliftingDecision}
-        onSubmit={handlePowerliftingEffortSubmit}
-        onSkip={finishPowerliftingEffort}
-        onContinue={finishPowerliftingEffort}
-      />
-
-      {/* Autorregulación Heavy Duty: auto-evaluación de esfuerzo (fallo + tope de rango) al completar la sesión */}
-      <HeavyDutyEffortModal
-        isOpen={localState.showHeavyDutyEffort}
-        isLoading={localState.isSavingEffort}
-        result={localState.heavyDutyDecision}
-        onSubmit={handleHeavyDutyEffortSubmit}
-        onSkip={finishHeavyDutyEffort}
-        onContinue={finishHeavyDutyEffort}
-      />
-
-      {/* Autorregulación Funcional: auto-evaluación de esfuerzo (RIR/cumplimiento) al completar la sesión */}
-      <FuncionalEffortModal
-        isOpen={localState.showFuncionalEffort}
-        isLoading={localState.isSavingEffort}
-        result={localState.funcionalDecision}
-        onSubmit={handleFuncionalEffortSubmit}
-        onSkip={finishFuncionalEffort}
-        onContinue={finishFuncionalEffort}
-      />
-
-      {/* Autorregulación Casa: auto-evaluación de esfuerzo al completar sesión */}
-      <CasaEffortModal
-        isOpen={localState.showCasaEffort}
-        isLoading={localState.isSavingEffort}
-        result={localState.casaDecision}
-        onSubmit={handleCasaEffortSubmit}
-        onSkip={finishCasaEffort}
-        onContinue={finishCasaEffort}
+      {/* Modales de autorregulación por disciplina (extraído en ARCH-002) */}
+      <EffortModals
+        localState={localState}
+        handlers={{
+          handleCalisteniaEffortSubmit,
+          finishCalisteniaEffort,
+          handleCrossfitEffortSubmit,
+          finishCrossfitEffort,
+          handleHalterofiliaEffortSubmit,
+          finishHalterofiliaEffort,
+          handlePowerliftingEffortSubmit,
+          finishPowerliftingEffort,
+          handleHeavyDutyEffortSubmit,
+          finishHeavyDutyEffort,
+          handleFuncionalEffortSubmit,
+          finishFuncionalEffort,
+          handleCasaEffortSubmit,
+          finishCasaEffort
+        }}
       />
 
       {/* Modal de calentamiento para entrenamiento de fin de semana */}
@@ -2065,7 +2013,7 @@ export default function MethodologiesScreen() {
             if (!sid) return;
             const exerciseOrder = exerciseIndex + 1;
             try {
-              await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
+              await fetch(`${API_URL}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
                 method: 'PUT',
                 headers: {
                   'Authorization': `Bearer ${tokenManager.getToken()}`,
@@ -2115,7 +2063,7 @@ export default function MethodologiesScreen() {
               const exerciseOrder = exerciseIndex + 1;
               console.log(`📝 Guardando ejercicio ${exerciseOrder} (index ${exerciseIndex})`);
               try {
-                await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
+                await fetch(`${API_URL}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
                   method: 'PUT',
                   headers: {
                     'Authorization': `Bearer ${tokenManager.getToken()}`,
@@ -2140,7 +2088,7 @@ export default function MethodologiesScreen() {
               const exerciseOrder = exerciseIndex + 1;
               console.log(`⏭️ Saltando ejercicio ${exerciseOrder} (index ${exerciseIndex})`);
               try {
-                await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
+                await fetch(`${API_URL}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
                   method: 'PUT',
                   headers: {
                     'Authorization': `Bearer ${tokenManager.getToken()}`,
@@ -2165,7 +2113,7 @@ export default function MethodologiesScreen() {
               const exerciseOrder = exerciseIndex + 1;
               console.log(`❌ Cancelando ejercicio ${exerciseOrder} (index ${exerciseIndex})`);
               try {
-                await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
+                await fetch(`${API_URL}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
                   method: 'PUT',
                   headers: {
                     'Authorization': `Bearer ${tokenManager.getToken()}`,
