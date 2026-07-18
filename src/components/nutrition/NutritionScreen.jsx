@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,8 +26,13 @@ export default function NutritionScreen() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  // Obtener información del usuario y rutina actual
+  // Obtener información del usuario y rutina actual.
+  // B-01: guard para no duplicar el fetch de perfil/plan en el doble montaje de
+  // StrictMode (dev) ni en re-montajes, que generaba GET duplicados y 404 ruidosos.
+  const didFetchRef = useRef(false);
   useEffect(() => {
+    if (didFetchRef.current) return;
+    didFetchRef.current = true;
     fetchUserNutritionData();
   }, []);
 

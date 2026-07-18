@@ -36,10 +36,8 @@ export function normalizeMethodologyId(methodology) {
 
   if (value.includes('calistenia')) return METODOLOGIAS.CALISTENIA;
   if (value.includes('crossfit') || value.includes('cross-fit')) return METODOLOGIAS.CROSSFIT;
-  // 'hipertrofia' (sin V2) era una metodología redundante con HipertrofiaV2 y se
-  // retiró. Cualquier valor heredado se trata como 'gimnasio' (mismo motor
-  // GymRoutineService sobre disciplina='hipertrofia') para no romper datos antiguos.
-  if (value.includes('hipertrofia') && !value.includes('v2')) return METODOLOGIAS.GIMNASIO;
+  // 'hipertrofia' (sin V2) fue retirada por completo (B-02); la única hipertrofia
+  // viva es HipertrofiaV2, con su propio motor y rutas (/api/hipertrofiav2/*).
   if (value.includes('funcional')) return METODOLOGIAS.FUNCIONAL;
   if (value.includes('powerlifting') || value.includes('power-lifting')) return METODOLOGIAS.POWERLIFTING;
   if (value.includes('heavy-duty') || value.includes('heavy duty') || value.includes('heavyduty')) {
