@@ -13,6 +13,13 @@
 //                                          orden y las registra.
 //   node scripts/migrate.mjs new <slug> -> crea un fichero de migración vacío
 //                                          con prefijo de fecha.
+//   node scripts/migrate.mjs rechecksum-eol -> re-base ÚNICA del ledger al checksum
+//                                          EOL-independiente (LF). Solo re-expresa filas
+//                                          idénticas módulo fin de línea; reporta (sin
+//                                          tocar) cualquier divergencia REAL de contenido.
+//
+// El checksum es EOL-INDEPENDIENTE (se normaliza a LF antes de hashear), así que git en
+// Windows (CRLF) ya no produce drift espurio.
 //
 // Convención: los ficheros nuevos usan prefijo AAAAMMDD_ para que el orden
 // lexicográfico sea cronológico. Cada migración debe ser autónoma (si usa
@@ -28,6 +35,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = path.join(__dirname, '..', 'migrations');
 
 const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
+
+// EOL-independiente: el checksum de una migración se calcula sobre el contenido
+// normalizado a LF, para que git en Windows (CRLF) no genere "drift" espurio. Solo
+// afecta al CÁLCULO del checksum; el SQL se ejecuta tal cual está en disco.
+const eolNormalize = (s) => s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+const migrationChecksum = (content) => sha256(eolNormalize(content));
 
 // DB-001 (PR 2): allowlist CERRADA de reconciliación 2026-07-17. Todas estas
 // migraciones son POSTERIORES al corte del baseline (2026-07-16) y se aplicaron a
@@ -56,12 +69,6 @@ const RECONCILE_ALLOWLIST = {
     '20260717_sec_bola_deload_fatigue_ownership.sql',
     '20260717_sec006_revoke_public_execute_app.sql',
     '20260717_workout_schedule_unique_plan_user_date.sql',
-    // Reconciliación de fin de línea 2026-07-18: aplicadas en-sesión con contenido LF
-    // (herramientas de edición), pero git las materializa como CRLF en Windows -> el
-    // checksum del fichero (CRLF) diverge del guardado (LF). Sin divergencia de efecto:
-    // se re-checksumea al contenido actual del fichero, alineándolas con el resto del repo.
-    '20260718_auth001_refresh_rotativo.sql',
-    '20260718_sync_user_profiles_from_onboarding.sql',
   ],
 };
 
@@ -112,7 +119,7 @@ async function cmdStatus() {
     console.log(`Ledger: ${applied.size} aplicadas | Ficheros: ${files.length} | Pendientes: ${pending.length}`);
 
     // Drift: ficheros aplicados cuyo checksum ya no coincide
-    const drift = files.filter((f) => applied.has(f) && applied.get(f).checksum !== sha256(readMigration(f)));
+    const drift = files.filter((f) => applied.has(f) && applied.get(f).checksum !== migrationChecksum(readMigration(f)));
     if (drift.length) {
       console.log(`\n⚠️  ${drift.length} migración(es) aplicadas con checksum distinto al fichero (editadas tras aplicar):`);
       drift.forEach((f) => console.log(`   ~ ${f}`));
@@ -152,7 +159,7 @@ async function cmdReconcile() {
       if (applied.has(f)) { skipped.push(`adopt ya registrada: ${f}`); continue; }
       await client.query(
         'INSERT INTO app.schema_migrations (version, checksum, baseline) VALUES ($1, $2, false)',
-        [f, sha256(readMigration(f))]
+        [f, migrationChecksum(readMigration(f))]
       );
       console.log(`  + adopt   ${f}`);
       adopted += 1;
@@ -162,7 +169,7 @@ async function cmdReconcile() {
     for (const f of RECONCILE_ALLOWLIST.rechecksum) {
       if (!files.has(f)) throw new Error(`allowlist rechecksum: no existe el fichero ${f}`);
       const row = applied.get(f);
-      const current = sha256(readMigration(f));
+      const current = migrationChecksum(readMigration(f));
       if (!row) throw new Error(`rechecksum: ${f} no está en el ledger (esperado registrado)`);
       if (row.checksum === current) { skipped.push(`rechecksum ya coincide: ${f}`); continue; }
       await client.query(
@@ -175,6 +182,59 @@ async function cmdReconcile() {
 
     console.log(`\n✅ Reconcile: ${adopted} adoptadas, ${rechecked} re-checksum. ${skipped.length} sin cambios.`);
     skipped.forEach((s) => console.log(`   · ${s}`));
+  } finally {
+    await client.end();
+  }
+}
+
+// DB-001: re-base ÚNICA del ledger al checksum EOL-independiente (LF). Necesario tras
+// introducir `migrationChecksum` para que las filas guardadas con hash CRLF pasen a hash
+// LF. GUARDA de seguridad: solo re-expresa filas cuyo contenido es idéntico módulo fin de
+// línea (stored == hash del contenido en CRLF); si el contenido difiere de verdad, lo
+// reporta como drift REAL y NO lo enmascara. Idempotente.
+async function cmdRechecksumEol() {
+  const client = connect();
+  await client.connect();
+  try {
+    await ensureLedger(client);
+    const applied = await getApplied(client);
+    const files = new Set(listMigrationFiles());
+    let updated = 0; let clean = 0; const realDrift = []; const missing = [];
+
+    for (const [version, row] of applied) {
+      if (!files.has(version)) { missing.push(version); continue; }
+      const raw = readMigration(version);
+      const lfHash = migrationChecksum(raw); // canónico (LF)
+      if (row.checksum === lfHash) { clean += 1; continue; }
+      // Formas EOL cuyo contenido es idéntico módulo fin de línea: bytes exactos del disco
+      // (cubre EOL MIXTO), y la variante en CRLF puro (guardado en Windows). Si el checksum
+      // guardado coincide con alguna, es el mismo contenido -> re-expresar a LF con seguridad.
+      const eolEquivalents = new Set([
+        sha256(raw),
+        sha256(eolNormalize(raw).replace(/\n/g, '\r\n')),
+      ]);
+      if (eolEquivalents.has(row.checksum)) {
+        await client.query(
+          'UPDATE app.schema_migrations SET checksum = $2 WHERE version = $1',
+          [version, lfHash]
+        );
+        console.log(`  ~ eol   ${version}`);
+        updated += 1;
+      } else {
+        // El contenido difiere de verdad (no solo el fin de línea): NO enmascarar.
+        realDrift.push(version);
+      }
+    }
+
+    console.log(`\n✅ Rechecksum EOL: ${updated} normalizadas a LF, ${clean} ya normalizadas.`);
+    if (missing.length) {
+      console.log(`   · ${missing.length} en ledger sin fichero (ignoradas): ${missing.join(', ')}`);
+    }
+    if (realDrift.length) {
+      console.log(`\n❌ ${realDrift.length} con divergencia REAL de contenido (NO tocadas; revísalas):`);
+      realDrift.forEach((f) => console.log(`   ! ${f}`));
+      process.exitCode = 1;
+    }
   } finally {
     await client.end();
   }
@@ -196,7 +256,7 @@ async function cmdBaseline() {
     for (const f of toMark) {
       await client.query(
         'INSERT INTO app.schema_migrations (version, checksum, baseline) VALUES ($1, $2, true) ON CONFLICT (version) DO NOTHING',
-        [f, sha256(readMigration(f))]
+        [f, migrationChecksum(readMigration(f))]
       );
     }
     console.log(`✅ Baseline: ${toMark.length} migraciones marcadas como aplicadas (sin ejecutarlas).`);
@@ -227,7 +287,7 @@ async function cmdUp() {
         await client.query(sql);
         await client.query(
           'INSERT INTO app.schema_migrations (version, checksum, baseline) VALUES ($1, $2, false)',
-          [f, sha256(sql)]
+          [f, migrationChecksum(sql)]
         );
         console.log('OK');
       } catch (e) {
@@ -270,7 +330,7 @@ function cmdNew(slug) {
 }
 
 const [cmd, arg] = process.argv.slice(2);
-const run = { status: cmdStatus, baseline: cmdBaseline, up: cmdUp, reconcile: cmdReconcile }[cmd];
+const run = { status: cmdStatus, baseline: cmdBaseline, up: cmdUp, reconcile: cmdReconcile, 'rechecksum-eol': cmdRechecksumEol }[cmd];
 if (run) {
   run().catch((e) => {
     console.error('Error:', e.message);
@@ -279,6 +339,6 @@ if (run) {
 } else if (cmd === 'new') {
   cmdNew(arg);
 } else {
-  console.log('Comandos: status [--check] | baseline | up | reconcile | new <slug>');
+  console.log('Comandos: status [--check] | baseline | up | reconcile | rechecksum-eol | new <slug>');
   process.exitCode = cmd ? 1 : 0;
 }
