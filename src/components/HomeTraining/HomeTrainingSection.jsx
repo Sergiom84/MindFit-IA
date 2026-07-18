@@ -1,3 +1,4 @@
+import { alertDialog } from '../ui/dialogService.jsx';
 import { ArrowLeft, Home, Dumbbell, Target, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, memo, useCallback, useMemo, useRef } from 'react';
@@ -354,7 +355,7 @@ const HomeTrainingSection = () => {
     try {
       const token = tokenManager.getToken();
       if (!token) {
-        alert('Debes iniciar sesión para generar tu entrenamiento');
+        alertDialog('Debes iniciar sesión para generar tu entrenamiento');
         return;
       }
 
@@ -402,7 +403,7 @@ const HomeTrainingSection = () => {
     } catch (error) {
       logger.error('Error generating plan', error, 'HomeTraining');
       setIsGenerating(false); // asegurar que se apague si falla
-      alert('Error al generar el entrenamiento. Por favor, inténtalo de nuevo.');
+      alertDialog('Error al generar el entrenamiento. Por favor, inténtalo de nuevo.');
     }
   };
 
@@ -462,7 +463,7 @@ const HomeTrainingSection = () => {
     try {
       const token = tokenManager.getToken();
       if (!token) {
-        alert('Debes iniciar sesión para guardar preferencias');
+        alertDialog('Debes iniciar sesión para guardar preferencias');
         return;
       }
 
@@ -523,7 +524,7 @@ const HomeTrainingSection = () => {
 
     } catch (error) {
       console.error('❌ Error en proceso de rechazo:', error);
-      alert('Error al guardar las preferencias. Por favor, inténtalo de nuevo.');
+      alertDialog('Error al guardar las preferencias. Por favor, inténtalo de nuevo.');
     }
   };
 
@@ -562,14 +563,14 @@ const HomeTrainingSection = () => {
       await generateNewPlanAfterRejection();
     } catch (error) {
       console.error('❌ Error regenerando sin rechazos:', error);
-      alert('Error al regenerar el plan. Por favor, inténtalo de nuevo.');
+      alertDialog('Error al regenerar el plan. Por favor, inténtalo de nuevo.');
     }
   };
 
   // Función para generar nuevo plan después del rechazo
   const generateNewPlanAfterRejection = async () => {
     if (!selectedEquipment || !selectedTrainingType) {
-      alert('Error: No se encontró la configuración del entrenamiento');
+      alertDialog('Error: No se encontró la configuración del entrenamiento');
       return;
     }
 
@@ -578,7 +579,7 @@ const HomeTrainingSection = () => {
     try {
       const token = tokenManager.getToken();
       if (!token) {
-        alert('Debes iniciar sesión para generar tu entrenamiento');
+        alertDialog('Debes iniciar sesión para generar tu entrenamiento');
         return;
       }
 
@@ -632,7 +633,7 @@ const HomeTrainingSection = () => {
     } catch (error) {
       console.error('❌ Error generando nuevo plan:', error);
       setIsGenerating(false);
-      alert('Error al generar el entrenamiento. Por favor, inténtalo de nuevo.');
+      alertDialog('Error al generar el entrenamiento. Por favor, inténtalo de nuevo.');
     }
   };
 
@@ -653,7 +654,7 @@ const HomeTrainingSection = () => {
     try {
       const token = tokenManager.getToken();
       if (!token) {
-        alert('Debes iniciar sesión para comenzar el entrenamiento');
+        alertDialog('Debes iniciar sesión para comenzar el entrenamiento');
         return;
       }
 
@@ -666,7 +667,7 @@ const HomeTrainingSection = () => {
 
       const planData = await planResponse.json();
       if (!planData.success || !planData.plan) {
-        alert('No se encontró un plan de entrenamiento');
+        alertDialog('No se encontró un plan de entrenamiento');
         return;
       }
 
@@ -695,7 +696,7 @@ const HomeTrainingSection = () => {
       }
     } catch (error) {
       console.error('Error starting training:', error);
-      alert('Error al iniciar el entrenamiento');
+      alertDialog('Error al iniciar el entrenamiento');
     }
   };
 
@@ -711,7 +712,7 @@ const HomeTrainingSection = () => {
 
         // Verificar nuevamente después de la recarga
         if (!generatedPlan || !generatedPlan.plan_entrenamiento || !generatedPlan.plan_entrenamiento.ejercicios) {
-          alert('Error: No se encontró el plan de entrenamiento. Por favor, genera uno nuevo.');
+          alertDialog('Error: No se encontró el plan de entrenamiento. Por favor, genera uno nuevo.');
           return;
         }
       }
@@ -732,7 +733,7 @@ const HomeTrainingSection = () => {
 
       // Verificar si todos los ejercicios están completados
       if (sessionProgress && sessionProgress.allCompleted) {
-        alert('Felicitaciones! Has completado todos los ejercicios de este entrenamiento.');
+        alertDialog('Felicitaciones! Has completado todos los ejercicios de este entrenamiento.');
         setShowProgress(false);
         setShowExerciseModal(false);
         setShowWarmupModal(false);
@@ -746,7 +747,7 @@ const HomeTrainingSection = () => {
         console.error('Ejercicio actual no válido:', currentExercise);
         console.error('CurrentExerciseIndex:', currentExerciseIndex, 'Total ejercicios:', exercises.length);
         console.error('Session progress:', sessionProgress);
-        alert('Error: Datos del ejercicio no válidos. Por favor, genera un nuevo plan.');
+        alertDialog('Error: Datos del ejercicio no válidos. Por favor, genera un nuevo plan.');
         return;
       }
 
@@ -755,7 +756,7 @@ const HomeTrainingSection = () => {
       setShowExerciseModal(true);
     } catch (error) {
       console.error('Error en continueTraining:', error);
-      alert('Error al continuar el entrenamiento. Intenta generar un nuevo plan.');
+      alertDialog('Error al continuar el entrenamiento. Intenta generar un nuevo plan.');
     }
   };
 
@@ -845,12 +846,12 @@ const HomeTrainingSection = () => {
         setShowPersonalizedMessage(false);
         await loadUserStats();
         setTimeout(() => {
-          alert('🎉 ¡Felicitaciones! Has completado todo el entrenamiento. ¡Excelente trabajo!');
+          alertDialog('🎉 ¡Felicitaciones! Has completado todo el entrenamiento. ¡Excelente trabajo!');
         }, 500);
       }
     } catch (error) {
       console.error('Error completing exercise:', error);
-      alert('Error al guardar el progreso. Por favor, inténtalo de nuevo.');
+      alertDialog('Error al guardar el progreso. Por favor, inténtalo de nuevo.');
     } finally {
       setSending(false);
     }
@@ -887,7 +888,7 @@ const HomeTrainingSection = () => {
         setShowExerciseModal(false);
         setShowWarmupModal(false);
         setShowPersonalizedMessage(false);
-        alert('Entrenamiento finalizado. Algunos ejercicios fueron saltados.');
+        alertDialog('Entrenamiento finalizado. Algunos ejercicios fueron saltados.');
       }
 
       await loadUserStats();
@@ -929,7 +930,7 @@ const HomeTrainingSection = () => {
         setShowExerciseModal(false);
         setShowWarmupModal(false);
         setShowPersonalizedMessage(false);
-        alert('Entrenamiento finalizado. Algunos ejercicios fueron cancelados.');
+        alertDialog('Entrenamiento finalizado. Algunos ejercicios fueron cancelados.');
       }
 
       await loadUserStats();

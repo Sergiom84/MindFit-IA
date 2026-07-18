@@ -1,12 +1,20 @@
 # Supabase Database Context (sbqcnlwpvjavmljzkmfy)
 
+> ⚠️ **SNAPSHOT DESACTUALIZADO (DOC-001).** Este documento es una foto histórica del
+> esquema y NO es la fuente operativa. Estado real verificado el **2026-07-16**
+> (auditoría ECI): **app tiene 125 tablas, 17 vistas, 184 funciones** y PostgreSQL
+> **17.6**. Nombre de producto definitivo: **MindFit**. El listado verbatim de columnas
+> de abajo puede haber derivado; consúltese el catálogo real de Postgres antes de
+> asumir estructura. Se conserva solo como referencia.
+
 ## Overview
 
-- Project: Entrena_con_IA
-- Region: eu-north-1
-- Postgres: 17.4.1.074 (ga)
+- Project: MindFit (ref `sbqcnlwpvjavmljzkmfy`)
+- Region: eu-west-1
+- Postgres: 17.6 (era 17.4 en este snapshot)
 - Primary schemas: app (application), public (api)
-- Object counts: app tables 74, app views 11, app functions 169; public tables 1, public functions 6; materialized views 0
+- Object counts (real 2026-07-16): app tables 125, app views 17, app functions 184; materialized views 0
+  (valores originales del snapshot: app tables 74, app views 11, app functions 169)
 - RLS enabled tables: app.Ejercicios_Heavy_Duty, app.Ejercicios_Hipertrofia, app.foods, app.hypertrophy_blocks, app.hypertrophy_progression, app.hypertrophy_set_logs, app.nutrition_guidelines, public.ejercicios_calistenia
 - Note: Column names are listed verbatim from the schema (may include non-ASCII characters).
 

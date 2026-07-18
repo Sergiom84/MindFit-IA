@@ -1,3 +1,4 @@
+import { alertDialog } from './ui/dialogService.jsx';
 import React, { useState, useRef, useEffect, memo } from 'react';
 import { Play, Pause, Music, Volume2, MoreHorizontal, X, Minus, List, Plus, Edit3, Trash2, Save, SkipForward, SkipBack, RotateCcw } from 'lucide-react';
 import { FaSpotify, FaYoutube, FaApple } from 'react-icons/fa';
@@ -194,7 +195,7 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
   // Platform handlers
   const handleSpotify = () => {
     if (!musicConfig?.spotify?.enabled) {
-      alert('Spotify no está configurado. Ve a Perfil → Configuración de Música');
+      alertDialog('Spotify no está configurado. Ve a Perfil → Configuración de Música');
       return;
     }
     setCurrentPlatform('spotify');
@@ -204,7 +205,7 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
 
   const handleYouTubeMusic = () => {
     if (!musicConfig?.youtube?.enabled) {
-      alert('YouTube Music no está configurado. Ve a Perfil → Configuración de Música');
+      alertDialog('YouTube Music no está configurado. Ve a Perfil → Configuración de Música');
       return;
     }
     setCurrentPlatform('youtube');
@@ -213,7 +214,7 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
 
   const handleAppleMusic = () => {
     if (!musicConfig?.apple?.enabled) {
-      alert('Apple Music no está configurado. Ve a Perfil → Configuración de Música');
+      alertDialog('Apple Music no está configurado. Ve a Perfil → Configuración de Música');
       return;
     }
     setCurrentPlatform('apple');
@@ -244,7 +245,7 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
   const initializeSpotifyPlayer = () => {
     if (window.Spotify) {
       const player = new window.Spotify.Player({
-        name: 'Entrena con IA Player',
+        name: 'MindFit Player',
         getOAuthToken: cb => { cb(musicConfig?.spotify?.accessToken); },
         volume: volume
       });

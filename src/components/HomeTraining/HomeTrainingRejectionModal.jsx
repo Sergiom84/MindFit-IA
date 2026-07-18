@@ -1,3 +1,4 @@
+import { alertDialog } from '../ui/dialogService.jsx';
 import { useState } from 'react';
 import { X, ThumbsDown, Clock, AlertTriangle, Heart, Zap } from 'lucide-react';
 
@@ -100,7 +101,7 @@ const HomeTrainingRejectionModal = ({
 
   const handleSubmitRejections = async () => {
     if (selectedExercises.size === 0) {
-      alert('Selecciona al menos un ejercicio para rechazar');
+      alertDialog('Selecciona al menos un ejercicio para rechazar');
       return;
     }
 
@@ -133,7 +134,7 @@ const HomeTrainingRejectionModal = ({
       // Mostrar un mensaje de error más específico
       const errorMessage = error.message || 'Error al procesar tu solicitud';
       const userMessage = `Error: ${errorMessage}\n\nPor favor, inténtalo de nuevo o contacta soporte si el problema persiste.`;
-      alert(userMessage);
+      alertDialog(userMessage);
     } finally {
       setIsSubmitting(false);
     }

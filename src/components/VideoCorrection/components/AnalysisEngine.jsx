@@ -1,3 +1,4 @@
+import { alertDialog } from '../../ui/dialogService.jsx';
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,7 +40,7 @@ export default function AnalysisEngine() {
 
   const handleAnalyzeVideo = async () => {
     if (!selectedVideo) {
-      alert('Por favor, sube un video para analizar.');
+      alertDialog('Por favor, sube un video para analizar.');
       return;
     }
 
@@ -125,7 +126,7 @@ export default function AnalysisEngine() {
       
       setAnalysisResult(errorResult);
       setShowResults(true);
-      alert(`Error en el análisis: ${error.message}`);
+      alertDialog(`Error en el análisis: ${error.message}`);
     } finally {
       setIsAnalyzing(false);
       setFrameProgress(null);
@@ -150,7 +151,7 @@ export default function AnalysisEngine() {
 
   const handleLiveAnalysis = async () => {
     if (!isCameraOn) {
-      alert('Por favor, activa la cámara primero para usar la Corrección IA en Vivo.');
+      alertDialog('Por favor, activa la cámara primero para usar la Corrección IA en Vivo.');
       return;
     }
 
@@ -236,7 +237,7 @@ export default function AnalysisEngine() {
       
       setAnalysisResult(errorResult);
       setShowResults(true);
-      alert(`Error en análisis en vivo: ${error.message}`);
+      alertDialog(`Error en análisis en vivo: ${error.message}`);
     } finally {
       setIsLiveAnalyzing(false);
     }

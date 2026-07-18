@@ -1,5 +1,5 @@
 /**
- * 🔐 Configuración Centralizada de Autenticación - Entrena con IA
+ * 🔐 Configuración Centralizada de Autenticación - MindFit
  *
  * FUNCIONALIDAD:
  * - Configuración de endpoints de autenticación

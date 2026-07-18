@@ -40,6 +40,7 @@ import { WorkoutProvider } from './contexts/WorkoutContext';
 // 🎵 GLOBAL COMPONENTS (No Lazy Loading)
 // =============================================================================
 import AudioBubble from './components/AudioBubble';
+import { DialogServiceHost } from './components/ui/dialogService.jsx';
 
 // =============================================================================
 // 🔄 LAZY LOADING DE RUTAS PRINCIPALES
@@ -370,6 +371,9 @@ function AppContent() {
           currentExercise={currentExercise}
         />
       )}
+
+      {/* Host de diálogos accesibles (QA-001): confirmDialog/alertDialog */}
+      <DialogServiceHost />
     </>
   );
 }
@@ -377,7 +381,7 @@ function AppContent() {
 function App() {
   return (
     <ErrorBoundary
-      context="Entrena con IA"
+      context="MindFit"
       title="Error en la aplicación"
       message="La aplicación encontró un problema inesperado. Por favor, recarga la página."
       showStack={true}

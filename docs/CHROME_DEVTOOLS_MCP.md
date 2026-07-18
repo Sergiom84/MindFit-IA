@@ -2,7 +2,7 @@
 
 ## ¿Qué es?
 
-Chrome DevTools MCP permite que Claude Code acceda directamente a la consola del navegador Chrome, errores, network requests y más, facilitando la depuración de tu aplicación Entrena con IA en tiempo real.
+Chrome DevTools MCP permite que Claude Code acceda directamente a la consola del navegador Chrome, errores, network requests y más, facilitando la depuración de tu aplicación MindFit en tiempo real.
 
 ## ✅ Estado de Configuración
 
@@ -170,7 +170,7 @@ Si usas `--isolated`, Chrome se cierra al terminar la sesión. Usa `--autoConnec
 - [Blog Chrome Developers](https://developer.chrome.com/blog/chrome-devtools-mcp)
 - [Guía Paso a Paso](https://dev.to/proflead/a-step-by-step-guide-to-chrome-devtools-mcp-for-ai-assistants-337f)
 
-## 🎯 Casos de Uso en Entrena con IA
+## 🎯 Casos de Uso en MindFit
 
 ### 1. Debugging de Rutinas
 

@@ -6,7 +6,7 @@ Requisito previo: leer `docs/DECISION_ARQUITECTURA_MOVIL_FLUTTER_VS_CAPACITOR.md
 ## Qué hay ya en el repositorio
 
 - `ios/` — proyecto nativo Xcode generado con `npx cap add ios` (Capacitor 8, usa **Swift Package Manager**, no requiere CocoaPods).
-- Bundle ID: `com.entrenaconia.app` · Nombre visible: "Entrena con IA" · Target mínimo: iOS 15.0.
+- Bundle ID: `com.entrenaconia.app` · Nombre visible: "MindFit" · Target mínimo: iOS 15.0.
 - `ios/App/App/Info.plist` con los permisos que necesita corrección de vídeo:
   - `NSCameraUsageDescription` (grabar ejercicios con `getUserMedia`)
   - `NSMicrophoneUsageDescription`

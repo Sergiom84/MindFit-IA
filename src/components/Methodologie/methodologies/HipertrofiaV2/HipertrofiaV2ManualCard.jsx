@@ -5,6 +5,7 @@
  * @version 2.2.0 - Modal de día de inicio (Jue-Dom)
  */
 
+import { alertDialog } from '../../../ui/dialogService.jsx';
 import React, { useEffect, useState } from 'react';
 import {
   Dumbbell,
@@ -275,7 +276,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
 
     } catch (error) {
       console.error('❌ [MINDFEED] Error generando plan D1-D5:', error);
-      alert(`Error al generar plan: ${error.message}`);
+      alertDialog(`Error al generar plan: ${error.message}`);
     } finally {
       setGenerating(false); // Desactivar loading
     }
@@ -353,7 +354,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
         component: 'HipertrofiaV2ManualCard'
       });
       console.error('❌ [ADAPTACIÓN] Error creando bloque:', err);
-      alert(err.message || 'Error al crear bloque de adaptación');
+      alertDialog(err.message || 'Error al crear bloque de adaptación');
     }
   };
 
@@ -381,7 +382,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
       await fetchAdaptationProgress();
     } catch (err) {
       console.error('❌ [ADAPTACIÓN] Error en transición:', err);
-      alert(err.message || 'Error al transicionar a D1-D5');
+      alertDialog(err.message || 'Error al transicionar a D1-D5');
     }
   };
 

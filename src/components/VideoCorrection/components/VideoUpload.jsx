@@ -1,3 +1,4 @@
+import { alertDialog } from '../../ui/dialogService.jsx';
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,13 +34,13 @@ export default function VideoUpload() {
 
     // Validaciones
     if (!file.type.startsWith('video/')) {
-      alert('Por favor, selecciona un archivo de video válido.');
+      alertDialog('Por favor, selecciona un archivo de video válido.');
       return;
     }
 
     const maxSize = 100 * 1024 * 1024; // 100MB
     if (file.size > maxSize) {
-      alert('El archivo es demasiado grande. Máximo permitido: 100MB.');
+      alertDialog('El archivo es demasiado grande. Máximo permitido: 100MB.');
       return;
     }
 
@@ -73,7 +74,7 @@ export default function VideoUpload() {
       }
     } catch (error) {
       console.error('❌ Error procesando video:', error);
-      alert('Error al procesar el video. Inténtalo de nuevo.');
+      alertDialog('Error al procesar el video. Inténtalo de nuevo.');
     }
   };
 

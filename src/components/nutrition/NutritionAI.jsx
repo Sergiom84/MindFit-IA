@@ -1,3 +1,4 @@
+import { alertDialog } from '../ui/dialogService.jsx';
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,7 +63,7 @@ export default function NutritionAI({ userData, currentRoutine, userMacros, onPl
 
     } catch (error) {
       console.error('Error generating nutrition plan:', error);
-      alert('Error al generar el plan nutricional. Por favor, inténtalo de nuevo.');
+      alertDialog('Error al generar el plan nutricional. Por favor, inténtalo de nuevo.');
     } finally {
       setIsGenerating(false);
     }

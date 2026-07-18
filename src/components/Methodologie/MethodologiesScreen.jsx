@@ -1,3 +1,4 @@
+import { alertDialog } from '../ui/dialogService.jsx';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserContext } from '@/contexts/UserContext';
@@ -1072,7 +1073,7 @@ export default function MethodologiesScreen() {
       ui.showModal('warmup');
     } else {
       console.error('❌ No se recibió sessionId en el plan Full Body:', fullBodyPlan);
-      alert('Error al iniciar el entrenamiento. Por favor, intenta de nuevo.');
+      alertDialog('Error al iniciar el entrenamiento. Por favor, intenta de nuevo.');
     }
   };
 

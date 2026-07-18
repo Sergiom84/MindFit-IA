@@ -5,6 +5,7 @@
  * Ofrece al usuario la opción de generar una rutina Full Body o continuar con el plan regular
  */
 
+import { alertDialog } from '../../ui/dialogService.jsx';
 import { useState } from 'react';
 import { AlertTriangle, Calendar, Zap, ChevronRight } from 'lucide-react';
 import apiClient from '@/lib/apiClient';
@@ -57,11 +58,11 @@ export function WeekendWarningModal({
         onClose();
       } else {
         console.error('❌ Respuesta sin success:', data);
-        alert('No se pudo generar el entrenamiento. Por favor, intenta de nuevo.');
+        alertDialog('No se pudo generar el entrenamiento. Por favor, intenta de nuevo.');
       }
     } catch (error) {
       console.error('Error generando entrenamiento del día:', error);
-      alert('Error al generar el entrenamiento. Por favor, intenta de nuevo.');
+      alertDialog('Error al generar el entrenamiento. Por favor, intenta de nuevo.');
     } finally {
       setIsGeneratingFullBody(false);
     }

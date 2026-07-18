@@ -1,3 +1,4 @@
+import { confirmDialog } from '../ui/dialogService.jsx';
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Alert } from "../ui/alert";
@@ -194,9 +195,11 @@ export default function NutritionReviewPanel() {
     const delta = review.biweekly_review.recommended_delta_kcal;
     if (!Number.isFinite(delta) || delta === 0) return;
 
-    const ok = window.confirm(
-      `Aplicar ajuste recomendado (${delta > 0 ? "+" : ""}${delta} kcal/día)?\n\nEsto regenerará tu plan activo para que todo lo que ves en pantalla sea coherente.`
-    );
+    const ok = await confirmDialog({
+      title: "Aplicar ajuste recomendado",
+      description: `Aplicar ajuste recomendado (${delta > 0 ? "+" : ""}${delta} kcal/día)?\n\nEsto regenerará tu plan activo para que todo lo que ves en pantalla sea coherente.`,
+      confirmText: "Aplicar"
+    });
     if (!ok) return;
 
     setFlash(null);
@@ -237,7 +240,11 @@ export default function NutritionReviewPanel() {
   };
 
   const handleUndoLast = async () => {
-    const ok = window.confirm("Deshacer el último ajuste de kcal? (ventana 24h)");
+    const ok = await confirmDialog({
+      title: "Deshacer ajuste",
+      description: "Deshacer el último ajuste de kcal? (ventana 24h)",
+      confirmText: "Deshacer"
+    });
     if (!ok) return;
 
     setFlash(null);

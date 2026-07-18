@@ -1,5 +1,5 @@
 /**
- * 🔧 Sistema de Logging Centralizado - Entrena con IA
+ * 🔧 Sistema de Logging Centralizado - MindFit
  * 
  * RAZONAMIENTO:
  * - Niveles de log diferentes según importancia

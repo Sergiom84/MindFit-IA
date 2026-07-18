@@ -1,7 +1,7 @@
 {
   "name": "entrena-con-ia-backend",
   "version": "1.0.0",
-  "description": "Backend para la aplicación Entrena con IA",
+  "description": "Backend para la aplicación MindFit",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -57,6 +57,6 @@
     "training",
     "backend"
   ],
-  "author": "Entrena con IA",
+  "author": "MindFit",
   "license": "MIT"
 }

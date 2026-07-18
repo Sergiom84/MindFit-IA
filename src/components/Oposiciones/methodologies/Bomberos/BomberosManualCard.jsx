@@ -7,6 +7,7 @@
  * @date 2025-10-20
  */
 
+import { alertDialog } from '../../../ui/dialogService.jsx';
 import React, { useState, useEffect, useReducer } from 'react';
 import {
   Flame,
@@ -189,7 +190,7 @@ export default function BomberosManualCard({ onGenerate, isLoading: externalLoad
 
   const handleLevelConfirm = () => {
     if (!state.selectedLevel) {
-      alert('Por favor selecciona un nivel');
+      alertDialog('Por favor selecciona un nivel');
       return;
     }
     dispatch({ type: 'SET_STEP', payload: 'configuration' });

@@ -1,3 +1,4 @@
+import { alertDialog } from '../ui/dialogService.jsx';
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -47,12 +48,12 @@ export const BodyCompositionCalculator = ({ isOpen, onClose, onCalculate, userPr
     const { sexo, edad, peso, altura, cintura, cuello, cadera, muslo } = formData
 
     if (!edad || !peso || !altura || !cintura || !cuello) {
-      alert('Por favor completa todos los campos')
+      alertDialog('Por favor completa todos los campos')
       return
     }
 
     if (sexo === 'femenino' && !cadera) {
-      alert('Para mujeres es necesario ingresar la medida de cadera')
+      alertDialog('Para mujeres es necesario ingresar la medida de cadera')
       return
     }
 

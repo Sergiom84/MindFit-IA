@@ -1,5 +1,5 @@
 /**
- * 🔑 Storage Keys Centralizados - Entrena con IA
+ * 🔑 Storage Keys Centralizados - MindFit
  *
  * ✅ MEJORA FASE 2: Unificación de todas las claves de almacenamiento
  *
