@@ -383,9 +383,10 @@ export default function ImageCorrection() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {photos.map((photo) => (
                   <div key={photo.id} className="relative group rounded-lg overflow-hidden border border-white/10">
-                    <img 
-                      src={photo.url} 
-                      alt={photo.name} 
+                    <img
+                      src={photo.url}
+                      alt={photo.name}
+                      decoding="async"
                       className="w-full h-36 object-cover"
                     />
                     <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-xs p-2 truncate text-white">

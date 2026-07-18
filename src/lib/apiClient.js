@@ -15,6 +15,7 @@ import logger from '../utils/logger';
 import tokenManager from '../utils/tokenManager';
 import connectionManager from '../utils/connectionManager';
 import sessionManager from '../utils/sessionManager';
+import { getApiBaseUrl } from '../config/api';
 
 import { track as traceTrack } from '../utils/trace';
 
@@ -493,13 +494,7 @@ class ApiClient {
 }
 
 // Instancia principal del cliente API
-// Base URL dinámica: usa VITE_API_URL si existe (producción/despliegues),
-// si no, usa ruta relativa '/api' para funcionar con el proxy de Vite en dev.
-const RAW_API_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) ? import.meta.env.VITE_API_URL : '';
-const NORMALIZED_BASE = RAW_API_URL
-  ? `${RAW_API_URL.replace(/\/$/, '')}/api`
-  : '/api';
-const apiClient = new ApiClient(NORMALIZED_BASE);
+const apiClient = new ApiClient(`${getApiBaseUrl()}/api`);
 
 // Interceptor de error mejorado con integración tokenManager
 apiClient.addErrorInterceptor(async (error, url) => {

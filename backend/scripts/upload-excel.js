@@ -1,11 +1,17 @@
-import XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { pool } from '../db.js';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { join } from 'path';
 import fs from 'fs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+function cellValue(cell) {
+  const value = cell.value;
+  if (value && typeof value === 'object') {
+    if ('result' in value) return value.result ?? '';
+    if ('text' in value) return value.text ?? '';
+    if (Array.isArray(value.richText)) return value.richText.map((part) => part.text).join('');
+  }
+  return value ?? '';
+}
 
 async function uploadExcelData() {
   try {
@@ -24,12 +30,19 @@ async function uploadExcelData() {
     const excelPath = join(desktopPath, excelFile);
     console.log('📂 Leyendo archivo Excel:', excelFile);
 
-    const workbook = XLSX.readFile(excelPath);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(excelPath);
+    const worksheet = workbook.worksheets[0];
 
     // Convertir a JSON
-    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    const data = [];
+    worksheet.eachRow({ includeEmpty: false }, (row) => {
+      const values = [];
+      for (let column = 1; column <= worksheet.columnCount; column += 1) {
+        values.push(cellValue(row.getCell(column)));
+      }
+      data.push(values);
+    });
 
     console.log('📊 Estructura del archivo:');
     console.log('Total de filas:', data.length);

@@ -8,12 +8,11 @@
 
 import React from 'react';
 import tokenManager from '../../../utils/tokenManager';
+import { getApiBaseUrl } from '../../../config/api';
 
 // Configuración centralizada de API
-const RAW_API_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) ? import.meta.env.VITE_API_URL : '';
-const BASE_API = RAW_API_URL ? `${RAW_API_URL.replace(/\/$/, '')}/api` : '/api';
 const API_CONFIG = {
-  BASE_URL: BASE_API,
+  BASE_URL: `${getApiBaseUrl()}/api`,
   ENDPOINTS: {
     EXERCISES: '/exercises',
     CALISTENIA: '/exercises/calistenia'
@@ -45,7 +44,7 @@ const APIUtils = {
    */
   getAuthToken() {
     try {
-      return tokenManager.getToken() || tokenManager.getToken();
+      return tokenManager.getToken();
     } catch (error) {
       Logger.error('Error accessing localStorage for auth token', error);
       return null;

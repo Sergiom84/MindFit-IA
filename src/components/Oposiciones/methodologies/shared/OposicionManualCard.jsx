@@ -10,6 +10,9 @@ import { OPOSICION_LEVELS, getOposicionLevelConfig } from './OposicionLevels.js'
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserContext } from '@/contexts/UserContext';
 import tokenManager from '../../../../utils/tokenManager';
+import { getApiBaseUrl } from '../../../../config/api';
+
+const API_URL = getApiBaseUrl();
 
 const initialState = {
   currentStep: 'evaluation',
@@ -44,8 +47,7 @@ function reducer(state, action) {
 
 async function apiRequest(endpoint, body) {
   const token = tokenManager.getToken();
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3010';
-  const res = await fetch(`${baseUrl}${endpoint}`, {
+  const res = await fetch(`${API_URL}${endpoint}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
     body: JSON.stringify(body || {})

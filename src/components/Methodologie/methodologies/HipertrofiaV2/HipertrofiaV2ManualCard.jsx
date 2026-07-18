@@ -26,6 +26,9 @@ import AdaptationTransitionModal from './components/AdaptationTransitionModal.js
 import AdaptationDashboard from '../../../HipertrofiaV2/AdaptationDashboard.jsx';
 import { useTrace } from '../../../../contexts/TraceContext';
 import tokenManager from '../../../../utils/tokenManager';
+import { getApiBaseUrl } from '../../../../config/api';
+
+const API_URL = getApiBaseUrl();
 
 export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, startConfig }) {
   const { user } = useAuth();
@@ -52,7 +55,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
     try {
       const token = tokenManager.getToken();
       const resp = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/adaptation/progress`,
+        `${API_URL}/api/adaptation/progress`,
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -103,7 +106,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
     setEvaluating(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/hipertrofiav2/evaluate-level`, {
+      const response = await fetch(`${API_URL}/api/hipertrofiav2/evaluate-level`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -203,7 +206,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
 
       // Llamar al nuevo endpoint de generación D1-D5
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || ""}/api/hipertrofiav2/generate-d1d5`,
+        `${API_URL}/api/hipertrofiav2/generate-d1d5`,
         {
           method: 'POST',
           headers: {
@@ -306,7 +309,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
     try {
       const token = tokenManager.getToken();
       const resp = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/adaptation/generate`,
+        `${API_URL}/api/adaptation/generate`,
         {
           method: 'POST',
           headers: {
@@ -363,7 +366,7 @@ export default function HipertrofiaV2ManualCard({ onGenerate, isLoading, error, 
     try {
       const token = tokenManager.getToken();
       const resp = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/adaptation/transition`,
+        `${API_URL}/api/adaptation/transition`,
         {
           method: 'POST',
           headers: {

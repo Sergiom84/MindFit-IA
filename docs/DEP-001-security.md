@@ -32,12 +32,11 @@ exposición en el camino de peticiones de producción. `fixAvailable: false` al 
 | Paquete                                                                                                                   | Sev      | Cadena / uso                                                          | Motivo de aceptación                                                                                                   |
 | ------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `@capacitor/assets` y su cadena (`@capacitor/cli`, `@trapezedev/project`, `tar`, `minimatch`, `replace`, `xcode`, `uuid`) | high/mod | devDependency raíz: generación de iconos/splash de la app             | Herramienta offline de build; no se ejecuta en runtime ni procesa entrada de usuario. Sin fix upstream.                |
-| `xlsx` (SheetJS)                                                                                                          | high     | devDependency backend: `scripts/import-recipe-examples-from-excel.js` | Script de importación offline ejecutado manualmente; nunca en el camino de peticiones. Sin fix en el registro público. |
 
 ### Follow-ups
 
-- **`xlsx`**: migrar el script de importación de recetas a **`exceljs`** (mantenido, sin
-  las vulnerabilidades de SheetJS) y retirar `xlsx`. Es un cambio de un script de tooling,
-  aislado del runtime.
+- **Importadores Excel**: migrados a `exceljs`; `xlsx`/SheetJS ya no forma parte del árbol.
+  El audit completo del backend conserva únicamente dos avisos moderados transitivos de
+  tooling (`exceljs` → `uuid`), sin impacto en producción ni severidad alta.
 - **`@capacitor/assets`**: actualizar cuando publiquen una versión con la cadena
   (`tar`/`minimatch`) saneada; se coordina con OPS-002 (toolchain móvil).

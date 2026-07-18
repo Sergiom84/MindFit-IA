@@ -618,6 +618,8 @@ const HomeTrainingExerciseModal = ({
                   <img
                     src={exerciseGif}
                     alt={exercise.nombre}
+                    loading="lazy"
+                    decoding="async"
                     className="mx-auto max-h-64 rounded-md shadow-lg border border-gray-600"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';

@@ -5,6 +5,9 @@ import FatigueReportModal from '../../Methodologie/methodologies/HipertrofiaV2/c
 import WeeklyReviewModal from '../../Methodologie/methodologies/HipertrofiaV2/components/WeeklyReviewModal';
 import { extractSessionPatterns } from '@/utils/exerciseUtils.js';
 import tokenManager from '../../../utils/tokenManager';
+import { getApiBaseUrl } from '../../../config/api';
+
+const API_URL = getApiBaseUrl();
 
 /**
  * Modal de resumen final de sesión
@@ -75,7 +78,7 @@ export const SessionSummaryModal = ({
           console.log('🤖 [FATIGUE] Detectando fatiga automática para sesión', sessionId);
           const token = tokenManager.getToken();
           const fatigueResponse = await fetch(
-            `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/hipertrofiav2/detect-auto-fatigue`,
+            `${API_URL}/api/hipertrofiav2/detect-auto-fatigue`,
             {
               method: 'POST',
               headers: {
@@ -114,7 +117,7 @@ export const SessionSummaryModal = ({
           try {
             const token = tokenManager.getToken();
             const response = await fetch(
-              `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/hipertrofiav2/advance-cycle`,
+              `${API_URL}/api/hipertrofiav2/advance-cycle`,
               {
                 method: 'POST',
                 headers: {
@@ -332,7 +335,7 @@ export const SessionSummaryModal = ({
               try {
                 const token = tokenManager.getToken();
                 const response = await fetch(
-                  `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/adaptation/auto-evaluate-week`,
+                  `${API_URL}/api/adaptation/auto-evaluate-week`,
                   {
                     method: 'POST',
                     headers: {

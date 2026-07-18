@@ -8,6 +8,7 @@
  */
 
 import { alertDialog } from '../../../ui/dialogService.jsx';
+import { getApiBaseUrl } from '../../../../config/api';
 import React, { useState, useEffect, useReducer } from 'react';
 import {
   Flame,
@@ -112,8 +113,7 @@ import tokenManager from '../../../../utils/tokenManager';
 const APIUtils = {
   async makeRequest(endpoint, options = {}) {
     const token = tokenManager.getToken();
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3010';
-    const fullUrl = `${baseUrl}${endpoint}`;
+    const fullUrl = `${getApiBaseUrl()}${endpoint}`;
 
     const defaultHeaders = {
       'Content-Type': 'application/json',

@@ -3,12 +3,15 @@
 ## Estado
 
 - **Android**: build del AAB **reproducible en CI** (`.github/workflows/android.yml`,
-  Java 21 + Node 20). Sin secretos → AAB de release **sin firmar** (valida el build
+  Java 21 + Node 22). Sin secretos → AAB de release **sin firmar** (valida el build
   nativo); con secretos → **AAB firmado de staging**. `gradlew` con permiso ejecutable.
 - **Versionado**: fuente única. `versionName` = `package.json` `version`; `versionCode`
   = número de run de CI (`-PappVersionCode`/`-PappVersionName` en `app/build.gradle`).
-- **iOS**: **bloqueo externo**. Requiere macOS + Xcode + certificados de firma + cuenta
-  de Apple Developer, no disponibles en el CI actual. No se marca como cerrado.
+- **Verificación 2026-07-18**: `bundleRelease` completó 118 tareas y generó
+  `android/app/build/outputs/bundle/release/app-release.aab`; las cinco últimas ejecuciones
+  del workflow Android en `main` estaban en verde.
+- **iOS**: publicación adicional bloqueada externamente por macOS + Xcode + certificados
+  y cuenta Apple Developer. No bloquea el gate de la auditoría, cubierto por Android.
 - **Release web**: reproducible vía `npm run build` (verificado en CI `build-test`, servido
   por Express en Render con el mismo origen).
 

@@ -4,7 +4,7 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-const BASE = process.env.A11Y_BASE_URL || 'http://localhost:5173';
+const BASE = process.env.A11Y_BASE_URL || 'http://localhost:4173';
 
 const PAGES = [
   { name: 'login', path: '/login' },

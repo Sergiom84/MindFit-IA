@@ -1,6 +1,6 @@
 import { confirmDialog } from './ui/dialogService.jsx';
 import { motion } from 'framer-motion';
-import { LogOut, Home, UserCircle, BookOpen, Calendar, Apple, Shield, Droplet, MoreHorizontal } from 'lucide-react';
+import { LogOut, Home, UserCircle, BookOpen, Calendar, Apple, Shield, Droplet, MoreHorizontal, Camera, Dumbbell } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
@@ -70,7 +70,7 @@ const Navigation = () => {
   }, [logout]);
 
   const isMoreActive = useMemo(() => (
-    ['/oposiciones', '/menstrual-cycle', '/profile'].includes(location.pathname)
+    ['/oposiciones', '/menstrual-cycle', '/profile', '/home-training', '/video-correction'].includes(location.pathname)
   ), [location.pathname]);
 
   const handleNavigate = useCallback((path) => {
@@ -235,6 +235,20 @@ const Navigation = () => {
           />
           <div className="absolute left-4 right-4 mx-auto max-w-sm rounded-2xl border border-white/10 bg-neutral-900/95 p-4 shadow-2xl ring-1 ring-white/5 backdrop-blur-xl bottom-[calc(env(safe-area-inset-bottom)+96px)]">
             <div className="space-y-2">
+              <button
+                onClick={() => handleNavigate('/home-training')}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-gray-200/90 hover:bg-white/10"
+              >
+                <Dumbbell size={18} className="text-yellow-300" />
+                <span>Entrenamiento en casa</span>
+              </button>
+              <button
+                onClick={() => handleNavigate('/video-correction')}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-gray-200/90 hover:bg-white/10"
+              >
+                <Camera size={18} className="text-yellow-300" />
+                <span>Corrección por IA</span>
+              </button>
               <button
                 onClick={() => handleNavigate('/oposiciones')}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-gray-200/90 hover:bg-white/10"

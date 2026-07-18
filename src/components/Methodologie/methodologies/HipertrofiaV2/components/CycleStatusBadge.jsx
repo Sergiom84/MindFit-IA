@@ -14,6 +14,9 @@
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, AlertCircle, CheckCircle, Loader, Target } from 'lucide-react';
 import tokenManager from '../../../../../utils/tokenManager';
+import { getApiBaseUrl } from '../../../../../config/api';
+
+const API_URL = getApiBaseUrl();
 
 export default function CycleStatusBadge({ userId, methodologyPlanId, className = '' }) {
   const [cycleState, setCycleState] = useState(null);
@@ -34,7 +37,7 @@ export default function CycleStatusBadge({ userId, methodologyPlanId, className 
 
         // Fetch cycle status
         const cycleResponse = await fetch(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/hipertrofiav2/cycle-status/${userId}`,
+          `${API_URL}/api/hipertrofiav2/cycle-status/${userId}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -58,7 +61,7 @@ export default function CycleStatusBadge({ userId, methodologyPlanId, className 
         // 🎯 FASE 2: Fetch priority status
         try {
           const priorityResponse = await fetch(
-            `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/hipertrofiav2/priority-status/${userId}`,
+            `${API_URL}/api/hipertrofiav2/priority-status/${userId}`,
             {
               headers: {
                 'Authorization': `Bearer ${token}`

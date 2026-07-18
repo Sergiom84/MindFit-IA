@@ -18,13 +18,13 @@ Expediente índice del programa de cierre de la Auditoría Integral (fuente orig
 | AUTH-001 | P1        | **Backend/cliente listos; activación fasada pendiente en Render**     | [AUTH-001-rollout.md](AUTH-001-rollout.md)                                                |
 | AI-001   | P1        | **Cerrado**                                                           | Corrección Foto/Vídeo reparada (frames en cliente)                                        |
 | DEP-001  | P1        | **Cerrado** (prod limpia) + Dependabot/SBOM                           | [DEP-001-security.md](DEP-001-security.md)                                                |
-| ARCH-001 | P2        | **Tokens: cerrado**; base URL: centralización en curso (con ARCH-002) | adapter `tokenManager` / `getApiBaseUrl`                                                  |
-| ARCH-002 | P2        | **En curso** (un PR por monolito)                                     | —                                                                                         |
-| OPS-002  | P2        | **En curso** (Android CI/AAB); iOS = bloqueo externo                  | —                                                                                         |
+| ARCH-001 | P2        | **Cerrado**                                                           | [ARCH-001-ADAPTER-UNICO.md](ARCH-001-ADAPTER-UNICO.md)                                   |
+| ARCH-002 | P2        | **Cerrado** (cuatro monolitos priorizados, incluida fase profunda)    | [ARCH-002-REFRACTOR-PROFUNDO.md](ARCH-002-REFRACTOR-PROFUNDO.md)                          |
+| OPS-002  | P2        | **Cerrado para el gate** (Android AAB reproducible)                   | [OPS-002-mobile.md](OPS-002-mobile.md)                                                    |
 | DOC-001  | P3        | **Este documento**                                                    | —                                                                                         |
-| UX-001   | P3        | **Bloqueado por decisión de producto** (terminología)                 | —                                                                                         |
-| QA-001   | P3        | **En curso** (a11y en CI)                                             | —                                                                                         |
-| PERF-001 | P3        | **En curso** (Web Vitals + budgets)                                   | —                                                                                         |
+| UX-001   | P3        | **Cerrado**                                                           | [UX-001-TERMINOLOGIA.md](UX-001-TERMINOLOGIA.md)                                         |
+| QA-001   | P3        | **Cerrado**                                                           | [QA-001-ACCESIBILIDAD.md](QA-001-ACCESIBILIDAD.md)                                       |
+| PERF-001 | P3        | **Cerrado**                                                           | [PERF-001-RENDIMIENTO.md](PERF-001-RENDIMIENTO.md)                                       |
 
 ## Gate para nuevas funcionalidades (auditoría)
 
@@ -32,12 +32,12 @@ Expediente índice del programa de cierre de la Auditoría Integral (fuente orig
 - P1 de auth/DB/CI/config cerrados: ✅ (AUTH-001 requiere solo el flip de flags en Render)
 - Restore de staging desde Git demostrado: ✅ (CI job `db-baseline-restore`)
 - Suite central en CI sin acceso a producción: ✅
-- Un release web y uno móvil reproducibles: web ✅ / móvil (AAB) — OPS-002 en curso
+- Un release web y uno móvil reproducibles: web ✅ / Android AAB ✅
 
 ## Acciones pendientes fuera del código
 
 1. **Render (Sergio)**: activación fasada de AUTH-001 — ver [AUTH-001-rollout.md](AUTH-001-rollout.md).
 2. **GitHub (admin)**: marcar los checks de CI como _required status checks_ sobre `main`
-   (ver [DEP-001-security.md](DEP-001-security.md)).
-3. **Producto (Sergio)**: decisión de terminología para UX-001.
-4. **Móvil (OPS-002)**: certificados/cuenta iOS (bloqueo externo) para el release iOS.
+   (se intentará aplicar al publicar este cierre).
+3. **Móvil opcional**: certificados/cuenta iOS para publicar en TestFlight; no bloquea el
+   gate, que queda cubierto por el AAB Android reproducible.

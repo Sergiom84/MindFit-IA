@@ -8,7 +8,7 @@
 4. **Haz propuestas de mejora** pero NO las implementes hasta que se te pida
 5. **NO modifiques otras partes del código** que no estén relacionadas con la tarea
 6. **Pruebas y servicios**: tienes todo el permiso para realizar las pruebas a tu gusto (iniciar/reiniciar frontend y backend, ejecutar suites, crear usuarios QA, etc.) sin pedir confirmación.
-7. **Nunca hagas commit/push** salvo que el usuario lo solicite explícitamente
+7. **Commit y push autónomos al cerrar trabajo**: cuando una implementación solicitada esté completa y verificada, puedes crear commits y publicar la rama sin pedir confirmación adicional. El `force-push`, la reescritura de historial, el borrado de ramas y cualquier despliegue destructivo siguen requiriendo autorización explícita.
 8. **Todo lo anterior es OBLIGATORIO** - Sin excepciones
 
 ## VERIFICACIÓN DE CUMPLIMIENTO

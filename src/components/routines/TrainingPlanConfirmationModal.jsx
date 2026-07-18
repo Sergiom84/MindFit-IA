@@ -28,6 +28,9 @@ import {
 } from 'lucide-react';
 import { useTrace } from '@/contexts/TraceContext.jsx';
 import tokenManager from '../../utils/tokenManager';
+import { getApiBaseUrl } from '../../config/api';
+
+const API_URL = getApiBaseUrl();
 
 
 
@@ -84,7 +87,6 @@ export default function TrainingPlanConfirmationModal({
     if (!draftId) return;
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
       const token = tokenManager.getToken();
 
       console.log(`🗑️ Eliminando draft ${draftId}...`);
