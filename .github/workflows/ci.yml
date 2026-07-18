@@ -193,7 +193,9 @@ jobs:
       - name: Servir build y auditar a11y
         env:
           A11Y_BASE_URL: http://localhost:4173
+          AUDIT_BASE_URL: http://localhost:4173
         run: |
           npx vite preview --port 4173 &
           for i in $(seq 1 30); do curl -sf http://localhost:4173/login >/dev/null && break || sleep 2; done
           npm run test:a11y
+          npm run test:audit-ui

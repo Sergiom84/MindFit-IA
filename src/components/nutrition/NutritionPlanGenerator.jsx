@@ -16,6 +16,11 @@ import {
 import { useUserContext } from '@/contexts/UserContext';
 import MetabolicQuestionnaire from './MetabolicQuestionnaire';
 import tokenManager from '../../utils/tokenManager';
+import {
+  getNutritionProfile,
+  invalidateActiveNutritionPlan,
+  invalidateNutritionProfile
+} from '../../services/nutritionV2ReadService';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
 
@@ -739,35 +744,30 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
   ]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    const token = tokenManager.getToken() || tokenManager.getToken();
+    let isMounted = true;
 
     const loadProfile = async () => {
       try {
         setProfileLoading(true);
         setProfileLoadError(null);
 
-        if (!token) {
+        if (!tokenManager.getToken()) {
           throw new Error('No se encontro un token de autenticacion');
         }
 
-        const response = await fetch(`${API_URL}/api/nutrition-v2/profile`, {
-          signal: controller.signal,
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        const result = await getNutritionProfile();
+        if (!isMounted) return;
 
-        if (response.status === 404) {
+        if (result.status === 404) {
           setProfileData(buildProfileStateFromUser(DEFAULT_PROFILE, userObjective, userActivity, userMeals));
           return;
         }
 
-        if (!response.ok) {
+        if (!result.ok) {
           throw new Error('No se pudo cargar el perfil nutricional');
         }
 
-        const data = await response.json();
+        const data = result.data;
         const isOverridden = Boolean(data.nutrition_overrides_profile);
         setNutritionOverridesProfile(isOverridden);
 
@@ -788,18 +788,20 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
           )
         );
       } catch (error) {
-        if (error.name !== 'AbortError') {
+        if (isMounted) {
           setProfileLoadError(error.message);
           setProfileData(buildProfileStateFromUser(DEFAULT_PROFILE, userObjective, userActivity, userMeals));
         }
       } finally {
-        setProfileLoading(false);
+        if (isMounted) setProfileLoading(false);
       }
     };
 
     loadProfile();
 
-    return () => controller.abort();
+    return () => {
+      isMounted = false;
+    };
   }, [userObjective, userActivity, userMeals]);
 
   useEffect(() => {
@@ -894,6 +896,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
       }
 
       const data = await response.json();
+      invalidateNutritionProfile();
       setProfileData((prev) => buildProfileStateFromApi(data.profile || data, prev));
       setNutritionOverridesProfile(
         Boolean((data.profile || data)?.nutrition_overrides_profile ?? resolvedOverride)
@@ -976,6 +979,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
       }
 
       const profilePayload = await profileUpsert.json().catch(() => null);
+      invalidateNutritionProfile();
       if (profilePayload?.estimaciones) {
         setEstimaciones(profilePayload.estimaciones);
       }
@@ -998,6 +1002,7 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
       }
 
       const data = await response.json();
+      invalidateActiveNutritionPlan();
       setGeneratedPlan(data.plan);
       setPlanSuccess(true);
 

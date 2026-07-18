@@ -8,7 +8,11 @@ import { Calendar, Target, TrendingUp } from 'lucide-react';
 import NutritionPlanGenerator from './NutritionPlanGenerator';
 import NutritionCalendarView from './NutritionCalendarView';
 import NutritionDashboard from './NutritionDashboard';
-import tokenManager from '../../utils/tokenManager';
+import {
+  getActiveNutritionPlan,
+  getNutritionProfile,
+  invalidateActiveNutritionPlan
+} from '../../services/nutritionV2ReadService';
 
 export default function NutritionScreen() {
   const { userData } = useUserContext();
@@ -39,22 +43,16 @@ export default function NutritionScreen() {
   const fetchUserNutritionData = async () => {
     try {
       setIsLoading(true);
-      const token = tokenManager.getToken() || tokenManager.getToken();
-
-      const [profileRes, planRes] = await Promise.all([
-        fetch('/api/nutrition-v2/profile', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch('/api/nutrition-v2/active-plan', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+      const [profileResult, planResult] = await Promise.all([
+        getNutritionProfile(),
+        getActiveNutritionPlan()
       ]);
 
       let kcalValue = null;
       let source = null;
       let note = null;
 
-      const planData = planRes.ok ? await planRes.json().catch(() => null) : null;
+      const planData = planResult.data;
       if (planData?.kcal_objetivo) {
         const activePlanKcal = Number(planData.kcal_objetivo);
         const currentEstimateKcal = Number(planData?.current_estimate?.kcal_objetivo);
@@ -83,12 +81,12 @@ export default function NutritionScreen() {
       // M-01: si ya existe un plan activo, abrir su Calendario en vez de "Generar
       // Plan". Antes se abría siempre Generar y el usuario podía creer que había
       // perdido su dieta.
-      if (planRes.ok && planData && (planData.id || planData.plan_id || planData.kcal_objetivo)) {
+      if (planResult.ok && planData && (planData.id || planData.plan_id || planData.kcal_objetivo)) {
         setActiveTab('calendar-v2');
       }
 
-      if (!kcalValue && profileRes.ok) {
-        const profileData = await profileRes.json();
+      if (!kcalValue && profileResult.ok) {
+        const profileData = profileResult.data;
         if (profileData?.kcal_objetivo) {
           kcalValue = profileData.kcal_objetivo;
           source = 'profile';
@@ -296,6 +294,7 @@ export default function NutritionScreen() {
               onPlanGenerated={(data) => {
                 console.log('✅ Plan V2 generado:', data);
                 setNutritionPlan(data.plan);
+                invalidateActiveNutritionPlan();
                 // Cambiar automáticamente a la vista de calendario
                 setActiveTab('calendar-v2');
               }}
