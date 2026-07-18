@@ -1,6 +1,10 @@
 # Estado actual del repositorio
 
-Fecha de revisión: 2026-03-06
+Fecha de revisión: 2026-07-18
+
+> **Auditoría ECI**: el estado de cierre de cada hallazgo (SEC-004, DB-001, AUTH-001,
+> AI-001, DEP-001, ARCH/OPS/P3) vive en [docs/AUDITORIA-ECI-CIERRE.md](docs/AUDITORIA-ECI-CIERRE.md),
+> que es el índice vivo. Los snapshots antiguos son históricos, no la fuente de verdad.
 
 ## Frontend confirmado en código
 

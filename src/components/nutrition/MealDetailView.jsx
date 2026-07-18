@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import tokenManager from '../../utils/tokenManager';
+import { getApiBaseUrl } from '../../config/api';
 import {
   X,
   Utensils,
@@ -13,7 +14,8 @@ import {
   MoreVertical
 } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3010";
+// ARCH-001: base URL canónica desde el adapter de config (VITE_API_URL o same-origin).
+const API_URL = getApiBaseUrl();
 const ESTADOS_PESADO = ["crudo", "cocido", "escurrido", "seco", "tal_cual"];
 const MENU_GENERATION_MODE_LABELS = {
   hybrid_ai: "IA híbrida",

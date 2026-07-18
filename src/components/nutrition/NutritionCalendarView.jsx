@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { Calendar, Dumbbell, Moon, ChevronLeft, ChevronRight, Loader2, RefreshCw, Sparkles } from 'lucide-react';
 import MealDetailView from './MealDetailView';
 import tokenManager from '../../utils/tokenManager';
+import { getApiBaseUrl } from '../../config/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3010';
+// ARCH-001: base URL canónica desde el adapter de config (VITE_API_URL o same-origin).
+const API_URL = getApiBaseUrl();
 
 const DIAS_SEMANA_POR_INDICE = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const DIAS_SEMANA_LEGACY = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
