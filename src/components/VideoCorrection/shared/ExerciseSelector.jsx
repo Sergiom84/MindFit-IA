@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, CheckCircle } from 'lucide-react';
+import tokenManager from '../../../utils/tokenManager';
 
 // NO ejercicios hardcodeados - deben venir de la API de ejercicios
 const FALLBACK_EXERCISES = [];
@@ -16,11 +17,15 @@ export default function ExerciseSelector({ selectedExerciseId, onExerciseChange 
   useEffect(() => {
     const loadExercises = async () => {
       try {
-        const res = await fetch('/api/exercises?limit=500');
+        // AI-001: el endpoint real es /api/exercise-catalog/search (requiere JWT).
+        // `source=general` devuelve el catálogo de corrección con errores/puntos clave.
+        const res = await fetch('/api/exercise-catalog/search?source=general&limit=500', {
+          headers: { Authorization: `Bearer ${tokenManager.getToken()}` },
+        });
         if (res.ok) {
           const data = await res.json();
-          // Mapeamos al esquema esperado
-          const mapped = (data?.items || data || []).map((e) => ({
+          // El backend responde { success, exercises: [...] }.
+          const mapped = (data?.exercises || data?.items || []).map((e) => ({
             id: e.id || e.slug || e.code || crypto.randomUUID(),
             name: e.name || e.titulo || 'Ejercicio',
             commonErrors: e.common_errors || e.errores || [],

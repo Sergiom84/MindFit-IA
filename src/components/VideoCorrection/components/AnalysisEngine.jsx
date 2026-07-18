@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Brain, 
-  Zap, 
+import {
+  Brain,
+  Zap,
   Target,
   Eye,
   TrendingUp
@@ -13,11 +13,13 @@ import { useUserContext } from '@/contexts/UserContext';
 import { useVideoAnalysis } from '../contexts/VideoAnalysisContext';
 import VoiceFeedback from '../shared/VoiceFeedback';
 import tokenManager from '../../../utils/tokenManager';
+import { extractFramesFromVideo } from '../utils/videoFrames';
 
 export default function AnalysisEngine() {
   const { user } = useAuth();
   const { userData } = useUserContext();
   const { speakCorrections, stopSpeaking } = VoiceFeedback();
+  const [frameProgress, setFrameProgress] = useState(null);
   const cardBase = 'bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-lg';
   
   const {
@@ -46,11 +48,19 @@ export default function AnalysisEngine() {
 
     try {
       console.log('🎯 Iniciando análisis de video:', selectedVideo.name);
-      
+
+      // AI-001: el backend analiza IMÁGENES (no vídeo). Extraemos fotogramas en el
+      // cliente y los subimos como `images[]`, reutilizando el pipeline de imagen.
+      const frames = await extractFramesFromVideo(
+        selectedVideo.file,
+        {},
+        (p) => setFrameProgress(p)
+      );
+
       const formData = new FormData();
       formData.append('exerciseId', selectedExerciseId);
-      formData.append('frame', selectedVideo.file);
-      
+      frames.forEach((blob, i) => formData.append('images', blob, `frame_${i + 1}.jpg`));
+
       if (userData) {
         formData.append('perfilUsuario', JSON.stringify({
           edad: userData.edad,
@@ -118,6 +128,7 @@ export default function AnalysisEngine() {
       alert(`Error en el análisis: ${error.message}`);
     } finally {
       setIsAnalyzing(false);
+      setFrameProgress(null);
     }
   };
 
@@ -253,7 +264,9 @@ export default function AnalysisEngine() {
               {isAnalyzing ? (
                 <>
                   <Brain className="w-5 h-5 mr-2 animate-spin" />
-                  Analizando Video...
+                  {frameProgress
+                    ? `Extrayendo fotogramas ${frameProgress.done}/${frameProgress.total}...`
+                    : 'Analizando Video...'}
                 </>
               ) : (
                 <>
