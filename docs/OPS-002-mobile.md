@@ -12,6 +12,9 @@
   del workflow Android en `main` estaban en verde.
 - **Google Play**: AAB firmado `1.0.1` (`versionCode=2`) publicado mediante Android
   Publisher API en la pista `internal` de `com.entrenaconia.app`; estado `completed`.
+- **Firma en CI**: los cuatro secretos `ANDROID_*` quedaron configurados el 2026-07-18;
+  el workflow manual sobre `main` produjo correctamente el artefacto
+  `android-aab-signed` (run `29652248526`, artifact `8431821922`).
 - **iOS**: publicación adicional bloqueada externamente por macOS + Xcode + certificados
   y cuenta Apple Developer. No bloquea el gate de la auditoría, cubierto por Android.
 - **Release web**: reproducible vía `npm run build` (verificado en CI `build-test`, servido
