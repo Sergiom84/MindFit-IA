@@ -37,7 +37,9 @@ Expediente índice del programa de cierre de la Auditoría Integral (fuente orig
 ## Acciones pendientes fuera del código
 
 1. **Render (Sergio)**: activación fasada de AUTH-001 — ver [AUTH-001-rollout.md](AUTH-001-rollout.md).
-2. **GitHub (admin)**: marcar los checks de CI como _required status checks_ sobre `main`
-   (se intentará aplicar al publicar este cierre).
-3. **Móvil opcional**: certificados/cuenta iOS para publicar en TestFlight; no bloquea el
+2. **Móvil opcional**: certificados/cuenta iOS para publicar en TestFlight; no bloquea el
    gate, que queda cubierto por el AAB Android reproducible.
+
+La rama `main` quedó protegida el 2026-07-18 con `build-test`,
+`db-baseline-restore`, `integration-tests`, `dependency-audit` y `a11y-audit` como
+checks obligatorios, resolución de conversaciones y bloqueo de force-push/borrado.

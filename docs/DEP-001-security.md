@@ -18,10 +18,10 @@
 3. **Dependabot** (`.github/dependabot.yml`): PRs semanales para raíz, backend y GitHub
    Actions; minor/patch agrupados; majors sueltos para revisión.
 4. **SBOM CycloneDX**: se genera por build (raíz y backend) y se sube como artefacto.
-5. **Protección de rama**: Dependabot y el job de CI **no** hacen obligatorios los checks
-   por sí solos. **Acción para el admin del repo**: en GitHub → Settings → Branches, marcar
-   `build-test`, `db-baseline-restore`, `integration-tests` y `dependency-audit` como
-   _required status checks_ sobre `main`.
+5. **Protección de rama**: aplicada el 2026-07-18. `build-test`,
+   `db-baseline-restore`, `integration-tests`, `dependency-audit` y `a11y-audit` son
+   _required status checks_ sobre `main`; también se exige resolver conversaciones y se
+   impiden force-push y borrado.
 
 ## Excepciones aceptadas (dev-only, con revisión)
 
