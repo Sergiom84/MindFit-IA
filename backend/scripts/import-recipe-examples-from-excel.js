@@ -12,9 +12,8 @@
  *   RECIPES_ACTIVE=true|false  (default: true)
  */
 
-import XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import fs from "fs";
-import path from "path";
 import { pool } from "../db.js";
 
 const DEFAULT_EXCEL_PATH = "/Users/miguelangelbatistaruiz/Downloads/Biblioteca_Platos_Plantillas_MindFeed_v2_2_final.xlsx";
@@ -46,12 +45,37 @@ function parseIngredientsExample(value) {
     .filter(Boolean);
 }
 
+function cellValue(cell) {
+  const value = cell.value;
+  if (value && typeof value === "object") {
+    if ("result" in value) return value.result ?? "";
+    if ("text" in value) return value.text ?? "";
+    if (Array.isArray(value.richText)) return value.richText.map((part) => part.text).join("");
+  }
+  return value ?? "";
+}
+
 function parseSheet(workbook, sheetName) {
-  const sheet = workbook.Sheets[sheetName];
+  const sheet = workbook.getWorksheet(sheetName);
   if (!sheet) {
     throw new Error(`No existe la hoja "${sheetName}" en el Excel`);
   }
-  return XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+  const headers = [];
+  sheet.getRow(1).eachCell({ includeEmpty: true }, (cell, column) => {
+    headers[column] = normText(cellValue(cell));
+  });
+
+  const rows = [];
+  sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const parsed = {};
+    for (let column = 1; column < headers.length; column += 1) {
+      if (headers[column]) parsed[headers[column]] = cellValue(row.getCell(column));
+    }
+    rows.push(parsed);
+  });
+  return rows;
 }
 
 function resolveRoleForIndex(slotRoles, index, fallbackRole = "CARBO_BASE") {
@@ -71,7 +95,8 @@ async function run() {
     }
 
     console.log("📂 Leyendo Excel:", EXCEL_PATH);
-    const workbook = XLSX.readFile(EXCEL_PATH);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(EXCEL_PATH);
 
     const templatesRows = parseSheet(workbook, "Plantillas");
     const slotsRows = parseSheet(workbook, "Slots");

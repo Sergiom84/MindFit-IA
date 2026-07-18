@@ -11,6 +11,9 @@ import ProgressTab from './tabs/ProgressTab.jsx';
 import HistoricalTab from './tabs/HistoricalTab.jsx';
 import { getWeekendStatus } from './api.js';
 import tokenManager from '../../utils/tokenManager';
+import { getApiBaseUrl } from '../../config/api';
+
+const API_URL = getApiBaseUrl();
 
 // ===============================================
 // 🚀 RoutineScreen - Versión Integrada con WorkoutContext
@@ -212,7 +215,7 @@ const RoutineScreen = () => {
       try {
         const token = tokenManager.getToken();
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/routines/calendar-schedule/${effectiveMethodologyPlanId}`,
+          `${API_URL}/api/routines/calendar-schedule/${effectiveMethodologyPlanId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

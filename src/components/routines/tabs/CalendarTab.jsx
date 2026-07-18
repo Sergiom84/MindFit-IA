@@ -18,6 +18,7 @@
  */
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { getApiBaseUrl } from '@/config/api';
 import { Card } from '@/components/ui/card.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Badge } from '@/components/ui/badge.jsx';
@@ -57,7 +58,7 @@ export default function CalendarTab({ plan, planStartDate, methodologyPlanId, en
       setIsLoadingCalendar(true);
       try {
         const token = tokenManager.getToken();
-        const response = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/routines/calendar-schedule/${methodologyPlanId}`, {
+        const response = await fetch(`${getApiBaseUrl()}/api/routines/calendar-schedule/${methodologyPlanId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'

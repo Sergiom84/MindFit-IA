@@ -14,6 +14,9 @@ import { useExerciseProgress } from './session/useExerciseProgress';
 import { ExerciseSessionView } from './session/ExerciseSessionView';
 import { SessionSummaryModal } from './session/SessionSummaryModal';
 import tokenManager from '../../utils/tokenManager';
+import { getApiBaseUrl } from '../../config/api';
+
+const API_URL = getApiBaseUrl();
 
 /**
  * Modal de sesión de ejercicios - REFACTORIZADO
@@ -138,7 +141,7 @@ export default function RoutineSessionModal({
       if (!userId || !token) return null;
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/hipertrofiav2/progression/${userId}/${exerciseId}`,
+        `${API_URL}/api/hipertrofiav2/progression/${userId}/${exerciseId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -233,7 +236,7 @@ export default function RoutineSessionModal({
         if (!token || !userProfile?.id) return;
 
         const resp = await fetch(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/hipertrofiav2/current-session-with-adjustments/${userProfile.id}/${cycleDay}`,
+          `${API_URL}/api/hipertrofiav2/current-session-with-adjustments/${userProfile.id}/${cycleDay}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -467,7 +470,7 @@ export default function RoutineSessionModal({
 
       // Guardar en backend
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/hipertrofiav2/save-set`,
+        `${API_URL}/api/hipertrofiav2/save-set`,
         {
           method: 'POST',
           headers: {

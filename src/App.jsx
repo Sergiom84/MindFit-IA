@@ -239,8 +239,8 @@ const ROUTE_CONFIG = [
     path: "/video-correction",
     component: VideoCorrection,
     protected: true,
-    name: "Corrección de Video",
-    module: "Corrección de Video",
+    name: "Corrección por IA",
+    module: "Corrección por IA",
     context: "VideoCorrection",
     loadingMessage: "Cargando corrección...",
     preloadPriority: "low"

@@ -10,6 +10,7 @@
  */
 
 import { TIMEOUT_CONFIG, RETRY_CONFIG, STORAGE_KEYS } from '../config/authConfig';
+import { getApiBaseUrl } from '../config/api';
 
 // =============================================================================
 // 🔗 GESTIÓN DE CONEXIÓN Y QUEUE OFFLINE
@@ -135,8 +136,7 @@ class ConnectionManager {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const RAW_API_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) ? import.meta.env.VITE_API_URL : '';
-      const HEALTH_URL = RAW_API_URL ? `${RAW_API_URL.replace(/\/$/, '')}/api/health` : '/api/health';
+      const HEALTH_URL = `${getApiBaseUrl()}/api/health`;
       const response = await fetch(HEALTH_URL, {
         method: 'HEAD',
         signal: controller.signal,

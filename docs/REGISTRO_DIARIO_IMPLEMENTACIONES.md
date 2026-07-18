@@ -1,5 +1,11 @@
 # Registro diario de implementaciones
 
+## 18.07.2026
+
+- **ARCH-002, fase profunda**: añadido un arnés PostgreSQL 17 efímero y local (`127.0.0.1:55432`) que restaura el baseline y carga fixtures sintéticos sin leer `backend/.env`; la suite de integración pasa 20/20 contra él. `MethodologiesScreen.jsx` baja de 2251 a 508 líneas al delegar selección, generación, ciclo de vida, sesiones de un día, autorregulación y modales. `TodayTrainingTab.jsx` baja de 2400 a 1570 líneas al delegar inicio/reanudación/cierre, progreso, autorregulación, acciones auxiliares y modales. Añadidos contratos anti-producción y de cableado; suite unitaria 74/74, build productivo correcto y smoke E2E aislado con apertura de sesión y persistencia de una serie. Detalle reproducible en `docs/ARCH-002-REFRACTOR-PROFUNDO.md`.
+- **Flujo de entrega autónomo**: `CLAUDE_RULES.md` permite desde ahora crear commit y publicar una rama cuando la implementación solicitada esté completa y verificada; las operaciones destructivas de Git continúan requiriendo autorización expresa.
+- **Cierre técnico ECI**: cerrado ARCH-001 al centralizar la URL de API y el token en adapters únicos; retirado SheetJS en favor de `exceljs`; formalizada la terminología MindFit/MindFeed y añadidos accesos directos a Casa y Corrección por IA; consolidados los gates de accesibilidad y rendimiento; verificado el AAB Android local con Java 21 y documentado el estado final de OPS-002.
+
 ## 09.07.2026
 
 - iOS (safe-area / notch): `index.html` no declaraba `viewport-fit=cover`, así que en iOS con notch/Dynamic Island `env(safe-area-inset-*)` devolvía siempre 0 y todos los paddings de safe-area ya presentes en el código (Navigation, modales, nutrición…) no surtían efecto dentro del WebView. Añadido `viewport-fit=cover` al meta viewport; ahora esos insets funcionan. De paso, metadatos iOS del WebView: `theme-color`, `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style=black-translucent`, `apple-mobile-web-app-title` y `<title>` real ("MindFit", antes "Vite + React"). Verificado el pipeline completo en esta sesión: `npm run build` + `npx cap sync ios` copian el nuevo `index.html` a `ios/App/App/public` sin errores (assets generados siguen fuera de git). No toca `src/` ni backend. El build/firma final sigue requiriendo Mac+Xcode.

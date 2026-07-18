@@ -40,6 +40,12 @@ test("TodayTrainingTab mantiene cierre 7/7 y CrossFit usa WOD player desde plan"
   const effortModalsSource = readRepoFile(
     "src/components/routines/tabs/TodayTrainingTab/components/EffortModals.jsx",
   );
+  const modalLayerSource = readRepoFile(
+    "src/components/routines/tabs/TodayTrainingTab/components/TodayTrainingModalLayer.jsx",
+  );
+  const sessionActionsSource = readRepoFile(
+    "src/components/routines/tabs/TodayTrainingTab/hooks/useRoutineSessionActions.js",
+  );
 
   const endpoints = [
     "/methodology-session/calistenia/session-result",
@@ -55,10 +61,12 @@ test("TodayTrainingTab mantiene cierre 7/7 y CrossFit usa WOD player desde plan"
     assert.match(effortConfigSource, new RegExp(endpoint.replace(/[/-]/g, (m) => `\\${m}`)));
   }
 
-  // TodayTrainingTab debe seguir cableado a effortConfig y a EffortModals.
-  assert.match(source, /EFFORT_ENDPOINTS/);
+  // TodayTrainingTab debe seguir cableado al hook de sesión y a la capa de modales.
+  assert.match(source, /useRoutineSessionActions/);
   assert.match(source, /from '\.\/TodayTrainingTab\/effortConfig/);
-  assert.match(source, /<EffortModals/);
+  assert.match(source, /<TodayTrainingModalLayer/);
+  assert.match(modalLayerSource, /<EffortModals/);
+  assert.match(sessionActionsSource, /EFFORT_ENDPOINTS/);
 
   // El cierre 7/7 vive ahora en EffortModals.jsx.
   for (const modalName of [
@@ -73,11 +81,11 @@ test("TodayTrainingTab mantiene cierre 7/7 y CrossFit usa WOD player desde plan"
     assert.match(effortModalsSource, new RegExp(`<${modalName}`));
   }
 
-  assert.match(source, /activeMethodKey === 'crossfit'/);
-  assert.match(source, /<WodSessionModal/);
+  assert.match(modalLayerSource, /activeMethodKey === "crossfit"/);
+  assert.match(modalLayerSource, /<WodSessionModal/);
   assert.match(effortModalsSource, /defaultScale=\{effortModal\.scale \|\| 'rx'\}/);
-  assert.match(source, /methodologyPlanId: methodologyPlanId \|\| null/);
-  assert.match(source, /\.\.\.payload/);
+  assert.match(sessionActionsSource, /methodologyPlanId: methodologyPlanId \|\| null/);
+  assert.match(sessionActionsSource, /\.\.\.payload/);
 });
 
 test("TodayTrainingTab prioriza today-status.summary como fuente de verdad del gate", () => {

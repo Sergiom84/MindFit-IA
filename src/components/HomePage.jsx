@@ -356,7 +356,7 @@ const HomePage = () => {
                       type="button"
                     >
                       <Camera className="w-5 h-5 text-yellow-300 group-hover:text-yellow-200" />
-                      Corrección por Video IA
+                      Corrección por IA
                     </button>
                   </CardContent>
                 </Card>

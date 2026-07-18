@@ -446,6 +446,7 @@ export const ExerciseSessionView = ({
                 loop
                 muted
                 playsInline
+                preload="metadata"
                 className="mx-auto max-h-64 rounded-xl shadow-lg border border-white/10 bg-black/40"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
@@ -456,6 +457,8 @@ export const ExerciseSessionView = ({
               <img
                 src={exerciseGif}
                 alt={formatExerciseName(exerciseName)}
+                loading="lazy"
+                decoding="async"
                 className="mx-auto max-h-64 rounded-xl shadow-lg border border-white/10 bg-black/40"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';

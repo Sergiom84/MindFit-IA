@@ -15,6 +15,9 @@
 import { useState, useEffect } from 'react';
 import { X, TrendingUp, Calendar, Target, AlertTriangle, CheckCircle } from 'lucide-react';
 import tokenManager from '../../../../../utils/tokenManager';
+import { getApiBaseUrl } from '../../../../../config/api';
+
+const API_URL = getApiBaseUrl();
 
 const MUSCLE_GROUPS = [
   { id: 'Pecho', label: 'Pecho', emoji: '💪', description: 'Press banca, aperturas' },
@@ -60,7 +63,7 @@ export default function MusclePriorityModal({ show, onClose, currentPriority = n
     try {
       const token = tokenManager.getToken();
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/hipertrofiav2/activate-priority`,
+        `${API_URL}/api/hipertrofiav2/activate-priority`,
         {
           method: 'POST',
           headers: {
@@ -101,7 +104,7 @@ export default function MusclePriorityModal({ show, onClose, currentPriority = n
     try {
       const token = tokenManager.getToken();
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/hipertrofiav2/deactivate-priority`,
+        `${API_URL}/api/hipertrofiav2/deactivate-priority`,
         {
           method: 'POST',
           headers: {
