@@ -131,6 +131,7 @@ const LoginPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300 hover:text-yellow-300 transition-colors"
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
