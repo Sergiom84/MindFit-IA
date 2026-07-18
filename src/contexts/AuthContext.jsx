@@ -514,6 +514,17 @@ export const AuthProvider = ({ children }) => {
     // Limpiar datos de usuario
     StorageManager.remove(STORAGE_KEYS.USER);
 
+    // ONB-P1-04: la caché de perfil sobrevivía al logout, así que la siguiente
+    // cuenta podía arrancar viendo el perfil (y los datos de salud) de la anterior.
+    // Se borran tanto las claves por usuario como la global antigua.
+    try {
+      Object.keys(localStorage)
+        .filter((key) => key === 'profileData' || key.startsWith('profileData:'))
+        .forEach((key) => StorageManager.remove(key));
+    } catch (error) {
+      console.debug('No se pudo limpiar la caché de perfil:', error);
+    }
+
     // Preservar datos de recovery para rutinas (compatibilidad hacia atrás)
     const currentMethodologyPlanId = StorageManager.get('currentMethodologyPlanId') ||
                                     StorageManager.get(STORAGE_KEYS.METHODOLOGY_PLAN_ID);

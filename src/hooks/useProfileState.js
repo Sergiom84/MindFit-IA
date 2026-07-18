@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import tokenManager from '../utils/tokenManager';
+import { alertDialog } from '../components/ui/dialogService';
 
 export const useProfileState = () => {
   const defaultProfile = useMemo(() => ({
@@ -64,6 +65,11 @@ export const useProfileState = () => {
   const [userProfile, setUserProfile] = useState(defaultProfile)
   const [editingSection, setEditingSection] = useState(null)
   const [editedData, setEditedData] = useState({})
+  const [isSaving, setIsSaving] = useState(false)
+
+  // ONB-P1-04: la caché de perfil se guarda por usuario. Sin el userId en la clave,
+  // el perfil de una cuenta sobrevivía al logout y lo leía la siguiente.
+  const profileCacheKey = (userId) => `profileData:${userId}`
 
   const getAuthSession = useCallback(() => {
     const token = tokenManager.getToken()
@@ -205,32 +211,37 @@ export const useProfileState = () => {
     return payload
   }
 
+  // Escribe la caché siempre bajo el usuario en sesión. Si no hay sesión no se
+  // escribe nada: un perfil sin dueño es justo lo que provocaba la fuga.
+  const writeProfileCache = useCallback((profile) => {
+    const { userId } = getAuthSession()
+    if (!userId) return
+    localStorage.setItem(profileCacheKey(userId), JSON.stringify(profile))
+  }, [getAuthSession])
+
   // Cargar perfil desde localStorage (clave dedicada) y luego desde la API
   useEffect(() => {
-    // Migración: si existe 'userProfile' sin "id", moverlo a 'profileData' para no
-    // interferir con AuthContext (que usa STORAGE_KEYS.USER = 'userProfile').
-    try {
-      const legacyUP = localStorage.getItem('userProfile')
-      if (legacyUP) {
-        const parsed = JSON.parse(legacyUP)
-        if (parsed && typeof parsed === 'object' && parsed.id === undefined) {
-          localStorage.setItem('profileData', legacyUP)
-          localStorage.removeItem('userProfile')
-        }
-      }
-    } catch (error) {
-      // Ignorar errores de parsing de userProfile legacy
-      console.debug('Error parsing legacy userProfile:', error)
-    }
+    const { token, userId } = getAuthSession()
 
-    const savedProfile = localStorage.getItem('profileData')
+    // ONB-P1-04: la caché iba en la clave global 'profileData', sin usuario y sin
+    // limpiarse al cerrar sesión, así que la cuenta B podía arrancar mostrando el
+    // perfil (incluidos datos de salud) de la cuenta A. Se descarta cualquier resto
+    // de la clave antigua: no hay forma de saber de quién era, y la API la repuebla.
+    localStorage.removeItem('profileData')
+    localStorage.removeItem('userProfile')
+
+    const savedProfile = userId ? localStorage.getItem(profileCacheKey(userId)) : null
     if (savedProfile) {
-      const parsed = JSON.parse(savedProfile)
-      setUserProfile({ ...defaultProfile, ...normalizeBodyCompositionFields(parsed) })
+      try {
+        const parsed = JSON.parse(savedProfile)
+        setUserProfile({ ...defaultProfile, ...normalizeBodyCompositionFields(parsed) })
+      } catch (error) {
+        console.debug('Caché de perfil ilegible, se descarta:', error)
+        localStorage.removeItem(profileCacheKey(userId))
+      }
     }
 
     // Intentar cargar desde API si hay usuario autenticado (claves legacy por ahora)
-    const { token, userId } = getAuthSession()
     if (token && userId) {
       fetch(`/api/users/${userId}`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -240,17 +251,17 @@ export const useProfileState = () => {
             if (data?.user) {
               const ui = mapDbToUi(data.user)
               setUserProfile(ui)
-              localStorage.setItem('profileData', JSON.stringify(ui))
+              writeProfileCache(ui)
             }
           })
           .catch(err => console.error('Error cargando perfil desde API:', err))
     }
-  }, [defaultProfile, mapDbToUi, getAuthSession])
+  }, [defaultProfile, mapDbToUi, getAuthSession, writeProfileCache])
 
   // Guardar datos del perfil en localStorage cuando cambien (clave dedicada)
   useEffect(() => {
-    localStorage.setItem('profileData', JSON.stringify(userProfile))
-  }, [userProfile])
+    writeProfileCache(userProfile)
+  }, [userProfile, writeProfileCache])
 
   // Funciones helper
   const calculateIMC = (peso, altura) => {
@@ -416,17 +427,27 @@ export const useProfileState = () => {
     setEditedData(initialData)
   }
 
+  // ONB-P1-03: antes se pintaba el cambio en la UI ANTES de llamar a la API y el
+  // editor se cerraba pase lo que pase. Si el PUT fallaba —o si no había sesión, que
+  // salía por un `return` mudo sin llegar a pedir nada— el usuario veía su dato como
+  // guardado y la caché lo persistía, cuando en Supabase no había cambiado nada.
+  // Ahora sólo se confirma tras un 200: si falla, el editor sigue abierto con los
+  // valores escritos y el error se muestra.
   const handleSave = async () => {
     if (!editingSection) return
 
     const normalizedData = normalizeBodyCompositionFields(editedData)
-
-    // Actualizar UI inmediata
-    setUserProfile(prev => ({ ...prev, ...normalizedData }))
+    setIsSaving(true)
 
     try {
       const { token, userId } = getAuthSession()
-      if (!token || !userId) return
+      if (!token || !userId) {
+        await alertDialog({
+          title: 'Sesión caducada',
+          description: 'No hemos podido guardar los cambios porque tu sesión ha caducado. Vuelve a iniciar sesión e inténtalo de nuevo.'
+        })
+        return
+      }
 
       const payload = mapUiToDb(normalizedData)
 
@@ -440,20 +461,35 @@ export const useProfileState = () => {
       })
 
       if (!resp.ok) {
-        console.error('Error guardando perfil:', await resp.text())
-      } else {
-        const data = await resp.json()
-        if (data?.user) {
-          const ui = mapDbToUi(data.user)
-          setUserProfile(ui)
-          localStorage.setItem('profileData', JSON.stringify(ui))
-        }
+        const detail = await resp.text()
+        console.error('Error guardando perfil:', detail)
+        await alertDialog({
+          title: 'No se pudo guardar',
+          description: 'Tus cambios no se han guardado. Revisa tu conexión e inténtalo de nuevo.'
+        })
+        return
       }
-    } catch (e) {
-      console.error('Error en handleSave:', e)
-    } finally {
+
+      const data = await resp.json()
+      if (data?.user) {
+        const ui = mapDbToUi(data.user)
+        setUserProfile(ui)
+        writeProfileCache(ui)
+      } else {
+        // El servidor confirmó, pero no devolvió el usuario: aplicamos lo enviado.
+        setUserProfile(prev => ({ ...prev, ...normalizedData }))
+      }
+
       setEditingSection(null)
       setEditedData({})
+    } catch (e) {
+      console.error('Error en handleSave:', e)
+      await alertDialog({
+        title: 'No se pudo guardar',
+        description: 'Tus cambios no se han guardado. Revisa tu conexión e inténtalo de nuevo.'
+      })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -493,7 +529,7 @@ export const useProfileState = () => {
       if (dataResp?.user) {
         const ui = mapDbToUi(dataResp.user)
         setUserProfile(ui)
-        localStorage.setItem('profileData', JSON.stringify(ui))
+        writeProfileCache(ui)
       }
 
       return true
@@ -561,7 +597,7 @@ export const useProfileState = () => {
       if (data?.user) {
         const ui = mapDbToUi(data.user)
         setUserProfile(ui)
-        localStorage.setItem('profileData', JSON.stringify(ui))
+        writeProfileCache(ui)
       }
 
       return true
@@ -582,6 +618,7 @@ export const useProfileState = () => {
     userProfile,
     editingSection,
     editedData,
+    isSaving,
     startEdit,
     handleSave,
     handleCancel,
