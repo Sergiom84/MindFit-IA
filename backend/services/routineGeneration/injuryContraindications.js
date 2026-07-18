@@ -30,17 +30,23 @@ export const INJURY_CONTRAINDICATIONS = [
   {
     zona: 'hombro',
     match: /hombro|deltoid|manguito|rotador|shoulder|supraespinoso/,
-    avoid: /overhead|sobre.?cabeza|snatch|arranc|jerk|press|thruster|hspu|handstand|pino|parada de mano|muscle.?up|kipping|wall.?ball|pull.?up|dominad|dip|fondos|push.?up|flexion|lagartija|plancha|planche|pike|pseudo|crow|cuervo|equilibrio\/soporte|hollow.*hold/
+    // C-02: 'encima de la cabeza' cubre variantes como "extensión de tríceps por
+    // encima de la cabeza" que 'sobre cabeza' no atrapaba.
+    avoid: /overhead|sobre.?cabeza|encima de la cabeza|por encima de la cabeza|snatch|arranc|jerk|press|thruster|hspu|handstand|pino|parada de mano|muscle.?up|kipping|wall.?ball|pull.?up|dominad|dip|fondos|push.?up|flexion|lagartija|plancha|planche|pike|pseudo|crow|cuervo|equilibrio\/soporte|hollow.*hold/
   },
   {
     zona: 'lumbar',
     match: /lumbar|espalda baja|zona baja|hernia|columna|discal|ciatic/,
-    avoid: /deadlift|peso muerto|good ?morning|buenos dias|clean|cargada|snatch|arranc|swing|kettlebell|box ?jump|salto al caj|thruster|overhead squat|sentadilla sobre|barbell row|remo con barra|hinge|bisagra|front lever|back lever|hollow|arch|superman|hiperextens|elevacion de piernas|leg raise|toes ?to ?bar|pies a barra|l-?sit|dragon flag/
+    // C-02: la flexión lumbar cargada incluye crunch/encogimientos/sit-up, que no
+    // estaban vetados (se colaba "Crunch con carga").
+    avoid: /deadlift|peso muerto|good ?morning|buenos dias|clean|cargada|snatch|arranc|swing|kettlebell|box ?jump|salto al caj|thruster|overhead squat|sentadilla sobre|barbell row|remo con barra|hinge|bisagra|front lever|back lever|hollow|arch|superman|hiperextens|crunch|encogimiento|sit.?up|elevacion de tronco|elevacion de piernas|leg raise|toes ?to ?bar|pies a barra|l-?sit|dragon flag/
   },
   {
     zona: 'rodilla',
     match: /rodilla|menisco|ligament|lca|lcp|patel|knee/,
-    avoid: /box ?jump|salto|pistol|squat ?jump|sentadilla con salto|lunge|zancada|wall.?ball|thruster|running|carrera|fartlek|intervalos|double.?under|comba|shrimp|sissy|step.?up|subida al caj/,
+    // C-02: la sentadilla búlgara / split squat es una zancada unilateral y debe
+    // vetarse igual que 'lunge'/'zancada' (se colaba "Sentadilla búlgara").
+    avoid: /box ?jump|salto|pistol|squat ?jump|sentadilla con salto|lunge|zancada|bulgar|split.?squat|wall.?ball|thruster|running|carrera|fartlek|intervalos|double.?under|comba|shrimp|sissy|step.?up|subida al caj/,
     // Contraindicación BLANDA: movimientos relevantes/inevitables que se MANTIENEN
     // con aviso de precaución en vez de excluirse (la caution gana al avoid).
     caution: /burpee/,

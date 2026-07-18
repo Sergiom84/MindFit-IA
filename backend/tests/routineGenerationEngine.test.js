@@ -108,10 +108,11 @@ test("normaliza nombres legacy/de UI a ids de metodología", () => {
   assert.equal(normalizeMethodologyId("Entrenamiento en Casa"), "casa");
   assert.equal(normalizeMethodologyId("Heavy Duty Manual"), "heavy-duty");
   assert.equal(normalizeMethodologyId("Halterofília Specialist"), "halterofilia");
-  // 'Hipertrofia' (sin V2) se retiró como metodología: queda como alias de
-  // compatibilidad hacia 'gimnasio' (mismo motor GymRoutineService).
-  assert.equal(normalizeMethodologyId("Hipertrofia"), "gimnasio");
-  assert.equal(normalizeMethodologyId("hipertrofia manual"), "gimnasio");
+  // 'Hipertrofia' (sin V2) se retiró como metodología (B-02): ya no se mapea a
+  // ninguna metodología viva, por lo que el normalizador la deja pasar tal cual.
+  // La única hipertrofia activa es HipertrofiaV2.
+  assert.equal(normalizeMethodologyId("Hipertrofia"), "hipertrofia");
+  assert.equal(normalizeMethodologyId("hipertrofia manual"), "hipertrofia manual");
   assert.equal(normalizeMethodologyId("HipertrofiaV2"), "hipertrofiav2");
 });
 

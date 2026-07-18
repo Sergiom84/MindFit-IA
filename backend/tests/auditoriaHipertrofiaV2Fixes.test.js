@@ -12,6 +12,7 @@ import { resolveScopeForLevel } from '../services/hipertrofiaV2/rulesetService.j
 import { resolveCycleSessions } from '../services/hipertrofiaV2/sessionService.js';
 import { evaluateHipertrofiaLevel } from '../services/hipertrofiaV2/levelEvaluator.js';
 import { evaluateCandidateMealBalance } from '../services/nutritionV2/mealSelectionHelpers.js';
+import { activeInjuryRules, isContraindicated } from '../services/routineGeneration/injuryContraindications.js';
 
 let passed = 0;
 let failed = 0;
@@ -155,6 +156,21 @@ test('A-04: exceso de kcal de verdura SIGUE bloqueando', () => {
     { role: 'VERDURA', macros: { protein_g: 2, carbs_g: 8, fat_g: 1 }, kcal: 200 }
   ], T, 600);
   expect(r.blocksCandidate).toBeTrue();
+});
+
+// ============ C-02: sinónimos de lesión ============
+const blockedBy = (injuryText, nombre) => isContraindicated({ nombre }, activeInjuryRules(injuryText));
+test('C-02: sentadilla búlgara se veta por lesión de rodilla (zancada)', () => {
+  expect(blockedBy('Evitar zancadas por dolor de rodilla', 'Sentadilla búlgara con mancuernas')).toBeTrue();
+});
+test('C-02: crunch con carga se veta por flexión lumbar cargada', () => {
+  expect(blockedBy('Evitar flexion lumbar cargada', 'Crunch con carga (disco en pecho)')).toBeTrue();
+});
+test('C-02: tríceps por encima de la cabeza se veta por hombro', () => {
+  expect(blockedBy('Manguito rotador, evitar press por encima de la cabeza', 'Extensión de tríceps por encima de la cabeza en polea')).toBeTrue();
+});
+test('C-02: no sobre-excluye (plancha con lesión lumbar sigue permitida)', () => {
+  expect(blockedBy('Evitar flexion lumbar cargada', 'Plank pesado (con disco en espalda)')).toBeFalse();
 });
 
 // Ejecuta los async y cierra

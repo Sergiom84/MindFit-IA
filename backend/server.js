@@ -246,16 +246,9 @@ app.post('/api/heavy-duty-specialist/generate-plan', (req, res, next) => {
   next();
 });
 
-// Hipertrofia Specialist - Evaluación y Generación
-app.post('/api/hipertrofia-specialist/evaluate-profile', (req, res, next) => {
-  req.url = '/api/routine-generation/specialist/hipertrofia/evaluate';
-  next();
-});
-
-app.post('/api/hipertrofia-specialist/generate-plan', (req, res, next) => {
-  req.url = '/api/routine-generation/specialist/hipertrofia/generate';
-  next();
-});
+// Hipertrofia legacy retirada (B-02): la UI usa HipertrofiaV2 (/api/hipertrofiav2/*).
+// Los alias /api/hipertrofia-specialist/* redirigían al motor de gimnasio y no
+// tenían consumidores; se eliminaron junto con su generador y prompt dedicados.
 
 // Powerlifting Specialist - Evaluación y Generación
 app.post('/api/powerlifting-specialist/evaluate-profile', (req, res, next) => {
