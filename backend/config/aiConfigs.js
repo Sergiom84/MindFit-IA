@@ -100,18 +100,8 @@ export const AI_MODULES = {
     promptVersion: "1.0",
     systemPrompt: 'heavy_duty_specialist' // Se cargará desde el archivo MD
   },
-  HIPERTROFIA_SPECIALIST: {
-    key: 'HIPERTROFIA_SPECIALIST',
-    envKey: 'OPENAI_API_KEY',
-    model: 'gpt-4o-mini',
-    temperature: 0.8,  // Balance entre creatividad y precisión para periodización
-    max_output_tokens: 16384,
-    top_p: 1.0,
-    store: true,
-    promptId: 'pmpt_hipertrofia_001',  // Temporal - se generará el ID real
-    promptVersion: "1.0",
-    systemPrompt: 'hipertrofia_specialist' // Se cargará desde el archivo MD
-  },
+  // HIPERTROFIA_SPECIALIST retirado (B-02): la hipertrofia legacy se eliminó;
+  // HipertrofiaV2 tiene su propio motor y no usa este config de IA.
   POWERLIFTING_SPECIALIST: {
     key: 'POWERLIFTING_SPECIALIST',
     envKey: 'OPENAI_API_KEY',
