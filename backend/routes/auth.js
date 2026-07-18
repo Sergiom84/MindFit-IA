@@ -21,6 +21,9 @@ import {
   REFRESH_TOKEN_TTL_DAYS,
   AUTH_FAIL_CLOSED,
 } from '../utils/authTokens.js';
+import {
+  validateOnboardingProfile
+} from '../services/userProfileContract.js';
 
 // AUTH-001 (PR 3): deriva la fecha de expiración del access a partir del TTL configurado
 // (solo soporta 'Nd'/'Nh'/'Nm' o segundos; suficiente para '7d'/'15m'). Para el registro
@@ -133,46 +136,6 @@ router.post('/register', async (req, res) => {
       return null;
     };
 
-    const normalizeObjetivoPrincipal = (val) => {
-      if (val === '' || val === undefined || val === null) return null;
-      const v = String(val).toLowerCase().replace(/\s+/g, '_');
-      
-      // Mapear valores del frontend a valores de BD
-      const mappings = {
-        'perder_peso': 'perder_peso',
-        'ganar_musculo': 'ganar_masa_muscular',
-        'ganar_masa_muscular': 'ganar_masa_muscular',
-        'tonificar': 'tonificar',
-        'ganar_peso': 'ganar_peso',
-        'mejorar_resistencia': 'mejorar_resistencia',
-        'mejorar_flexibilidad': 'mejorar_flexibilidad',
-        'salud_general': 'salud_general',
-        'mantenimiento': 'mantenimiento',
-        'rehabilitacion': 'rehabilitacion'
-      };
-      
-      return mappings[v] || null;
-    };
-
-    const normalizeEnfoqueEntrenamiento = (val) => {
-      if (val === '' || val === undefined || val === null) return null;
-      const v = String(val).toLowerCase().replace(/\s+/g, '_');
-      
-      // Mapear valores del frontend a valores de BD permitidos
-      const mappings = {
-        'fuerza': 'fuerza',
-        'hipertrofia': 'hipertrofia', 
-        'resistencia': 'resistencia',
-        'funcional': 'general', // Funcional -> general (según constraint BD)
-        'hiit': 'perdida_peso', // HIIT -> perdida_peso (según constraint BD)
-        'mixto': 'general', // Mixto -> general (según constraint BD)
-        'perdida_peso': 'perdida_peso',
-        'general': 'general'
-      };
-      
-      return mappings[v] || null;
-    };
-
     const normalizeNivelActividad = (val) => {
       if (val === '' || val === undefined || val === null) return null;
       const v = String(val).toLowerCase();
@@ -180,11 +143,28 @@ router.post('/register', async (req, res) => {
       return validValues.includes(v) ? v : null;
     };
 
-    const normalizeSexo = (val) => {
-      if (val === '' || val === undefined || val === null) return null;
-      const v = String(val).toLowerCase();
-      return (v === 'masculino' || v === 'femenino') ? v : null;
-    };
+    const onboardingValidation = validateOnboardingProfile({
+      edad,
+      sexo,
+      peso,
+      altura,
+      objetivoPrincipal,
+      enfoqueEntrenamiento
+    });
+    const {
+      edad: edadValue,
+      sexo: normalizedSex,
+      peso: pesoValue,
+      altura: alturaValue,
+      objetivoPrincipal: normalizedObjective,
+      enfoqueEntrenamiento: normalizedTrainingFocus
+    } = onboardingValidation.normalized;
+
+    if (onboardingValidation.invalidFields.length > 0) {
+      return res.status(400).json({
+        error: `Faltan o son inválidos campos obligatorios del perfil: ${onboardingValidation.invalidFields.join(', ')}`
+      });
+    }
 
     // Procesar valores numéricos
     const anosEntrenamientoValue = toNumberOrNull(anosEntrenando);
@@ -244,8 +224,14 @@ router.post('/register', async (req, res) => {
     const musloValue = muslo ?? muslos;
 
     // Insertar usuario en la base de datos (created_at y updated_at se manejan automáticamente)
-    const result = await pool.query(
-      `INSERT INTO app.users (
+    const registrationClient = await pool.connect();
+    let user;
+
+    try {
+      await registrationClient.query('BEGIN');
+
+      const result = await registrationClient.query(
+        `INSERT INTO app.users (
         nombre, apellido, email, password_hash, edad, sexo, peso, altura,
         nivel_entrenamiento, anos_entrenando, frecuencia_semanal,
         metodologia_preferida, nivel_actividad, cintura, pecho, brazos,
@@ -257,36 +243,35 @@ router.post('/register', async (req, res) => {
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
         $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28,
         $29, $30, $31
-      ) RETURNING id, nombre, apellido, email, created_at`,
-      [
-        nombre, apellido, email, hashedPassword,
-        toNumberOrNull(edad), normalizeSexo(sexo), toNumberOrNull(peso), toNumberOrNull(altura),
-        toNullIfEmpty(nivelEntrenamiento), anosEntrenamientoValue, frecuenciaSemanalValue,
-        toNullIfEmpty(metodologiaPreferida), normalizeNivelActividad(nivelActividad),
-        toNumberOrNull(cintura), toNumberOrNull(pecho), toNumberOrNull(brazos),
-        toNumberOrNull(musloValue), toNumberOrNull(cuello), toNumberOrNull(antebrazos),
-        toNullIfEmpty(historialMedico), limitacionesFisicasValue,
-        alergiasValue, medicamentosValue, normalizeObjetivoPrincipal(objetivoPrincipal),
-        toNumberOrNull(metaPeso), toNumberOrNull(metaGrasaCorporal), normalizeEnfoqueEntrenamiento(enfoqueEntrenamiento),
-        normalizeHorarioPreferido(horarioPreferido), toNumberOrNull(comidasPorDia), suplementacionValue,
-        alimentosExcluidosValue
-      ]
-    );
+        ) RETURNING id, nombre, apellido, email, created_at`,
+        [
+          nombre, apellido, email, hashedPassword,
+          edadValue, normalizedSex, pesoValue, alturaValue,
+          toNullIfEmpty(nivelEntrenamiento), anosEntrenamientoValue, frecuenciaSemanalValue,
+          toNullIfEmpty(metodologiaPreferida), normalizeNivelActividad(nivelActividad),
+          toNumberOrNull(cintura), toNumberOrNull(pecho), toNumberOrNull(brazos),
+          toNumberOrNull(musloValue), toNumberOrNull(cuello), toNumberOrNull(antebrazos),
+          toNullIfEmpty(historialMedico), limitacionesFisicasValue,
+          alergiasValue, medicamentosValue, normalizedObjective,
+          toNumberOrNull(metaPeso), toNumberOrNull(metaGrasaCorporal), normalizedTrainingFocus,
+          normalizeHorarioPreferido(horarioPreferido), toNumberOrNull(comidasPorDia), suplementacionValue,
+          alimentosExcluidosValue
+        ]
+      );
 
-    const user = result.rows[0];
+      user = result.rows[0];
 
-    // Crear la fila espejo en app.user_profiles con los datos del onboarding.
-    // Motivo: la generación de rutinas (getUserFullProfile) y el display del perfil
-    // leen objetivo_principal / metodologia_preferida / limitaciones_fisicas desde
-    // user_profiles (alias p). Sin esta fila, esos campos del alta quedaban invisibles
-    // para el motor (caía al default 'general') hasta que el usuario reguardaba el perfil.
-    // limitaciones_fisicas en users es text[]; en user_profiles es text -> se aplana.
-    try {
+      // Crear la fila espejo en app.user_profiles con los datos del onboarding.
+      // Motivo: la generación de rutinas (getUserFullProfile) y el display del perfil
+      // leen objetivo_principal / metodologia_preferida / limitaciones_fisicas desde
+      // user_profiles (alias p). Sin esta fila, esos campos del alta quedaban invisibles
+      // para el motor (caía al default 'general') hasta que el usuario reguardaba el perfil.
+      // limitaciones_fisicas en users es text[]; en user_profiles es text -> se aplana.
       const limitacionesFisicasText = Array.isArray(limitacionesFisicasValue)
         ? (limitacionesFisicasValue.join('. ') || null)
         : (toNullIfEmpty(limitacionesFisicasValue));
 
-      await pool.query(
+      await registrationClient.query(
         `INSERT INTO app.user_profiles (
            user_id, objetivo_principal, metodologia_preferida, limitaciones_fisicas
          ) VALUES ($1, $2, $3, $4)
@@ -297,19 +282,22 @@ router.post('/register', async (req, res) => {
            updated_at = NOW()`,
         [
           user.id,
-          normalizeObjetivoPrincipal(objetivoPrincipal),
+          normalizedObjective,
           toNullIfEmpty(metodologiaPreferida),
           limitacionesFisicasText
         ]
       );
+      await registrationClient.query('COMMIT');
       console.log(`🧬 Perfil (user_profiles) creado para usuario ${user.id} desde el onboarding`);
-    } catch (profileError) {
-      // No fallar el registro; la lectura tiene además un COALESCE de respaldo con users.
-      console.error('Error creando user_profiles en el registro:', profileError);
+    } catch (registrationError) {
+      await registrationClient.query('ROLLBACK');
+      throw registrationError;
+    } finally {
+      registrationClient.release();
     }
 
     // Si es mujer y activó el seguimiento del ciclo, crear configuración
-    if (normalizeSexo(sexo) === 'femenino' && cycleTrackingEnabled) {
+    if (normalizedSex === 'femenino' && cycleTrackingEnabled) {
       try {
         const cycleLengthValue = toNumberOrNull(cycleLength) || 28;
         const isRegular = cycleIsRegular === 'true' || cycleIsRegular === true;

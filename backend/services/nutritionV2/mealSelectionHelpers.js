@@ -97,6 +97,7 @@ export function buildFoodCatalogFilters({
 export function buildFoodFiltersFromUserPreferences(userPreferences = {}) {
   const preferencias = parseJsonObject(userPreferences.preferencias, {});
   const alergias = normalizeStringArray(userPreferences.alergias);
+  const excludedFoods = normalizeStringArray(preferencias.alimentos_excluidos);
 
   const allergensExclude = [...alergias];
   if (preferencias.sin_gluten) {
@@ -111,6 +112,7 @@ export function buildFoodFiltersFromUserPreferences(userPreferences = {}) {
   return {
     diet,
     allergensExclude: [...new Set(allergensExclude.map((item) => String(item).trim()).filter(Boolean))],
+    excludedFoods: [...new Set(excludedFoods.map((item) => normalizeFoodName(item)).filter(Boolean))],
     preferencias,
     alergias
   };
@@ -193,6 +195,10 @@ export function matchesFoodFilters(food, userFoodFilters) {
   const diet = userFoodFilters?.diet || 'omnivoro';
   if (diet === 'vegano' && !food.is_vegan) return false;
   if (diet === 'vegetariano' && !food.is_vegetarian) return false;
+
+  const foodName = normalizeFoodName(food.nombre || food.name || '');
+  const excludedFoods = normalizeStringArray(userFoodFilters?.excludedFoods).map(normalizeFoodName);
+  if (excludedFoods.some((excluded) => foodName === excluded || foodName.includes(excluded))) return false;
 
   const allergens = normalizeStringArray(userFoodFilters?.allergensExclude);
   if (allergens.length === 0) return true;

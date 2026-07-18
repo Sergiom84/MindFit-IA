@@ -30,7 +30,8 @@ import {
   mapUserObjectiveToNutritionGoal,
   resolveNutritionObjectiveMismatch,
   normalizeNivelEntrenamiento,
-  resolveMealType
+  resolveMealType,
+  normalizeStringArray
 } from '../services/nutritionV2Engine.js';
 import foodCatalogRoutes from './nutritionV2/foodCatalog.js';
 import dailyTrackingRoutes from './nutritionV2/dailyTracking.js';
@@ -123,7 +124,9 @@ router.post('/profile', authenticateToken, async (req, res) => {
             cintura,
             grasa_corporal,
             nivel_entrenamiento,
-            objetivo_principal
+            objetivo_principal,
+            alergias,
+            alimentos_excluidos
           FROM app.users
           WHERE id = $1
         `,
@@ -200,6 +203,24 @@ router.post('/profile', authenticateToken, async (req, res) => {
         if (userData.objetivo_principal) {
           const mappedGoal = mapUserObjectiveToNutritionGoal(userData.objetivo_principal);
           if (mappedGoal) objetivo = mappedGoal;
+        }
+        alergias = normalizeStringArray(userData.alergias);
+        preferencias = {
+          ...(preferencias && typeof preferencias === 'object' ? preferencias : {}),
+          alimentos_excluidos: normalizeStringArray(userData.alimentos_excluidos)
+        };
+      }
+    }
+
+    if (!existingProfile) {
+      const userData = await getUserFallback();
+      if (userData) {
+        if (!hasField('alergias')) alergias = normalizeStringArray(userData.alergias);
+        if (!hasField('preferencias')) {
+          preferencias = {
+            ...(preferencias && typeof preferencias === 'object' ? preferencias : {}),
+            alimentos_excluidos: normalizeStringArray(userData.alimentos_excluidos)
+          };
         }
       }
     }

@@ -12,6 +12,10 @@ import { getUserFullProfile } from '../database/userRepository.js';
 import { normalizeUserProfile } from '../validators.js';
 import { extractInjuryText, activeInjuryRules, isContraindicated } from '../injuryContraindications.js';
 import {
+  getProfileTrainingGoal,
+  resolveTrainingFrequency
+} from '../../userProfileContract.js';
+import {
   buildExercisePicker,
   buildTemplates,
   buildSemanas,
@@ -252,14 +256,26 @@ export async function generateCrossFitPlan(userId, planData = {}) {
   logSeparator('CROSSFIT PLAN GENERATION');
   logAPICall('/specialist/crossfit/generate', 'POST', userId);
 
+  let userProfile = null;
+  try {
+    userProfile = await getUserFullProfile(userId);
+  } catch (profileError) {
+    logger.warn(`⚠️ [CROSSFIT] No se pudo leer el perfil completo: ${profileError.message}`);
+  }
+
   const levelKey = normalizeCrossFitLevel(
-    planData.selectedLevel || planData.level || planData.aiEvaluation?.recommended_level || 'principiante'
+    planData.selectedLevel || planData.level || planData.aiEvaluation?.recommended_level || userProfile?.nivel_entrenamiento || 'principiante'
   );
   const levels = getCrossFitLevels();
   const levelConfig = levels[levelKey] || levels.principiante;
   const nivelLabel = levelConfig.name;
-  const frecuencia = levelConfig.sessions_per_week;
+  const frecuencia = resolveTrainingFrequency(
+    planData.frecuencia_semanal ?? userProfile?.frecuencia_semanal,
+    levelConfig.sessions_per_week,
+    Array.from({ length: CROSSFIT_SESSION_TEMPLATES.length }, (_, index) => index + 1).filter(value => value >= 3)
+  );
   const totalWeeks = levelConfig.duration_weeks;
+  const trainingGoal = getProfileTrainingGoal(userProfile, planData.goals);
 
   logger.info(`🏋️ [CROSSFIT] Nivel: ${nivelLabel}, ${frecuencia} días/sem, ${totalWeeks} semanas`);
 
@@ -283,13 +299,7 @@ export async function generateCrossFitPlan(userId, planData = {}) {
   // lumbar → peso muerto/swing/box jump). El motor es determinista, así que este
   // filtro es la única barrera real: sin él, el plan incluía cargas agresivas
   // (Thrusters/Deadlift/muscle-ups) pese a la lesión declarada.
-  let injuryText = '';
-  try {
-    const profile = await getUserFullProfile(userId);
-    injuryText = extractInjuryText(profile);
-  } catch (profileError) {
-    logger.warn(`⚠️ [CROSSFIT] No se pudo leer el perfil para filtrar lesiones: ${profileError.message}`);
-  }
+  const injuryText = extractInjuryText(userProfile);
   const injuryRules = activeInjuryRules(injuryText);
   const injuryZones = injuryRules.map(r => r.zona);
 
@@ -338,7 +348,7 @@ export async function generateCrossFitPlan(userId, planData = {}) {
     duracion_total_semanas: totalWeeks,
     frecuencia_semanal: frecuencia,
     fecha_inicio: new Date().toISOString(),
-    objetivo: planData.goals || levelConfig.description,
+    objetivo: trainingGoal,
     benchmark_targets: levelConfig.benchmark_targets || {},
     restricciones_lesion: {
       zonas: injuryZones,

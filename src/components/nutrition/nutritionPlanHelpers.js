@@ -141,7 +141,7 @@ export const buildProfileStateFromApi = (data, fallbackProfile = DEFAULT_PROFILE
     : (Array.isArray(fallbackProfile.alergias) ? fallbackProfile.alergias : [])
 });
 
-export const buildProfileStateFromUser = (profileData, userObjective, userActivity, userMeals) => ({
+export const buildProfileStateFromUser = (profileData, userObjective, userActivity, userMeals, userData = {}) => ({
   ...DEFAULT_PROFILE,
   objetivo: userObjective || DEFAULT_PROFILE.objetivo,
   actividad: userActivity || DEFAULT_PROFILE.actividad,
@@ -151,6 +151,14 @@ export const buildProfileStateFromUser = (profileData, userObjective, userActivi
   metabolic_confidence: profileData?.metabolic_confidence ?? DEFAULT_PROFILE.metabolic_confidence,
   metabolic_pending_type: profileData?.metabolic_pending_type ?? DEFAULT_PROFILE.metabolic_pending_type,
   metabolic_pending_count: profileData?.metabolic_pending_count ?? DEFAULT_PROFILE.metabolic_pending_count,
-  preferencias: profileData?.preferencias || DEFAULT_PROFILE.preferencias,
-  alergias: Array.isArray(profileData?.alergias) ? profileData.alergias : []
+  preferencias: {
+    ...DEFAULT_PROFILE.preferencias,
+    ...(profileData?.preferencias || {}),
+    alimentos_excluidos: Array.isArray(userData?.alimentos_excluidos)
+      ? userData.alimentos_excluidos
+      : (profileData?.preferencias?.alimentos_excluidos || [])
+  },
+  alergias: Array.isArray(userData?.alergias)
+    ? userData.alergias
+    : (Array.isArray(profileData?.alergias) ? profileData.alergias : [])
 });

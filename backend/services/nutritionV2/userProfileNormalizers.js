@@ -9,6 +9,7 @@ export function normalizeSexo(value) {
 
   if (['hombre', 'masculino', 'male', 'm'].includes(normalized)) return 'hombre';
   if (['mujer', 'femenino', 'female', 'f'].includes(normalized)) return 'mujer';
+  if (['otro', 'other', 'no_binario', 'no binario'].includes(normalized)) return 'otro';
 
   return null;
 }
@@ -42,6 +43,7 @@ export const USER_OBJECTIVE_TO_NUTRITION_GOAL = {
   mantenimiento: 'mant',
   mejorar_resistencia: 'mant',
   fuerza: 'mant',
+  ganar_fuerza: 'mant',
   resistencia: 'mant',
   rehabilitacion: 'mant',
   flexibilidad: 'mant'

@@ -5,6 +5,7 @@ const USER_OBJECTIVE_TO_NUTRITION_GOAL = {
   salud_general: "mant",
   mejorar_resistencia: "mant",
   mejorar_flexibilidad: "mant",
+  ganar_fuerza: "mant",
   ganar_peso: "bulk",
   ganar_masa_muscular: "bulk"
 };

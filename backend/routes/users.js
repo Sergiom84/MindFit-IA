@@ -6,6 +6,7 @@ import {
   shouldResetBaselineForMetaChange,
   toNumericOrNull
 } from '../services/goalProgressService.js';
+import { normalizeUserObjective } from '../services/userProfileContract.js';
 
 // Mapeo de objetivo principal: frontend → backend
 const OBJETIVO_PRINCIPAL_MAP = {
@@ -18,20 +19,6 @@ const OBJETIVO_PRINCIPAL_MAP = {
   'Mejorar Flexibilidad': 'mejorar_flexibilidad',
   'Salud General': 'salud_general',
   'Mantenimiento': 'mantenimiento'
-};
-
-const OBJETIVO_PRINCIPAL_SNAKE_CASE_MAP = {
-  ganar_peso: 'ganar_peso',
-  rehabilitacion: 'rehabilitacion',
-  perder_peso: 'perder_peso',
-  tonificar: 'tonificar',
-  ganar_musculo: 'ganar_masa_muscular',
-  ganar_masa_muscular: 'ganar_masa_muscular',
-  mejorar_resistencia: 'mejorar_resistencia',
-  mejorar_flexibilidad: 'mejorar_flexibilidad',
-  salud_general: 'salud_general',
-  mantener_forma: 'mantenimiento',
-  mantenimiento: 'mantenimiento'
 };
 
 // Función para formatear fecha a DD/MM/YYYY
@@ -50,12 +37,7 @@ function formatDateToDDMMYYYY(dateString) {
 // Función para mapear objetivo principal
 function mapObjetivoPrincipal(objetivo) {
   if (!objetivo) return null;
-  // Canonizar tambien cuando ya viene en snake_case.
-  if (objetivo.includes('_')) {
-    return OBJETIVO_PRINCIPAL_SNAKE_CASE_MAP[objetivo] || objetivo;
-  }
-  // Si viene del frontend, mapearlo
-  return OBJETIVO_PRINCIPAL_MAP[objetivo] || objetivo;
+  return normalizeUserObjective(objetivo) || OBJETIVO_PRINCIPAL_MAP[objetivo] || null;
 }
 
 function normalizeLegacyBodyFields(payload = {}) {
@@ -90,7 +72,7 @@ const USER_PROFILE_QUERY = `
     u.grasa_corporal, u.masa_magra, u.agua_corporal, u.metabolismo_basal,
     u.cadera,
     COALESCE(p.metodologia_preferida, u.metodologia_preferida) AS metodologia_preferida,
-    p.limitaciones_fisicas,
+    COALESCE(NULLIF(p.limitaciones_fisicas, ''), array_to_string(u.limitaciones_fisicas, '. ')) AS limitaciones_fisicas,
     COALESCE(p.objetivo_principal, u.objetivo_principal) AS objetivo_principal,
     p.usar_preferencias_ia, p.dias_preferidos_entrenamiento, p.ejercicios_por_dia_preferido,
     p.semanas_entrenamiento,

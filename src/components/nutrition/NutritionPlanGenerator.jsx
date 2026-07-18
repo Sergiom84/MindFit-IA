@@ -126,7 +126,13 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
   }, [refreshProfile]);
 
   const loadProfileFromUserData = async () => {
-    const nextProfile = buildProfileStateFromUser(profileData, userObjective, userActivity, userMeals);
+    const nextProfile = buildProfileStateFromUser(
+      profileData,
+      userObjective,
+      userActivity,
+      userMeals,
+      effectiveUserData
+    );
     setProfileData(nextProfile);
     setConfirmedLowMealCount(null);
     await handleSaveProfile(nextProfile, false);

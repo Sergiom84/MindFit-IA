@@ -56,6 +56,16 @@ export function calculateBMRAudit(profile) {
     throw new Error('Datos fuera de rango válido para cálculo TMB');
   }
 
+  // Para perfiles que no usan la clasificación binaria, aplicar Tinsley.
+  // Es una fórmula neutra respecto al sexo y evita asumir un ajuste fisiológico.
+  if (sexo === 'otro') {
+    return {
+      formula: 'tinsley',
+      reason: 'sex_neutral_profile',
+      bmr: BMR_FORMULAS.tinsley(profile)
+    };
+  }
+
   if (formula_preferida && BMR_FORMULAS[formula_preferida]) {
     return {
       formula: formula_preferida,

@@ -13,6 +13,10 @@ import { getUserFullProfile } from '../database/userRepository.js';
 import { normalizeUserProfile } from '../validators.js';
 import { extractInjuryText, activeInjuryRules, isContraindicated } from '../injuryContraindications.js';
 import {
+  getProfileTrainingGoal,
+  resolveTrainingFrequency
+} from '../../userProfileContract.js';
+import {
   logSeparator,
   logAPICall,
   logUserProfile,
@@ -413,18 +417,31 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
   logSeparator('CALISTENIA PLAN GENERATION');
   logAPICall('/specialist/calistenia/generate', 'POST', userId);
 
-  // 1) Nivel: prioriza selectedLevel; fallback a la evaluación IA; luego principiante.
+  let userProfile = null;
+  try {
+    userProfile = await getUserFullProfile(userId);
+  } catch (profileError) {
+    logger.warn(`⚠️ [CALISTENIA] No se pudo leer el perfil completo: ${profileError.message}`);
+  }
+
+  // 1) Nivel: prioriza selectedLevel; fallback a la evaluación IA y al perfil.
   const rawLevel =
     planData.selectedLevel ||
     planData.aiEvaluation?.recommended_level ||
+    userProfile?.nivel_entrenamiento ||
     'principiante';
   const levelKey = normalizeCalisteniaLevel(rawLevel);
 
   const levels = getCalisteniaLevels();
   const levelConfig = levels[levelKey] || levels.principiante;
   const nivelLabel = levelConfig.name; // 'Principiante' | 'Intermedio' | 'Avanzado'
-  const frecuencia = levelConfig.sessions_per_week;
+  const frecuencia = resolveTrainingFrequency(
+    planData.frecuencia_semanal ?? userProfile?.frecuencia_semanal,
+    levelConfig.sessions_per_week,
+    Object.keys(SESSION_TEMPLATES)
+  );
   const totalWeeks = levelConfig.duration_weeks;
+  const trainingGoal = getProfileTrainingGoal(userProfile, planData.goals);
 
   logger.info(`🤸 [CALISTENIA] Nivel: ${nivelLabel}, ${frecuencia} días/sem, ${totalWeeks} semanas`);
 
@@ -444,13 +461,7 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
   // pool los movimientos contraindicados (p.ej. muñeca → planchas/pino/fondos;
   // codo → dominadas/dips/muscle-up; hombro → pino/pike/HSPU). El motor es
   // determinista, así que este filtro es la única barrera real.
-  let injuryText = '';
-  try {
-    const profile = await getUserFullProfile(userId);
-    injuryText = extractInjuryText(profile);
-  } catch (profileError) {
-    logger.warn(`⚠️ [CALISTENIA] No se pudo leer el perfil para filtrar lesiones: ${profileError.message}`);
-  }
+  const injuryText = extractInjuryText(userProfile);
   const injuryRules = activeInjuryRules(injuryText);
   const injuryZones = injuryRules.map((r) => r.zona);
 
@@ -572,7 +583,7 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
     frecuencia_semanal: frecuencia,
     fecha_inicio: fechaInicio,
     sessions_per_week: frecuencia,
-    objetivo: planData.goals || levelConfig.description,
+    objetivo: trainingGoal,
     restricciones_lesion: {
       zonas: injuryZones,
       limitaciones_texto: injuryText || null,

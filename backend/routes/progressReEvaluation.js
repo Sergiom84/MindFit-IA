@@ -19,6 +19,7 @@ import express from 'express';
 import authenticateToken from '../middleware/auth.js';
 import { pool } from '../db.js';
 import { getReEvaluatorForMethodology } from '../lib/aiReEvaluators/index.js';
+import { getUserFullProfile } from '../services/routineGeneration/database/userRepository.js';
 
 const router = express.Router();
 
@@ -129,10 +130,7 @@ router.post('/re-evaluation', async (req, res) => {
     }
 
     // 4. Obtener perfil del usuario
-    const userProfile = await client.query(
-      'SELECT * FROM app.user_profiles WHERE user_id = $1',
-      [userId]
-    );
+    const userProfile = await getUserFullProfile(userId);
 
     // 5. Llamar al re-evaluador de IA
     console.log(`🤖 [RE-EVAL] Llamando a re-evaluador de IA para ${methodology}`);
@@ -140,7 +138,7 @@ router.post('/re-evaluation', async (req, res) => {
     const reEvaluator = getReEvaluatorForMethodology(methodology);
     const aiResponse = await reEvaluator.analyze({
       currentPlan: planData,
-      userData: userProfile.rows[0] || {},
+      userData: userProfile,
       reEvaluationData: {
         week,
         exercises,

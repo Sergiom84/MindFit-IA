@@ -27,6 +27,8 @@ import {
   getActivePlan,
   updatePlanStatus
 } from '../services/routineGeneration/index.js';
+import { getUserFullProfile } from '../services/routineGeneration/database/userRepository.js';
+import { buildProfileAwarePlanData } from '../services/userProfileContract.js';
 
 const router = express.Router();
 
@@ -114,10 +116,13 @@ router.post('/ai/methodology', authenticateToken, async (req, res) => {
     // Clean drafts
     await cleanUserDrafts(userId);
 
-    // For now, delegate to a default methodology
-    // TODO: Implement AI methodology selector
-    const methodology = planData.methodology || 'gimnasio';
-    const result = await generateMethodologyPlan(methodology, userId, planData);
+    const userProfile = await getUserFullProfile(userId);
+    const personalizedPlanData = buildProfileAwarePlanData(planData, userProfile);
+    const result = await generateMethodologyPlan(
+      personalizedPlanData.methodology,
+      userId,
+      personalizedPlanData
+    );
 
     res.json(result);
 

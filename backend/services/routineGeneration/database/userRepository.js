@@ -20,12 +20,13 @@ export async function getUserFullProfile(userId) {
         u.edad, u.sexo, u.peso, u.altura,
         u.anos_entrenando, u.nivel_entrenamiento,
         u.nivel_actividad, u.grasa_corporal, u.masa_magra,
-        u.pecho, u.brazos, u.alergias, u.medicamentos,
+        u.pecho, u.brazos, u.alergias, u.medicamentos, u.lesiones,
         u.suplementacion, u.frecuencia_semanal,
         u.agua_corporal, u.metabolismo_basal,
         u.cintura, u.muslo, u.cuello, u.antebrazos, u.cadera,
         u.comidas_por_dia, u.alimentos_excluidos, u.meta_peso,
         u.meta_grasa_corporal, u.enfoque_entrenamiento, u.historial_medico,
+        u.horario_preferido,
         -- 🩹 FIX: las lesiones se guardan en users (registro/onboarding) pero antes
         -- solo se leía user_profiles (a menudo vacío), así que las limitaciones se
         -- perdían y la generación las ignoraba. Preferir la fuente con dato.

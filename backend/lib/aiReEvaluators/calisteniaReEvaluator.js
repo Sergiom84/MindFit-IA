@@ -181,16 +181,18 @@ function buildUserContext(userData) {
   const edad = userData.edad || userData.age || 'N/A';
   const peso = userData.peso || userData.weight || 'N/A';
   const altura = userData.altura || userData.height || 'N/A';
-  const nivel = userData.nivel || userData.nivel_calistenia || 'Intermedio';
-  const objetivos = userData.objetivos || userData.goals || 'Progreso general';
-  const experiencia = userData.experiencia || userData.experiencia_previa || 'N/A';
+  const nivel = userData.nivel_entrenamiento || userData.nivel || userData.nivel_calistenia || 'Intermedio';
+  const objetivos = userData.objetivo_principal || userData.objetivos || userData.goals || 'Progreso general';
+  const experiencia = userData.anos_entrenando ?? userData.experiencia ?? userData.experiencia_previa ?? 'N/A';
+  const limitaciones = userData.limitaciones_fisicas || userData.lesiones || 'Ninguna indicada';
 
   return `Edad: ${edad}
 Peso: ${peso} kg
 Altura: ${altura} cm
 Nivel: ${nivel}
 Experiencia previa: ${experiencia}
-Objetivos: ${objetivos}`;
+Objetivos: ${objetivos}
+Limitaciones: ${Array.isArray(limitaciones) ? limitaciones.join(', ') : limitaciones}`;
 }
 
 /**

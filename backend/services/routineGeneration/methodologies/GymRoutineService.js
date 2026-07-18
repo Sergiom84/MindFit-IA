@@ -10,6 +10,10 @@ import { getRandomByLevel } from '../../exerciseRepository.js';
 import { extractInjuryText, activeInjuryRules, isContraindicated } from '../injuryContraindications.js';
 import { materialsForEquipmentLevel, buildAllowedMaterials } from '../../singleDay/casaEquipment.js';
 import {
+  getProfileTrainingGoal,
+  resolveTrainingFrequency
+} from '../../userProfileContract.js';
+import {
   parseSeriesReps,
   buildExercisePicker,
   buildTemplates,
@@ -395,8 +399,14 @@ export async function generateGymRoutine(userId, routineData = {}) {
   const levelsTable = methodConfig.levels || GYM_LEVELS;
   const levelConfig = levelsTable[levelKey] || levelsTable.principiante;
   const nivelLabel = levelConfig.name;
-  const frecuencia = levelConfig.sessions_per_week;
+  const templateSet = methodConfig.templates;
+  const frecuencia = resolveTrainingFrequency(
+    routineData.frecuencia_semanal ?? userProfile?.frecuencia_semanal,
+    levelConfig.sessions_per_week,
+    Object.keys(templateSet)
+  );
   const totalWeeks = levelConfig.duration_weeks;
+  const trainingGoal = getProfileTrainingGoal(userProfile, routineData.goals);
 
   // Entrenamiento en Casa: filtrar el catálogo por el material disponible, de
   // forma coherente con el flujo single-day. Acepta `equipment[]` (claves del
@@ -453,7 +463,6 @@ export async function generateGymRoutine(userId, routineData = {}) {
   });
 
   const pick = buildExercisePicker(poolByBucket);
-  const templateSet = methodConfig.templates;
   const templateSpecs = templateSet[frecuencia] || templateSet[3];
   const templates = buildTemplates(templateSpecs, pick, safePool);
 
@@ -461,7 +470,7 @@ export async function generateGymRoutine(userId, routineData = {}) {
     templates,
     totalWeeks,
     frecuencia,
-    objetivo: routineData.goals || `Rutina de ${methodConfig.displayName} nivel ${nivelLabel}`,
+    objetivo: trainingGoal,
     coachTip: methodConfig.coachTip,
     toExercise: toGymExercise(methodConfig, ruleset.restDefault)
   });
@@ -480,7 +489,7 @@ export async function generateGymRoutine(userId, routineData = {}) {
     frecuencia_semanal: frecuencia,
     sessions_per_week: frecuencia,
     fecha_inicio: new Date().toISOString(),
-    objetivo: routineData.goals || levelConfig.name,
+    objetivo: trainingGoal,
     restricciones_lesion: {
       zonas: injuryZones,
       limitaciones_texto: injuryText || null,

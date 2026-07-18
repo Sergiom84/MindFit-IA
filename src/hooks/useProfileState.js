@@ -296,7 +296,8 @@ export const useProfileState = () => {
 
   const sexoOptions = [
     { value: 'masculino', label: 'Masculino' },
-    { value: 'femenino', label: 'Femenino' }
+    { value: 'femenino', label: 'Femenino' },
+    { value: 'otro', label: 'Otro' }
   ]
 
   // Funciones adicionales para ExperienceCard
@@ -357,6 +358,7 @@ export const useProfileState = () => {
     { value: 'perder_peso', label: 'Perder Peso' },
     { value: 'tonificar', label: 'Tonificar' },
     { value: 'ganar_masa_muscular', label: 'Ganar Masa Muscular' },
+    { value: 'ganar_fuerza', label: 'Aumentar Fuerza' },
     { value: 'mejorar_resistencia', label: 'Mejorar Resistencia' },
     { value: 'mejorar_flexibilidad', label: 'Mejorar Flexibilidad' },
     { value: 'salud_general', label: 'Salud General' },
@@ -370,6 +372,7 @@ export const useProfileState = () => {
       perder_peso: 'Perder Peso',
       tonificar: 'Tonificar',
       ganar_masa_muscular: 'Ganar Masa Muscular',
+      ganar_fuerza: 'Aumentar Fuerza',
       mejorar_resistencia: 'Mejorar Resistencia',
       mejorar_flexibilidad: 'Mejorar Flexibilidad',
       salud_general: 'Salud General',
