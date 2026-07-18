@@ -56,6 +56,12 @@ const RECONCILE_ALLOWLIST = {
     '20260717_sec_bola_deload_fatigue_ownership.sql',
     '20260717_sec006_revoke_public_execute_app.sql',
     '20260717_workout_schedule_unique_plan_user_date.sql',
+    // Reconciliación de fin de línea 2026-07-18: aplicadas en-sesión con contenido LF
+    // (herramientas de edición), pero git las materializa como CRLF en Windows -> el
+    // checksum del fichero (CRLF) diverge del guardado (LF). Sin divergencia de efecto:
+    // se re-checksumea al contenido actual del fichero, alineándolas con el resto del repo.
+    '20260718_auth001_refresh_rotativo.sql',
+    '20260718_sync_user_profiles_from_onboarding.sql',
   ],
 };
 
