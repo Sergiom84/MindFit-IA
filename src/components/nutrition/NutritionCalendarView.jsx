@@ -3,6 +3,7 @@ import { Calendar, Dumbbell, Moon, ChevronLeft, ChevronRight, Loader2, RefreshCw
 import MealDetailView from './MealDetailView';
 import tokenManager from '../../utils/tokenManager';
 import { getApiBaseUrl } from '../../config/api';
+import { getActiveNutritionPlan } from '../../services/nutritionV2ReadService';
 
 // ARCH-001: base URL canónica desde el adapter de config (VITE_API_URL o same-origin).
 const API_URL = getApiBaseUrl();
@@ -113,21 +114,16 @@ export default function NutritionCalendarView() {
     }
 
     try {
-      const token = tokenManager.getToken() || tokenManager.getToken();
-      const response = await fetch(`${API_URL}/api/nutrition-v2/active-plan`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const result = await getActiveNutritionPlan({ force: silent });
 
-      if (!response.ok) {
-        if (response.status === 404) {
+      if (!result.ok) {
+        if (result.status === 404) {
           throw new Error('No tienes un plan activo. Genera uno primero.');
         }
         throw new Error('Error al cargar plan');
       }
 
-      const data = await response.json();
+      const data = result.data;
       setPlan(data);
       console.log('✅ Plan cargado:', data);
       return data;

@@ -158,6 +158,50 @@ test('A-04: exceso de kcal de verdura SIGUE bloqueando', () => {
   expect(r.blocksCandidate).toBeTrue();
 });
 
+// Reproduce las 12 comidas del recorrido original (3 + 4 + 5) con macros
+// globales cubiertos desde roles mixtos. Antes del fix, las 12 caían al fallback
+// por exigir que cada macro procediera de su rol canónico.
+for (let index = 0; index < 12; index += 1) {
+  test(`A-04: comida auditada ${index + 1}/12 no cae en fallback si cubre macros`, () => {
+    const target = {
+      protein_g: 30 + index,
+      carbs_g: 50 + index,
+      fat_g: 15 + (index * 0.5)
+    };
+    const r = evaluateCandidateMealBalance([
+      {
+        role: 'CARBO',
+        macros: {
+          protein_g: target.protein_g * 0.92,
+          carbs_g: target.carbs_g * 0.6,
+          fat_g: 1
+        },
+        kcal: 300
+      },
+      {
+        role: 'PROTEINA',
+        macros: {
+          protein_g: target.protein_g * 0.08,
+          carbs_g: target.carbs_g * 0.4,
+          fat_g: target.fat_g * 0.1
+        },
+        kcal: 220
+      },
+      {
+        role: 'GRASA',
+        macros: { protein_g: 0, carbs_g: 0, fat_g: target.fat_g * 0.9 },
+        kcal: 120
+      },
+      {
+        role: 'VERDURA',
+        macros: { protein_g: 0, carbs_g: 0, fat_g: 0 },
+        kcal: 30
+      }
+    ], target, 700);
+    expect(r.blocksCandidate).toBeFalse();
+  });
+}
+
 // ============ C-02: sinónimos de lesión ============
 const blockedBy = (injuryText, nombre) => isContraindicated({ nombre }, activeInjuryRules(injuryText));
 test('C-02: sentadilla búlgara se veta por lesión de rodilla (zancada)', () => {
