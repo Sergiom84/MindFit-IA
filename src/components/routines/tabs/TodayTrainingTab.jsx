@@ -31,13 +31,6 @@ import {
 import RoutineSessionModal from '../RoutineSessionModal';
 import WodSessionModal from '../WodSessionModal.jsx';
 import HipertrofiaSessionModal from '../HipertrofiaSessionModal.jsx';
-import CalisteniaEffortModal from '../modals/CalisteniaEffortModal';
-import CasaEffortModal from '../modals/CasaEffortModal';
-import CrossFitEffortModal from '../modals/CrossFitEffortModal.jsx';
-import FuncionalEffortModal from '../modals/FuncionalEffortModal.jsx';
-import HalterofiliaEffortModal from '../modals/HalterofiliaEffortModal.jsx';
-import HeavyDutyEffortModal from '../modals/HeavyDutyEffortModal.jsx';
-import PowerliftingEffortModal from '../modals/PowerliftingEffortModal.jsx';
 import WarmupModal from '../WarmupModal';
 import { useWorkout } from '@/contexts/WorkoutContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -64,7 +57,7 @@ import { findTodaySession } from '@/utils/training/sessionFinders';
 import { getTodaySessionStatus, getWeekendStatus } from '../api.js';
 
 // 🎯 COMPONENTES MODULARES - Refactorización incremental
-import { ExerciseList, RestDayCard, StartSessionCard } from './TodayTrainingTab/components';
+import { ExerciseList, RestDayCard, StartSessionCard, EffortModals } from './TodayTrainingTab/components';
 import { EFFORT_ENDPOINTS, resolveEffortMethodKey } from './TodayTrainingTab/effortConfig.js';
 import { computeGateCounts, computeGateLogic, computeHeaderProgressStats } from './TodayTrainingTab/gateLogic.js';
 
@@ -73,6 +66,10 @@ import AdaptationProgressPanel from '../../Methodologie/methodologies/Hipertrofi
 import AdaptationTransitionModal from '../../Methodologie/methodologies/HipertrofiaV2/components/AdaptationTransitionModal';
 import { useAdaptationEvaluation } from '@/hooks/useAdaptationEvaluation';
 import tokenManager from '../../../utils/tokenManager';
+import { getApiBaseUrl } from '../../../config/api';
+
+// ARCH-001 residual: sin base URL hardcodeada; usa getApiBaseUrl() (respeta VITE_API_URL/origen).
+const API_URL = getApiBaseUrl();
 
 // 🎯 CONTRATO COMÚN DE CIERRE — endpoint de autorregulación por metodología.
 // Hipertrofia queda fuera a propósito (tiene su propio subsistema D1-D5).
@@ -231,7 +228,7 @@ export default function TodayTrainingTab({
         return;
       }
       const resp = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/adaptation/progress`,
+        `${API_URL}/api/adaptation/progress`,
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -1378,7 +1375,7 @@ export default function TodayTrainingTab({
 
       if (isWeekendSession && sessionId) {
         console.log('🌟 Cancelando sesión weekend:', sessionId);
-        const url = `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/training-session/cancel/methodology/${sessionId}`;
+        const url = `${API_URL}/api/training-session/cancel/methodology/${sessionId}`;
         console.log('🔴 DELETE URL:', url);
 
         // Cancelar sesión weekend directamente
@@ -1449,7 +1446,7 @@ export default function TodayTrainingTab({
       try {
         const token = tokenManager.getToken();
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:3010'}/api/hipertrofiav2/priority-status/${userId}`,
+          `${API_URL}/api/hipertrofiav2/priority-status/${userId}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -2360,68 +2357,10 @@ export default function TodayTrainingTab({
       {/* 🎯 AUTORREGULACIÓN COMÚN — 7/7 metodologías.
           Un único estado (effortModal) decide cuál se muestra; todos comparten
           handleEffortSubmit (incluye feeling) y handleEffortClose. */}
-      <CalisteniaEffortModal
-        isOpen={effortModal.method === 'calistenia' && effortModal.show}
-        isLoading={effortModal.saving}
-        result={effortModal.decision}
+      <EffortModals
+        effortModal={effortModal}
         onSubmit={handleEffortSubmit}
-        onSkip={handleEffortClose}
-        onContinue={handleEffortClose}
-      />
-
-      <CasaEffortModal
-        isOpen={effortModal.method === 'casa' && effortModal.show}
-        isLoading={effortModal.saving}
-        result={effortModal.decision}
-        onSubmit={handleEffortSubmit}
-        onSkip={handleEffortClose}
-        onContinue={handleEffortClose}
-      />
-
-      <FuncionalEffortModal
-        isOpen={effortModal.method === 'funcional' && effortModal.show}
-        isLoading={effortModal.saving}
-        result={effortModal.decision}
-        onSubmit={handleEffortSubmit}
-        onSkip={handleEffortClose}
-        onContinue={handleEffortClose}
-      />
-
-      <CrossFitEffortModal
-        isOpen={effortModal.method === 'crossfit' && effortModal.show}
-        isLoading={effortModal.saving}
-        result={effortModal.decision}
-        defaultScale={effortModal.scale || 'rx'}
-        onSubmit={handleEffortSubmit}
-        onSkip={handleEffortClose}
-        onContinue={handleEffortClose}
-      />
-
-      <HalterofiliaEffortModal
-        isOpen={effortModal.method === 'halterofilia' && effortModal.show}
-        isLoading={effortModal.saving}
-        result={effortModal.decision}
-        onSubmit={handleEffortSubmit}
-        onSkip={handleEffortClose}
-        onContinue={handleEffortClose}
-      />
-
-      <PowerliftingEffortModal
-        isOpen={effortModal.method === 'powerlifting' && effortModal.show}
-        isLoading={effortModal.saving}
-        result={effortModal.decision}
-        onSubmit={handleEffortSubmit}
-        onSkip={handleEffortClose}
-        onContinue={handleEffortClose}
-      />
-
-      <HeavyDutyEffortModal
-        isOpen={effortModal.method === 'heavy-duty' && effortModal.show}
-        isLoading={effortModal.saving}
-        result={effortModal.decision}
-        onSubmit={handleEffortSubmit}
-        onSkip={handleEffortClose}
-        onContinue={handleEffortClose}
+        onClose={handleEffortClose}
       />
 
       {/* 🎯 FASE 2: Modal de Prioridad Muscular */}

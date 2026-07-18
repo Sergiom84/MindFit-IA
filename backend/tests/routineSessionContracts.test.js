@@ -31,10 +31,14 @@ test("today-status no referencia columnas inexistentes al hacer fallback multime
 
 test("TodayTrainingTab mantiene cierre 7/7 y CrossFit usa WOD player desde plan", () => {
   const source = readRepoFile("src/components/routines/tabs/TodayTrainingTab.jsx");
-  // ARCH-002: los EFFORT_ENDPOINTS se extrajeron a effortConfig.js (importado por
-  // TodayTrainingTab). El contrato de cierre 7/7 se verifica ahora sobre ese módulo.
+  // ARCH-002: los EFFORT_ENDPOINTS se extrajeron a effortConfig.js y los 7 modales
+  // de autorregulación a components/EffortModals.jsx (ambos importados por
+  // TodayTrainingTab). El contrato de cierre 7/7 se verifica sobre esos módulos.
   const effortConfigSource = readRepoFile(
     "src/components/routines/tabs/TodayTrainingTab/effortConfig.js",
+  );
+  const effortModalsSource = readRepoFile(
+    "src/components/routines/tabs/TodayTrainingTab/components/EffortModals.jsx",
   );
 
   const endpoints = [
@@ -51,10 +55,12 @@ test("TodayTrainingTab mantiene cierre 7/7 y CrossFit usa WOD player desde plan"
     assert.match(effortConfigSource, new RegExp(endpoint.replace(/[/-]/g, (m) => `\\${m}`)));
   }
 
-  // TodayTrainingTab debe seguir cableado a effortConfig (EFFORT_ENDPOINTS + resolver).
+  // TodayTrainingTab debe seguir cableado a effortConfig y a EffortModals.
   assert.match(source, /EFFORT_ENDPOINTS/);
   assert.match(source, /from '\.\/TodayTrainingTab\/effortConfig/);
+  assert.match(source, /<EffortModals/);
 
+  // El cierre 7/7 vive ahora en EffortModals.jsx.
   for (const modalName of [
     "CalisteniaEffortModal",
     "CasaEffortModal",
@@ -64,12 +70,12 @@ test("TodayTrainingTab mantiene cierre 7/7 y CrossFit usa WOD player desde plan"
     "PowerliftingEffortModal",
     "HeavyDutyEffortModal",
   ]) {
-    assert.match(source, new RegExp(`<${modalName}`));
+    assert.match(effortModalsSource, new RegExp(`<${modalName}`));
   }
 
   assert.match(source, /activeMethodKey === 'crossfit'/);
   assert.match(source, /<WodSessionModal/);
-  assert.match(source, /defaultScale=\{effortModal\.scale \|\| 'rx'\}/);
+  assert.match(effortModalsSource, /defaultScale=\{effortModal\.scale \|\| 'rx'\}/);
   assert.match(source, /methodologyPlanId: methodologyPlanId \|\| null/);
   assert.match(source, /\.\.\.payload/);
 });

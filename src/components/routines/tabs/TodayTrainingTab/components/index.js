@@ -9,6 +9,7 @@
 export { ExerciseList } from './ExerciseList';
 export { RestDayCard } from './RestDayCard';
 export { StartSessionCard } from './StartSessionCard';
+export { default as EffortModals } from './EffortModals';
 
 // Re-export defaults
 export { default as ExerciseListDefault } from './ExerciseList';
