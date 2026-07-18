@@ -17,7 +17,7 @@ async function api(method, path, token, body) {
     nombre: 'QA', apellido: 'UiExtra', email, password: 'QaTest2026!',
     edad: 30, sexo: 'femenino', peso: 63, altura: 166,
     nivelEntrenamiento: process.argv[2] || 'intermedio', anosEntrenando: 2, frecuenciaSemanal: 3,
-    nivelActividad: 'moderado', metodologiaPreferida: 'calistenia'
+    nivelActividad: 'moderado', objetivoPrincipal: 'ganar_masa_muscular', enfoqueEntrenamiento: 'hipertrofia', metodologiaPreferida: 'calistenia'
   });
   const token = reg.j.token; const user = reg.j.user;
   // Siembra: plan + 1 sesión con 3 likes

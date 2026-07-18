@@ -20,7 +20,7 @@ async function api(method, path, token, body) {
     nombre: 'QA', apellido: 'Pref', email, password: 'QaTest2026!',
     edad: 30, sexo: 'femenino', peso: 62, altura: 165,
     nivelEntrenamiento: 'intermedio', anosEntrenando: 2, frecuenciaSemanal: 3,
-    nivelActividad: 'moderado', metodologiaPreferida: 'calistenia'
+    nivelActividad: 'moderado', objetivoPrincipal: 'ganar_masa_muscular', enfoqueEntrenamiento: 'hipertrofia', metodologiaPreferida: 'calistenia'
   });
   const token = reg.j.token;
   if (!token) { console.error('REGISTER FAIL', JSON.stringify(reg.j).slice(0, 200)); process.exit(1); }
@@ -91,7 +91,7 @@ async function api(method, path, token, body) {
     nombre: 'QA', apellido: 'Vacio', email: email2, password: 'QaTest2026!',
     edad: 30, sexo: 'masculino', peso: 75, altura: 178,
     nivelEntrenamiento: 'principiante', anosEntrenando: 0, frecuenciaSemanal: 3,
-    nivelActividad: 'ligero', metodologiaPreferida: 'calistenia'
+    nivelActividad: 'ligero', objetivoPrincipal: 'ganar_masa_muscular', enfoqueEntrenamiento: 'hipertrofia', metodologiaPreferida: 'calistenia'
   });
   const empty = await api('POST', '/api/methodology-session/generate-single-day', reg2.j.token, {
     methodology: 'calistenia', nivel: 'Principiante', selectionMode: 'liked'

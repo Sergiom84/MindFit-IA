@@ -47,7 +47,7 @@ async function doOneSet(page, n) {
 (async () => {
   // Registro por API (la UI de registro está flaky hoy) + inyección de auth completa.
   const email = `qa.mf.instr.${Date.now()}@test.entrenaconia.local`;
-  const reg = await fetch(`${API}/api/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: 'QA', apellido: 'Instr', email, password: 'QaTest2026!', edad: 29, sexo: 'femenino', peso: 64, altura: 167, nivelEntrenamiento: 'principiante', anosEntrenando: 1, frecuenciaSemanal: 4, nivelActividad: 'moderado', metodologiaPreferida: 'bodybuilding' }) }).then(x => x.json());
+  const reg = await fetch(`${API}/api/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: 'QA', apellido: 'Instr', email, password: 'QaTest2026!', edad: 29, sexo: 'femenino', peso: 64, altura: 167, nivelEntrenamiento: 'principiante', anosEntrenando: 1, frecuenciaSemanal: 4, nivelActividad: 'moderado', objetivoPrincipal: 'ganar_masa_muscular', enfoqueEntrenamiento: 'hipertrofia', metodologiaPreferida: 'bodybuilding' }) }).then(x => x.json());
   const token = reg.token; const user = reg.user;
   const longToken = mint(token);
   const gen = await fetch(`${API}/api/methodology/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ mode: 'manual', methodology: 'hipertrofiav2', selectedLevel: 'principiante', nivel: 'principiante', goals: '', selectedMuscleGroups: [], source: 'manual_selection', version: '5.0' }) }).then(x => x.json());

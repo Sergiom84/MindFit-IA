@@ -20,7 +20,7 @@ async function api(method, path, token, body) {
     nombre: 'QA', apellido: 'Nutri', email, password: 'QaTest2026!',
     edad: 31, sexo: 'masculino', peso: 78, altura: 180,
     nivelEntrenamiento: 'intermedio', anosEntrenando: 3, frecuenciaSemanal: 4,
-    nivelActividad: 'moderado', metodologiaPreferida: 'hipertrofia'
+    nivelActividad: 'moderado', objetivoPrincipal: 'ganar_masa_muscular', enfoqueEntrenamiento: 'hipertrofia', metodologiaPreferida: 'hipertrofia'
   });
   const token = reg.j.token;
   if (!token) { console.error('REGISTER FAIL', reg.status); process.exit(1); }

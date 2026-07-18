@@ -26,7 +26,7 @@ function parseReps(reps) { const m = String(reps || '').match(/^(\d+)/); return 
     nombre: 'QA', apellido: 'Ciclo', email, password: 'QaTest2026!',
     edad: 29, sexo: 'masculino', peso: 76, altura: 179,
     nivelEntrenamiento: LEVEL.toLowerCase(), anosEntrenando: LEVEL === 'Principiante' ? 0 : LEVEL === 'Intermedio' ? 2 : 5,
-    frecuenciaSemanal: 3, nivelActividad: 'moderado', metodologiaPreferida: METHODOLOGY.toLowerCase()
+    frecuenciaSemanal: 3, nivelActividad: 'moderado', objetivoPrincipal: 'ganar_masa_muscular', enfoqueEntrenamiento: 'hipertrofia', metodologiaPreferida: METHODOLOGY.toLowerCase()
   });
   const token = reg.j.token; const user = reg.j.user;
   if (!token) { console.error('REGISTRO FAIL', reg.status, JSON.stringify(reg.j).slice(0, 200)); process.exit(1); }

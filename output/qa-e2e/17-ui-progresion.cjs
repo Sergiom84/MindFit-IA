@@ -38,7 +38,7 @@ async function clickName(p, rx, wait = 600) {
     nombre: 'QA', apellido: 'UiRir', email, password: 'QaTest2026!',
     edad: 28, sexo: 'femenino', peso: 62, altura: 166,
     nivelEntrenamiento: LEVEL.toLowerCase(), anosEntrenando: 1, frecuenciaSemanal: 3,
-    nivelActividad: 'moderado', metodologiaPreferida: METHODOLOGY.toLowerCase()
+    nivelActividad: 'moderado', objetivoPrincipal: 'ganar_masa_muscular', enfoqueEntrenamiento: 'hipertrofia', metodologiaPreferida: METHODOLOGY.toLowerCase()
   });
   const token = reg.j.token; const user = reg.j.user;
   if (!token) { console.error('REGISTER FAIL', JSON.stringify(reg.j).slice(0, 200)); process.exit(1); }

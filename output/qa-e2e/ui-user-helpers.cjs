@@ -42,7 +42,7 @@ async function registerMobileUser({ slug, preferredMethodology, focus = "mixto",
   await page.getByRole("button", { name: /Siguiente/ }).click();
 
   const goals = {
-    objetivoPrincipal: "mantener_forma",
+    objetivoPrincipal: "mantenimiento",
     metaPeso: 63,
     enfoqueEntrenamiento: focus,
     horarioPreferido: "tarde",

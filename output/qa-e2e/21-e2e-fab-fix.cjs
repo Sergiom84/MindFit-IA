@@ -25,7 +25,7 @@ async function api(method, path, token, body) {
     nombre: 'QA', apellido: 'FabFix', email, password: 'QaTest2026!',
     edad: 28, sexo: 'femenino', peso: 62, altura: 166,
     nivelEntrenamiento: 'principiante', anosEntrenando: 0, frecuenciaSemanal: 3,
-    nivelActividad: 'moderado', metodologiaPreferida: 'calistenia'
+    nivelActividad: 'moderado', objetivoPrincipal: 'ganar_masa_muscular', enfoqueEntrenamiento: 'hipertrofia', metodologiaPreferida: 'calistenia'
   });
   const token = reg.j.token; const user = reg.j.user;
   const gen = await api('POST', '/api/methodology/generate', token, {

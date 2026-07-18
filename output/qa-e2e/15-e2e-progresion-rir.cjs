@@ -33,7 +33,7 @@ function parseReps(reps) {
     nombre: 'QA', apellido: 'Rir', email, password: 'QaTest2026!',
     edad: 30, sexo: 'masculino', peso: 75, altura: 178,
     nivelEntrenamiento: LEVEL.toLowerCase(), anosEntrenando: 2, frecuenciaSemanal: 3,
-    nivelActividad: 'moderado', metodologiaPreferida: METHODOLOGY.toLowerCase()
+    nivelActividad: 'moderado', objetivoPrincipal: 'ganar_masa_muscular', enfoqueEntrenamiento: 'hipertrofia', metodologiaPreferida: METHODOLOGY.toLowerCase()
   });
   const token = reg.j.token || (await api('POST', '/api/auth/login', null, { email, password: 'QaTest2026!' })).j.token;
   const userId = reg.j.user?.id || reg.j.userId;
