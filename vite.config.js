@@ -7,7 +7,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
+  // CONFIG-001: el build móvil se resuelve con los ficheros de PRODUCCIÓN. Vite da
+  // prioridad a `.env.[mode]` sobre `.env.local`, así que cargando el entorno como
+  // 'production' el `.env.local` de desarrollo (localhost:3010) deja de colarse en
+  // el bundle de Capacitor. Sin esto, en una máquina de desarrollo el build móvil
+  // se caía siempre contra el guard de más abajo.
+  const envMode = mode === 'mobile' ? 'production' : mode
+  const env = loadEnv(envMode, process.cwd(), '')
   // CONFIG-001: el backend usa el puerto fijo 3010; el proxy dev debe apuntar ahí
   // (antes 3002, que no era el puerto real y rompía el dev por defecto).
   const API_TARGET = env.VITE_API_URL || `http://localhost:${env.VITE_API_PORT || 3010}`
@@ -43,7 +49,21 @@ export default defineConfig(({ mode }) => {
     // En modo 'mobile' (Capacitor) forzamos la config de PRODUCCIÓN de la app,
     // ya que import.meta.env.MODE sería 'mobile' y las configs por entorno solo
     // conocen development/production.
-    ...(mode === 'mobile' ? { define: { 'import.meta.env.VITE_ENVIRONMENT': JSON.stringify('production') } } : {}),
+    //
+    // Las dos URLs van también aquí a propósito: Vite resuelve `import.meta.env`
+    // con el modo REAL ('mobile'), así que sin este define seguiría inyectando el
+    // `.env.local` de desarrollo en el bundle aunque el guard de arriba —que mira
+    // el entorno cargado como producción— diera el visto bueno. Ese desajuste
+    // producía un bundle apuntando a localhost SIN fallar el build.
+    ...(mode === 'mobile'
+      ? {
+          define: {
+            'import.meta.env.VITE_ENVIRONMENT': JSON.stringify('production'),
+            'import.meta.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL),
+            'import.meta.env.VITE_API_BASE_URL': JSON.stringify(env.VITE_API_BASE_URL || env.VITE_API_URL),
+          },
+        }
+      : {}),
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
