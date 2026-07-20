@@ -27,6 +27,7 @@ export const LOCK_KEYS = Object.freeze({
   sessionMaintenance: 4820002,
   sessionMaintenanceStats: 4820003,
   sessionCleanup: 4820004,
+  bridgeEventOutbox: 4820005,
 });
 
 /**

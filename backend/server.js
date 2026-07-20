@@ -14,6 +14,7 @@ import { initializeSessionMaintenance } from './utils/sessionMaintenance.js';
 import { startCleanupScheduler } from './jobs/sessionCleanupJob.js';
 import { authLimiter, aiLimiter, uploadLimiter, heartbeatLimiter } from './middleware/rateLimiters.js';
 import { startMissedSessionsScheduler } from './jobs/missedSessionsJob.js';
+import { startBridgeEventOutboxWorker } from './jobs/processBridgeEventOutbox.js';
 
 // Helper function for Spanish timezone (UTC+2/UTC+1 depending on DST)
 function getSpanishTimestamp() {
@@ -164,6 +165,10 @@ const FRONTEND_DIST = path.join(__dirname, '../dist'); // ajusta si tu build sal
     initializeSessionMaintenance();
     console.log('✅ Sistema de mantenimiento de sesiones inicializado');
     startMissedSessionsScheduler();
+
+    // PR5 (Nutrición Fase 0): worker del outbox entrenamiento→bridge. GUARDA por env:
+    // solo arranca si BRIDGE_OUTBOX_WORKER_ENABLED=true (default OFF; sin activar en prod).
+    startBridgeEventOutboxWorker();
 
   } catch (err) {
     console.error('❌ Error en inicialización:', err);

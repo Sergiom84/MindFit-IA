@@ -19,8 +19,92 @@ import {
   SESSION_ACTIONS,
   createSessionContext
 } from '../../services/sessionStateMachine.js';
+import { normalizeMethodologyId } from '../../services/routineGeneration/methodologies/methodologyRegistry.js';
+import { buildActualSessionLoad } from '../../services/trainingLoad/actualLoadBuilder.js';
+import {
+  buildSessionCompletedEvent,
+  enqueueEvent
+} from '../../services/bridgeEventOutboxService.js';
 
 const router = express.Router();
+
+/**
+ * PR5 (Nutrición Fase 0, spec §13.1): encola el evento `training.session_completed` en el
+ * outbox DENTRO de la transacción del cierre, ANTES del COMMIT y SIN alterar su orden.
+ *
+ * Trade-off resuelto (encargo PR5, punto 2): un fallo del INSERT dentro de una transacción
+ * Postgres la deja ABORTADA ("current transaction is aborted") y un simple try/catch en JS
+ * NO permitiría que el COMMIT posterior tuviera éxito. Por eso se envuelve el INSERT en un
+ * SAVEPOINT: si falla, se hace ROLLBACK TO SAVEPOINT y la transacción del cierre sigue
+ * siendo confirmable → la sesión queda completada aunque Nutrición/el outbox fallen (§9.5).
+ * La construcción del payload es JS puro (no toca la BD) y no puede envenenar la transacción.
+ */
+async function safeEnqueueSessionCompleted(client, params) {
+  try {
+    const {
+      userId, sessionId, session, exerciseRows = [],
+      finalStatus, completionRate, keyNamespace = null
+    } = params;
+
+    const meta = (session && typeof session.session_metadata === 'object' && session.session_metadata)
+      ? session.session_metadata
+      : {};
+    const plannedLoad = meta.planned_session_load ?? null;
+    const methodologyId = normalizeMethodologyId(session?.methodology_type)
+      || (keyNamespace === 'home' ? 'casa' : null);
+    const methodologyLevel = plannedLoad?.methodology_level
+      ?? meta.methodology_level
+      ?? null;
+
+    // Duración real: total_duration_seconds si existe, si no NOW - started_at (misma lógica
+    // que el UPDATE del cierre); nunca se inventan minutos (§13.3).
+    let durationSeconds = Number.isFinite(Number(session?.total_duration_seconds))
+      ? Number(session.total_duration_seconds)
+      : null;
+    if (durationSeconds === null && session?.started_at) {
+      const started = new Date(session.started_at).getTime();
+      if (Number.isFinite(started)) durationSeconds = Math.round((Date.now() - started) / 1000);
+    }
+
+    const actualLoad = buildActualSessionLoad({
+      plannedLoad,
+      methodologyId,
+      methodologyLevel,
+      durationSeconds,
+      exerciseRows
+    });
+
+    const event = buildSessionCompletedEvent({
+      sessionId,
+      userId,
+      methodologyPlanId: session?.methodology_plan_id ?? null,
+      methodologyId,
+      methodologyLevel,
+      completedAt: new Date().toISOString(),
+      finalStatus,
+      completionRate,
+      plannedSessionLoad: plannedLoad,
+      actualSessionLoad: actualLoad,
+      keyNamespace
+    });
+
+    // SAVEPOINT: aísla el INSERT para que su fallo no aborte el cierre de sesión.
+    await client.query('SAVEPOINT pr5_outbox');
+    try {
+      await enqueueEvent(client, event);
+      await client.query('RELEASE SAVEPOINT pr5_outbox');
+      return { enqueued: true };
+    } catch (dbErr) {
+      await client.query('ROLLBACK TO SAVEPOINT pr5_outbox');
+      console.error('⚠️ [PR5] No se pudo encolar el evento de cierre (se degrada a log; la sesión queda completada):', dbErr?.message || dbErr);
+      return { enqueued: false, error: dbErr?.message || String(dbErr) };
+    }
+  } catch (buildErr) {
+    // Un fallo en la construcción (JS puro) tampoco debe tumbar el cierre.
+    console.error('⚠️ [PR5] No se pudo construir el evento de cierre (se omite):', buildErr?.message || buildErr);
+    return { enqueued: false, error: buildErr?.message || String(buildErr) };
+  }
+}
 
 
 // ===============================================
@@ -200,6 +284,17 @@ router.post('/complete/methodology/:sessionId', authenticateToken, async (req, r
 
     await finalizePlanIfCompleted(ses.rows[0].methodology_plan_id, client);
 
+    // PR5 (spec §13.1/§13.2): encolar evento de cierre en el MISMO tx, ANTES del COMMIT.
+    // Aditivo e idempotente (event_key por sessionId → doble POST = un solo evento).
+    await safeEnqueueSessionCompleted(client, {
+      userId,
+      sessionId,
+      session: ses.rows[0],
+      exerciseRows: exercisesQuery.rows,
+      finalStatus: finalSessionStatus,
+      completionRate
+    });
+
     await client.query('COMMIT');
 
     res.json({
@@ -278,6 +373,34 @@ router.post('/complete/home/:sessionId', authenticateToken, async (req, res) => 
     );
 
     const summary = summaryResult.rows[0];
+
+    // PR5 (spec §13.6): la sesión de Casa emite el MISMO evento con methodology_id 'casa'
+    // (nunca 'general' ni Hipertrofia). event_key namespaceado con `:home:` para no colisionar
+    // con ids de sesiones de metodología. Adaptador mínimo: Casa no transporta carga planificada
+    // ni RPE, así que la carga real se construye a baja confianza desde duración y series.
+    const homeProgress = await client.query(
+      `SELECT series_completed FROM app.home_exercise_progress
+       WHERE home_training_session_id = $1`,
+      [sessionId]
+    );
+    const totalDurationSeconds = Number.isFinite(Number(summary.total_duration))
+      ? Number(summary.total_duration)
+      : null;
+    const completedCount = parseInt(summary.completed_exercises) || 0;
+    const totalCount = parseInt(summary.total_exercises) || 0;
+    await safeEnqueueSessionCompleted(client, {
+      userId: user_id,
+      sessionId,
+      session: {
+        ...sessionCheck.rows[0],
+        methodology_type: 'casa',
+        total_duration_seconds: totalDurationSeconds
+      },
+      exerciseRows: homeProgress.rows,
+      finalStatus: 'completed',
+      completionRate: totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0,
+      keyNamespace: 'home'
+    });
 
     await client.query('COMMIT');
 
