@@ -10,6 +10,12 @@ import * as CalisteniaService from './CalisteniaService.js';
 import * as CrossFitService from './CrossFitService.js';
 import * as GymRoutineService from './GymRoutineService.js';
 import * as OposicionService from './OposicionService.js';
+// PR2 (§7.4): la identidad de dominio vive en el registro canónico. El orquestador
+// delega en él la normalización y el listado, manteniendo sus exports públicos.
+import {
+  normalizeMethodologyId as registryNormalizeMethodologyId,
+  getSupportedMethodologies as registryGetSupportedMethodologies
+} from './methodologyRegistry.js';
 
 const METHODOLOGY_DATA_KEYS = {
   [METODOLOGIAS.CALISTENIA]: ['calisteniaData'],
@@ -29,30 +35,15 @@ function stripDiacritics(value) {
 }
 
 export function normalizeMethodologyId(methodology) {
-  const value = stripDiacritics(methodology)
+  // §7.4: delega en el registro canónico. Para valores NO reconocidos se preserva el
+  // comportamiento histórico (devolver el valor normalizado tal cual; el orquestador
+  // nunca lanzaba). El rechazo explícito de IDs desconocidos vive en el contrato strict.
+  const canonical = registryNormalizeMethodologyId(methodology);
+  if (canonical) return canonical;
+  return stripDiacritics(methodology)
     .toLowerCase()
     .replace(/_/g, '-')
     .trim();
-
-  if (value.includes('calistenia')) return METODOLOGIAS.CALISTENIA;
-  if (value.includes('crossfit') || value.includes('cross-fit')) return METODOLOGIAS.CROSSFIT;
-  // 'hipertrofia' (sin V2) fue retirada por completo (B-02); la única hipertrofia
-  // viva es HipertrofiaV2, con su propio motor y rutas (/api/hipertrofiav2/*).
-  if (value.includes('funcional')) return METODOLOGIAS.FUNCIONAL;
-  if (value.includes('powerlifting') || value.includes('power-lifting')) return METODOLOGIAS.POWERLIFTING;
-  if (value.includes('heavy-duty') || value.includes('heavy duty') || value.includes('heavyduty')) {
-    return METODOLOGIAS.HEAVY_DUTY;
-  }
-  if (value.includes('halterofilia')) return METODOLOGIAS.HALTEROFILIA;
-  if (value.includes('entrenamiento-casa') || value.includes('entrenamiento casa') || value.includes('casa')) {
-    return METODOLOGIAS.CASA;
-  }
-  if (value.includes('gimnasio') || value.includes('gym')) return METODOLOGIAS.GIMNASIO;
-
-  // Oposiciones: se resuelven a su id canónico y las maneja OposicionService.
-  if (OposicionService.isOposicion(value)) return OposicionService.normalizeOposicionId(value);
-
-  return value;
 }
 
 function getNestedPlanData(methodology, planData) {
@@ -205,95 +196,8 @@ export function getMethodologyLevels(methodology) {
  * Obtener lista de metodologías soportadas
  * @returns {Array<object>} Lista de metodologías
  */
-export function getSupportedMethodologies() {
-  return [
-    {
-      id: METODOLOGIAS.CALISTENIA,
-      name: 'Calistenia',
-      description: 'Entrenamiento con peso corporal',
-      hasAutoEvaluation: true,
-      levels: ['principiante', 'intermedio', 'avanzado']
-    },
-    {
-      id: METODOLOGIAS.CROSSFIT,
-      name: 'CrossFit',
-      description: 'Acondicionamiento funcional de alta intensidad',
-      hasAutoEvaluation: true,
-      levels: ['principiante', 'intermedio', 'avanzado', 'elite']
-    },
-    {
-      id: METODOLOGIAS.GIMNASIO,
-      name: 'Gimnasio General',
-      description: 'Rutinas de gimnasio personalizadas',
-      hasAutoEvaluation: false,
-      levels: ['principiante', 'intermedio', 'avanzado']
-    },
-    {
-      id: METODOLOGIAS.FUNCIONAL,
-      name: 'Funcional',
-      description: 'Entrenamiento funcional y movimientos naturales',
-      hasAutoEvaluation: false,
-      levels: ['principiante', 'intermedio', 'avanzado']
-    },
-    {
-      id: METODOLOGIAS.CASA,
-      name: 'Entrenamiento en Casa',
-      description: 'Rutinas adaptadas para entrenar en casa',
-      hasAutoEvaluation: false,
-      levels: ['principiante', 'intermedio', 'avanzado']
-    },
-    {
-      id: METODOLOGIAS.HEAVY_DUTY,
-      name: 'Heavy Duty',
-      description: 'Entrenamiento de alta intensidad y bajo volumen',
-      hasAutoEvaluation: false,
-      levels: ['principiante', 'intermedio', 'avanzado']
-    },
-    {
-      id: METODOLOGIAS.POWERLIFTING,
-      name: 'Powerlifting',
-      description: 'Fuerza máxima en sentadilla, banca y peso muerto',
-      hasAutoEvaluation: false,
-      levels: ['principiante', 'intermedio', 'avanzado']
-    },
-    {
-      id: METODOLOGIAS.HALTEROFILIA,
-      name: 'Halterofilia',
-      description: 'Técnica olímpica, potencia y fuerza base',
-      hasAutoEvaluation: false,
-      levels: ['principiante', 'intermedio', 'avanzado']
-    },
-    {
-      id: 'bomberos',
-      name: 'Bomberos',
-      description: 'Preparación física para oposiciones de Bombero',
-      hasAutoEvaluation: false,
-      isOposicion: true,
-      levels: ['principiante', 'intermedio', 'avanzado']
-    },
-    {
-      id: 'guardia-civil',
-      name: 'Guardia Civil',
-      description: 'Preparación física para oposiciones de Guardia Civil',
-      hasAutoEvaluation: false,
-      isOposicion: true,
-      levels: ['principiante', 'intermedio', 'avanzado']
-    },
-    {
-      id: 'policia-nacional',
-      name: 'Policía Nacional',
-      description: 'Preparación física para oposiciones de Policía Nacional',
-      hasAutoEvaluation: false,
-      isOposicion: true,
-      levels: ['principiante', 'intermedio', 'avanzado']
-    },
-    {
-      id: 'policia-local',
-      name: 'Policía Local',
-      description: 'Preparación física para oposiciones de Policía Local',
-      hasAutoEvaluation: false,
-      isOposicion: true,
-      levels: ['principiante', 'intermedio', 'avanzado']
-    }
-  ];
+export function getSupportedMethodologies(opts) {
+  // §7.4.2: delega en el registro. Por defecto solo seleccionables → `gimnasio` (legacy)
+  // deja de aparecer en el listado, manteniendo el resto de metodologías y el shape.
+  return registryGetSupportedMethodologies(opts);
 }
