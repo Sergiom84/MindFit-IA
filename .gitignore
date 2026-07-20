@@ -73,11 +73,17 @@ scripts/.local-db/
 # Playwright storage state (contiene authToken de sesión — NEVER commit)
 output/qa-e2e/storageState.json
 
-# Capturas QA pesadas (evidencia E2E regenerable, ~178 MiB) — REPO-001
-output/**/*.png
-
-# Dataset ExerciseDB regenerable (~15 MiB) — REPO-001
-backend/output/catalog-audit/exercisedb_numeric.json
+# REPO-001: artefactos de QA/build regenerables — nunca versionar.
+# Carpetas de salida completas (capturas, dumps, datasets, arneses generados).
+output/
+backend/output/
+# Reportes y resultados de Playwright (regenerables en cada corrida).
+playwright-report/
+test-results/
+# Patrones específicos conservados por claridad (cubiertos por lo anterior):
+#   output/**/*.png (capturas E2E, ~178 MiB)
+#   backend/output/catalog-audit/exercisedb_numeric.json (dataset ExerciseDB, ~15 MiB)
+#   output/qa-e2e/storageState.json (authToken de sesión — ver bloque de arriba)
 
 # DEP-001: SBOM generados en CI (artefactos, no versionar)
 sbom-*.json
