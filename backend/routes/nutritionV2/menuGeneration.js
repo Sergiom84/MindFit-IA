@@ -37,6 +37,12 @@ import {
   generateMenuForMeal,
   isHybridAiEnabled
 } from '../../services/nutritionV2Engine.js';
+// A-04: gate de calidad de menús (módulo directo; no pasa por el barrel).
+import {
+  evaluateMealQuality,
+  evaluateDayQuality,
+  logMenuQuality
+} from '../../services/nutritionV2/menuQualityGate.js';
 
 const router = express.Router();
 
@@ -110,11 +116,18 @@ router.post('/generate-menu', authenticateToken, async (req, res) => {
       });
     }
 
+    // A-04: veredicto de calidad explícito. Si el menú supera el umbral de error o usó
+    // fallback/emergencia, se marca `quality: degraded` con motivo (no se da por válido
+    // en silencio). La UI muestra el aviso.
+    const quality = evaluateMealQuality({ meal, menu: result.menu, metadata: result.metadata });
+    logMenuQuality('meal', quality, { user_id: userId, meal_id: meal?.id, mode: modeRaw });
+
     res.json({
       success: true,
       mode: modeRaw,
       menu: result.menu,
       metadata: result.metadata,
+      quality,
       persistence: persistedItems
     });
   } catch (error) {
@@ -720,6 +733,7 @@ router.post('/generate-full-day-menus', authenticateToken, async (req, res) => {
 
         generatedMenus.push({
           meal_id: meal.id,
+          meal, // A-04: se conserva la fila para calcular el target en el gate de día.
           menu: menuResponse.menu,
           metadata: menuResponse.metadata
         });
@@ -748,18 +762,27 @@ router.post('/generate-full-day-menus', authenticateToken, async (req, res) => {
       }
     }
 
+    // A-04: veredicto de calidad del DÍA (agrega error por comida y del día vs objetivo).
+    const dayQuality = evaluateDayQuality(generatedMenus);
+    logMenuQuality('day', dayQuality, { user_id: userId, day_id: dayId, mode: modeRaw });
+
+    // No se exponen las filas `meal` internas (se usan solo para el gate de día).
+    const menusPayload = generatedMenus.map((entry) => {
+      const rest = { ...entry };
+      delete rest.meal;
+      return rest;
+    });
+
     res.json({
       success: true,
       mode: modeRaw,
       day_id: dayId,
-      menus_generated: generatedMenus.filter(m => !m.error).length,
+      menus_generated: menusPayload.filter(m => !m.error).length,
       total_meals: day.meals.length,
-      items_persisted: generatedMenus.reduce((acc, menu) => acc + (menu.persistence?.inserted_items || 0), 0),
-      fallback_count: generatedMenus.reduce(
-        (acc, menu) => acc + (menu?.metadata?.fallback_used ? 1 : 0),
-        0
-      ),
-      menus: generatedMenus
+      items_persisted: menusPayload.reduce((acc, menu) => acc + (menu.persistence?.inserted_items || 0), 0),
+      fallback_count: dayQuality.fallback_count,
+      quality: dayQuality,
+      menus: menusPayload
     });
   } catch (error) {
     console.error('Error generando menús del día:', error);

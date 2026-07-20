@@ -5,6 +5,17 @@
 // importan desde nutritionV2Engine.js.
 
 export const VALID_MENU_GENERATION_MODES = ['deterministic', 'ai', 'hybrid_ai', 'recipe_examples'];
+
+// A-04: gate de calidad de menús. Umbrales de error relativo (%) versionados y
+// override-ables por entorno (NO hardcodeados). Confirmados por el arquitecto como
+// valores iniciales: comida ≤15%, día ≤10%. Al subirlos, cambia también la versión
+// para que quede trazable en la respuesta `quality`.
+export const MENU_QUALITY_GATE_VERSION = 'v1-2026-07-20';
+export const MENU_QUALITY_THRESHOLDS = {
+  version: MENU_QUALITY_GATE_VERSION,
+  meal_max_error_pct: Number(process.env.NUTRITION_MEAL_MAX_ERROR_PCT ?? 15),
+  day_max_error_pct: Number(process.env.NUTRITION_DAY_MAX_ERROR_PCT ?? 10)
+};
 export const DETERMINISTIC_MAX_TEMPLATE_TRIES = 12;
 export const DETERMINISTIC_MAX_RECIPE_TRIES = 40;
 export const DETERMINISTIC_COORDINATE_ITERATIONS = 120;

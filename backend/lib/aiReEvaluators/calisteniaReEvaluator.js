@@ -8,11 +8,12 @@
  * @version 1.0.0 - Sistema de Re-evaluación Progresiva
  */
 
-import OpenAI from 'openai';
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+// M-04: NO instanciar el cliente OpenAI a nivel de módulo. Con la key ausente, `new
+// OpenAI(...)` lanza en el import y, como este módulo está en la cadena de arranque
+// (aiReEvaluators/index.js → progressReEvaluation → server.js), tumbaba el backend al
+// iniciar. Se resuelve de forma perezosa vía getOpenAI() (cachea y devuelve null si no
+// hay key), y la ausencia de key degrada a fallback en vez de romper el proceso.
+import { getOpenAI } from '../openaiClient.js';
 
 /**
  * Analizar progreso de usuario en Calistenia y sugerir ajustes
@@ -99,6 +100,10 @@ IMPORTANTE:
 
     console.log('📤 [CALISTENIA RE-EVAL] Enviando prompt a OpenAI');
 
+    const client = getOpenAI();
+    if (!client) {
+      throw new Error('OPENAI_API_KEY no configurada; re-evaluación de IA no disponible');
+    }
     const completion = await client.chat.completions.create({
       model: 'gpt-4o',
       messages: [
