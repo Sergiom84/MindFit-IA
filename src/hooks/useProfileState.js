@@ -322,12 +322,20 @@ export const useProfileState = () => {
   const limitacionesList = Array.isArray(rawLimitaciones)
     ? rawLimitaciones
     : (rawLimitaciones ? String(rawLimitaciones).split(/\s*[.,;\n]\s*/).map(s => s.trim()).filter(Boolean) : [])
+  // Cosmético (arrastrado de F1): negaciones obvias como "Ninguna"/"no" no deben
+  // MOSTRARSE como si fueran limitaciones reales. Se filtran SOLO para la vista
+  // (el edit y la persistencia usan la lista sin filtrar). Solo tokens de una palabra:
+  // un texto como "no puedo flexionar" es información real y NO se filtra.
+  const NEGACIONES = new Set(['ninguna', 'ninguno', 'no', 'nada', 'n/a', 'na', '-'])
+  const esNegacion = (item) => NEGACIONES.has(String(item || '').trim().toLowerCase())
+  const limitacionesDisplayList = limitacionesList.filter(item => !esNegacion(item))
   // `lesiones` queda como alias de lectura legacy (ya no se edita en la UI).
   const lesionesList = userProfile.lesiones || []
 
   const alergiasObjList = alergiasList.map(item => ({ name: item }))
   const medicamentosObjList = medicamentosList.map(item => ({ name: item }))
   const limitacionesObjList = limitacionesList.map(item => ({ name: item }))
+  const limitacionesDisplayObjList = limitacionesDisplayList.map(item => ({ name: item }))
   const lesionesObjList = lesionesList.map(item => ({ name: item }))
 
   // Props para documentos (simuladas por ahora)
@@ -567,10 +575,12 @@ export const useProfileState = () => {
     alergiasList,
     medicamentosList,
     limitacionesList,
+    limitacionesDisplayList,
     lesionesList,
     alergiasObjList,
     medicamentosObjList,
     limitacionesObjList,
+    limitacionesDisplayObjList,
     lesionesObjList,
     docs,
     fetchDocs,

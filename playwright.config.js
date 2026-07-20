@@ -48,21 +48,29 @@ export default defineConfig({
         viewport: { width: 390, height: 844 },
       },
     },
+    /* F5 (ONB-P2-06): gate E2E del recorrido Onboarding→Perfil. Se salta salvo que
+     * E2E_LOCAL_DB=1 (nunca contra prod). Aislado en su propio proyecto para CI/staging. */
+    {
+      name: 'onboarding-e2e',
+      testMatch: /onboarding-perfil-e2e\.spec\.js/,
+      fullyParallel: false,
+      use: { ...devices['Desktop Chrome'] },
+    },
     {
       name: 'chromium',
-      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js/,
+      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js|onboarding-perfil-e2e\.spec\.js/,
       use: { ...devices['Desktop Chrome'] },
     },
 
     {
       name: 'firefox',
-      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js/,
+      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js|onboarding-perfil-e2e\.spec\.js/,
       use: { ...devices['Desktop Firefox'] },
     },
 
     {
       name: 'webkit',
-      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js/,
+      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js|onboarding-perfil-e2e\.spec\.js/,
       use: { ...devices['Desktop Safari'] },
     },
 

@@ -62,6 +62,9 @@ const FITNESS_VALIDATIONS = {
         'tonificar',
         'mejorar_resistencia',
         'fuerza',
+        // ONB-P2-05: 'ganar_fuerza' es el objetivo CANÓNICO (userProfileContract lo
+        // normaliza así). Sin él, un update con el objetivo canónico se rechazaba.
+        'ganar_fuerza',
         'mantener_forma',
         'mantenimiento',
         'rehabilitacion',
@@ -360,14 +363,21 @@ export const UserProvider = ({ children }) => {
       });
 
       if (response && response.ok) {
-        const updatedData = await response.json();
+        const responseData = await response.json();
+
+        // ONB-P2-05: el backend responde { message, user }. Antes se guardaba el objeto
+        // COMPLETO como userData, así que userData quedaba { message, user } y los
+        // consumidores (NutritionPlanGenerator, cards de metodología…) leían
+        // userData.peso/objetivo_principal = undefined tras cada guardado. Se extrae
+        // el objeto user, igual que loadUserProfile.
+        const updatedUser = responseData.user || responseData;
 
         // 5. ACTUALIZAR CACHE Y ESTADO CON DATOS DEL SERVIDOR
-        cacheManager.current.setCache(user.id, updatedData);
-        setUserData(updatedData);
+        cacheManager.current.setCache(user.id, updatedUser);
+        setUserData(updatedUser);
 
         console.log('Profile updated successfully:', user.id);
-        return { success: true, data: updatedData };
+        return { success: true, data: updatedUser };
 
       } else {
         // Revertir cambio optimistic si el servidor rechaza

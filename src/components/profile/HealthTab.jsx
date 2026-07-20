@@ -23,9 +23,10 @@ export const HealthTab = (props) => {
     alergiasList,
     medicamentosList,
     limitacionesList,
+    limitacionesDisplayList,
     alergiasObjList,
     medicamentosObjList,
-    limitacionesObjList
+    limitacionesDisplayObjList
   } = props
 
   const isEditing = editingSection === 'health'
@@ -124,10 +125,12 @@ export const HealthTab = (props) => {
             field="limitaciones_fisicas"
             editing={isEditing}
             isList={true}
-            value={limitacionesList}
+            // Display filtra negaciones obvias ("Ninguna"/"no"); el seed de edición y la
+            // persistencia usan la lista sin filtrar (startEdit -> [...limitacionesList]).
+            value={limitacionesDisplayList}
             editedData={editedData}
             onInputChange={handleInputChange}
-            displayObjects={limitacionesObjList}
+            displayObjects={limitacionesDisplayObjList}
             noneOptionLabel="No tengo lesiones ni limitaciones"
             noneOptionValue="Ninguna"
             helpText={'Lesiones o limitaciones que el generador de rutinas debe respetar (p. ej. "rodilla", "hombro", "lumbar"). El motor evita los ejercicios contraindicados.'}

@@ -182,32 +182,37 @@ const ProfileSection = () => {
       { key: 'años_entrenando', label: 'Años entrenando', category: 'Experiencia', type: 'number' },
       { key: 'metodologia_preferida', label: 'Metodología preferida', category: 'Experiencia', type: 'select', options: metodologiaOptions },
       { key: 'frecuencia_semanal', label: 'Frecuencia semanal', category: 'Experiencia', type: 'number' },
-      { key: 'grasa_corporal', label: 'Grasa corporal (%)', category: 'Composición corporal', type: 'number' },
-      { key: 'masa_magra', label: 'Masa magra (kg)', category: 'Composición corporal', type: 'number' },
-      { key: 'agua_corporal', label: 'Agua corporal (%)', category: 'Composición corporal', type: 'number' },
-      { key: 'metabolismo_basal', label: 'Metabolismo basal (kcal)', category: 'Composición corporal', type: 'number' },
+      // ONB-P2-03: 'avanzado' = enriquecimiento que el onboarding NO pide. No debe
+      // contar como "dato perdido" del alta (antes bajaba la completitud a ~78% aunque
+      // el onboarding estuviera completo). Sin `group` => 'onboarding' (lo que pide el alta).
+      { key: 'grasa_corporal', label: 'Grasa corporal (%)', category: 'Composición corporal', type: 'number', group: 'avanzado' },
+      { key: 'masa_magra', label: 'Masa magra (kg)', category: 'Composición corporal', type: 'number', group: 'avanzado' },
+      { key: 'agua_corporal', label: 'Agua corporal (%)', category: 'Composición corporal', type: 'number', group: 'avanzado' },
+      { key: 'metabolismo_basal', label: 'Metabolismo basal (kcal)', category: 'Composición corporal', type: 'number', group: 'avanzado' },
       { key: 'cintura', label: 'Cintura (cm)', category: 'Medidas corporales', type: 'number' },
       { key: 'pecho', label: 'Pecho (cm)', category: 'Medidas corporales', type: 'number' },
       { key: 'brazos', label: 'Brazos (cm)', category: 'Medidas corporales', type: 'number' },
       { key: 'muslo', label: 'Muslo (cm)', category: 'Medidas corporales', type: 'number' },
       { key: 'cuello', label: 'Cuello (cm)', category: 'Medidas corporales', type: 'number' },
       { key: 'antebrazos', label: 'Antebrazos (cm)', category: 'Medidas corporales', type: 'number' },
-      { key: 'gemelo', label: 'Gemelo (cm)', category: 'Medidas corporales', type: 'number' },
-      { key: 'pliegue_abdominal', label: 'Pliegue abdominal (mm)', category: 'Medidas corporales', type: 'number' },
-      { key: 'cadera', label: 'Cadera (cm)', category: 'Medidas corporales', type: 'number', isRelevant: (profile) => profile?.sexo === 'femenino' },
+      // gemelo/pliegue/cadera NO se piden en el alta (BodyMeasurementsStep solo pide 6 medidas).
+      { key: 'gemelo', label: 'Gemelo (cm)', category: 'Medidas corporales', type: 'number', group: 'avanzado' },
+      { key: 'pliegue_abdominal', label: 'Pliegue abdominal (mm)', category: 'Medidas corporales', type: 'number', group: 'avanzado' },
+      { key: 'cadera', label: 'Cadera (cm)', category: 'Medidas corporales', type: 'number', group: 'avanzado', isRelevant: (profile) => profile?.sexo === 'femenino' },
       { key: 'objetivo_principal', label: 'Objetivo principal', category: 'Objetivos', type: 'select', options: profileState.objetivosOptions },
       { key: 'meta_peso', label: 'Meta de peso (kg)', category: 'Objetivos', type: 'number' },
       { key: 'meta_grasa', label: 'Meta de grasa corporal (%)', category: 'Objetivos', type: 'number' },
-      { key: 'fecha_meta_objetivo', label: 'Fecha meta', category: 'Seguimiento de progreso', type: 'date' },
+      { key: 'fecha_meta_objetivo', label: 'Fecha meta', category: 'Seguimiento de progreso', type: 'date', group: 'avanzado' },
       { key: 'notas_progreso', label: 'Notas de progreso', category: 'Seguimiento de progreso', type: 'textarea', isRelevant: () => false },
       { key: 'alergias', label: 'Alergias', category: 'Salud', type: 'list', noneOptionLabel: 'No tengo alergias', noneOptionValue: 'Ninguna' },
       { key: 'medicamentos', label: 'Medicamentos', category: 'Salud', type: 'list', noneOptionLabel: 'No tomo medicamentos', noneOptionValue: 'Ninguno' },
-      { key: 'lesiones', label: 'Lesiones', category: 'Salud', type: 'list', noneOptionLabel: 'No tengo lesiones', noneOptionValue: 'Ninguna' },
-      { key: 'usar_preferencias_ia', label: 'Preferencias personalizadas', category: 'Preferencias de entrenamiento IA', type: 'boolean' },
-      { key: 'dias_preferidos_entrenamiento', label: 'Días preferidos', category: 'Preferencias de entrenamiento IA', type: 'training_days' },
-      { key: 'ejercicios_por_dia_preferido', label: 'Ejercicios por día', category: 'Preferencias de entrenamiento IA', type: 'number' },
-      { key: 'semanas_entrenamiento', label: 'Semanas de entrenamiento', category: 'Preferencias de entrenamiento IA', type: 'number' },
-      { key: 'equipamiento', label: 'Equipamiento', category: 'Equipamiento', type: 'equipment' }
+      // F1: la fuente canónica es limitaciones_fisicas (antes se contaba `lesiones` legacy).
+      { key: 'limitaciones_fisicas', label: 'Lesiones y limitaciones físicas', category: 'Salud', type: 'list', noneOptionLabel: 'No tengo lesiones ni limitaciones', noneOptionValue: 'Ninguna' },
+      { key: 'usar_preferencias_ia', label: 'Preferencias personalizadas', category: 'Preferencias de entrenamiento IA', type: 'boolean', group: 'avanzado' },
+      { key: 'dias_preferidos_entrenamiento', label: 'Días preferidos', category: 'Preferencias de entrenamiento IA', type: 'training_days', group: 'avanzado' },
+      { key: 'ejercicios_por_dia_preferido', label: 'Ejercicios por día', category: 'Preferencias de entrenamiento IA', type: 'number', group: 'avanzado' },
+      { key: 'semanas_entrenamiento', label: 'Semanas de entrenamiento', category: 'Preferencias de entrenamiento IA', type: 'number', group: 'avanzado' },
+      { key: 'equipamiento', label: 'Equipamiento', category: 'Equipamiento', type: 'equipment', group: 'avanzado' }
     ];
   }, [
     profileState.enfoqueOptions,
@@ -243,27 +248,42 @@ const ProfileSection = () => {
     typeof field.isRelevant === 'function' ? field.isRelevant(profile) : true
   )), [completionFields]);
 
-  const completionSummary = useMemo(() => {
-    const relevant = getRelevantFields(profileState.userProfile);
-    const missing = relevant.filter(field => !isFieldComplete(field, profileState.userProfile));
-    const total = relevant.length;
+  // ONB-P2-03: dos indicadores honestos. "onboarding" agrupa lo que el alta pide y
+  // debe llegar al 100% tras un alta completa; "avanzado" es enriquecimiento opcional
+  // (composición calculada, pliegues, preferencias IA, equipamiento) que NO se cuenta
+  // como dato perdido del onboarding.
+  const summarizeGroup = useCallback((fields) => {
+    const missing = fields.filter(field => !isFieldComplete(field, profileState.userProfile));
+    const total = fields.length;
     const completed = total - missing.length;
-    const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+    const percent = total === 0 ? 100 : Math.round((completed / total) * 100);
     const grouped = missing.reduce((acc, field) => {
       if (!acc[field.category]) acc[field.category] = [];
       acc[field.category].push(field);
       return acc;
     }, {});
-    return {
-      total,
-      completed,
-      percent,
-      missing,
-      grouped
-    };
-  }, [getRelevantFields, isFieldComplete, profileState.userProfile]);
+    return { total, completed, percent, missing, grouped };
+  }, [isFieldComplete, profileState.userProfile]);
 
-  const profileProgress = completionSummary.percent;
+  const completionSummary = useMemo(() => {
+    const relevant = getRelevantFields(profileState.userProfile);
+    const onboardingFields = relevant.filter(f => f.group !== 'avanzado');
+    const advancedFields = relevant.filter(f => f.group === 'avanzado');
+    const onboarding = summarizeGroup(onboardingFields);
+    const avanzado = summarizeGroup(advancedFields);
+    return {
+      onboarding,
+      avanzado,
+      // Compat con consumidores existentes (init de completionData, renderCompletionField,
+      // handleCompletionSave): lista/porcentaje combinados.
+      missing: [...onboarding.missing, ...avanzado.missing],
+      percent: onboarding.percent
+    };
+  }, [getRelevantFields, summarizeGroup, profileState.userProfile]);
+
+  // El indicador principal refleja la completitud del ONBOARDING (llega a 100% con un
+  // alta completa); el avanzado se muestra aparte.
+  const profileProgress = completionSummary.onboarding.percent;
   const editSectionLabels = {
     basic: 'Información básica',
     bodyComp: 'Composición corporal',
@@ -517,8 +537,34 @@ const ProfileSection = () => {
     setCompletionError(`Aún faltan ${nextMissing.length} campos por completar.`);
   };
 
-  const groupedMissing = Object.entries(completionSummary.grouped);
+  const onboardingMissingGroups = Object.entries(completionSummary.onboarding.grouped);
+  const advancedMissingGroups = Object.entries(completionSummary.avanzado.grouped);
   const hasMissingFields = completionSummary.missing.length > 0;
+
+  const renderCompletionCategory = (category, fields) => (
+    <div key={category} className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-yellow-400 uppercase tracking-wide">
+          {category}
+        </h3>
+        {category === 'Composición corporal' && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="border-yellow-400/40 text-yellow-300 hover:bg-yellow-400/10"
+            onClick={() => setIsCompositionCalculatorOpen(true)}
+            disabled={isCompositionSaving}
+          >
+            {isCompositionSaving ? 'Guardando...' : 'Abrir calculadora'}
+          </Button>
+        )}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {fields.map(renderCompletionField)}
+      </div>
+    </div>
+  );
 
   const renderCompletionField = (field) => {
     const completionCardClass = "rounded-xl border border-white/10 border-l-2 border-l-yellow-400/30 bg-gradient-to-br from-white/10 via-white/5 to-transparent p-4 shadow-[0_20px_50px_-40px_rgba(0,0,0,0.9)]";
@@ -773,35 +819,32 @@ const ProfileSection = () => {
           <DialogHeader>
             <DialogTitle>Completa tu perfil</DialogTitle>
             <DialogDescription>
-              Revisa los campos pendientes para alcanzar el 100%.
+              Los datos del onboarding ({completionSummary.onboarding.percent}%) son los que
+              pediste al registrarte. El enriquecimiento avanzado ({completionSummary.avanzado.percent}%)
+              es opcional y afina la personalización.
             </DialogDescription>
           </DialogHeader>
           {hasMissingFields ? (
-            <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
-              {groupedMissing.map(([category, fields]) => (
-                <div key={category} className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="text-sm font-semibold text-yellow-400 uppercase tracking-wide">
-                      {category}
-                    </h3>
-                    {category === 'Composición corporal' && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="border-yellow-400/40 text-yellow-300 hover:bg-yellow-400/10"
-                        onClick={() => setIsCompositionCalculatorOpen(true)}
-                        disabled={isCompositionSaving}
-                      >
-                        {isCompositionSaving ? 'Guardando...' : 'Abrir calculadora'}
-                      </Button>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {fields.map(renderCompletionField)}
-                  </div>
+            <div className="space-y-8 max-h-[70vh] overflow-y-auto pr-2">
+              {onboardingMissingGroups.length > 0 && (
+                <div className="space-y-6">
+                  <h2 className="text-base font-bold text-yellow-300">
+                    Datos del onboarding · {completionSummary.onboarding.percent}%
+                  </h2>
+                  {onboardingMissingGroups.map(([category, fields]) => renderCompletionCategory(category, fields))}
                 </div>
-              ))}
+              )}
+              {advancedMissingGroups.length > 0 && (
+                <div className="space-y-6 border-t border-white/10 pt-6">
+                  <div>
+                    <h2 className="text-base font-bold text-sky-300">
+                      Enriquecimiento avanzado · {completionSummary.avanzado.percent}%
+                    </h2>
+                    <p className="text-xs text-gray-300/70">Opcional. No hace falta para tener un perfil completo.</p>
+                  </div>
+                  {advancedMissingGroups.map(([category, fields]) => renderCompletionCategory(category, fields))}
+                </div>
+              )}
             </div>
           ) : (
             <div className="py-8 text-center text-gray-200/80">
