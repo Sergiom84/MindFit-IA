@@ -56,21 +56,27 @@ export default defineConfig({
       fullyParallel: false,
       use: { ...devices['Desktop Chrome'] },
     },
+    /* T8 (doc 03): gates de regresión frontend/UI (source asserts + hit-test 390×844). */
+    {
+      name: 'doc03-regression',
+      testMatch: /hpv2-doc03-regression\.spec\.js/,
+      use: { ...devices['Desktop Chrome'] },
+    },
     {
       name: 'chromium',
-      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js|onboarding-perfil-e2e\.spec\.js/,
+      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js|onboarding-perfil-e2e\.spec\.js|hpv2-doc03-regression\.spec\.js/,
       use: { ...devices['Desktop Chrome'] },
     },
 
     {
       name: 'firefox',
-      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js|onboarding-perfil-e2e\.spec\.js/,
+      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js|onboarding-perfil-e2e\.spec\.js|hpv2-doc03-regression\.spec\.js/,
       use: { ...devices['Desktop Firefox'] },
     },
 
     {
       name: 'webkit',
-      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js|onboarding-perfil-e2e\.spec\.js/,
+      testIgnore: /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js|onboarding-perfil-e2e\.spec\.js|hpv2-doc03-regression\.spec\.js/,
       use: { ...devices['Desktop Safari'] },
     },
 

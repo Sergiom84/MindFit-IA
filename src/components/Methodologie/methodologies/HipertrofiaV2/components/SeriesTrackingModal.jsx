@@ -128,7 +128,11 @@ export default function SeriesTrackingModal({
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4">
-      <div className="bg-neutral-900/95 rounded-2xl w-full max-w-md border border-white/10 ring-1 ring-white/10 shadow-[0_40px_90px_-60px_rgba(0,0,0,0.9)]">
+      {/* A-05: max-h + scroll para que "Guardar Serie" sea SIEMPRE alcanzable. Antes, en
+          390×844 el contenido (peso+reps+RIR+cálculos) desbordaba una caja centrada sin
+          scroll y el botón quedaba bajo el viewport (solo funcionaba en pantallas altas
+          tipo 1280×900). El overscroll-contain evita arrastrar el fondo. */}
+      <div className="bg-neutral-900/95 rounded-2xl w-full max-w-md border border-white/10 ring-1 ring-white/10 shadow-[0_40px_90px_-60px_rgba(0,0,0,0.9)] max-h-[90dvh] overflow-y-auto overscroll-contain">
         {/* Header */}
         <div className="bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 p-4 rounded-t-2xl border-b border-white/10">
           <div className="flex items-center justify-between">
