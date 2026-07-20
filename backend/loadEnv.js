@@ -7,11 +7,16 @@
 // JWT_SECRET). Antes, dotenv.config() estaba después de todos los imports y el
 // arranque local podía fallar por variables no cargadas a tiempo.
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // En producción (Render) las variables llegan del entorno; cargar .env es
 // inofensivo si no existe, pero lo evitamos para no pisar el entorno real.
 if (process.env.NODE_ENV !== 'production') {
-  dotenv.config();
+  // backend/.env se resuelve relativo a ESTE fichero, no al CWD: M-04 era justo que
+  // `npm --prefix backend start` desde la raíz cargaba el .env de la raíz (sin
+  // JWT_SECRET) y el backend no arrancaba.
+  dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '.env') });
 }
 
 // M-04: fail-fast con mensaje claro para lo IMPRESCINDIBLE, y warning para lo opcional.
