@@ -60,6 +60,9 @@ function normalizePlanDays(planDataJson) {
 }
 
 import { adjustWorkoutIntensity, shouldAdjustIntensity } from './adjustWorkoutIntensity.js';
+// Nutrición Fase 0 (doc04 PR3, spec §9): persistir day_id y metadata.session_load al
+// materializar el calendario. Helper puro (sin efectos) para poder testearlo aislado.
+import { buildPlanDayMetadata } from '../services/trainingLoad/sessionLoadBuilder.js';
 
 /**
  * Genera workout_schedule y methodology_plan_days respetando preferencias del usuario.
@@ -791,17 +794,23 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
         // Guard anti-duplicados: en QA se observaron filas repetidas para la misma
         // fecha del mismo plan (p.ej. dos "Sesion 6" el mismo viernes). Nunca debe
         // haber dos sesiones programadas del mismo plan en la misma fecha.
+        // PR3 (spec §9.2): el mismo dayId identifica esta fila en workout_schedule y en
+        // methodology_plan_days, para que Nutrición llegue al metadato del día por day_id
+        // (join §12.1) sin buscar por títulos ni posiciones de arrays.
+        const planDayMetadata = buildPlanDayMetadata(sesion); // null salvo que el motor emita carga
+
         await client.query(
           // ON CONFLICT DO NOTHING sobre el índice único
           // uq_workout_schedule_plan_user_date: race-proof (dos generaciones
           // simultáneas ya no crean duplicados; antes el guard NOT EXISTS tenía
           // una condición de carrera TOCTOU). Ver DATA-002.
-          `INSERT INTO app.workout_schedule (methodology_plan_id, user_id, week_number, session_order, week_session_order, scheduled_date, day_name, day_abbrev, session_title, exercises, status)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+          `INSERT INTO app.workout_schedule (methodology_plan_id, user_id, day_id, week_number, session_order, week_session_order, scheduled_date, day_name, day_abbrev, session_title, exercises, status)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
            ON CONFLICT (methodology_plan_id, user_id, scheduled_date) DO NOTHING`,
           [
             methodologyPlanId,
             userId,
+          dayId,
           effectiveWeekNumber,
           globalSessionOrder,
           weekSessionOrder,
@@ -815,8 +824,8 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
         );
 
         await client.query(
-          'INSERT INTO app.methodology_plan_days (plan_id, day_id, week_number, day_name, date_local, is_rest, planned_exercises_count) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (plan_id, day_id) DO NOTHING',
-          [methodologyPlanId, dayId, effectiveWeekNumber, dayAbbrev, formatLocalDate(currentDate), false, Array.isArray(sessionExercises) ? sessionExercises.length : 0]
+          'INSERT INTO app.methodology_plan_days (plan_id, day_id, week_number, day_name, date_local, is_rest, planned_exercises_count, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (plan_id, day_id) DO NOTHING',
+          [methodologyPlanId, dayId, effectiveWeekNumber, dayAbbrev, formatLocalDate(currentDate), false, Array.isArray(sessionExercises) ? sessionExercises.length : 0, planDayMetadata ? JSON.stringify(planDayMetadata) : null]
         );
 
         dayId++;

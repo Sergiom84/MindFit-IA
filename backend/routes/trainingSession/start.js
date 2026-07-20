@@ -125,6 +125,34 @@ router.post('/start/methodology', authenticateToken, async (req, res) => {
 
     const session = ses.rows[0];
 
+    // PR3 (Nutrición Fase 0, spec §9.3/§15.2): copiar la carga PLANIFICADA del día
+    // (methodology_plan_days.metadata.session_load) a session_metadata.planned_session_load
+    // al iniciar la sesión. En Fase 0 ningún motor emite carga todavía, así que lo normal es
+    // que no exista y esto sea un no-op. NO altera la creación bajo demanda ni la máquina de
+    // estados; es aditivo y no bloqueante.
+    try {
+      const loadQ = await client.query(
+        `SELECT metadata -> 'session_load' AS session_load
+           FROM app.methodology_plan_days
+          WHERE plan_id = $1 AND week_number = $2 AND day_name = $3 AND is_rest = FALSE
+          LIMIT 1`,
+        [methodology_plan_id, week_number, normalizedDay]
+      );
+      const plannedLoad = loadQ.rows?.[0]?.session_load ?? null;
+      if (plannedLoad) {
+        await client.query(
+          `UPDATE app.methodology_exercise_sessions
+              SET session_metadata = COALESCE(session_metadata, '{}'::jsonb)
+                                     || jsonb_build_object('planned_session_load', $2::jsonb),
+                  updated_at = NOW()
+            WHERE id = $1`,
+          [session.id, JSON.stringify(plannedLoad)]
+        );
+      }
+    } catch (loadErr) {
+      console.warn('[start/methodology] No se pudo copiar planned_session_load:', loadErr?.message || loadErr);
+    }
+
     // Precrear progreso por ejercicio
     let ejercicios = [];
     if (isAdaptation) {
