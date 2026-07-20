@@ -17,8 +17,16 @@ import {
   calculateGoalAdjustmentAudit,
   calculateMacros,
   generateNutritionPlan,
-  summarizeCarbCycling
+  summarizeCarbCycling,
+  distributeMacrosAcrossMeals
 } from '../services/nutritionCalculator.js';
+import {
+  getPeriodizationMode,
+  resolveDayNutritionTargets
+} from '../services/nutritionPeriodizationService.js';
+import {
+  SCHEDULE_WITH_LOAD_QUERY
+} from '../services/trainingLoad/sessionLoadBuilder.js';
 import {
   ensureWorkoutScheduleV3
 } from '../utils/ensureScheduleV3.js';
@@ -538,6 +546,76 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
       dias: planData.days.length
     });
 
+    // ── Periodización nutricional canónica (doc 04 PR4, spec §11-12) ─────────────
+    // Por defecto el modo es `legacy`: NO se calcula ni persiste nada nuevo y la respuesta
+    // (y el INSERT de nutrition_plan_days) es byte-compatible con el baseline. En `shadow`
+    // se calcula el reparto D0/D1/D2 en paralelo y se PERSISTE en periodization_context, pero
+    // el usuario sigue recibiendo el resultado legado. En `active` el reparto nuevo es
+    // autoritativo (tipo_dia, macros y comidas del día se reconstruyen).
+    const periodizationMode = getPeriodizationMode();
+    let periodizationByDayIndex = null;
+
+    if (periodizationMode !== 'legacy') {
+      periodizationByDayIndex = new Map();
+
+      // Cargar la carga planificada del calendario enriquecido (§12.1), solo si hay plan activo.
+      const loadByDate = new Map();
+      if (activePlanResult.rowCount > 0) {
+        const methodologyPlanId = activePlanResult.rows[0].methodology_plan_id;
+        const periodStart = new Date();
+        periodStart.setHours(0, 0, 0, 0);
+        const periodEnd = new Date(periodStart);
+        periodEnd.setDate(periodStart.getDate() + (duracion_dias - 1));
+        try {
+          const enrichedResult = await pool.query(SCHEDULE_WITH_LOAD_QUERY, [
+            methodologyPlanId,
+            userId,
+            formatLocalDate(periodStart),
+            formatLocalDate(periodEnd)
+          ]);
+          let fallbackByDateCount = 0;
+          for (const row of enrichedResult.rows) {
+            const key = formatLocalDate(row.scheduled_date);
+            if (!key) continue;
+            loadByDate.set(key, { session_load: row.session_load || null, day_id: row.day_id });
+            // Métrica §12.1: fila histórica con carga pero sin day_id (fallback por fecha).
+            if (row.session_load && row.day_id == null) fallbackByDateCount += 1;
+          }
+          if (fallbackByDateCount > 0) {
+            console.warn(
+              `⚠️ periodización: ${fallbackByDateCount} día(s) con session_load sin day_id (fallback por fecha, §12.1)`
+            );
+          }
+        } catch (enrichErr) {
+          console.warn('⚠️ periodización: no se pudo leer el calendario enriquecido:', enrichErr.message);
+        }
+      }
+
+      const periodStart = new Date();
+      periodStart.setHours(0, 0, 0, 0);
+      for (const day of planData.days) {
+        const dayDate = new Date(periodStart);
+        dayDate.setDate(periodStart.getDate() + day.day_index);
+        const dateKey = formatLocalDate(dayDate);
+        const isTraining = day.tipo_dia === 'entreno';
+        const loadEntry = loadByDate.get(dateKey);
+        const sessionLoad = loadEntry?.session_load || { is_training: isTraining };
+        const source = loadEntry?.session_load ? 'planned_session_load' : 'boolean_fallback';
+
+        const resolved = resolveDayNutritionTargets({
+          baseMacros: planData.macros_objetivo,
+          kcalTarget: planData.kcal_objetivo,
+          weightKg: profile.peso_kg,
+          objective: planData.meta,
+          metabolicProfile: profile.metabolic_type,
+          sessionLoad,
+          mode: periodizationMode
+        });
+
+        periodizationByDayIndex.set(day.day_index, { resolved, source });
+      }
+    }
+
     // Guardar plan en la base de datos
     const client = await pool.connect();
 
@@ -583,25 +661,76 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
 
       // 2. Crear días del plan
       for (const day of planData.days) {
+        // Valores servidos: por defecto (legacy/shadow) el resultado legado; en `active` el
+        // reparto nuevo es autoritativo y se reconstruyen tipo_dia, macros y comidas.
+        let tipoDia = day.tipo_dia;
+        let dayKcal = day.kcal;
+        let dayMacros = day.macros;
+        let dayMeals = day.meals;
+        let periodizationContextJson = null;
+
+        const periodization = periodizationByDayIndex ? periodizationByDayIndex.get(day.day_index) : null;
+        if (periodization) {
+          const { resolved, source } = periodization;
+          periodizationContextJson = JSON.stringify({
+            ruleset: resolved.policy_version,
+            source,
+            day_type: resolved.day_type,
+            load_confidence: resolved.audit.source_confidence,
+            base_macros: {
+              protein_g: planData.macros_objetivo.protein_g,
+              carbs_g: planData.macros_objetivo.carbs_g,
+              fat_g: planData.macros_objetivo.fat_g
+            },
+            resolved_macros: {
+              protein_g: resolved.macros.protein_g,
+              carbs_g: resolved.macros.carbs_g,
+              fat_g: resolved.macros.fat_g
+            },
+            clamps: resolved.audit.clamps,
+            reason_codes: resolved.audit.reason_codes,
+            mode: periodizationMode
+          });
+
+          if (periodizationMode === 'active') {
+            // §12.3: tipo_dia con nuevos valores (compatibilidad de lectura para 'entreno').
+            tipoDia = resolved.day_type === 'D0'
+              ? 'descanso'
+              : (resolved.day_type === 'D2' ? 'entreno_alto' : 'entreno_normal');
+            dayKcal = resolved.macros.kcal;
+            dayMacros = {
+              protein_g: resolved.macros.protein_g,
+              carbs_g: resolved.macros.carbs_g,
+              fat_g: resolved.macros.fat_g
+            };
+            dayMeals = distributeMacrosAcrossMeals(
+              { ...dayMacros, kcal: dayKcal },
+              planData.comidas_por_dia,
+              resolved.day_type !== 'D0'
+            );
+          }
+        }
+
         const dayQuery = `
           INSERT INTO app.nutrition_plan_days (
-            plan_id, day_index, tipo_dia, kcal, macros
-          ) VALUES ($1, $2, $3, $4, $5)
+            plan_id, day_index, tipo_dia, kcal, macros, periodization_context
+          ) VALUES ($1, $2, $3, $4, $5, $6)
           RETURNING id;
         `;
 
         const dayResult = await client.query(dayQuery, [
           planId,
           day.day_index,
-          day.tipo_dia,
-          day.kcal,
-          JSON.stringify(day.macros)
+          tipoDia,
+          dayKcal,
+          JSON.stringify(dayMacros),
+          periodizationContextJson
         ]);
 
         const dayId = dayResult.rows[0].id;
 
         // 3. Crear comidas del día
-        for (const meal of day.meals) {
+        for (const meal of dayMeals) {
           const mealQuery = `
             INSERT INTO app.nutrition_meals (
               plan_day_id, orden, nombre, meal_type, kcal, macros, timing_note

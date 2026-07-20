@@ -9,6 +9,7 @@ import {
   extractMacroCalculationAudit,
   resolveMacroTargets
 } from "./macroProfilePhaseResolver.js";
+import { resolveDayNutritionTargets } from "./nutritionPeriodizationService.js";
 
 /**
  * Ecuaciones de TMB
@@ -288,7 +289,15 @@ export function calculateMacros(kcalObjetivo, peso_kg, _trainingType, objetivo, 
 }
 
 /**
- * Aplica carb cycling a los macros base
+ * Aplica carb cycling a los macros base.
+ *
+ * @deprecated Nutrición Fase 0, doc 04 PR4 (§11.3). Esta función pasa a ser un WRAPPER
+ * compatible que delega el reparto en el servicio canónico
+ * `nutritionPeriodizationService.resolveDayNutritionTargets` en modo `legacy` (salida
+ * byte-idéntica al comportamiento anterior). No se elimina para no romper consumidores;
+ * el nuevo flujo debe llamar al servicio canónico directamente. El objeto `carb_cycling`
+ * (metadatos de la estrategia) se conserva aquí para no cambiar el contrato de salida.
+ *
  * @param {Object} baseMacros - Macros base diarios
  * @param {boolean} isTrainingDay - Si es día de entrenamiento
  * @returns {Object} Macros ajustados con carb cycling
@@ -296,14 +305,18 @@ export function calculateMacros(kcalObjetivo, peso_kg, _trainingType, objetivo, 
 export function applyCarbCycling(baseMacros, isTrainingDay) {
   const { protein_g, carbs_g, fat_g } = baseMacros;
   const baseKcal = protein_g * 4 + carbs_g * 4 + fat_g * 9;
-  const carbMultiplier = isTrainingDay ? 1.10 : 0.85;
   const carbDeltaPct = isTrainingDay
     ? CARB_CYCLING_STRATEGY.training_carb_delta_pct
     : CARB_CYCLING_STRATEGY.rest_carb_delta_pct;
-  const newCarbs = Math.round(carbs_g * carbMultiplier);
-  const remainingFatKcal = Math.max(0, baseKcal - protein_g * 4 - newCarbs * 4);
-  const newFat = Math.max(0, Math.round(remainingFatKcal / 9));
-  const adjustedKcal = protein_g * 4 + newCarbs * 4 + newFat * 9;
+
+  const resolved = resolveDayNutritionTargets({
+    baseMacros: { protein_g, carbs_g, fat_g },
+    sessionLoad: { is_training: Boolean(isTrainingDay) },
+    mode: "legacy"
+  });
+  const newCarbs = resolved.macros.carbs_g;
+  const newFat = resolved.macros.fat_g;
+  const adjustedKcal = resolved.macros.kcal;
 
   return {
     protein_g,
@@ -319,6 +332,23 @@ export function applyCarbCycling(baseMacros, isTrainingDay) {
       kcal_delta: adjustedKcal - baseKcal
     }
   };
+}
+
+/**
+ * Construye la distribución de carb cycling de un día.
+ *
+ * @deprecated Nutrición Fase 0, doc 04 PR4 (§11.3). Nota de divergencia spec↔código: la spec
+ * asume una función privada `buildCarbCyclingDistribution()` en nutritionCalculator; en el
+ * código real ese cálculo vivía inline dentro de `applyCarbCycling` y NO existía como función
+ * aparte. Se añade aquí como wrapper deprecated (delega en el servicio canónico) por
+ * completitud del contrato de la spec; no tiene consumidores y no debe usarse en código nuevo.
+ *
+ * @param {Object} baseMacros - Macros base diarios
+ * @param {boolean} isTrainingDay - Si es día de entrenamiento
+ * @returns {Object} Macros ajustados con carb cycling (misma forma que applyCarbCycling)
+ */
+export function buildCarbCyclingDistribution(baseMacros, isTrainingDay) {
+  return applyCarbCycling(baseMacros, isTrainingDay);
 }
 
 export function summarizeCarbCycling(days = [], kcalObjetivo = 0) {
