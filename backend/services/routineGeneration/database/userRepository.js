@@ -27,12 +27,13 @@ export async function getUserFullProfile(userId) {
         u.comidas_por_dia, u.alimentos_excluidos, u.meta_peso,
         u.meta_grasa_corporal, u.enfoque_entrenamiento, u.historial_medico,
         u.horario_preferido,
-        -- 🩹 FIX: las lesiones se guardan en users (registro/onboarding) pero antes
-        -- solo se leía user_profiles (a menudo vacío), así que las limitaciones se
-        -- perdían y la generación las ignoraba. Preferir la fuente con dato.
-        -- Nota: user_profiles.limitaciones_fisicas es text y users es text[],
-        -- por eso se normaliza a texto con array_to_string.
-        COALESCE(NULLIF(p.limitaciones_fisicas, ''), array_to_string(u.limitaciones_fisicas, '. ')) AS limitaciones_fisicas,
+        -- 🩹 F1 (ONB-P1-01): app.users.limitaciones_fisicas (text[]) es el campo
+        -- CANÓNICO. La edición en Perfil (PUT /api/users/:id) escribe ahí, así que el
+        -- motor DEBE preferirlo; si lo hiciera al revés, una lesión editada en Perfil
+        -- quedaría eclipsada por el texto stale de user_profiles y el filtro la ignoraría.
+        -- Fallback a user_profiles.limitaciones_fisicas (text) solo para filas legacy.
+        -- Se normaliza a texto con array_to_string (los consumidores esperan string).
+        COALESCE(NULLIF(array_to_string(u.limitaciones_fisicas, '. '), ''), p.limitaciones_fisicas) AS limitaciones_fisicas,
         -- Onboarding escribe estos campos en users; user_profiles ahora se rellena en el
         -- registro, pero el COALESCE cubre a los usuarios antiguos (fila p inexistente/vacía).
         COALESCE(p.objetivo_principal, u.objetivo_principal) AS objetivo_principal,

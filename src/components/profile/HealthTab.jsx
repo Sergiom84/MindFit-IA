@@ -22,10 +22,10 @@ export const HealthTab = (props) => {
     handleInputChange,
     alergiasList,
     medicamentosList,
-    lesionesList,
+    limitacionesList,
     alergiasObjList,
     medicamentosObjList,
-    lesionesObjList
+    limitacionesObjList
   } = props
 
   const isEditing = editingSection === 'health'
@@ -38,11 +38,11 @@ export const HealthTab = (props) => {
         setUserProfile={setUserProfile}
       />
 
-      {/* Tarjeta de alergias y medicamentos */}
+      {/* Tarjeta de salud: historial médico, alergias, medicamentos y limitaciones */}
       <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5">
         <CardHeader>
           <CardTitle className="text-white font-urbanist flex items-center justify-between">
-            <span>Alergias, Medicamentos y Lesiones</span>
+            <span>Salud y limitaciones físicas</span>
             <div className="flex items-center gap-2">
               {isEditing
                 ? (
@@ -59,14 +59,15 @@ export const HealthTab = (props) => {
                 <button
                   onClick={() => {
                     startEdit('health', {
+                      historial_medico: userProfile.historial_medico || '',
                       alergias: [...alergiasList],
                       medicamentos: [...medicamentosList],
-                      lesiones: [...lesionesList]
+                      limitaciones_fisicas: [...limitacionesList]
                     })
                   }}
                   disabled={!!(editingSection && editingSection !== 'health')}
                   className="p-2 text-gray-300/70 hover:text-yellow-300 transition-colors"
-                  title="Editar alergias, medicamentos y lesiones"
+                  title="Editar historial médico, alergias, medicamentos y limitaciones"
                 >
                   <Pencil className="w-4 h-4" />
                 </button>
@@ -76,6 +77,18 @@ export const HealthTab = (props) => {
         </CardHeader>
 
         <CardContent className="space-y-6">
+
+        <EditableField
+          label="Historial médico"
+          field="historial_medico"
+          editing={isEditing}
+          multiline={true}
+          value={userProfile.historial_medico || ''}
+          editedData={editedData}
+          onInputChange={handleInputChange}
+          helpText={'Condiciones médicas relevantes para tu entrenamiento (cirugías, patologías crónicas, etc.).'}
+          {...props}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
           <EditableField
@@ -107,16 +120,17 @@ export const HealthTab = (props) => {
           />
 
           <EditableField
-            label="Lesiones"
-            field="lesiones"
+            label="Lesiones y limitaciones físicas"
+            field="limitaciones_fisicas"
             editing={isEditing}
             isList={true}
-            value={lesionesList}
+            value={limitacionesList}
             editedData={editedData}
             onInputChange={handleInputChange}
-            displayObjects={lesionesObjList}
-            noneOptionLabel="No tengo lesiones"
+            displayObjects={limitacionesObjList}
+            noneOptionLabel="No tengo lesiones ni limitaciones"
             noneOptionValue="Ninguna"
+            helpText={'Lesiones o limitaciones que el generador de rutinas debe respetar (p. ej. "rodilla", "hombro", "lumbar"). El motor evita los ejercicios contraindicados.'}
             {...props}
           />
         </div>

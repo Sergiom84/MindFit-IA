@@ -187,7 +187,11 @@ export default function ImageCorrection() {
         masa_magra: userProfile?.masa_magra ?? userProfile?.masa_muscular ?? null,
         
         // Limitaciones y salud
-        lesiones: userProfile?.limitaciones_fisicas ? userProfile.limitaciones_fisicas.split(',').map(l => l.trim()) : [],
+        // F1 (ONB-P1-01): limitaciones_fisicas ahora llega como array (canónico); se
+        // conserva compatibilidad con el formato string legacy.
+        lesiones: Array.isArray(userProfile?.limitaciones_fisicas)
+          ? userProfile.limitaciones_fisicas.map(l => String(l).trim()).filter(Boolean)
+          : (userProfile?.limitaciones_fisicas ? String(userProfile.limitaciones_fisicas).split(',').map(l => l.trim()).filter(Boolean) : []),
         limitaciones: userProfile?.historial_medico ? userProfile.historial_medico.split(',').map(h => h.trim()) : [],
         medicamentos: userProfile?.medicamentos ? userProfile.medicamentos.split(',').map(m => m.trim()) : [],
         alergias: userProfile?.alergias ? userProfile.alergias.split(',').map(a => a.trim()) : [],

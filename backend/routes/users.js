@@ -72,7 +72,10 @@ const USER_PROFILE_QUERY = `
     u.grasa_corporal, u.masa_magra, u.agua_corporal, u.metabolismo_basal,
     u.cadera,
     COALESCE(p.metodologia_preferida, u.metodologia_preferida) AS metodologia_preferida,
-    COALESCE(NULLIF(p.limitaciones_fisicas, ''), array_to_string(u.limitaciones_fisicas, '. ')) AS limitaciones_fisicas,
+    -- F1 (ONB-P1-01): el campo canónico es users.limitaciones_fisicas (text[]); se
+    -- devuelve como ARRAY para que Perfil lo edite como lista. Fallback a la columna
+    -- text legacy de user_profiles (partida a array) solo para filas antiguas.
+    COALESCE(NULLIF(u.limitaciones_fisicas, '{}'::text[]), string_to_array(NULLIF(p.limitaciones_fisicas, ''), '. ')) AS limitaciones_fisicas,
     COALESCE(p.objetivo_principal, u.objetivo_principal) AS objetivo_principal,
     p.usar_preferencias_ia, p.dias_preferidos_entrenamiento, p.ejercicios_por_dia_preferido,
     p.semanas_entrenamiento,
@@ -176,11 +179,15 @@ router.put('/:id', authenticateToken, async (req, res) => {
       'fecha_meta_objetivo', 'notas_progreso',
       'meta_grasa_corporal', 'enfoque_entrenamiento', 'horario_preferido',
       'comidas_por_dia', 'suplementacion', 'alimentos_excluidos',
-      'grasa_corporal', 'masa_magra', 'agua_corporal', 'metabolismo_basal', 'cadera'
+      'grasa_corporal', 'masa_magra', 'agua_corporal', 'metabolismo_basal', 'cadera',
+      // F1 (ONB-P1-01): limitaciones_fisicas es canónico en users (text[]). Antes se
+      // escribía en user_profiles (text) y el motor lo prefería, así que una lesión
+      // editada en Perfil no llegaba a la generación. Ahora se persiste en users.
+      'limitaciones_fisicas'
     ];
 
     const profilesFields = [
-      'metodologia_preferida', 'limitaciones_fisicas', 'objetivo_principal'
+      'metodologia_preferida', 'objetivo_principal'
     ];
 
     // Si se actualiza metodologia_preferida, también actualizarla en users para consistencia

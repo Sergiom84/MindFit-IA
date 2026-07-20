@@ -408,10 +408,18 @@ export const useProfileState = () => {
   // Listas para HealthTab
   const alergiasList = userProfile.alergias || []
   const medicamentosList = userProfile.medicamentos || []
+  // F1 (ONB-P1-01): limitaciones_fisicas es el campo canónico que edita Salud. La API
+  // lo devuelve como array; si llegara como string legacy lo partimos para la lista.
+  const rawLimitaciones = userProfile.limitaciones_fisicas
+  const limitacionesList = Array.isArray(rawLimitaciones)
+    ? rawLimitaciones
+    : (rawLimitaciones ? String(rawLimitaciones).split(/\s*[.,;\n]\s*/).map(s => s.trim()).filter(Boolean) : [])
+  // `lesiones` queda como alias de lectura legacy (ya no se edita en la UI).
   const lesionesList = userProfile.lesiones || []
 
   const alergiasObjList = alergiasList.map(item => ({ name: item }))
   const medicamentosObjList = medicamentosList.map(item => ({ name: item }))
+  const limitacionesObjList = limitacionesList.map(item => ({ name: item }))
   const lesionesObjList = lesionesList.map(item => ({ name: item }))
 
   // Props para documentos (simuladas por ahora)
@@ -650,9 +658,11 @@ export const useProfileState = () => {
     // Props para HealthTab
     alergiasList,
     medicamentosList,
+    limitacionesList,
     lesionesList,
     alergiasObjList,
     medicamentosObjList,
+    limitacionesObjList,
     lesionesObjList,
     docs,
     fetchDocs,

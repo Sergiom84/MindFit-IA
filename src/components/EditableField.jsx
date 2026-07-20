@@ -12,6 +12,7 @@ export const EditableField = ({
   onInputChange,
   options = null,
   isList = false,
+  multiline = false,
   displayObjects = null,
   helpText = null,
   noneOptionLabel = null,
@@ -132,6 +133,20 @@ export const EditableField = ({
               </option>
             ))}
           </select>
+        </div>
+      )
+    } else if (multiline) {
+      // Campo de texto largo (textarea)
+      return (
+        <div>
+          {renderLabel()}
+          <textarea
+            value={currentValue}
+            onChange={(e) => onInputChange(field, e.target.value)}
+            rows={4}
+            className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-yellow-400 resize-y"
+            placeholder={`Ingresa ${label.toLowerCase()}`}
+          />
         </div>
       )
     } else {

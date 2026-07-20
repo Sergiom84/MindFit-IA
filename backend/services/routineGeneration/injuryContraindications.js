@@ -79,15 +79,51 @@ export const INJURY_CONTRAINDICATIONS = [
 ];
 
 /**
- * Extrae el texto de limitaciones/lesiones del perfil (array o string).
+ * Extrae el texto de limitaciones/lesiones del perfil.
+ *
+ * ONB-P1-01 (F1): históricamente esto usaba `limitaciones_fisicas ?? lesiones`,
+ * que priorizaba silenciosamente el primer campo NO NULO. Como un array vacío `[]`
+ * o un string vacío `''` NO son nullish, un usuario con `lesiones: ['rodilla']` pero
+ * `limitaciones_fisicas: []` obtenía filtro VACÍO y el motor ignoraba la lesión.
+ *
+ * Ahora COMBINAMOS las tres fuentes (`limitaciones_fisicas`, `limitaciones`,
+ * `lesiones`) y deduplicamos por texto normalizado mientras siga existiendo el
+ * campo legacy `lesiones`. Es estrictamente más inclusivo: nunca pierde una lesión
+ * declarada, solo puede añadir reglas (regla de no-regresión de HipertrofiaV2:
+ * un perfil que ya tenía todo en `limitaciones_fisicas` produce el mismo texto).
+ *
  * @param {object} profile
  * @returns {string}
  */
 export function extractInjuryText(profile) {
-  const raw = profile?.limitaciones_fisicas ?? profile?.limitaciones ?? profile?.lesiones ?? null;
-  if (!raw) return '';
-  if (Array.isArray(raw)) return raw.filter(Boolean).join(' ');
-  return String(raw);
+  const sources = [
+    profile?.limitaciones_fisicas,
+    profile?.limitaciones,
+    profile?.lesiones
+  ];
+
+  const seen = new Set();
+  const tokens = [];
+
+  const addToken = (value) => {
+    const clean = String(value ?? '').trim();
+    if (!clean) return;
+    const key = stripDiacritics(clean);
+    if (seen.has(key)) return;
+    seen.add(key);
+    tokens.push(clean);
+  };
+
+  for (const src of sources) {
+    if (!src) continue;
+    if (Array.isArray(src)) {
+      src.filter(Boolean).forEach(addToken);
+    } else {
+      addToken(src);
+    }
+  }
+
+  return tokens.join('. ');
 }
 
 /**
