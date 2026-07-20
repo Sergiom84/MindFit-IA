@@ -40,6 +40,11 @@ export default function CarbTimingGuide() {
     return <div className="text-center p-12 text-white">Cargando...</div>;
   }
 
+  // Contención P0 (§14): mientras la personalización numérica esté desactivada, el
+  // backend responde en modo educativo (sin gramos ni cuenta atrás). Se muestra la guía
+  // de contexto en vez de números derivados de fórmulas sin validar.
+  const isEducational = !guide || guide.mode === 'educational' || guide.personalized === false;
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto text-white">
       {/* Selector de metodología */}
@@ -63,7 +68,7 @@ export default function CarbTimingGuide() {
               </select>
             </label>
 
-            {guide && (
+            {!isEducational && guide?.user_weight_kg && (
               <Alert className="bg-white/5 border-white/10 text-gray-200">
                 <p className="text-sm">Tu peso: <strong className="text-white">{guide.user_weight_kg}kg</strong></p>
               </Alert>
@@ -72,7 +77,28 @@ export default function CarbTimingGuide() {
         </CardContent>
       </Card>
 
-      {guide && (
+      {isEducational && (
+        <Card className={`${cardBase} border-l-2 border-l-sky-400/40`}>
+          <CardHeader>
+            <CardTitle>💡 Orientación de timing</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {(guide?.guidance || [
+                'Prioriza el total diario y una comida tolerable alrededor del entrenamiento.',
+                'La reposición rápida cobra más importancia si hay otra sesión exigente en pocas horas.'
+              ]).map((tip, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="text-yellow-300">•</span>
+                  <span className="text-sm text-gray-200">{tip}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isEducational && guide && (
         <>
           {/* Pre-Entreno */}
           <Card className={`${cardBase} border-l-2 border-l-amber-400/50`}>

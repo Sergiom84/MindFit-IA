@@ -16,6 +16,10 @@ import {
   calculatePostWorkoutCarbs,
   calculateDailyCarbDistribution
 } from '../services/carbTiming.js';
+import {
+  isCarbTimingPersonalizedEnabled,
+  buildEducationalTimingResponse
+} from '../config/carbTiming.js';
 
 const router = express.Router();
 
@@ -26,6 +30,12 @@ const router = express.Router();
 router.post('/pre-workout', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
+
+    // §14.1: contención P0. Con el flag apagado (por defecto) NO se devuelven cantidades
+    // personalizadas; se responde con guía educativa sin gramos (§14.4).
+    if (!isCarbTimingPersonalizedEnabled()) {
+      return res.json(buildEducationalTimingResponse());
+    }
     const {
       methodology,
       session_intensity = 'media',
@@ -63,7 +73,7 @@ router.post('/pre-workout', authenticateToken, async (req, res) => {
     // Calcular recomendación pre-entreno
     const recommendation = calculatePreWorkoutCarbs({
       bodyWeight: profile.peso_kg,
-      methodology: methodology || 'hipertrofia',
+      methodology,
       sessionIntensity: session_intensity,
       sessionDuration: session_duration,
       timeUntilWorkout: hours_until_workout,
@@ -101,11 +111,17 @@ router.post('/pre-workout', authenticateToken, async (req, res) => {
 router.post('/post-workout', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
+
+    // §14.1: contención P0. Con el flag apagado (por defecto) NO se devuelven cantidades
+    // personalizadas; se responde con guía educativa sin gramos (§14.4).
+    if (!isCarbTimingPersonalizedEnabled()) {
+      return res.json(buildEducationalTimingResponse());
+    }
     const {
       methodology,
       session_intensity = 'media',
       session_duration = 60,
-      hours_since_workout = 0.5,  // Default: ventana anabólica
+      hours_since_workout = 0.5,  // Default: reposición temprana
       volume_lifted = null
     } = req.body;
 
@@ -130,7 +146,7 @@ router.post('/post-workout', authenticateToken, async (req, res) => {
     // Calcular recomendación post-entreno
     const recommendation = calculatePostWorkoutCarbs({
       bodyWeight: profile.peso_kg,
-      methodology: methodology || 'hipertrofia',
+      methodology,
       sessionIntensity: session_intensity,
       sessionDuration: session_duration,
       volumeLifted: volume_lifted,
@@ -148,8 +164,7 @@ router.post('/post-workout', authenticateToken, async (req, res) => {
         methodology,
         intensity: session_intensity,
         duration_min: session_duration,
-        hours_since: hours_since_workout,
-        in_anabolic_window: hours_since_workout <= 0.5
+        hours_since: hours_since_workout
       },
       recommendation
     });
@@ -170,6 +185,12 @@ router.post('/post-workout', authenticateToken, async (req, res) => {
 router.post('/daily-distribution', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
+
+    // §14.1: contención P0. Con el flag apagado (por defecto) NO se devuelven cantidades
+    // personalizadas; se responde con guía educativa sin gramos (§14.4).
+    if (!isCarbTimingPersonalizedEnabled()) {
+      return res.json(buildEducationalTimingResponse());
+    }
     const {
       methodology,
       session_intensity = 'media',
@@ -204,7 +225,7 @@ router.post('/daily-distribution', authenticateToken, async (req, res) => {
       hoursUntilWorkout: hours_until_workout,
       sessionParams: {
         bodyWeight: profile.peso_kg,
-        methodology: methodology || 'hipertrofia',
+        methodology,
         sessionIntensity: session_intensity,
         sessionDuration: session_duration
       }
@@ -241,7 +262,13 @@ router.post('/daily-distribution', authenticateToken, async (req, res) => {
 router.get('/quick-guide', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { methodology = 'hipertrofia' } = req.query;
+
+    // §14.1: contención P0. Con el flag apagado (por defecto) NO se devuelven cantidades
+    // personalizadas; se responde con guía educativa sin gramos (§14.4).
+    if (!isCarbTimingPersonalizedEnabled()) {
+      return res.json(buildEducationalTimingResponse());
+    }
+    const { methodology } = req.query;
 
     // Obtener peso del usuario
     const profileResult = await pool.query(
@@ -249,7 +276,11 @@ router.get('/quick-guide', authenticateToken, async (req, res) => {
       [userId]
     );
 
-    const weight = profileResult.rows[0]?.peso_kg || 75; // Default 75kg
+    // §14.3: sin peso inventado de 75 kg. Sin peso real no se dan gramos.
+    const weight = profileResult.rows[0]?.peso_kg;
+    if (!weight) {
+      return res.json(buildEducationalTimingResponse());
+    }
 
     // Guías simplificadas por metodología
     const guides = {
@@ -266,7 +297,7 @@ router.get('/quick-guide', authenticateToken, async (req, res) => {
           carbs_g: Math.round(weight * 1.0),
           protein_g: Math.round(weight * 0.3),
           examples: ['Arroz blanco + pollo', 'Batido whey + dextrosa + plátano'],
-          tip: '🔥 Ventana anabólica: carbos rápidos + proteína'
+          tip: 'Carbos rápidos + proteína ayudan a la reposición post-entreno'
         }
       },
       calistenia: {
@@ -298,7 +329,7 @@ router.get('/quick-guide', authenticateToken, async (req, res) => {
           carbs_g: Math.round(weight * 1.2),
           protein_g: Math.round(weight * 0.3),
           examples: ['Batido recuperación + comida completa después', 'Arroz blanco + proteína + fruta'],
-          tip: '🔥🔥 Máxima depleción: reposición agresiva necesaria'
+          tip: 'Trabajo metabólico intenso: prioriza una buena reposición post-entreno'
         }
       },
       powerlifting: {
@@ -319,7 +350,11 @@ router.get('/quick-guide', authenticateToken, async (req, res) => {
       }
     };
 
-    const guide = guides[methodology] || guides.hipertrofia;
+    // §14.3: sin fallback de metodología desconocida a Hipertrofia.
+    const guide = guides[methodology];
+    if (!guide) {
+      return res.json(buildEducationalTimingResponse());
+    }
 
     res.json({
       success: true,
@@ -328,10 +363,9 @@ router.get('/quick-guide', authenticateToken, async (req, res) => {
       pre_workout: guide.pre_workout,
       post_workout: guide.post_workout,
       general_tips: [
-        'Los carbos rápidos (arroz blanco, patata, plátano) son IDEALES post-entreno',
-        'No temas comer carbos de noche si entrenas tarde - son para recuperación',
-        'La ventana anabólica existe: primeros 30-60 min post-entreno son clave',
-        'Adapta las cantidades según tu sensación de energía y recuperación'
+        'Prioriza cubrir tu objetivo diario de carbohidratos y proteína.',
+        'Una comida tolerable alrededor del entrenamiento ayuda al rendimiento y la recuperación.',
+        'Adapta las cantidades a tu sensación de energía y recuperación.'
       ]
     });
 
@@ -351,6 +385,12 @@ router.get('/quick-guide', authenticateToken, async (req, res) => {
 router.post('/session-completed', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
+
+    // §14.1: contención P0. Con el flag apagado (por defecto) NO se devuelven cantidades
+    // personalizadas; se responde con guía educativa sin gramos (§14.4).
+    if (!isCarbTimingPersonalizedEnabled()) {
+      return res.json(buildEducationalTimingResponse());
+    }
     const {
       session_id,
       methodology,
@@ -377,7 +417,7 @@ router.post('/session-completed', authenticateToken, async (req, res) => {
     const profile = profileResult.rows[0];
     const dailyCarbTarget = profile.carbs_g_base || Math.round(profile.daily_target_kcal * 0.45 / 4);
 
-    // Calcular post-entreno inmediatamente (ventana anabólica)
+    // Calcular recomendación post-entreno (reposición temprana)
     const postWorkout = calculatePostWorkoutCarbs({
       bodyWeight: profile.peso_kg,
       methodology,
@@ -413,10 +453,8 @@ router.post('/session-completed', authenticateToken, async (req, res) => {
       success: true,
       session_completed: true,
       post_workout_recommendation: postWorkout,
-      message: postWorkout.urgency === 'high'
-        ? '🔥 Ventana anabólica activa! Come AHORA para máxima recuperación'
-        : 'Sesión completada. Consume tus carbos post-entreno en las próximas 2 horas.',
-      urgency: postWorkout.urgency
+      // §14.3: mensaje neutro de contexto, sin urgencia ni cuenta atrás.
+      message: 'Sesión completada. Incluye carbohidratos y proteína en tu próxima comida para favorecer la recuperación.'
     });
 
   } catch (error) {

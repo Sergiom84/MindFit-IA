@@ -2,10 +2,8 @@
  * POST-WORKOUT TIMING MODAL
  * Modal que se muestra al terminar sesión con recomendación de carbos post-entreno
  *
- * VALOR PARA EL USUARIO:
- * - Saber EXACTAMENTE qué comer después de entrenar
- * - Ejemplos concretos de comidas con cantidades
- * - Urgencia visual según ventana anabólica
+ * Contención P0 (§14): mientras la personalización numérica esté desactivada, muestra
+ * una guía educativa sin gramos ni cuenta atrás. Sin "ventana anabólica" ni urgencia.
  */
 
 import { useState, useEffect } from 'react';
@@ -21,8 +19,8 @@ export default function PostWorkoutTimingModal({
   autoShow = true
 }) {
   const [recommendation, setRecommendation] = useState(null);
+  const [guidance, setGuidance] = useState(null); // §14: modo educativo (sin gramos)
   const [loading, setLoading] = useState(true);
-  const [countdown, setCountdown] = useState(30 * 60); // 30 minutos en segundos
   const cardBase = "bg-neutral-900/80 border border-white/10 ring-1 ring-white/5 shadow-[0_25px_60px_-50px_rgba(0,0,0,0.8)] backdrop-blur-xl text-white";
 
   useEffect(() => {
@@ -30,23 +28,6 @@ export default function PostWorkoutTimingModal({
       loadRecommendation();
     }
   }, [sessionData, autoShow]);
-
-  useEffect(() => {
-    // Countdown para ventana anabólica
-    if (recommendation?.urgency === 'high') {
-      const timer = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 0) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(timer);
-    }
-  }, [recommendation]);
 
   const loadRecommendation = async () => {
     try {
@@ -69,19 +50,18 @@ export default function PostWorkoutTimingModal({
       const data = await response.json();
 
       if (data.success) {
-        setRecommendation(data.post_workout_recommendation);
+        // §14: en modo educativo el backend no devuelve gramos; se muestra la guía.
+        if (data.mode === 'educational' || data.personalized === false) {
+          setGuidance(Array.isArray(data.guidance) ? data.guidance : []);
+        } else {
+          setRecommendation(data.post_workout_recommendation);
+        }
       }
     } catch (err) {
       console.error('Error cargando recomendación:', err);
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (loading) {
@@ -98,33 +78,40 @@ export default function PostWorkoutTimingModal({
     );
   }
 
+  // §14: modo educativo (contención P0). Sin gramos, sin cuenta atrás, sin urgencia.
+  if (guidance) {
+    return (
+      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <Card className={`w-full max-w-lg my-4 ${cardBase}`}>
+          <CardHeader className="border-b border-white/10">
+            <CardTitle className="text-xl">Sesión completada ✅</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <ul className="space-y-2">
+              {guidance.map((tip, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-gray-200">
+                  <span className="text-yellow-300">•</span>
+                  <span>{tip}</span>
+                </li>
+              ))}
+            </ul>
+            <Button onClick={onClose} className="w-full">Entendido ✅</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!recommendation) {
     return null;
   }
 
-  const urgencyColors = {
-    high: 'bg-gradient-to-r from-red-500 to-rose-500',
-    medium: 'bg-gradient-to-r from-amber-500 to-orange-500',
-    low: 'bg-gradient-to-r from-emerald-500 to-teal-500'
-  };
-
-  const urgencyIcons = {
-    high: '🔥',
-    medium: '⏰',
-    low: '✅'
-  };
-
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
       <Card className={`w-full max-w-3xl my-4 ${cardBase}`}>
-        <CardHeader className={`${urgencyColors[recommendation.urgency]} text-white border-b border-white/10`}>
+        <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-b border-white/10">
           <CardTitle className="flex items-center justify-between text-2xl">
-            <span>{urgencyIcons[recommendation.urgency]} Post-Entreno: {recommendation.timing}</span>
-            {recommendation.urgency === 'high' && (
-              <Badge variant="destructive" className="bg-white text-red-600 text-lg px-4 py-2">
-                {formatTime(countdown)}
-              </Badge>
-            )}
+            <span>✅ Post-Entreno: {recommendation.timing}</span>
           </CardTitle>
           <p className="text-white/90 text-sm mt-2">
             {recommendation.rationale}
@@ -217,23 +204,6 @@ export default function PostWorkoutTimingModal({
               ))}
             </div>
           </div>
-
-          {/* Urgencia alta: aviso especial */}
-          {recommendation.urgency === 'high' && countdown > 0 && (
-            <Alert variant="destructive" className="bg-red-50 border-red-500">
-              <div className="flex items-center gap-3">
-                <span className="text-4xl">⏰</span>
-                <div>
-                  <p className="font-bold text-red-900">
-                    ¡Ventana Anabólica Activa!
-                  </p>
-                  <p className="text-sm text-red-800">
-                    Consume tu comida post-entreno en los próximos {formatTime(countdown)} para máxima recuperación
-                  </p>
-                </div>
-              </div>
-            </Alert>
-          )}
 
           {/* Botón cerrar */}
           <div className="flex gap-3 pt-4">

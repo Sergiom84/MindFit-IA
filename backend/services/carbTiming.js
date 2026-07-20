@@ -27,7 +27,7 @@ export const TIMING_WINDOWS = {
     IMMEDIATE: { hours: 0.5, label: '30-60min antes' }  // Snack rápido
   },
   POST_WORKOUT: {
-    IMMEDIATE: { hours: 0.5, label: 'Primeros 30min' },   // Ventana anabólica
+    IMMEDIATE: { hours: 0.5, label: 'Primeros 30min' },   // Reposición temprana
     EARLY: { hours: 2, label: 'Primeras 2h' },            // Ventana óptima
     EXTENDED: { hours: 4, label: 'Hasta 4h' }             // Aceptable
   }
@@ -224,7 +224,7 @@ export function calculatePostWorkoutCarbs(params) {
   let timing, carbType, portionSize, protein;
 
   if (timeSinceWorkout <= 0.5) {
-    // VENTANA ANABÓLICA (primeros 30 min)
+    // Reposición temprana (primeros 30 min)
     timing = TIMING_WINDOWS.POST_WORKOUT.IMMEDIATE;
     carbType = CARB_TYPES.FAST;
     portionSize = baseCarbs;
@@ -268,10 +268,8 @@ export function calculatePostWorkoutCarbs(params) {
     carb_type_description: carbType.description,
     examples: carbType.examples,
     meal_recommendations: recommendations,
-    rationale: timeSinceWorkout <= 0.5
-      ? `🔥 Ventana anabólica abierta! Consume ${portionSize}g carbos + ${protein}g proteína en los próximos 30 min para optimizar recuperación.`
-      : `Consume ${portionSize}g carbos + ${protein}g proteína ${timing.label} post-entreno para reponer glucógeno.`,
-    urgency: timeSinceWorkout <= 0.5 ? 'high' : timeSinceWorkout <= 2 ? 'medium' : 'low'
+    // §14.3: sin cuenta atrás ni urgencia. Mensaje neutro y de contexto.
+    rationale: `Incluye carbohidratos y proteína en tu comida post-entreno (${timing.label}) para reponer glucógeno y favorecer la recuperación.`
   };
 }
 
@@ -314,12 +312,15 @@ function generateMealExamples(carbsTarget, carbType, timing, when, protein = 0) 
       });
 
     } else if (carbType === CARB_TYPES.MEDIUM) {
+      // §14.5: las cantidades exactas se calcularán desde la composición real del
+      // catálogo (macros_100g + factores de conversión), no con divisores mágicos.
+      // Hasta entonces se ofrece el tipo de alimento sin gramos inventados.
       examples.push({
         name: 'Comida pre-entreno completa',
         foods: [
-          { item: 'Arroz basmati', amount: `${Math.round(carbsTarget / 25)}g secos`, carbs: Math.round(carbsTarget * 0.6) },
-          { item: 'Boniato al horno', amount: '150g', carbs: 25 },
-          { item: 'Pechuga de pollo', amount: '120g', carbs: 0, protein: 30 }
+          { item: 'Arroz basmati', amount: 'según tu objetivo de carbohidratos', carbs: null },
+          { item: 'Boniato al horno', amount: 'ración media', carbs: null },
+          { item: 'Pechuga de pollo', amount: 'ración media', carbs: 0, protein: null }
         ],
         total_carbs: carbsTarget,
         notes: 'Energía sostenida, consumir 2-3h antes'
@@ -328,8 +329,8 @@ function generateMealExamples(carbsTarget, carbType, timing, when, protein = 0) 
       examples.push({
         name: 'Opción con avena',
         foods: [
-          { item: 'Avena', amount: `${Math.round(carbsTarget / 60)}g`, carbs: carbsTarget },
-          { item: 'Frutas variadas', amount: '100g', carbs: 15 }
+          { item: 'Avena', amount: 'según tu objetivo de carbohidratos', carbs: null },
+          { item: 'Frutas variadas', amount: 'ración media', carbs: null }
         ],
         total_carbs: carbsTarget,
         notes: 'Liberación gradual de energía'
@@ -338,36 +339,37 @@ function generateMealExamples(carbsTarget, carbType, timing, when, protein = 0) 
 
   } else {
     // Ejemplos POST-entreno
+    // §14.5: cantidades exactas desde catálogo real (pendiente PR2); sin divisores.
     examples.push({
       name: 'Comida post-entreno óptima',
       foods: [
-        { item: 'Arroz blanco', amount: `${Math.round(carbsTarget / 28)}g secos`, carbs: carbsTarget },
-        { item: 'Pechuga de pollo o pescado', amount: `${Math.round(protein / 0.25)}g`, carbs: 0, protein: protein },
-        { item: 'Verduras', amount: 'al gusto', carbs: 10 }
+        { item: 'Arroz blanco', amount: 'según tu objetivo de carbohidratos', carbs: null },
+        { item: 'Pechuga de pollo o pescado', amount: 'según tu objetivo de proteína', carbs: 0, protein: null },
+        { item: 'Verduras', amount: 'al gusto', carbs: null }
       ],
       total_carbs: carbsTarget,
       total_protein: protein,
-      notes: 'Reposición completa de glucógeno + síntesis proteica'
+      notes: 'Reposición de glucógeno + síntesis proteica'
     });
 
     examples.push({
       name: 'Batido post-entreno rápido',
       foods: [
-        { item: 'Dextrosa o maltodextrina', amount: `${Math.round(carbsTarget * 0.7)}g`, carbs: Math.round(carbsTarget * 0.7) },
-        { item: 'Proteína whey', amount: `${Math.round(protein / 0.8)}g`, carbs: 5, protein: protein },
-        { item: 'Plátano', amount: '1 unidad', carbs: 25 }
+        { item: 'Dextrosa o maltodextrina', amount: 'según tu objetivo de carbohidratos', carbs: null },
+        { item: 'Proteína whey', amount: 'según tu objetivo de proteína', carbs: null, protein: null },
+        { item: 'Plátano', amount: '1 unidad', carbs: null }
       ],
       total_carbs: carbsTarget,
       total_protein: protein,
-      notes: '🔥 Ideal en ventana anabólica (primeros 30 min)'
+      notes: 'Opción de absorción rápida'
     });
 
     examples.push({
       name: 'Opción con patata',
       foods: [
-        { item: 'Patata cocida', amount: `${Math.round(carbsTarget / 17)}g`, carbs: carbsTarget },
-        { item: 'Huevos enteros', amount: '3 unidades', carbs: 2, protein: 18 },
-        { item: 'Atún o salmón', amount: '100g', carbs: 0, protein: 25 }
+        { item: 'Patata cocida', amount: 'según tu objetivo de carbohidratos', carbs: null },
+        { item: 'Huevos enteros', amount: '3 unidades', carbs: null, protein: null },
+        { item: 'Atún o salmón', amount: 'ración media', carbs: 0, protein: null }
       ],
       total_carbs: carbsTarget,
       total_protein: protein,
@@ -404,7 +406,7 @@ export function calculateDailyCarbDistribution(params) {
 
   const postWorkout = calculatePostWorkoutCarbs({
     ...sessionParams,
-    timeSinceWorkout: 0.5, // Asumir ventana anabólica
+    timeSinceWorkout: 0.5, // Asumir reposición temprana
     dailyCarbTarget
   });
 
