@@ -25,6 +25,7 @@
  * apagado, el evento encolado es puramente aditivo y no cambia nada observable.
  */
 import { validateTrainingLoad } from '../services/trainingLoad/trainingLoadContract.js';
+import { NUTRITION_PERIODIZATION_VERSION } from '../services/nutritionPeriodizationService.js';
 import {
   SESSION_COMPLETED_CONTRACT_VERSION,
   claimBatch,
@@ -115,9 +116,11 @@ export async function handleSessionCompletedEvent(client, event, deps = {}) {
       completion_rate: payload.completion_rate
     },
     decisionDetails: {
+      // §18.2: shape completo del log de decisión (user_id va en la columna de la tabla).
       source_event_id: event.event_key,
       methodology_id: payload.methodology_id ?? null,
       load_contract_version: load?.contract_version ?? null,
+      periodization_version: NUTRITION_PERIODIZATION_VERSION,
       day_type: load?.day_type ?? null,
       load_confidence: load?.provenance?.confidence ?? null,
       degraded: !!loadCheck?.degraded,

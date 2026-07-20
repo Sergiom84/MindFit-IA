@@ -272,3 +272,19 @@ export function resolveDemandFamily(value) {
   const d = getMethodologyDescriptor(value);
   return d ? d.demand_family : null;
 }
+
+/**
+ * ¿La metodología emite carga de sesión validada (`training-load/v1`)? (§7.2, gate PR6).
+ *
+ * `emits_training_load` es `false` en TODAS hasta que la fase específica de cada metodología
+ * pase sus pruebas. El gate de activación (§16 PR6, punto 3) usa esta señal: si la metodología
+ * del plan NO emite, la periodización cae a la política conservadora aunque exista un contrato
+ * en los metadatos (no se declara terminada una integración antes de estarlo). Una metodología
+ * desconocida devuelve `false` (nunca se asume que emite).
+ * @param {string} value
+ * @returns {boolean}
+ */
+export function methodologyEmitsTrainingLoad(value) {
+  const d = getMethodologyDescriptor(value);
+  return !!(d && d.emits_training_load === true);
+}

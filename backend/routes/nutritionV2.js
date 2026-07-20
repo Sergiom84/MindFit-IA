@@ -21,9 +21,10 @@ import {
   distributeMacrosAcrossMeals
 } from '../services/nutritionCalculator.js';
 import {
-  getPeriodizationMode,
+  resolvePeriodizationModeForUser,
   resolveDayNutritionTargets
 } from '../services/nutritionPeriodizationService.js';
+import { methodologyEmitsTrainingLoad } from '../services/routineGeneration/methodologies/methodologyRegistry.js';
 import {
   SCHEDULE_WITH_LOAD_QUERY
 } from '../services/trainingLoad/sessionLoadBuilder.js';
@@ -552,7 +553,14 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
     // se calcula el reparto D0/D1/D2 en paralelo y se PERSISTE en periodization_context, pero
     // el usuario sigue recibiendo el resultado legado. En `active` el reparto nuevo es
     // autoritativo (tipo_dia, macros y comidas del día se reconstruyen).
-    const periodizationMode = getPeriodizationMode();
+    // §16 PR6: modo POR USUARIO. El global es `legacy` por defecto; los usuarios de la lista
+    // QA (NUTRITION_PERIODIZATION_QA_USERS) reciben el modo escalado un peldaño (canary).
+    const periodizationMode = resolvePeriodizationModeForUser(userId);
+    // §16 PR6 (punto 3): gate por metodología. Si la metodología del plan activo NO emite carga
+    // validada, el contrato de los metadatos NO se honra y se cae a la política conservadora.
+    const methodologyEmitsLoad = activePlanResult.rowCount > 0
+      ? methodologyEmitsTrainingLoad(activePlanResult.rows[0].methodology_type)
+      : false;
     let periodizationByDayIndex = null;
 
     if (periodizationMode !== 'legacy') {
@@ -609,7 +617,8 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
           objective: planData.meta,
           metabolicProfile: profile.metabolic_type,
           sessionLoad,
-          mode: periodizationMode
+          mode: periodizationMode,
+          methodologyEmitsLoad
         });
 
         periodizationByDayIndex.set(day.day_index, { resolved, source });

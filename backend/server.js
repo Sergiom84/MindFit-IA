@@ -550,6 +550,23 @@ app.post('/api/admin/sessions/maintenance', requireAdmin, async (req, res) => {
   }
 });
 
+// Observabilidad de la Nutrición Fase 0 (doc04 PR6, spec §18.1). SOLO LECTURA: conteos y
+// porcentajes agregados, sin datos sensibles. Sirve para verificar la salud del rollout
+// (day_id, contrato de carga, fallback D1, outbox, decisiones duplicadas, drift) antes de
+// avanzar legacy→shadow→active. Protegido con requireAdmin (fail-closed sin ADMIN_TOKEN).
+app.get('/api/admin/phase0/metrics', requireAdmin, async (req, res) => {
+  try {
+    const { collectPhase0Metrics } = await import('./services/trainingLoad/phase0Metrics.js');
+    const metrics = await collectPhase0Metrics(pool);
+    res.json(metrics);
+  } catch (error) {
+    res.status(500).json({
+      error: 'Error obteniendo métricas de la Fase 0',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 // === SERVIR FRONTEND ESTÁTICO (después de las rutas /api/*) ===
 app.use(express.static(FRONTEND_DIST));
 

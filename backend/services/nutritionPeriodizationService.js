@@ -50,9 +50,53 @@ export function normalizePeriodizationMode(mode) {
   return PERIODIZATION_MODES.includes(raw) ? raw : 'legacy';
 }
 
-/** Lee el modo desde el entorno (§11.4). Default `legacy`. */
+/** Lee el modo GLOBAL desde el entorno (§11.4). Default `legacy`. */
 export function getPeriodizationMode() {
   return normalizePeriodizationMode(process.env.NUTRITION_LOAD_PERIODIZATION_MODE);
+}
+
+/** Escala un modo un peldaño en el rollout: legacy→shadow, shadow→active, active→active. */
+function escalateMode(mode) {
+  const m = normalizePeriodizationMode(mode);
+  if (m === 'legacy') return 'shadow';
+  if (m === 'shadow') return 'active';
+  return 'active';
+}
+
+/**
+ * Parsea la lista de usuarios QA de rollout (§16 PR6, punto 2) desde
+ * `NUTRITION_PERIODIZATION_QA_USERS` (csv de user_ids). Ignora vacíos y no numéricos.
+ * @returns {Set<number>}
+ */
+export function getPeriodizationQaUserIds() {
+  const raw = String(process.env.NUTRITION_PERIODIZATION_QA_USERS || '');
+  const ids = new Set();
+  for (const part of raw.split(',')) {
+    const n = Number(String(part).trim());
+    if (Number.isInteger(n) && n > 0) ids.add(n);
+  }
+  return ids;
+}
+
+/**
+ * Resuelve el modo de periodización PARA UN USUARIO concreto (§16 PR6, activación por
+ * usuario QA). Un usuario de la lista QA recibe el modo global escalado un peldaño
+ * (legacy→shadow, o active si el global ya es shadow); el resto recibe el modo global.
+ *
+ * Con la configuración por defecto (global `legacy`, sin lista QA) TODOS reciben `legacy`
+ * → cero cambio de comportamiento observable. El canary nunca RETROCEDE el modo global:
+ * si el global ya es `active`, un usuario QA sigue en `active`.
+ * @param {number|string|null} userId
+ * @param {{globalMode?: string, qaUsers?: Set<number>}} [opts]
+ * @returns {'legacy'|'shadow'|'active'}
+ */
+export function resolvePeriodizationModeForUser(userId, { globalMode, qaUsers } = {}) {
+  const global = normalizePeriodizationMode(globalMode ?? getPeriodizationMode());
+  const uid = Number(userId);
+  if (!Number.isInteger(uid) || uid <= 0) return global;
+  const list = qaUsers instanceof Set ? qaUsers : getPeriodizationQaUserIds();
+  if (!list.has(uid)) return global;
+  return escalateMode(global);
 }
 
 /** Normaliza las macros base a los tres gramos que se redistribuyen. */
@@ -86,7 +130,7 @@ export function resolvePerformanceCarbFloor({ weightKg, sessionLoad, objective, 
  *  - Un contrato `training-load/v1` → validación lenient + classifyDayType.
  *  - `{ is_training:true }` sin contrato → D1 baja confianza (fallback).
  */
-function resolveDayType(sessionLoad) {
+function resolveDayType(sessionLoad, { methodologyEmitsLoad = true } = {}) {
   if (!sessionLoad || typeof sessionLoad !== 'object') {
     return { day_type: 'D0', confidence: 'low', reason_codes: ['LOAD_D0'] };
   }
@@ -99,6 +143,17 @@ function resolveDayType(sessionLoad) {
     sessionLoad.load_tier !== undefined ||
     sessionLoad.day_type !== undefined ||
     sessionLoad.provenance !== undefined;
+
+  // §16 PR6 (punto 3): gate por metodología. Si la metodología del plan NO emite carga
+  // validada, no se honra el day_type/tier explícito del contrato aunque exista en los
+  // metadatos: cae a la política conservadora (descanso→D0, entreno→D1 baja confianza).
+  // Esto evita declarar terminada una integración antes de que su fase específica pase.
+  if (looksLikeContract && methodologyEmitsLoad === false) {
+    if (sessionLoad.load_tier === 'rest') {
+      return { day_type: 'D0', confidence: 'low', reason_codes: ['LOAD_D0', 'NON_EMITTING_METHODOLOGY'] };
+    }
+    return { day_type: 'D1', confidence: 'low', reason_codes: ['LOAD_D1', 'NON_EMITTING_METHODOLOGY'] };
+  }
 
   if (looksLikeContract) {
     // lenient: un contrato histórico/incompleto se degrada a D1 baja confianza; nunca rompe nada.
@@ -184,6 +239,8 @@ function computePeriodizedMacros(base, dayType, weightKg, kcalTarget) {
  * @param {object} [args.weeklyContext] - Contexto semanal; reservado.
  * @param {object} [args.bridgeState] - Estado del bridge; NO muta nada en Fase 0.
  * @param {'legacy'|'shadow'|'active'} [args.mode]
+ * @param {boolean} [args.methodologyEmitsLoad=true] - Gate §16 PR6: si la metodología del plan
+ *   NO emite carga validada, un contrato explícito se ignora y cae a la política conservadora.
  * @returns {{macros:object, day_type:string, policy_version:string, changed:boolean, audit:object}}
  */
 export function resolveDayNutritionTargets({
@@ -195,12 +252,13 @@ export function resolveDayNutritionTargets({
   sessionLoad,
   weeklyContext,
   bridgeState,
-  mode
+  mode,
+  methodologyEmitsLoad = true
 } = {}) {
   void objective; void metabolicProfile; void weeklyContext; void bridgeState; // reservados Fase 0
   const resolvedMode = normalizePeriodizationMode(mode);
   const base = normalizeBaseMacros(baseMacros);
-  const { day_type, confidence, reason_codes } = resolveDayType(sessionLoad);
+  const { day_type, confidence, reason_codes } = resolveDayType(sessionLoad, { methodologyEmitsLoad });
   const reasonCodes = [...reason_codes];
 
   let macros;
