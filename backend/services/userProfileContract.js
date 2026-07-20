@@ -56,13 +56,18 @@ const METHODOLOGY_ALIASES = {
   halterofilia: "halterofilia"
 };
 
+// ONB-P2-02: el enfoque de entrenamiento conserva su valor REAL. Antes HIIT→perdida_peso
+// y funcional/mixto→general colapsaban la selección del usuario (se veía "Pérdida de Peso"
+// en Perfil). Ningún consumidor de nutrición ni del motor ramifica por enfoque_entrenamiento
+// (verificado por grep), así que guardar el valor real es seguro. `perdida_peso`/`general`
+// se conservan como alias de LECTURA para datos históricos.
 const TRAINING_FOCUS_ALIASES = {
   fuerza: "fuerza",
   hipertrofia: "hipertrofia",
   resistencia: "resistencia",
-  funcional: "general",
-  hiit: "perdida_peso",
-  mixto: "general",
+  funcional: "funcional",
+  hiit: "hiit",
+  mixto: "mixto",
   perdida_peso: "perdida_peso",
   general: "general"
 };

@@ -12,6 +12,11 @@ import {
 import { EditableField } from '../EditableField';
 import { BodyCompositionCalculator } from './BodyCompositionCalculator';
 import { useProfileState } from '../../hooks/useProfileState';
+import {
+  METODOLOGIA_OPTIONS,
+  NIVEL_ENTRENAMIENTO_OPTIONS,
+  NIVEL_ACTIVIDAD_OPTIONS
+} from '../../config/catalogs';
 
 // Importar todos los tabs
 import { BasicInfoTab } from './BasicInfoTab';
@@ -156,21 +161,9 @@ const ProfileSection = () => {
   };
 
   const completionFields = useMemo(() => {
-    const nivelOptions = [
-      { value: 'principiante', label: 'Principiante' },
-      { value: 'intermedio', label: 'Intermedio' },
-      { value: 'avanzado', label: 'Avanzado' }
-    ];
-
-    const metodologiaOptions = [
-      { value: 'powerlifting', label: 'Powerlifting' },
-      { value: 'bodybuilding', label: 'Bodybuilding' },
-      { value: 'crossfit', label: 'CrossFit' },
-      { value: 'calistenia', label: 'Calistenia' },
-      { value: 'entrenamiento_casa', label: 'Entrenamiento en Casa' },
-      { value: 'heavy_duty', label: 'Heavy Duty' },
-      { value: 'funcional', label: 'Entrenamiento Funcional' }
-    ];
+    // F2: catálogo canónico único (mismos valores/labels que onboarding y Perfil).
+    const nivelOptions = NIVEL_ENTRENAMIENTO_OPTIONS;
+    const metodologiaOptions = METODOLOGIA_OPTIONS;
 
     return [
       { key: 'nombre', label: 'Nombre', category: 'Datos básicos', type: 'text' },
@@ -179,13 +172,7 @@ const ProfileSection = () => {
       { key: 'sexo', label: 'Sexo', category: 'Datos básicos', type: 'select', options: profileState.sexoOptions },
       { key: 'peso', label: 'Peso actual (kg)', category: 'Datos básicos', type: 'number' },
       { key: 'altura', label: 'Estatura (cm)', category: 'Datos básicos', type: 'number' },
-      { key: 'nivel_actividad', label: 'Nivel de actividad', category: 'Datos básicos', type: 'select', options: [
-        { value: 'sedentario', label: 'Sedentario' },
-        { value: 'ligero', label: 'Ligero' },
-        { value: 'moderado', label: 'Moderado' },
-        { value: 'activo', label: 'Activo' },
-        { value: 'muy_activo', label: 'Muy Activo' }
-      ] },
+      { key: 'nivel_actividad', label: 'Nivel de actividad', category: 'Datos básicos', type: 'select', options: NIVEL_ACTIVIDAD_OPTIONS },
       { key: 'enfoque', label: 'Enfoque seleccionado', category: 'Preferencias de entrenamiento', type: 'select', options: profileState.enfoqueOptions },
       { key: 'horario_preferido', label: 'Horario preferido', category: 'Preferencias de entrenamiento', type: 'select', options: profileState.horarioOptions },
       { key: 'comidas_diarias', label: 'Comidas diarias', category: 'Preferencias de entrenamiento', type: 'number' },

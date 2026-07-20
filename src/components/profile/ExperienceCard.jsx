@@ -11,6 +11,7 @@ import { Save, Pencil } from 'lucide-react'
 
 // De nuevo, asumimos que 'EditableField' es un componente que podemos importar.
 import { EditableField } from '../EditableField'
+import { METODOLOGIA_OPTIONS, NIVEL_ENTRENAMIENTO_OPTIONS } from '../../config/catalogs'
 
 export const ExperienceCard = ({
   userProfile,
@@ -82,11 +83,7 @@ export const ExperienceCard = ({
               editing={isEditing}
               editedData={editedData}
               onInputChange={handleInputChange}
-              options={[
-                { value: 'principiante', label: 'Principiante' },
-                { value: 'intermedio', label: 'Intermedio' },
-                { value: 'avanzado', label: 'Avanzado' }
-              ]}
+              options={NIVEL_ENTRENAMIENTO_OPTIONS}
             />
           ) : (
             // Lógica especial para mostrar una 'Badge' en modo vista
@@ -124,15 +121,7 @@ export const ExperienceCard = ({
             editing={isEditing}
             editedData={editedData}
             onInputChange={handleInputChange}
-            options={[
-              { value: 'powerlifting', label: 'Powerlifting' },
-              { value: 'bodybuilding', label: 'Bodybuilding' },
-              { value: 'crossfit', label: 'CrossFit' },
-              { value: 'calistenia', label: 'Calistenia' },
-              { value: 'entrenamiento_casa', label: 'Entrenamiento en Casa' },
-              { value: 'heavy_duty', label: 'Heavy Duty' },
-              { value: 'funcional', label: 'Entrenamiento Funcional' }
-            ]}
+            options={METODOLOGIA_OPTIONS}
           />
           <EditableField
             label="Frecuencia Semanal"

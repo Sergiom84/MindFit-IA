@@ -24,6 +24,7 @@ import {
 import {
   validateOnboardingProfile
 } from '../services/userProfileContract.js';
+import { CURRENT_TERMS_VERSION, CURRENT_PRIVACY_VERSION } from '../config/consent.js';
 
 // AUTH-001 (PR 3): deriva la fecha de expiración del access a partir del TTL configurado
 // (solo soporta 'Nd'/'Nh'/'Nm' o segundos; suficiente para '7d'/'15m'). Para el registro
@@ -87,13 +88,23 @@ router.post('/register', async (req, res) => {
       lastPeriodStart,
       cycleLength,
       cycleIsRegular,
-      usesHormonalContraceptives
+      usesHormonalContraceptives,
+      // ONB-P1-05: consentimiento
+      acceptTerms
     } = req.body;
 
     // Validar campos requeridos
     if (!nombre || !apellido || !email || !password) {
       return res.status(400).json({
         error: 'Los campos nombre, apellido, email y contraseña son requeridos'
+      });
+    }
+
+    // ONB-P1-05: no se crea una cuenta sin aceptación explícita de términos y privacidad.
+    // Antes el backend ignoraba acceptTerms (el checkbox del alta no era vinculante).
+    if (acceptTerms !== true) {
+      return res.status(400).json({
+        error: 'Debes aceptar los términos y condiciones y la política de privacidad para registrarte'
       });
     }
 
@@ -238,11 +249,12 @@ router.post('/register', async (req, res) => {
         muslo, cuello, antebrazos, historial_medico, limitaciones_fisicas,
         alergias, medicamentos, objetivo_principal, meta_peso,
         meta_grasa_corporal, enfoque_entrenamiento, horario_preferido,
-        comidas_por_dia, suplementacion, alimentos_excluidos
+        comidas_por_dia, suplementacion, alimentos_excluidos,
+        terms_version, terms_accepted_at, privacy_version
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
         $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28,
-        $29, $30, $31
+        $29, $30, $31, $32, NOW(), $33
         ) RETURNING id, nombre, apellido, email, created_at`,
         [
           nombre, apellido, email, hashedPassword,
@@ -255,7 +267,8 @@ router.post('/register', async (req, res) => {
           alergiasValue, medicamentosValue, normalizedObjective,
           toNumberOrNull(metaPeso), toNumberOrNull(metaGrasaCorporal), normalizedTrainingFocus,
           normalizeHorarioPreferido(horarioPreferido), toNumberOrNull(comidasPorDia), suplementacionValue,
-          alimentosExcluidosValue
+          alimentosExcluidosValue,
+          CURRENT_TERMS_VERSION, CURRENT_PRIVACY_VERSION
         ]
       );
 

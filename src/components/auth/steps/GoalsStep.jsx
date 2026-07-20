@@ -1,4 +1,5 @@
 import TagsInput from '../../ui/TagsInput'
+import { OBJETIVO_OPTIONS, ENFOQUE_OPTIONS, HORARIO_OPTIONS } from '../../../config/catalogs'
 
 // Constantes para estilos reutilizables
 const INPUT_STYLES = {
@@ -56,13 +57,9 @@ const GoalsStep = ({ formData, onInputChange, errors = {} }) => {
               className={getInputClassName('objetivoPrincipal')}
             >
               <option value="">Seleccionar objetivo</option>
-              <option value="perder_peso">Perder peso</option>
-              <option value="ganar_masa_muscular">Ganar músculo</option>
-              <option value="tonificar">Tonificar</option>
-              <option value="mejorar_resistencia">Mejorar resistencia</option>
-              <option value="ganar_fuerza">Aumentar fuerza</option>
-              <option value="mantenimiento">Mantener forma física</option>
-              <option value="rehabilitacion">Rehabilitación</option>
+              {OBJETIVO_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
             <ErrorMessage fieldName="objetivoPrincipal" />
           </div>
@@ -111,12 +108,9 @@ const GoalsStep = ({ formData, onInputChange, errors = {} }) => {
               className={getInputClassName('enfoqueEntrenamiento')}
             >
               <option value="">Seleccionar enfoque</option>
-              <option value="fuerza">Fuerza</option>
-              <option value="hipertrofia">Hipertrofia</option>
-              <option value="resistencia">Resistencia</option>
-              <option value="funcional">Funcional</option>
-              <option value="hiit">HIIT</option>
-              <option value="mixto">Mixto</option>
+              {ENFOQUE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
             <ErrorMessage fieldName="enfoqueEntrenamiento" />
           </div>
@@ -138,10 +132,9 @@ const GoalsStep = ({ formData, onInputChange, errors = {} }) => {
               className={getInputClassName('horarioPreferido')}
             >
               <option value="">Seleccionar horario</option>
-              <option value="mañana">Mañana (6:00 - 10:00)</option>
-              <option value="media_mañana">Media mañana (10:00 - 14:00)</option>
-              <option value="tarde">Tarde (14:00 - 18:00)</option>
-              <option value="noche">Noche (18:00 - 22:00)</option>
+              {HORARIO_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
             <ErrorMessage fieldName="horarioPreferido" />
           </div>

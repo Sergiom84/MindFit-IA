@@ -1,6 +1,18 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import tokenManager from '../utils/tokenManager';
 import { alertDialog } from '../components/ui/dialogService';
+import {
+  SEXO_OPTIONS,
+  ENFOQUE_OPTIONS,
+  HORARIO_OPTIONS,
+  OBJETIVO_OPTIONS,
+  getSexoLabel,
+  getNivelActividadLabel,
+  getMetodologiaLabel,
+  getEnfoqueLabel,
+  getHorarioLabel,
+  getObjetivoLabel
+} from '../config/catalogs';
 
 export const useProfileState = () => {
   const defaultProfile = useMemo(() => ({
@@ -286,117 +298,13 @@ export const useProfileState = () => {
     return 'text-red-400'
   }
 
-  const getSexoLabel = (sexo) => {
-    const labels = {
-      masculino: 'Masculino',
-      femenino: 'Femenino'
-    }
-    return labels[sexo] || 'No especificado'
-  }
-
-  const getNivelActividadLabel = (nivel) => {
-    const labels = {
-      sedentario: 'Sedentario',
-      ligero: 'Ligero',
-      moderado: 'Moderado',
-      activo: 'Activo',
-      muy_activo: 'Muy Activo'
-    }
-    return labels[nivel] || 'No especificado'
-  }
-
-  const sexoOptions = [
-    { value: 'masculino', label: 'Masculino' },
-    { value: 'femenino', label: 'Femenino' },
-    { value: 'otro', label: 'Otro' }
-  ]
-
-  // Funciones adicionales para ExperienceCard
-  const getMetodologiaLabel = (metodologia) => {
-    const labels = {
-      powerlifting: 'Powerlifting',
-      bodybuilding: 'Bodybuilding',
-      crossfit: 'CrossFit',
-      calistenia: 'Calistenia',
-      entrenamiento_casa: 'Entrenamiento en Casa',
-      heavy_duty: 'Heavy Duty',
-      funcional: 'Entrenamiento Funcional'
-    }
-    return labels[metodologia] || 'No especificado'
-  }
-
-  // Funciones adicionales para PreferencesCard
-  const enfoqueOptions = [
-    { value: 'fuerza', label: 'Fuerza' },
-    { value: 'hipertrofia', label: 'Hipertrofia' },
-    { value: 'resistencia', label: 'Resistencia' },
-    { value: 'perdida_peso', label: 'Pérdida de Peso' },
-    { value: 'general', label: 'Acondicionamiento General' }
-  ]
-
-  const horarioOptions = [
-    { value: 'mañana', label: 'Mañana (7:00 a 11:00)' },
-    { value: 'media_mañana', label: 'Media mañana (12:00 a 16:00)' },
-    { value: 'tarde', label: 'Tarde (17:00 a 20h)' },
-    { value: 'noche', label: 'Noche (21h a 00h)' }
-  ]
-
-  const getEnfoqueLabel = (enfoque) => {
-    const labels = {
-      fuerza: 'Fuerza',
-      hipertrofia: 'Hipertrofia',
-      resistencia: 'Resistencia',
-      perdida_peso: 'Pérdida de Peso',
-      general: 'Acondicionamiento General'
-    }
-    return labels[enfoque] || 'No especificado'
-  }
-
-  const getHorarioLabel = (horario) => {
-    const labels = {
-      mañana: 'Mañana (7:00 a 11:00)',
-      media_mañana: 'Media mañana (12:00 a 16:00)',
-      tarde: 'Tarde (17:00 a 20h)',
-      noche: 'Noche (21h a 00h)'
-    }
-    return labels[horario] || 'No especificado'
-  }
-
-  // Opciones y funciones para GoalsCard
-  const objetivosOptions = [
-    { value: 'ganar_peso', label: 'Ganar Peso' },
-    { value: 'rehabilitacion', label: 'Rehabilitación' },
-    { value: 'perder_peso', label: 'Perder Peso' },
-    { value: 'tonificar', label: 'Tonificar' },
-    { value: 'ganar_masa_muscular', label: 'Ganar Masa Muscular' },
-    { value: 'ganar_fuerza', label: 'Aumentar Fuerza' },
-    { value: 'mejorar_resistencia', label: 'Mejorar Resistencia' },
-    { value: 'mejorar_flexibilidad', label: 'Mejorar Flexibilidad' },
-    { value: 'salud_general', label: 'Salud General' },
-    { value: 'mantenimiento', label: 'Mantenimiento' }
-  ]
-
-  const getObjetivoLabel = (objetivo) => {
-    const labels = {
-      ganar_peso: 'Ganar Peso',
-      rehabilitacion: 'Rehabilitación',
-      perder_peso: 'Perder Peso',
-      tonificar: 'Tonificar',
-      ganar_masa_muscular: 'Ganar Masa Muscular',
-      ganar_fuerza: 'Aumentar Fuerza',
-      mejorar_resistencia: 'Mejorar Resistencia',
-      mejorar_flexibilidad: 'Mejorar Flexibilidad',
-      salud_general: 'Salud General',
-      // M-03: el alta usa 'mantener_forma'; se persistía como 'mantenimiento' y
-      // Rutinas mostraba "No especificado". Cubrimos ambas nomenclaturas.
-      mantenimiento: 'Mantenimiento',
-      mantener_forma: 'Mantenimiento',
-      mantener: 'Mantenimiento'
-    }
-    // Normaliza (minúsculas, sin espacios) por si llega con otra caja/formato.
-    const key = String(objetivo || '').trim().toLowerCase()
-    return labels[key] || 'No especificado'
-  }
+  // F2 (ONB-P2-01/02/P3-01): opciones y etiquetas provienen del catálogo canónico
+  // único (src/config/catalogs.js), compartido con onboarding. Antes había mapas
+  // divergentes aquí y en los steps del alta.
+  const sexoOptions = SEXO_OPTIONS
+  const enfoqueOptions = ENFOQUE_OPTIONS
+  const horarioOptions = HORARIO_OPTIONS
+  const objetivosOptions = OBJETIVO_OPTIONS
 
   // Listas para suplementación y alimentos (simuladas por ahora)
   const suplementacionList = userProfile.suplementacion || []

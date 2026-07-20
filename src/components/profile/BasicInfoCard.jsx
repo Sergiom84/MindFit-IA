@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/card'
 import { User, Save, Pencil } from 'lucide-react'
 import { EditableField } from '../EditableField'
+import { NIVEL_ACTIVIDAD_OPTIONS } from '../../config/catalogs'
 
 export const BasicInfoCard = ({
   userProfile,
@@ -163,13 +164,7 @@ export const BasicInfoCard = ({
             editedData={editedData}
             onInputChange={handleInputChange}
             helpText={activityHelpText}
-            options={[
-              { value: 'sedentario', label: 'Sedentario' },
-              { value: 'ligero', label: 'Ligero' },
-              { value: 'moderado', label: 'Moderado' },
-              { value: 'activo', label: 'Activo' },
-              { value: 'muy_activo', label: 'Muy Activo' }
-            ]}
+            options={NIVEL_ACTIVIDAD_OPTIONS}
           />
         </div>
       </CardContent>

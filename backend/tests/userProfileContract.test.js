@@ -62,7 +62,8 @@ test("onboarding: exige un perfil completo y valida rangos antes de crear la cue
     peso: 78,
     altura: 180,
     objetivoPrincipal: "ganar_fuerza",
-    enfoqueEntrenamiento: "general"
+    // ONB-P2-02: el enfoque conserva su valor real (antes 'funcional'→'general').
+    enfoqueEntrenamiento: "funcional"
   });
 
   const invalid = validateOnboardingProfile({
@@ -81,6 +82,22 @@ test("onboarding: exige un perfil completo y valida rangos antes de crear la cue
     "objetivoPrincipal",
     "enfoqueEntrenamiento"
   ]);
+});
+
+test("ONB-P2-02: el enfoque de entrenamiento conserva su valor real (HIIT no se transforma)", () => {
+  for (const focus of ["fuerza", "hipertrofia", "resistencia", "funcional", "hiit", "mixto"]) {
+    const { normalized, invalidFields } = validateOnboardingProfile({
+      edad: 30, sexo: "masculino", peso: 75, altura: 178,
+      objetivoPrincipal: "perder_peso", enfoqueEntrenamiento: focus
+    });
+    assert.deepEqual(invalidFields, []);
+    assert.equal(normalized.enfoqueEntrenamiento, focus, `${focus} debe conservarse`);
+  }
+  // Alias de lectura legacy siguen siendo válidos.
+  assert.equal(
+    validateOnboardingProfile({ edad: 30, sexo: "masculino", peso: 75, altura: 178, objetivoPrincipal: "perder_peso", enfoqueEntrenamiento: "perdida_peso" }).normalized.enfoqueEntrenamiento,
+    "perdida_peso"
+  );
 });
 
 test("perfil: generación automática selecciona metodología y contexto del usuario", () => {

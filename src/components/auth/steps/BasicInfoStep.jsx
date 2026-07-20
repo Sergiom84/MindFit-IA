@@ -1,5 +1,11 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import {
+  SEXO_OPTIONS,
+  NIVEL_ENTRENAMIENTO_OPTIONS,
+  METODOLOGIA_OPTIONS,
+  NIVEL_ACTIVIDAD_OPTIONS
+} from '../../../config/catalogs';
 
 // Constantes para estilos reutilizables
 const INPUT_STYLES = {
@@ -156,9 +162,9 @@ const BasicInfoStep = ({ formData, onInputChange, errors = {} }) => {
               className={getInputClassName('sexo')}
             >
               <option value="">Seleccionar</option>
-              <option value="masculino">Masculino</option>
-              <option value="femenino">Femenino</option>
-              <option value="otro">Otro</option>
+              {SEXO_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
             <ErrorMessage fieldName="sexo" />
           </div>
@@ -214,9 +220,9 @@ const BasicInfoStep = ({ formData, onInputChange, errors = {} }) => {
               className={getInputClassName('nivelEntrenamiento')}
             >
               <option value="">Seleccionar nivel</option>
-              <option value="principiante">Principiante</option>
-              <option value="intermedio">Intermedio</option>
-              <option value="avanzado">Avanzado</option>
+              {NIVEL_ENTRENAMIENTO_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
             <ErrorMessage fieldName="nivelEntrenamiento" />
           </div>
@@ -264,13 +270,9 @@ const BasicInfoStep = ({ formData, onInputChange, errors = {} }) => {
               className={getInputClassName('metodologiaPreferida')}
             >
               <option value="">Seleccionar metodología</option>
-              <option value="powerlifting">Powerlifting</option>
-              <option value="bodybuilding">Bodybuilding</option>
-              <option value="crossfit">CrossFit</option>
-              <option value="calistenia">Calistenia</option>
-              <option value="entrenamiento_casa">Entrenamiento en Casa</option>
-              <option value="heavy_duty">Heavy Duty</option>
-              <option value="entrenamiento_funcional">Entrenamiento Funcional</option>
+              {METODOLOGIA_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
             <ErrorMessage fieldName="metodologiaPreferida" />
           </div>
@@ -286,11 +288,9 @@ const BasicInfoStep = ({ formData, onInputChange, errors = {} }) => {
               className={getInputClassName('nivelActividad')}
             >
               <option value="">Seleccionar</option>
-              <option value="sedentario">Sedentario</option>
-              <option value="ligero">Ligero</option>
-              <option value="moderado">Moderado</option>
-              <option value="activo">Activo</option>
-              <option value="muy_activo">Muy Activo</option>
+              {NIVEL_ACTIVIDAD_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
             <ErrorMessage fieldName="nivelActividad" />
           </div>

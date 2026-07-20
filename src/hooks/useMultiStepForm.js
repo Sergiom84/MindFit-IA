@@ -2,9 +2,14 @@ import { useState, useEffect, useMemo } from 'react';
 
 const STORAGE_KEY = 'register_form_progress';
 
+// ONB-P2-04: las reglas se asignan al paso REAL donde vive cada campo. Antes
+// edad/sexo/peso/altura (que se rellenan en "Básicos") se validaban en el paso 1
+// ("Composición"), así que se podía avanzar de Básicos sin ellos y luego Composición
+// se bloqueaba con errores de campos que no estaban en pantalla. Ahora se validan en
+// el paso 0, con el error junto al campo (BasicInfoStep ya renderiza ErrorMessage).
 const STEP_VALIDATION_RULES = {
-  0: { // BasicInfoStep
-    required: ['nombre', 'apellido', 'email', 'password'],
+  0: { // BasicInfoStep ("Básicos"): identidad + datos personales básicos
+    required: ['nombre', 'apellido', 'email', 'password', 'edad', 'sexo', 'peso', 'altura'],
     validation: {
       email: {
         pattern: /\S+@\S+\.\S+/,
@@ -13,12 +18,7 @@ const STEP_VALIDATION_RULES = {
       password: {
         minLength: 6,
         message: 'Contraseña debe tener al menos 6 caracteres'
-      }
-    }
-  },
-  1: { // PersonalDataStep
-    required: ['edad', 'sexo', 'peso', 'altura'],
-    validation: {
+      },
       edad: {
         min: 13,
         max: 100,
@@ -36,12 +36,20 @@ const STEP_VALIDATION_RULES = {
       }
     }
   },
-  2: { // HealthInfoStep - Opcional
+  1: { // BodyMeasurementsStep ("Composición") - Opcional (no bloquea por campos de otra pantalla)
     required: [],
     validation: {}
   },
-  3: { // GoalsStep
-    required: ['objetivoPrincipal', 'enfoqueEntrenamiento'],
+  2: { // HealthInfoStep ("Salud") - Opcional
+    required: [],
+    validation: {}
+  },
+  3: { // GoalsStep ("Objetivos")
+    required: ['objetivoPrincipal', 'enfoqueEntrenamiento', 'acceptTerms'],
+    // ONB-P1-05: sin aceptar términos no se puede completar el registro.
+    requiredMessages: {
+      acceptTerms: 'Debes aceptar los términos y condiciones y la política de privacidad'
+    },
     validation: {}
   }
 };
@@ -97,7 +105,7 @@ export const useMultiStepForm = (initialData = {}, steps = []) => {
     // Validar campos requeridos
     rules.required.forEach(field => {
       if (!formData[field] || formData[field].toString().trim() === '') {
-        errors[field] = 'Este campo es requerido';
+        errors[field] = rules.requiredMessages?.[field] || 'Este campo es requerido';
       }
     });
 
