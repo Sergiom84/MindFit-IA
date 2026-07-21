@@ -74,6 +74,7 @@ import { buildPlanDayMetadata } from '../services/trainingLoad/sessionLoadBuilde
  * @param {boolean} startConfig.include_saturdays - Si incluir sábados en el calendario
  */
 export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId, planDataJson, startDate = new Date(), startConfig = null) {
+  let usingSavepoint = false;
   try {
     // Patrón base por defecto (3x semana Lun-Mié-Vie)
     const originalPattern = 'Lun-Mié-Vie';
@@ -100,6 +101,24 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
     }
 
     const normalizedPlan = normalizePlanDays(planData);
+
+    // COR-F0-04 §9: no ocultar errores estructurales del calendario dejando una
+    // transacción PostgreSQL abortada. Si el caller nos entrega un cliente dentro de
+    // una transacción (BEGIN), un fallo a media materialización dejaría la transacción
+    // abortada y el catch de abajo la ocultaría, haciendo fallar en cascada al resto de
+    // sentencias del caller. Con un SAVEPOINT aislamos el bloque:
+    //  - En transacción: ante error hacemos ROLLBACK TO SAVEPOINT (limpiamos el estado
+    //    abortado) y PROPAGAMOS, para que el problema estructural sea visible.
+    //  - En auto-commit (todos los callers actuales usan pool.connect() sin BEGIN):
+    //    SAVEPOINT no es válido; conservamos el comportamiento no bloqueante previo
+    //    (log + no propagar) para no romper los flujos de nutrición (regla §9: los
+    //    fallos de nutrición nunca deben impedir completar la sesión).
+    try {
+      await client.query('SAVEPOINT ensure_schedule_v3');
+      usingSavepoint = true;
+    } catch {
+      usingSavepoint = false;
+    }
 
     await client.query(
       'DELETE FROM app.workout_schedule WHERE methodology_plan_id = $1 AND user_id = $2',
@@ -799,14 +818,20 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
         // (join §12.1) sin buscar por títulos ni posiciones de arrays.
         const planDayMetadata = buildPlanDayMetadata(sesion); // null salvo que el motor emita carga
 
-        await client.query(
+        const wsInsert = await client.query(
           // ON CONFLICT DO NOTHING sobre el índice único
           // uq_workout_schedule_plan_user_date: race-proof (dos generaciones
           // simultáneas ya no crean duplicados; antes el guard NOT EXISTS tenía
           // una condición de carrera TOCTOU). Ver DATA-002.
+          // COR-F0-04 §2/§3: RETURNING day_id para conocer el ID canónico realmente
+          // persistido en el calendario. Si el INSERT cae en conflicto (rowCount=0),
+          // NO usamos el dayId local nuevo para methodology_plan_days: recuperamos el
+          // day_id de la fila existente y lo reutilizamos, evitando IDs cruzados entre
+          // workout_schedule y methodology_plan_days en regeneraciones/dobles ejecuciones.
           `INSERT INTO app.workout_schedule (methodology_plan_id, user_id, day_id, week_number, session_order, week_session_order, scheduled_date, day_name, day_abbrev, session_title, exercises, status)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-           ON CONFLICT (methodology_plan_id, user_id, scheduled_date) DO NOTHING`,
+           ON CONFLICT (methodology_plan_id, user_id, scheduled_date) DO NOTHING
+           RETURNING day_id`,
           [
             methodologyPlanId,
             userId,
@@ -823,9 +848,23 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
           ]
         );
 
+        // day_id canónico del calendario para ESTA fecha: el recién insertado, o el de
+        // la fila ya existente si hubo conflicto. Nunca un day_id independiente nuevo.
+        let canonicalDayId = wsInsert.rows?.[0]?.day_id ?? dayId;
+        if (wsInsert.rowCount === 0) {
+          const existingWs = await client.query(
+            `SELECT day_id FROM app.workout_schedule
+              WHERE methodology_plan_id = $1 AND user_id = $2 AND scheduled_date = $3`,
+            [methodologyPlanId, userId, formatLocalDate(currentDate)]
+          );
+          if (existingWs.rows?.[0]?.day_id != null) {
+            canonicalDayId = existingWs.rows[0].day_id;
+          }
+        }
+
         await client.query(
           'INSERT INTO app.methodology_plan_days (plan_id, day_id, week_number, day_name, date_local, is_rest, planned_exercises_count, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (plan_id, day_id) DO NOTHING',
-          [methodologyPlanId, dayId, effectiveWeekNumber, dayAbbrev, formatLocalDate(currentDate), false, Array.isArray(sessionExercises) ? sessionExercises.length : 0, planDayMetadata ? JSON.stringify(planDayMetadata) : null]
+          [methodologyPlanId, canonicalDayId, effectiveWeekNumber, dayAbbrev, formatLocalDate(currentDate), false, Array.isArray(sessionExercises) ? sessionExercises.length : 0, planDayMetadata ? JSON.stringify(planDayMetadata) : null]
         );
 
         dayId++;
@@ -846,6 +885,11 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
     const totalDays = dayId - 1;
     const restDays = totalDays - totalSessions;
 
+    if (usingSavepoint) {
+      // Materialización correcta: liberamos el savepoint (no revierte nada).
+      try { await client.query('RELEASE SAVEPOINT ensure_schedule_v3'); } catch { /* noop */ }
+    }
+
     console.log('[ensureWorkoutScheduleV3] Programacion generada', {
       planId: methodologyPlanId,
       totalDays,
@@ -855,5 +899,14 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
     });
   } catch (error) {
     console.error('Error en ensureWorkoutScheduleV3:', error?.message || error);
+    if (usingSavepoint) {
+      // Estábamos dentro de una transacción del caller: revertimos SOLO este bloque
+      // (limpia el estado abortado) y PROPAGAMOS el error estructural en vez de ocultarlo.
+      try { await client.query('ROLLBACK TO SAVEPOINT ensure_schedule_v3'); } catch { /* noop */ }
+      throw error;
+    }
+    // Auto-commit: no hay transacción del caller que abortar; cada sentencia fue su
+    // propia transacción implícita. Mantenemos el comportamiento no bloqueante para
+    // no romper los flujos de nutrición que invocan esta función sin try/catch.
   }
 }

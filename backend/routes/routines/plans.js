@@ -388,21 +388,27 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
               // Crear la sesión. session_status='pending' (estado inicial canónico
               // de la máquina de estados); 'not_started' violaba check_session_status
               // y el INSERT fallaba silenciosamente (A-06).
+              // COR-F0-04 §1/§4: enlace canónico por day_id. La sesión conserva el
+              // MISMO day_id y la fecha exacta de la fila de workout_schedule de la que
+              // procede, para que workout_schedule, methodology_plan_days y
+              // methodology_exercise_sessions compartan day_id en todo calendario nuevo.
               const sessionResult = await client.query(
                 `INSERT INTO app.methodology_exercise_sessions (
                   user_id,
                   methodology_plan_id,
+                  day_id,
                   session_date,
                   week_number,
                   day_name,
                   session_status,
                   methodology_level,
                   created_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
                 RETURNING id`,
                 [
                   userId,
                   methodology_plan_id,
+                  scheduleRow.day_id ?? null,
                   scheduleRow.scheduled_date,
                   scheduleRow.week_number,
                   scheduleRow.day_abbrev,

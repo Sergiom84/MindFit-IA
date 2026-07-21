@@ -45,19 +45,35 @@ async function createMissingDaySession(client, userId, methodologyPlanId, planDa
   const templateSession = sesiones[0];
   const realMethodology = planDataJson?.selected_style || planDataJson?.metodologia || 'Adaptada';
 
+  // COR-F0-04 §1/§4: trasladar el day_id CANÓNICO y la fecha exacta desde
+  // workout_schedule al crear la sesión bajo demanda, para que la sesión conserve el
+  // mismo day_id que su fila del calendario (enlace por day_id, no por nombre de día).
+  const canonicalDay = await client.query(
+    `SELECT day_id, scheduled_date
+       FROM app.workout_schedule
+      WHERE methodology_plan_id = $1 AND user_id = $2 AND week_number = $3 AND day_abbrev = $4
+      ORDER BY scheduled_date
+      LIMIT 1`,
+    [methodologyPlanId, userId, weekNumber, normalizedRequestedDay]
+  );
+  const canonicalDayId = canonicalDay.rows?.[0]?.day_id ?? null;
+  const canonicalDate = canonicalDay.rows?.[0]?.scheduled_date ?? null;
+
   const newSession = await client.query(
     `INSERT INTO app.methodology_exercise_sessions
-     (user_id, methodology_plan_id, methodology_type, session_name, week_number, day_name, total_exercises, session_date, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8::timestamp, NOW()), NOW(), NOW())
+     (user_id, methodology_plan_id, day_id, methodology_type, session_name, week_number, day_name, total_exercises, session_date, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9::timestamp, $10::timestamp, NOW()), NOW(), NOW())
      RETURNING id`,
     [
       userId,
       methodologyPlanId,
+      canonicalDayId,
       realMethodology,
       `Sesión ${normalizedRequestedDay}`,
       weekNumber,
       normalizedRequestedDay,
       templateSession.ejercicios?.length || 0,
+      canonicalDate,
       planDataJson?.planStartDate ? new Date(planDataJson.planStartDate) : null
     ]
   );
