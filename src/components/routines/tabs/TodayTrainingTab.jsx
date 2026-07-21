@@ -16,16 +16,12 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button.jsx';
 import { Alert, AlertDescription } from '@/components/ui/alert.jsx';
-import { Card } from '@/components/ui/card.jsx';
 
 import {
   RefreshCw,
-  Calendar,
   AlertTriangle,
   Dumbbell,
-  Clock,
-  Target,
-  Play
+  Clock
 } from 'lucide-react';
 
 import { useWorkout } from '@/contexts/WorkoutContext';
@@ -33,13 +29,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 import SafeComponent from '../../ui/SafeComponent';
 import { useTrace } from '@/contexts/TraceContext.jsx';
-import { ExerciseListItem } from '../summary/ExerciseListItem.jsx';
-import { SummaryHeader } from '../summary/SummaryHeader.jsx';
-import { UserProfileDisplay } from '../summary/UserProfileDisplay.jsx';
-import { ProgressBar } from '../summary/ProgressBar.jsx';
-import { FirstWeekWarning, usePlanConfig } from '../alerts/FirstWeekWarning.jsx';
-import CycleStatusBadge from '../../Methodologie/methodologies/HipertrofiaV2/components/CycleStatusBadge';
-import AdaptationTrackingBadge from '../../Methodologie/methodologies/HipertrofiaV2/components/AdaptationTrackingBadge.jsx';
+import { usePlanConfig } from '../alerts/FirstWeekWarning.jsx';
 
 import { useNavigate } from 'react-router-dom';
 
@@ -51,15 +41,21 @@ import { findTodaySession } from '@/utils/training/sessionFinders';
 import { getTodaySessionStatus, getWeekendStatus } from '../api.js';
 
 // 🎯 COMPONENTES MODULARES - Refactorización incremental
-import { ExerciseList, RestDayCard, StartSessionCard } from './TodayTrainingTab/components';
+import { RestDayCard } from './TodayTrainingTab/components';
 import TodayTrainingModalLayer from './TodayTrainingTab/components/TodayTrainingModalLayer.jsx';
+// 🎯 ARCH-002: bloques presentacionales extraídos del monolito
+import TodayTrainingHeader from './TodayTrainingTab/components/TodayTrainingHeader.jsx';
+import StartSessionSection from './TodayTrainingTab/components/StartSessionSection.jsx';
+import WeekendExtraSummaryCard from './TodayTrainingTab/components/WeekendExtraSummaryCard.jsx';
+import CompletedSessionSummaryCard from './TodayTrainingTab/components/CompletedSessionSummaryCard.jsx';
+import NoActivePlanCard from './TodayTrainingTab/components/NoActivePlanCard.jsx';
+import { computeEstimatedDuration } from './TodayTrainingTab/helpers.js';
 import { resolveEffortMethodKey } from './TodayTrainingTab/effortConfig.js';
 import { computeGateCounts, computeGateLogic, computeHeaderProgressStats } from './TodayTrainingTab/gateLogic.js';
 import { useRoutineSessionActions } from './TodayTrainingTab/hooks/useRoutineSessionActions.js';
 import { useRoutineAuxiliaryActions } from './TodayTrainingTab/hooks/useRoutineAuxiliaryActions.js';
 
-// 🎯 ADAPTACIÓN - Nuevos componentes para evaluación de transición
-import AdaptationProgressPanel from '../../Methodologie/methodologies/HipertrofiaV2/components/AdaptationProgressPanel';
+// 🎯 ADAPTACIÓN - Evaluación de transición
 import { useAdaptationEvaluation } from '@/hooks/useAdaptationEvaluation';
 import tokenManager from '../../../utils/tokenManager';
 import { getApiBaseUrl } from '../../../config/api';
@@ -779,19 +775,10 @@ export default function TodayTrainingTab({
   // 📊 CÁLCULOS DE PROGRESO
   // ===============================================
 
-  const estimatedDuration = useMemo(() => {
-    if (!todaySessionData?.ejercicios) return 0;
-
-    return todaySessionData.ejercicios.reduce((total, ejercicio) => {
-      const sets = parseInt(ejercicio.series, 10) || 3;
-      const reps = parseInt(ejercicio.repeticiones, 10) || 10;
-      const rest = parseInt(ejercicio.descanso_seg, 10) || 60;
-
-      // Estimación básica: (tiempo por rep * reps * sets) + descansos
-      const exerciseTime = (2 * reps * sets) + (rest * (sets - 1));
-      return total + exerciseTime;
-    }, 0);
-  }, [todaySessionData?.ejercicios]);
+  const estimatedDuration = useMemo(
+    () => computeEstimatedDuration(todaySessionData?.ejercicios),
+    [todaySessionData?.ejercicios]
+  );
 
   // Progreso por ejercicio que usará el modal para saltar completados
 
@@ -1031,141 +1018,23 @@ export default function TodayTrainingTab({
           <>
             {/* Solo mostrar header completo si hay plan activo */}
             {hasActivePlan && (
-              <>
-                {/* 🎯 NUEVO: Mostrar warnings de redistribución si aplica */}
-                {!configLoading && planConfig && (
-                  <FirstWeekWarning
-                    methodologyPlanId={methodologyPlanId}
-                    config={planConfig}
-                    onClose={(index) => {
-                      // Opcional: Manejar cierre de warnings individuales
-                      console.log('Warning cerrado:', index);
-                    }}
-                  />
-                )}
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-semibold text-white font-urbanist">
-                      Entrenamiento de Hoy
-                      {/* 🎯 Mostrar número de sesión SOLO si hoy tiene mapeo
-                          (antes renderizaba "(Sesión )" vacío cuando no había). */}
-                      {(() => {
-                        if (!planConfig?.day_mappings) return null;
-                        const today = getTodayName();
-                        const todayAbbrev = today.substring(0, 3);
-                        const todayCapitalized = todayAbbrev.charAt(0).toUpperCase() + todayAbbrev.slice(1);
-                        const mapping = planConfig.day_mappings[todayCapitalized];
-                        if (!mapping) return null;
-                        // Numerador GLOBAL (no el slot semanal 1-3): (semana-1)*sesiones_semana + slot.
-                        // Total robusto = total_weeks * sesiones/semana (no depende del expected_sessions
-                        // guardado, que en planes de principiante antiguos quedó hardcodeado a 12).
-                        const weeklySlot = parseInt(mapping.replace('sesion_', ''), 10) || 1;
-                        const perWeek = Object.keys(planConfig.day_mappings).length || 3;
-                        const totalWeeks = planConfig.total_weeks
-                          || Math.round((planConfig.expected_sessions || perWeek) / perWeek);
-                        const totalSessions = totalWeeks * perWeek;
-                        const currentWeek = plan?.currentWeek || 1;
-                        const globalNum = Math.min(totalSessions, (currentWeek - 1) * perWeek + weeklySlot);
-                        return (
-                          <span className="ml-3 text-lg font-normal text-yellow-400">
-                            (Sesión {globalNum} de {totalSessions})
-                          </span>
-                        );
-                      })()}
-                    </h2>
-                    <p className="text-gray-300/80">
-                      {new Date().toLocaleDateString('es-ES', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                </div>
-
-                {isPlanStartInFuture && (
-                  <Card className="mt-4 border border-yellow-400/30 border-l-2 border-l-yellow-400/40 bg-black/60 backdrop-blur-md">
-                    <div className="p-4">
-                      <h3 className="text-lg font-semibold text-yellow-300 font-urbanist">
-                        Tu plan comienza el {planStartDisplay || 'próximo lunes'}
-                      </h3>
-                      <p className="text-sm text-gray-300/80 mt-1">
-                        Hemos guardado tu plan. El entrenamiento empezará automáticamente en la fecha indicada.
-                      </p>
-                    </div>
-                  </Card>
-                )}
-
-                {/* 🟣 Badge de adaptación (solo para fase de adaptación inicial, NO para MindFeed/D1-D5) */}
-                {/* 🎯 FIX: Agregar validación de userId y mejor logging */}
-                {(() => {
-                  const shouldRenderAdaptation = adaptationState.hasBlock && 
-                    plan?.metodologia !== 'HipertrofiaV2_MindFeed' && 
-                    plan?.metodologia !== 'HipertrofiaV2' &&
-                    userId;
-                  
-                  if (adaptationState.hasBlock) {
-                    console.log('🔍 Condiciones AdaptationProgressPanel:', {
-                      hasBlock: adaptationState.hasBlock,
-                      metodologia: plan?.metodologia,
-                      userId: !!userId,
-                      shouldRender: shouldRenderAdaptation
-                    });
-                  }
-                  
-                  return shouldRenderAdaptation;
-                })() && (
-                  <div className="mt-3 space-y-4">
-                    <AdaptationTrackingBadge
-                      loading={adaptationState.loading}
-                      hasBlock={adaptationState.hasBlock}
-                      block={adaptationState.block}
-                      readyForTransition={adaptationState.readyForTransition}
-                      onReload={fetchAdaptationProgress}
-                      onTransition={() => goToMethodologies()} // que vaya a metodologías para transicionar
-                    />
-
-                    {/* 🎯 Panel de progreso detallado de adaptación (solo fase inicial) */}
-                    <AdaptationProgressPanel
-                      userId={userId}
-                      onReadyForTransition={() => setShowTransitionModal(true)}
-                      onNeedRepeat={() => console.log('Necesita repetir')}
-                    />
-                  </div>
-                )}
-
-                {/* 🔄 Badge de estado del ciclo MindFeed (solo para HipertrofiaV2) */}
-                {(plan?.metodologia === 'HipertrofiaV2_MindFeed' || plan?.metodologia === 'HipertrofiaV2') && (
-                  <div className="mt-4 space-y-3">
-                    <CycleStatusBadge
-                      userId={userId}
-                      methodologyPlanId={methodologyPlanId || plan?.methodologyPlanId}
-                    />
-
-                    {/* 🎯 FASE 2: Botón de Prioridad Muscular */}
-                    <button
-                      onClick={() => setShowPriorityModal(true)}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors"
-                    >
-                      <Target className="h-5 w-5" />
-                      {currentPriority ? 'Gestionar Prioridad' : 'Activar Prioridad Muscular'}
-                    </button>
-                  </div>
-                )}
-
-                {/* Header enriquecido con metodología, fuente, perfil y progreso */}
-                <section className="mt-4">
-                  <SummaryHeader
-                    plan={plan?.currentPlan || plan}
-                    session={session}
-                    planSource={{ label: (plan?.planType === 'manual' || plan?.currentPlan?.generation_mode === 'manual') ? 'Manual' : 'IA' }}
-                  />
-                  <UserProfileDisplay />
-                  <ProgressBar progressStats={headerProgressStats} />
-                </section>
-              </>
+                <TodayTrainingHeader
+                  methodologyPlanId={methodologyPlanId}
+                  configLoading={configLoading}
+                  planConfig={planConfig}
+                  isPlanStartInFuture={isPlanStartInFuture}
+                  planStartDisplay={planStartDisplay}
+                  plan={plan}
+                  adaptationState={adaptationState}
+                  userId={userId}
+                  fetchAdaptationProgress={fetchAdaptationProgress}
+                  goToMethodologies={goToMethodologies}
+                  setShowTransitionModal={setShowTransitionModal}
+                  currentPriority={currentPriority}
+                  setShowPriorityModal={setShowPriorityModal}
+                  session={session}
+                  headerProgressStats={headerProgressStats}
+                />
             )}
 
 
@@ -1190,57 +1059,24 @@ export default function TodayTrainingTab({
               // Día ya completado: no ofrecer "Reanudar Entrenamiento"
               !(todayStatus?.session?.session_status === 'completed' &&
                 (todayStatus?.summary?.isComplete || todayStatus?.summary?.isFinished)) ? (
-              <section className="transition-opacity duration-300 ease-in-out opacity-100">
-
-                {/* Componente modular para iniciar/reanudar sesión */}
-                <StartSessionCard
-                  dayName={currentTodayName}
-                  exerciseCount={todaySessionData?.ejercicios?.length || 0}
-                  hasExistingSession={Boolean(todayStatus?.session?.id)}
-                  isLoading={ui.isLoading}
-                  isLoadingStatus={loadingTodayStatus && !todayStatus}
-                  isStarting={isLoadingSession}
-                  onClick={() => {
-                    // 🎯 FIX: Verificar si existe sesión en BD antes de decidir
-                    const hasExistingSession = Boolean(todayStatus?.session?.id);
-
-                    console.log('🔍 DEBUG Button Click Decision:', {
-                      hasExistingSession,
-                      sessionId: todayStatus?.session?.id,
-                      shouldResume,
-                      hasUnfinishedWorkToday,
-                      todayStatusCanResume: todayStatus?.session?.canResume,
-                      sessionStatus: todayStatus?.session?.session_status,
-                      hasActiveSession
-                    });
-
-                    // 🎯 LÓGICA CORREGIDA:
-                    // - Si existe sesión en BD → Reanudar
-                    // - Si NO existe sesión en BD → Iniciar nueva
-                    if (hasExistingSession && (shouldResume || hasUnfinishedWorkToday)) {
-                      handleResumeSession();
-                    } else {
-                      handleStartSession(0);
-                    }
-                  }}
-                />
-
-                {/* Lista de ejercicios - Componente modular */}
-                {todaySessionData?.ejercicios && todaySessionData.ejercicios.length > 0 && !hasCompletedSession && (
-                  <div className="mt-6">
-                    <ExerciseList
-                      exercises={todaySessionData.ejercicios}
-                      todayStatus={todayStatus}
-                      exerciseProgress={exerciseProgress}
-                      session={session}
-                      hasActiveSession={hasActiveSession}
-                      dayName={currentTodayName}
-                      estimatedDuration={estimatedDuration}
-                      methodologyType={plan.methodologyType || 'Rutina'}
-                    />
-                  </div>
-                )}
-              </section>
+              <StartSessionSection
+                currentTodayName={currentTodayName}
+                todaySessionData={todaySessionData}
+                todayStatus={todayStatus}
+                ui={ui}
+                loadingTodayStatus={loadingTodayStatus}
+                isLoadingSession={isLoadingSession}
+                shouldResume={shouldResume}
+                hasUnfinishedWorkToday={hasUnfinishedWorkToday}
+                hasActiveSession={hasActiveSession}
+                handleResumeSession={handleResumeSession}
+                handleStartSession={handleStartSession}
+                exerciseProgress={exerciseProgress}
+                session={session}
+                estimatedDuration={estimatedDuration}
+                plan={plan}
+                hasCompletedSession={hasCompletedSession}
+              />
             ) : null}
 
 
@@ -1250,159 +1086,13 @@ export default function TodayTrainingTab({
 
             {/* Mostrar resumen de sesión de fin de semana */}
             {!hasActivePlan && todayStatus?.session?.session_type === 'weekend-extra' && (
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="text-xl font-semibold text-white">
-                      🌟 Entrenamiento Extra de {new Date().toLocaleDateString('es-ES', { weekday: 'long' })}
-                    </h3>
-                    <p className="text-gray-400 mt-1">
-                      {todayStatus.summary.completed} completados - {todayStatus.summary.skipped} saltados - {todayStatus.summary.total} ejercicios
-                    </p>
-                  </div>
-                  <div className="text-sm text-gray-400">
-                    {"Duración total: "}
-                    {todayStatus.session?.total_duration_seconds
-                      ? Math.round(
-                          (todayStatus.session.total_duration_seconds + (todayStatus.session.warmup_time_seconds || 0)) / 60
-                        )
-                      : 0}
-                    {" min"}
-                  </div>
-                </div>
-
-                {/* Barra de progreso */}
-                <div className="mb-6">
-                  <div className="flex justify-between text-sm text-gray-400 mb-2">
-                    <span>Progreso</span>
-                    <span>{todayStatus.summary.progress || 0}%</span>
-                  </div>
-                  <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full transition-all duration-500 ${
-                        todayStatus.summary.progress === 100
-                          ? 'bg-green-500'
-                          : todayStatus.summary.progress >= 75
-                            ? 'bg-yellow-400'
-                            : 'bg-blue-400'
-                      }`}
-                      style={{ width: `${todayStatus.summary.progress || 0}%` }}
-                    />
-                  </div>
-                  {todayStatus.summary.progress === 100 && (
-                    <p className="text-green-400 text-sm mt-2 text-center">
-                      ✨ ¡Entrenamiento completado al 100%!
-                    </p>
-                  )}
-                </div>
-
-                {/* Lista de ejercicios con colores de estado */}
-                <div className="space-y-2">
-                  {todaySessionData?.ejercicios ? (
-                    todaySessionData.ejercicios.map((ejercicio, index) => {
-                      // Combinar datos del plan con estado desde backend
-                      const backendExercise = todayStatus?.exercises?.[index];
-                      const status = backendExercise?.status || 'pending';
-                      const ex = {
-                        ...ejercicio,
-                        status: String(status).toLowerCase(),
-                        exercise_name: ejercicio.nombre,
-                        series_total: ejercicio.series,
-                        sentiment: backendExercise?.sentiment,
-                        comment: backendExercise?.comment
-                      };
-                      return (
-                        <ExerciseListItem key={index} exercise={ex} index={index} />
-                      );
-                    })
-                  ) : (
-                    // Fallback si no hay todaySessionData
-                    todayStatus?.exercises?.map((exercise, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-800">
-                        <div className="flex items-center gap-3">
-                          <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                            exercise.status === 'completed' ? 'bg-green-500' :
-                            exercise.status === 'skipped' ? 'bg-gray-500' :
-                            exercise.status === 'cancelled' ? 'bg-red-500' :
-                            'bg-gray-600'
-                          }`}>
-                            {exercise.status === 'completed' ? '✓' :
-                             exercise.status === 'skipped' ? '⏭' :
-                             exercise.status === 'cancelled' ? '✕' :
-                             (index + 1)}
-                          </div>
-                          <span className="text-white">Ejercicio {index + 1}</span>
-                        </div>
-                        <span className={`text-sm ${
-                          exercise.status === 'completed' ? 'text-green-400' :
-                          exercise.status === 'skipped' ? 'text-gray-400' :
-                          exercise.status === 'cancelled' ? 'text-red-400' :
-                          'text-gray-500'
-                        }`}>
-                          {exercise.status === 'completed' ? 'Completado' :
-                           exercise.status === 'skipped' ? 'Saltado' :
-                           exercise.status === 'cancelled' ? 'Cancelado' :
-                           'Pendiente'}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                {/* Texto informativo sobre la duración de la rutina weekend */}
-                <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                  <p className="text-blue-400 text-sm text-center">
-                    ℹ️ Esta rutina es solo para hoy. Una vez finalizada o cuando acabe el día se eliminará,
-                    aunque los datos generados serán guardados en el histórico.
-                  </p>
-                </div>
-
-                {/* Botones de acción */}
-                {console.log('🔍 DEBUG Botón Reanudar:', {
-                  canRetry: todayStatus.summary.canRetry,
-                  progress: todayStatus.summary.progress,
-                  shouldShow: todayStatus.summary.canRetry && todayStatus.summary.progress < 100
-                })}
-                <div className="mt-6 flex gap-4 justify-center">
-                  {/* Botón de reanudar si no está completa */}
-                  {todayStatus.summary.canRetry && todayStatus.summary.progress < 100 && (
-                    <Button
-                      onClick={handleResumeSession}
-                      className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 px-6 py-3 rounded-lg"
-                      disabled={ui.isLoading}
-                    >
-                      {ui.isLoading ? (
-                        <>
-                          <RefreshCw className="h-5 w-5 animate-spin mr-2" />
-                          Iniciando...
-                        </>
-                      ) : (
-                        <>
-                          <Play className="h-5 w-5 mr-2" />
-                          Reanudar Entrenamiento
-                        </>
-                      )}
-                    </Button>
-                  )}
-
-                  {/* Botón de cancelar (siempre visible en sesiones weekend) */}
-                  <Button
-                    onClick={() => {
-                      console.log('🔴 CANCELAR CLICK - Session info:', {
-                        sessionId: todayStatus.session.id,
-                        sessionType: todayStatus.session.session_type,
-                        todayStatusFull: todayStatus
-                      });
-                      updateLocalState({ showRejectionModal: true, pendingCancelSessionId: todayStatus.session.id });
-                    }}
-                    variant="outline"
-                    className="border-red-500/30 text-red-400 hover:bg-red-500/10 px-6 py-3 rounded-lg"
-                    disabled={ui.isLoading}
-                  >
-                    Cancelar rutina
-                  </Button>
-                </div>
-              </Card>
+              <WeekendExtraSummaryCard
+                todayStatus={todayStatus}
+                todaySessionData={todaySessionData}
+                ui={ui}
+                handleResumeSession={handleResumeSession}
+                updateLocalState={updateLocalState}
+              />
             )}
 
             {/* =============================================== */}
@@ -1411,45 +1101,11 @@ export default function TodayTrainingTab({
 
             {/* Resumen de sesión completada exitosamente */}
             {hasActivePlan && hasToday && hasCompletedSession && todayStatus && (
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="text-xl font-semibold text-white">Resumen de hoy ({currentTodayName})</h3>
-                    <p className="text-gray-400 mt-1">
-                      {todayStatus.summary.completed} completados - {todayStatus.summary.skipped} saltados - {todayStatus.summary.total} ejercicios
-                    </p>
-                  </div>
-                  <div className="text-sm text-gray-400">
-                    {"Duracion total: "}
-                    {todayStatus.session?.total_duration_seconds
-                      ? Math.round(
-                          (todayStatus.session.total_duration_seconds + (todayStatus.session.warmup_time_seconds || 0)) / 60
-                        )
-                      : 0}
-                    {" min"}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  {todaySessionData.ejercicios.map((ejercicio, index) => {
-                    // Combinar datos del plan con estado desde backend
-                    const backendExercise = todayStatus?.exercises?.[index];
-                    const status = backendExercise?.status || 'completed';
-                    const ex = {
-                      ...ejercicio,
-                      status: String(status).toLowerCase(),
-                      exercise_name: ejercicio.nombre,
-                      series_total: ejercicio.series,
-                      // 🎯 NUEVO: Agregar feedback desde backend
-                      sentiment: backendExercise?.sentiment,
-                      comment: backendExercise?.comment
-                    };
-                    return (
-                      <ExerciseListItem key={index} exercise={ex} index={index} />
-                    );
-                  })}
-                </div>
-              </Card>
+              <CompletedSessionSummaryCard
+                currentTodayName={currentTodayName}
+                todayStatus={todayStatus}
+                todaySessionData={todaySessionData}
+              />
             )}
 
 
@@ -1459,15 +1115,7 @@ export default function TodayTrainingTab({
             {/* =============================================== */}
 
             {noActivePlan && !todayStatus?.session && !(todayStatus?.session?.session_type === 'weekend-extra') && (
-              <div className="text-center py-12">
-                <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-white mb-2">
-                  No hay rutina programada
-                </h3>
-                <p className="text-gray-400 mb-6">
-                  No tienes ninguna rutina activa. Ve a metodologías para crear una nueva rutina.
-                </p>
-              </div>
+              <NoActivePlanCard />
             )}
 
             {/* =============================================== */}

@@ -1,9 +1,17 @@
 import { alertDialog } from './ui/dialogService.jsx';
 import React, { useState, useRef, useEffect, memo } from 'react';
-import { Play, Pause, Music, Volume2, MoreHorizontal, X, Minus, List, Plus, Edit3, Trash2, Save, SkipForward, SkipBack, RotateCcw } from 'lucide-react';
-import { FaSpotify, FaYoutube, FaApple } from 'react-icons/fa';
+import { Pause, Music, Volume2, X, Minus, List } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { usePlaylistDB } from '../hooks/usePlaylistDB';
+import { BUBBLE_SIZE, BUBBLE_MARGIN, DRAG_THRESHOLD_PX } from './audioBubble/constants';
+import { getExerciseBasedMusic } from './audioBubble/audioUtils';
+import MinimizedPlayer from './audioBubble/MinimizedPlayer';
+import CurrentTrackCard from './audioBubble/CurrentTrackCard';
+import PlaybackControls from './audioBubble/PlaybackControls';
+import PlatformButtons from './audioBubble/PlatformButtons';
+import PlaylistSelector from './audioBubble/PlaylistSelector';
+import TrackList from './audioBubble/TrackList';
+import PlaylistManager from './audioBubble/PlaylistManager';
 import './AudioBubble.css';
 
 const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
@@ -23,8 +31,6 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentPlatform, setCurrentPlatform] = useState(null);
-  const BUBBLE_SIZE = 72;
-  const BUBBLE_MARGIN = 24;
   // Spawn en el borde derecho, centrado verticalmente: la esquina inferior
   // derecha (spawn original) queda siempre debajo del CTA principal del
   // reproductor de sesión (p.ej. "Guardar Serie") y de la barra de
@@ -56,7 +62,6 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
   const bubbleRef = useRef(null);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const dragMovedRef = useRef(false);
-  const DRAG_THRESHOLD_PX = 6;
 
   // Dragging functionality (mouse + touch)
   const handleMouseDown = (e) => {
@@ -312,14 +317,6 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
     e.target.value = '';
   };
 
-  // Format time helper
-  const formatTime = (time) => {
-    if (!time || isNaN(time)) return '0:00';
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
   // Handle progress bar click
   const handleProgressClick = (e) => {
     if (!audioRef.current || !duration) return;
@@ -523,44 +520,6 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
     setTempTracks([]);
   };
 
-  // Exercise-based music sync
-  const getExerciseBasedMusic = (exercise) => {
-    if (!exercise) return null;
-    
-    const exerciseType = exercise.type?.toLowerCase();
-    const intensity = exercise.intensity?.toLowerCase();
-    
-    let bpm = 120; // Default BPM
-    let genre = 'workout';
-    
-    switch (exerciseType) {
-      case 'cardio':
-      case 'hiit':
-        bpm = intensity === 'high' ? 140-160 : 120-140;
-        genre = 'electronic,dance,pop';
-        break;
-      case 'strength':
-      case 'powerlifting':
-        bpm = 100-130;
-        genre = 'rock,metal,hip-hop';
-        break;
-      case 'yoga':
-      case 'stretching':
-        bpm = 60-90;
-        genre = 'ambient,chill,classical';
-        break;
-      case 'functional':
-        bpm = 110-130;
-        genre = 'pop,rock,electronic';
-        break;
-      default:
-        bpm = 120;
-        genre = 'workout';
-    }
-    
-    return { bpm, genre, exerciseType };
-  };
-
   // Auto-sync with exercise
   useEffect(() => {
     if (currentExercise && isPlaying && currentPlatform === 'spotify' && musicConfig?.general?.autoSync) {
@@ -677,54 +636,18 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
     <>
       {/* Minimized state - compact player */}
       {isMinimized && currentTrack ? (
-        <div
-          ref={bubbleRef}
-          className="fixed z-50 bg-gray-900/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-700/50 cursor-move audio-control-backdrop touch-none"
-          style={{ 
-            left: `${position.x}px`, 
-            top: `${position.y}px`,
-          }}
+        <MinimizedPlayer
+          bubbleRef={bubbleRef}
+          position={position}
           onMouseDown={handleMouseDown}
           onTouchStart={handleTouchStart}
-        >
-          <div className="flex items-center space-x-3 p-3">
-            {/* Play/Pause Button */}
-            <button
-              onClick={togglePlay}
-              className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-            >
-              {isPlaying ? (
-                <Pause className="w-5 h-5 text-gray-900" />
-              ) : (
-                <img
-                  src="/assets/tech-lux/play.webp"
-                  alt="Reproducir"
-                  className="h-5 w-5 object-contain pointer-events-none select-none"
-                  draggable="false"
-                />
-              )}
-            </button>
-            
-            {/* Track Info */}
-            <div className="flex-1 min-w-0">
-              <div className="text-white text-sm font-medium truncate">
-                {currentTrack.name}
-              </div>
-              <div className="text-xs text-gray-400">
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </div>
-            </div>
-            
-            {/* Maximize Button */}
-            <button
-              onClick={() => setIsMinimized(false)}
-              className="control-button w-8 h-8 hover:bg-gray-700/50 rounded-lg transition-all duration-200 flex items-center justify-center"
-              title="Maximizar"
-            >
-              <MoreHorizontal className="w-4 h-4 text-gray-400" />
-            </button>
-          </div>
-        </div>
+          togglePlay={togglePlay}
+          isPlaying={isPlaying}
+          currentTrack={currentTrack}
+          currentTime={currentTime}
+          duration={duration}
+          onMaximize={() => setIsMinimized(false)}
+        />
       ) : (
         /* Expanded modal */
         <div
@@ -769,88 +692,25 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
         {/* Full content */}
           <>
             {/* Current Track Card */}
-            {currentTrack && (
-          <div className="mx-4 mt-4 p-4 bg-gradient-to-r from-gray-800/50 to-gray-700/30 rounded-xl border border-gray-600/30">
-            <div className="flex items-center space-x-3 mb-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Music className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-white font-medium text-sm truncate">
-                  {currentTrack.name || 'Reproduciendo...'}
-                </div>
-                <div className="text-gray-400 text-xs capitalize">
-                  {currentPlatform}
-                </div>
-              </div>
-            </div>
-            
-            {/* Progress Bar */}
-            <div className="space-y-2">
-              <div 
-                className="relative h-2 bg-gray-700 rounded-full cursor-pointer"
-                onClick={handleProgressClick}
-              >
-                <div 
-                  className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-all duration-300"
-                  style={{ 
-                    width: `${duration ? (currentTime / duration) * 100 : 0}%` 
-                  }}
-                />
-                {/* Progress thumb */}
-                <div 
-                  className="absolute top-1/2 transform -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-md transition-all duration-300"
-                  style={{ 
-                    left: `${duration ? (currentTime / duration) * 100 : 0}%`,
-                    marginLeft: '-6px'
-                  }}
-                />
-              </div>
-              <div className="flex justify-between text-xs text-gray-400">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-            </div>
-          </div>
-        )}
+            <CurrentTrackCard
+              currentTrack={currentTrack}
+              currentPlatform={currentPlatform}
+              handleProgressClick={handleProgressClick}
+              currentTime={currentTime}
+              duration={duration}
+            />
 
         {/* Controls */}
         <div className="p-4 space-y-4">
           {/* Playback Controls */}
-          <div className="flex items-center justify-center space-x-4">
-            {/* Previous Track */}
-            <button
-              onClick={playPrevious}
-              disabled={!currentPlaylist || !currentPlaylist.tracks || currentPlaylist.tracks.length <= 1}
-              className="control-button w-10 h-10 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:opacity-50 rounded-full flex items-center justify-center transition-all duration-200"
-            >
-              <SkipBack className="w-5 h-5 text-white" />
-            </button>
-
-            {/* Play/Pause Button */}
-            <button
-              onClick={togglePlay}
-              disabled={!currentTrack}
-              className={`control-button w-14 h-14 bg-gradient-to-br from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 disabled:from-gray-600 disabled:to-gray-700 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 ${
-                isPlaying ? 'play-button-playing' : ''
-              }`}
-            >
-              {isPlaying ? (
-                <Pause className="w-7 h-7 text-gray-900" />
-              ) : (
-                <Play className="w-7 h-7 text-gray-900 ml-1" />
-              )}
-            </button>
-
-            {/* Next Track */}
-            <button
-              onClick={playNext}
-              disabled={!currentPlaylist || !currentPlaylist.tracks || currentPlaylist.tracks.length <= 1}
-              className="control-button w-10 h-10 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:opacity-50 rounded-full flex items-center justify-center transition-all duration-200"
-            >
-              <SkipForward className="w-5 h-5 text-white" />
-            </button>
-          </div>
+          <PlaybackControls
+            playPrevious={playPrevious}
+            togglePlay={togglePlay}
+            playNext={playNext}
+            currentPlaylist={currentPlaylist}
+            currentTrack={currentTrack}
+            isPlaying={isPlaying}
+          />
 
           {/* Track Info & Playlist Selector */}
           {currentPlaylist && (
@@ -906,109 +766,34 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
           </div>
 
           {/* Platform Buttons - Responsive Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
-            <button
-              onClick={handleSpotify}
-              className="platform-button flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 p-3 bg-green-600 hover:bg-green-700 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-            >
-              <FaSpotify className="w-5 h-5" />
-              <span className="text-xs sm:text-sm font-medium">Spotify</span>
-            </button>
-            
-            <button
-              onClick={handleYouTubeMusic}
-              className="platform-button flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 p-3 bg-red-600 hover:bg-red-700 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-            >
-              <FaYoutube className="w-5 h-5" />
-              <span className="text-xs sm:text-sm font-medium">YouTube</span>
-            </button>
-            
-            <button
-              onClick={handleAppleMusic}
-              className="platform-button flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 p-3 bg-gray-800 hover:bg-gray-700 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-            >
-              <FaApple className="w-5 h-5" />
-              <span className="text-xs sm:text-sm font-medium">Apple</span>
-            </button>
-            
-            <button
-              onClick={handleLocalPlayer}
-              className="platform-button flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 p-3 bg-blue-600 hover:bg-blue-700 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-            >
-              <Music className="w-5 h-5" />
-              <span className="text-xs sm:text-sm font-medium">Local</span>
-            </button>
-          </div>
+          <PlatformButtons
+            handleSpotify={handleSpotify}
+            handleYouTubeMusic={handleYouTubeMusic}
+            handleAppleMusic={handleAppleMusic}
+            handleLocalPlayer={handleLocalPlayer}
+          />
 
           {/* Playlist Selector */}
           {showPlaylistSelector && currentPlatform === 'local' && (
-            <div className="bg-gray-800/50 border border-gray-600/30 rounded-lg p-3">
-              <div className="text-sm text-white font-medium mb-2">Cambiar Playlist:</div>
-              <div className="space-y-2 max-h-32 overflow-y-auto">
-                {playlists.map(playlist => (
-                  <button
-                    key={playlist.id}
-                    onClick={() => {
-                      selectAndPlayPlaylist(playlist);
-                      setShowPlaylistSelector(false);
-                    }}
-                    className={`w-full text-left p-2 rounded transition-colors ${
-                      currentPlaylist?.id === playlist.id 
-                        ? 'bg-green-600/30 text-green-400' 
-                        : 'hover:bg-gray-700/50 text-gray-300'
-                    }`}
-                  >
-                    <div className="text-sm font-medium">{playlist.name}</div>
-                    <div className="text-xs text-gray-400">{playlist.tracks?.length || 0} canciones</div>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <PlaylistSelector
+              playlists={playlists}
+              currentPlaylist={currentPlaylist}
+              onSelectPlaylist={(playlist) => {
+                selectAndPlayPlaylist(playlist);
+                setShowPlaylistSelector(false);
+              }}
+            />
           )}
 
           {/* Track List */}
           {showTrackList && currentPlaylist && currentPlaylist.tracks && (
-            <div className="bg-gray-800/50 border border-gray-600/30 rounded-lg p-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-white font-medium">Tracklist:</div>
-                <button
-                  onClick={() => setShowTrackList(false)}
-                  className="p-1 hover:bg-gray-700 rounded transition-colors"
-                >
-                  <X className="w-3 h-3 text-gray-400" />
-                </button>
-              </div>
-              <div className="space-y-1 max-h-40 overflow-y-auto">
-                {currentPlaylist.tracks.map((track, index) => (
-                  <button
-                    key={track.id}
-                    onClick={() => playTrackAtIndex(index)}
-                    className={`w-full text-left p-2 rounded text-xs transition-colors ${
-                      index === currentTrackIndex 
-                        ? 'bg-yellow-400/20 text-yellow-400' 
-                        : 'hover:bg-gray-700/30 text-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <span className="w-4 text-center">
-                        {index === currentTrackIndex ? '▶' : index + 1}
-                      </span>
-                      <span className="flex-1 truncate">{track.name}</span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeTrackFromPlaylist(currentPlaylist.id, track.id);
-                        }}
-                        className="p-0.5 hover:bg-red-600/30 rounded transition-colors"
-                        title="Eliminar de playlist"
-                      >
-                        <X className="w-3 h-3 text-red-400" />
-                      </button>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <TrackList
+              currentPlaylist={currentPlaylist}
+              currentTrackIndex={currentTrackIndex}
+              playTrackAtIndex={playTrackAtIndex}
+              removeTrackFromPlaylist={removeTrackFromPlaylist}
+              onClose={() => setShowTrackList(false)}
+            />
           )}
 
           {/* Exercise Sync Status */}
@@ -1025,179 +810,24 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
 
           {/* Playlist Management for Local Files */}
           {showPlaylistManager && (
-            <div className="border-t border-gray-700/50 pt-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-white text-sm font-medium">Gestión de Playlists</span>
-                <button
-                  onClick={() => setShowPlaylistManager(false)}
-                  className="p-1.5 hover:bg-gray-700/50 rounded-lg transition-colors"
-                  title="Cerrar"
-                >
-                  <X className="w-4 h-4 text-gray-400" />
-                </button>
-              </div>
-
-              {/* Creating New Playlist */}
-              {creatingPlaylist ? (
-                <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-4 space-y-3">
-                  <div className="text-sm text-blue-400 font-medium">📝 Crear Nueva Playlist</div>
-                  
-                  {/* Nombre de la playlist */}
-                  <div>
-                    <input
-                      type="text"
-                      value={newPlaylistName}
-                      onChange={(e) => setNewPlaylistName(e.target.value)}
-                      placeholder="Nombre de la playlist"
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                    />
-                  </div>
-
-                  {/* Botones para gestión de archivos */}
-                  <div className="flex items-center justify-between">
-                    <button
-                      onClick={() => document.getElementById('temp-file-input')?.click()}
-                      className="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span className="text-sm">Añadir Canciones</span>
-                    </button>
-                    
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-gray-400">
-                        {tempTracks.length} {tempTracks.length === 1 ? 'canción' : 'canciones'}
-                      </span>
-                      
-                      {tempTracks.length > 0 && (
-                        <button
-                          onClick={clearAllTempTracks}
-                          className="flex items-center space-x-1 px-2 py-1 bg-red-600/80 hover:bg-red-600 rounded text-xs transition-colors"
-                          title="Eliminar todas las canciones"
-                        >
-                          <RotateCcw className="w-3 h-3" />
-                          <span>Limpiar</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Lista temporal de canciones */}
-                  {tempTracks.length > 0 && (
-                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                      {tempTracks.map((track, index) => (
-                        <div key={track.id} className="flex items-center space-x-2 p-2 bg-gray-800/50 rounded text-xs">
-                          <span className="flex-1 text-gray-200 truncate">
-                            {index + 1}. {track.name}
-                          </span>
-                          <button
-                            onClick={() => removeFromTemp(track.id)}
-                            className="p-0.5 hover:bg-red-600/30 rounded transition-colors"
-                            title="Eliminar"
-                          >
-                            <X className="w-3 h-3 text-red-400" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Botones de acción */}
-                  <div className="flex items-center justify-between pt-2">
-                    <button
-                      onClick={cancelCreatingPlaylist}
-                      className="px-3 py-1.5 text-gray-400 hover:text-white transition-colors text-sm"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={confirmCreatePlaylist}
-                      disabled={!newPlaylistName.trim() || tempTracks.length === 0}
-                      className="flex items-center space-x-2 px-4 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 rounded transition-colors text-sm"
-                    >
-                      <Save className="w-3 h-3" />
-                      <span>Crear Playlist</span>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* Botón crear nueva playlist */}
-                  <button
-                    onClick={startCreatingPlaylist}
-                    className="w-full flex items-center justify-center space-x-2 p-3 border-2 border-dashed border-blue-600/50 hover:border-blue-600 rounded-lg transition-colors mb-4"
-                  >
-                    <Plus className="w-5 h-5 text-blue-400" />
-                    <span className="text-blue-400 font-medium">Crear Nueva Playlist</span>
-                  </button>
-
-                  {/* Lista de playlists existentes */}
-                  {playlists.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="text-sm text-gray-400 mb-2">Playlists Existentes:</div>
-                      {playlists.map(playlist => (
-                        <div key={playlist.id} className="bg-gray-800/30 rounded-lg p-3">
-                          {editingPlaylist === playlist.id ? (
-                            <input
-                              type="text"
-                              defaultValue={playlist.name}
-                              className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm mb-2"
-                              onBlur={(e) => updatePlaylistName(playlist.id, e.target.value)}
-                              onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                  updatePlaylistName(playlist.id, e.target.value);
-                                }
-                              }}
-                              autoFocus
-                            />
-                          ) : (
-                            <>
-                              <div className="flex items-center justify-between mb-2">
-                                <div>
-                                  <div className="text-white font-medium">{playlist.name}</div>
-                                  <div className="text-xs text-gray-400">{playlist.tracks?.length || 0} canciones</div>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <button
-                                    onClick={() => setEditingPlaylist(playlist.id)}
-                                    className="p-1 hover:bg-gray-700 rounded transition-colors"
-                                    title="Editar nombre"
-                                  >
-                                    <Edit3 className="w-3 h-3 text-gray-400" />
-                                  </button>
-                                  <button
-                                    onClick={() => deletePlaylist(playlist.id)}
-                                    className="p-1 hover:bg-red-600/30 rounded transition-colors"
-                                    title="Eliminar playlist"
-                                  >
-                                    <Trash2 className="w-3 h-3 text-red-400" />
-                                  </button>
-                                </div>
-                              </div>
-
-                              <button
-                                onClick={() => selectAndPlayPlaylist(playlist)}
-                                className="w-full flex items-center justify-center space-x-2 py-2 bg-green-600 hover:bg-green-700 rounded transition-colors"
-                              >
-                                <Play className="w-4 h-4" />
-                                <span className="text-sm">Seleccionar y Reproducir</span>
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {playlists.length === 0 && !creatingPlaylist && (
-                    <div className="text-center text-gray-500 text-sm py-8">
-                      <Music className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p>No tienes playlists aún.</p>
-                      <p className="text-xs mt-1">Crea tu primera playlist para comenzar</p>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+            <PlaylistManager
+              onClose={() => setShowPlaylistManager(false)}
+              creatingPlaylist={creatingPlaylist}
+              newPlaylistName={newPlaylistName}
+              setNewPlaylistName={setNewPlaylistName}
+              tempTracks={tempTracks}
+              clearAllTempTracks={clearAllTempTracks}
+              removeFromTemp={removeFromTemp}
+              cancelCreatingPlaylist={cancelCreatingPlaylist}
+              confirmCreatePlaylist={confirmCreatePlaylist}
+              startCreatingPlaylist={startCreatingPlaylist}
+              playlists={playlists}
+              editingPlaylist={editingPlaylist}
+              setEditingPlaylist={setEditingPlaylist}
+              updatePlaylistName={updatePlaylistName}
+              deletePlaylist={deletePlaylist}
+              selectAndPlayPlaylist={selectAndPlayPlaylist}
+            />
           )}
           </div>
           </>

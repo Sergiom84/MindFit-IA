@@ -1,20 +1,6 @@
 import { useEffect, useState } from 'react';
-import {
-  Activity,
-  AlertCircle,
-  Brain,
-  Calendar,
-  CheckCircle2,
-  Dumbbell,
-  Info,
-  Loader2,
-  Settings,
-  Target,
-  TrendingUp,
-  Utensils
-} from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import { useUserContext } from '@/contexts/UserContext';
-import MetabolicQuestionnaire from './MetabolicQuestionnaire';
 import tokenManager from '../../utils/tokenManager';
 import { getApiBaseUrl } from '../../config/api';
 import {
@@ -24,30 +10,22 @@ import {
 } from '../../services/nutritionV2ReadService';
 import {
   ACTIVITY_FROM_USER,
-  ACTIVITY_HELP,
-  ACTIVITY_OPTIONS,
   ACTIVITY_TO_USER,
   DEFAULT_PROFILE,
   DIAS_SEMANA,
-  DURATION_PRESETS,
   GOAL_FROM_USER,
   GOAL_TO_USER,
-  LOW_MEAL_COUNTS,
-  OBJECTIVE_OPTIONS,
-  PREFERENCE_KEYS,
-  TRAINING_TYPES
+  LOW_MEAL_COUNTS
 } from './nutritionPlanConfig';
 import {
   areBooleanArraysEqual,
   buildProfileStateFromApi,
-  buildProfileStateFromUser,
-  getMetabolicProfileMeta,
-  normalizeActivityValue
+  buildProfileStateFromUser
 } from './nutritionPlanHelpers';
 import useTrainingPlanInfo from './useTrainingPlanInfo';
-import MealCountWarningModal from './MealCountWarningModal';
-import NutritionEstimationCards from './NutritionEstimationCards';
 import GeneratedPlanSummary from './GeneratedPlanSummary';
+import NutritionProfileConfigSection from './NutritionProfileConfigSection';
+import DeterministicPlanSection from './DeterministicPlanSection';
 
 // ARCH-001 residual: sin base URL hardcodeada; usa getApiBaseUrl() (respeta VITE_API_URL/origen).
 const API_URL = getApiBaseUrl();
@@ -536,7 +514,6 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
     : isDailySchedule
       ? 'Vista basada en una semana completa del plan.'
       : 'Usa un preset o ajusta manualmente los dias';
-  const metabolicProfileMeta = getMetabolicProfileMeta(profileData.metabolic_type);
 
   const handleMetabolicResult = (result) => {
     const metabolicState = { ...result };
@@ -561,548 +538,51 @@ export default function NutritionPlanGenerator({ onPlanGenerated }) {
         </header>
       </div>
 
-      <section className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-xl p-6 space-y-6">
-          <header className="flex items-center gap-3">
-            <Settings className="w-6 h-6 text-yellow-400" />
-            <div>
-              <h3 className="text-xl font-semibold text-white">Configuracion nutricional</h3>
-              <p className="text-sm text-gray-400">
-                Ajusta objetivo, nivel de actividad, comidas por dia y preferencias alimentarias.
-              </p>
-            </div>
-          </header>
+      <NutritionProfileConfigSection
+        profileData={profileData}
+        setProfileData={setProfileData}
+        profileLoading={profileLoading}
+        profileSaving={profileSaving}
+        profileLoadError={profileLoadError}
+        profileSaveError={profileSaveError}
+        profileSuccess={profileSuccess}
+        nutritionOverridesProfile={nutritionOverridesProfile}
+        setNutritionOverridesProfile={setNutritionOverridesProfile}
+        loadProfileFromUserData={loadProfileFromUserData}
+        showActivityHelp={showActivityHelp}
+        setShowActivityHelp={setShowActivityHelp}
+        requestMealCountSelection={requestMealCountSelection}
+        handleMetabolicResult={handleMetabolicResult}
+        handlePreferenceToggle={handlePreferenceToggle}
+        alergiaInput={alergiaInput}
+        setAlergiaInput={setAlergiaInput}
+        addAlergia={addAlergia}
+        removeAlergia={removeAlergia}
+        handleSaveProfile={handleSaveProfile}
+        estimaciones={estimaciones}
+      />
 
-          {!nutritionOverridesProfile ? (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-xs text-emerald-200">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>Sincronizado con perfil general</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setNutritionOverridesProfile(true);
-                }}
-                className="ml-auto text-emerald-300/80 hover:text-emerald-200 underline"
-              >
-                Personalizar solo para nutricion
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-xs text-yellow-200">
-              <Settings className="w-4 h-4 text-yellow-400" />
-              <span>No sincronizado con perfil general</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setNutritionOverridesProfile(false);
-                  void loadProfileFromUserData();
-                }}
-                className="ml-auto text-yellow-300/80 hover:text-yellow-200 underline"
-              >
-                Volver a sincronizar con perfil general
-              </button>
-            </div>
-          )}
-
-          {profileLoadError && (
-            <div className="p-3 bg-red-500/10 border border-red-500/40 rounded-lg flex items-start gap-2 text-sm text-red-300">
-              <AlertCircle className="w-4 h-4 mt-0.5" />
-              <span>{profileLoadError}</span>
-            </div>
-          )}
-
-          <div className="space-y-6">
-            <div>
-              <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-                <Target className="w-4 h-4 text-yellow-400" />
-                Objetivo principal
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {OBJECTIVE_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setProfileData((prev) => ({ ...prev, objetivo: option.value }))}
-                    className={`p-4 rounded-lg border transition-all text-left ${
-                      profileData.objetivo === option.value
-                        ? 'border-yellow-400 bg-yellow-500/10 text-white'
-                        : 'border-white/10 bg-white/5 text-gray-300/80 hover:border-white/20'
-                    }`}
-                    disabled={profileLoading || profileSaving}
-                  >
-                    <div className="text-sm font-semibold">{option.label}</div>
-                    <div className="text-xs text-gray-400 mt-1">{option.desc}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-                <Activity className="w-4 h-4 text-yellow-400" />
-                Nivel de actividad
-              </h4>
-              <select
-                value={profileData.actividad}
-                onChange={(event) =>
-                  setProfileData((prev) => ({ ...prev, actividad: event.target.value }))
-                }
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                disabled={profileLoading || profileSaving}
-              >
-                {ACTIVITY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
-                <span>
-                  {ACTIVITY_HELP[normalizeActivityValue(profileData.actividad)]?.short || 'Selecciona tu nivel de actividad'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowActivityHelp((prev) => !prev)}
-                  className="text-yellow-300/90 hover:text-yellow-200 transition-colors"
-                >
-                  {showActivityHelp ? 'Ocultar guia' : '¿Como elegir?'}
-                </button>
-              </div>
-              {showActivityHelp && (
-                <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3 text-xs text-gray-300 space-y-2">
-                  {Object.entries(ACTIVITY_HELP).map(([key, info]) => (
-                    <div key={key} className="rounded-lg border border-white/10 bg-black/10 px-3 py-2 space-y-1">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                        <span className="font-semibold text-yellow-200">{info.label}</span>
-                        <span className="text-gray-300">{info.short}</span>
-                      </div>
-                      <p className="text-gray-400">{info.detail}</p>
-                    </div>
-                  ))}
-                  <p className="text-gray-400">
-                    Elige por tu movimiento total del dia: trabajo, entrenos y pasos. Si dudas entre dos, empieza por la mas baja.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-                <Utensils className="w-4 h-4 text-yellow-400" />
-                Comidas por dia
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {[1, 2, 3, 4, 5, 6].map((count) => (
-                  <button
-                    key={count}
-                    type="button"
-                    onClick={() => requestMealCountSelection(count)}
-                    className={`px-4 py-3 rounded-lg font-semibold transition-all ${
-                      profileData.comidas_dia === count
-                        ? 'bg-yellow-400 text-gray-900'
-                        : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
-                    }`}
-                    disabled={profileLoading || profileSaving}
-                  >
-                    {count}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-2 text-xs text-gray-500">
-                Puedes usar 1 o 2 comidas si te encaja mejor, pero te pediremos confirmación antes de aplicarlo o generar el plan.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Brain className="w-4 h-4 text-yellow-400" />
-                <h4 className="text-white font-semibold">Reparto de macros</h4>
-              </div>
-              <p className="text-sm text-gray-400">
-                Cuestionario opcional para afinar como repartimos proteinas, carbos y grasas. No cambia tus calorias totales.
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div className="bg-white/5 border border-white/10 rounded-lg p-4 md:col-span-2">
-                  <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Perfil aplicado</p>
-                  <p className="text-lg font-semibold text-white">{metabolicProfileMeta.label}</p>
-                  <p className="text-sm text-gray-400 mt-1">{metabolicProfileMeta.description}</p>
-                </div>
-                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                  <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Confianza</p>
-                  <p className="text-lg font-semibold text-white">{profileData.metabolic_confidence || 'Pendiente'}</p>
-                </div>
-                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                  <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Score / pendiente</p>
-                  <p className="text-lg font-semibold text-white">{profileData.metabolic_score ?? '—'}</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {profileData.metabolic_pending_type
-                      ? `${getMetabolicProfileMeta(profileData.metabolic_pending_type).label} (${profileData.metabolic_pending_count}/2)`
-                      : 'Sin cambios pendientes'}
-                  </p>
-                </div>
-              </div>
-
-              <MetabolicQuestionnaire
-                onResult={handleMetabolicResult}
-                objective={profileData.objetivo}
-              />
-            </div>
-
-            <div>
-              <h4 className="text-white font-semibold mb-3">Preferencias alimentarias</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {PREFERENCE_KEYS.map(({ key, label }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => handlePreferenceToggle(key)}
-                    className={`p-3 rounded-lg text-sm font-medium transition-all ${
-                      profileData.preferencias[key]
-                        ? 'bg-yellow-400 text-gray-900'
-                        : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
-                    }`}
-                    disabled={profileLoading || profileSaving}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-white font-semibold mb-3">Alergias o restricciones</h4>
-              <div className="flex flex-wrap gap-2">
-                <input
-                  type="text"
-                  value={alergiaInput}
-                  onChange={(event) => setAlergiaInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      addAlergia();
-                    }
-                  }}
-                  placeholder="Ej: frutos secos, mariscos..."
-                  className="flex-1 min-w-[200px] bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                  disabled={profileLoading || profileSaving}
-                />
-                <button
-                  type="button"
-                  onClick={addAlergia}
-                  className="px-4 py-2 bg-yellow-400 text-gray-900 rounded-lg font-semibold hover:bg-yellow-500 transition-colors disabled:opacity-60"
-                  disabled={profileLoading || profileSaving}
-                >
-                  Anadir
-                </button>
-              </div>
-              {profileData.alergias.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {profileData.alergias.map((item) => (
-                    <span
-                      key={item}
-                      className="inline-flex items-center gap-2 bg-red-500/15 border border-red-500/30 text-red-300 px-3 py-1 rounded-full text-xs"
-                    >
-                      {item}
-                      <button
-                        type="button"
-                        onClick={() => removeAlergia(item)}
-                        className="hover:text-red-200"
-                        disabled={profileSaving}
-                      >
-                        &#10005;
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                handleSaveProfile();
-              }}
-              className="flex items-center gap-2 px-5 py-3 bg-yellow-400 text-gray-900 font-semibold rounded-lg hover:bg-yellow-500 transition-colors disabled:opacity-60"
-              disabled={profileLoading || profileSaving}
-            >
-              {profileSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-              Guardar configuracion
-            </button>
-            {profileSaving && (
-              <span className="text-sm text-gray-400 flex items-center gap-2">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                Guardando...
-              </span>
-            )}
-          </div>
-
-          {profileSaveError && (
-            <div className="p-3 bg-red-500/10 border border-red-500/40 rounded-lg flex items-start gap-2 text-sm text-red-300">
-              <AlertCircle className="w-4 h-4 mt-0.5" />
-              <span>{profileSaveError}</span>
-            </div>
-          )}
-
-          {profileSuccess && (
-            <div className="p-3 bg-green-500/10 border border-green-500/40 rounded-lg flex items-start gap-2 text-sm text-green-300">
-              <CheckCircle2 className="w-4 h-4 mt-0.5" />
-              <span>{profileSuccess}</span>
-            </div>
-          )}
-
-          {estimaciones && <NutritionEstimationCards estimaciones={estimaciones} />}
-        </section>
-
-        <section className="space-y-6">
-          <div className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-xl p-6 space-y-6">
-            <header className="flex items-center gap-3">
-              <TrendingUp className="w-6 h-6 text-yellow-400" />
-              <div>
-                <h3 className="text-xl font-semibold text-white">Calculo determinista del plan</h3>
-                <p className="text-sm text-gray-400">
-                  Define duracion, tipo de entrenamiento y distribucion de dias activos y de descanso.
-                </p>
-              </div>
-            </header>
-
-            {planError && (
-              <div className="p-3 bg-red-500/10 border border-red-500/40 rounded-lg flex items-start gap-2 text-sm text-red-300">
-                <AlertCircle className="w-4 h-4 mt-0.5" />
-                <span>{planError}</span>
-              </div>
-            )}
-
-            {planSuccess && (
-              <div className="p-3 bg-green-500/10 border border-green-500/40 rounded-lg flex items-start gap-2 text-sm text-green-300">
-                <CheckCircle2 className="w-4 h-4 mt-0.5" />
-                <span>Plan generado correctamente. Revisa el calendario para ver el detalle dia por dia.</span>
-              </div>
-            )}
-
-            <div className="space-y-5">
-              <div>
-                <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-yellow-400" />
-                  Duracion del plan
-                </h4>
-                {trainingPlanInfo.loading && (
-                  <p className="text-xs text-gray-400 mb-2">Buscando plan activo...</p>
-                )}
-                {trainingPlanInfo.error && (
-                  <p className="text-xs text-amber-300 mb-2">{trainingPlanInfo.error}</p>
-                )}
-                {trainingPlanInfo.hasPlan && trainingPlanInfo.endDate && (
-                  <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-gray-300">
-                    <span className="px-2 py-1 rounded-full bg-white/10 border border-white/10">
-                      Plan hasta {trainingPlanInfo.endDate.toLocaleDateString('es-ES')}
-                    </span>
-                    <span className="px-2 py-1 rounded-full bg-white/10 border border-white/10">
-                      Revision automatica cada 14 dias
-                    </span>
-                  </div>
-                )}
-                {trainingPlanInfo.hasPlan && (
-                  <div className="mb-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-200">
-                    <div className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-300" />
-                      <div className="space-y-1">
-                        <p className="font-semibold text-emerald-100">Nutricion enlazada a tu plan de entrenamiento</p>
-                        <p className="text-emerald-100/80">
-                          La duracion, el tipo de entrenamiento y el calendario se sincronizan automaticamente.
-                        </p>
-                      </div>
-                    </div>
-                    {(trainingPlanInfo.capApplied || trainingPlanInfo.minApplied) && (
-                      <p className="text-xs text-amber-200/90 mt-2">
-                        {trainingPlanInfo.capApplied && 'El calendario muestra hasta 28 dias. Tu plan continua activo.'}
-                        {trainingPlanInfo.minApplied && 'Duracion ajustada al minimo de 3 dias.'}
-                      </p>
-                    )}
-                  </div>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  {DURATION_PRESETS.map((days) => (
-                    <button
-                      key={days}
-                      type="button"
-                      onClick={() => setConfig((prev) => ({ ...prev, duracion_dias: days }))}
-                      className={`px-4 py-3 rounded-lg font-semibold transition-all ${
-                        config.duracion_dias === days
-                          ? 'bg-yellow-400 text-gray-900'
-                          : 'bg-white/5 text-gray-200/80 hover:bg-white/10'
-                      }`}
-                      disabled={planLoading || isTrainingLinked}
-                    >
-                      Vista: {days}d
-                    </button>
-                  ))}
-                </div>
-                {!isTrainingLinked && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Recomendamos planes de 7-14 dias para ajustarlos con frecuencia.
-                  </p>
-                )}
-                {isTrainingLinked && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Duracion sincronizada con tu plan de entrenamiento actual.
-                  </p>
-                )}
-                {!trainingPlanInfo.hasPlan && !trainingPlanInfo.loading && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Si inicias un plan de entrenamiento, podras rehacer la dieta para ajustar la duracion.
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-                  <Dumbbell className="w-4 h-4 text-yellow-400" />
-                  Tipo de entrenamiento
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {TRAINING_TYPES.map((trainingType) => (
-                    <button
-                      key={trainingType.value}
-                      type="button"
-                      onClick={() => setConfig((prev) => ({ ...prev, training_type: trainingType.value }))}
-                      className={`p-4 rounded-lg border transition-all text-left ${
-                        config.training_type === trainingType.value
-                          ? 'border-yellow-400 bg-yellow-500/10 text-white'
-                          : 'border-white/10 bg-white/5 text-gray-300/80 hover:border-white/20'
-                      }`}
-                      disabled={planLoading || isTrainingLinked}
-                    >
-                      <trainingType.Icon className="w-5 h-5 mb-2 text-yellow-400" />
-                      <div className="text-sm font-semibold">{trainingType.label}</div>
-                      <div className="text-xs text-gray-400 mt-1">{trainingType.desc}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                  <h4 className="text-white font-semibold">{trainingScheduleTitle}</h4>
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <Info className="w-4 h-4" />
-                    <span>{scheduleHelperText}</span>
-                  </div>
-                </div>
-
-                {!isTrainingLinked && (
-                  <div className="flex items-center gap-2 mb-4 flex-wrap">
-                    <span className="text-sm text-gray-400">Presets rapidos:</span>
-                    {['3dias', '4dias', '5dias', '6dias'].map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => setPreset(preset)}
-                        className="px-2.5 py-1 bg-white/5 text-gray-200/80 rounded text-xs hover:bg-white/10 transition-colors disabled:opacity-60"
-                        disabled={planLoading}
-                      >
-                        {preset.replace('dias', ' dias')}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-4 sm:grid-cols-7 gap-1 sm:gap-2">
-                  {DIAS_SEMANA.map((dia, index) => (
-                    <button
-                      key={dia}
-                      type="button"
-                      onClick={() => {
-                        if (!isDailySchedule && !isTrainingLinked) {
-                          toggleTrainingDay(index);
-                        }
-                      }}
-                      className={`aspect-square rounded-md sm:rounded-lg font-semibold text-[10px] sm:text-sm transition-all ${
-                        previewSchedule[index]
-                          ? 'bg-green-500 text-white'
-                          : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                      }`}
-                      disabled={planLoading || isDailySchedule || isTrainingLinked}
-                    >
-                      <div>{dia}</div>
-                      <div className="text-[9px] sm:text-[10px] mt-0.5 sm:mt-1">
-                        {previewSchedule[index] ? 'Entreno' : 'Descanso'}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="mt-3 flex gap-4 text-sm flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full" />
-                    <span className="text-gray-300">{trainingDaysCount} dias de entreno</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-white/20 rounded-full" />
-                    <span className="text-gray-300">{restDaysCount} dias de descanso</span>
-                  </div>
-                </div>
-
-                <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-sm text-blue-200">
-                  <strong>Carb cycling (kcal semanales estables):</strong> subimos carbohidratos en entreno (+10%) y los bajamos en descanso (-15%), compensando con grasas para no inflar el promedio semanal.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-xl p-4 space-y-3">
-            <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
-              Resumen de configuracion
-            </h4>
-            <ul className="text-sm text-gray-300 space-y-1">
-              <li>
-                <strong className="text-yellow-300">Duracion:</strong> {config.duracion_dias} dias
-              </li>
-              <li>
-                <strong className="text-yellow-300">Tipo:</strong>{' '}
-                {TRAINING_TYPES.find((t) => t.value === config.training_type)?.label}
-              </li>
-              <li>
-                <strong className="text-yellow-300">Frecuencia:</strong>{' '}
-                {trainingDaysCount} entrenos/semana{isDailySchedule ? ' (semana habitual)' : ''}
-              </li>
-              <li>
-                <strong className="text-yellow-300">Carb cycling:</strong> kcal semanales estables
-              </li>
-            </ul>
-          </div>
-
-          <div className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-xl p-4">
-            <button
-              type="button"
-              onClick={handleGeneratePlan}
-              className="w-full bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 text-black py-4 rounded-xl font-semibold text-lg hover:from-yellow-200 hover:via-yellow-300 hover:to-amber-400 shadow-[0_12px_30px_-18px_rgba(250,204,21,0.8)] transition-all disabled:opacity-70 flex items-center justify-center gap-2"
-              disabled={planLoading}
-            >
-              {planLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Generando plan determinista...
-                </>
-              ) : (
-                <>
-                  <TrendingUp className="w-5 h-5" />
-                  Generar plan nutricional
-                </>
-              )}
-            </button>
-          </div>
-
-          {mealCountWarning.open && (
-            <MealCountWarningModal
-              nextValue={mealCountWarning.nextValue}
-              source={mealCountWarning.source}
-              onCancel={closeMealCountWarning}
-              onConfirm={handleMealCountWarningConfirm}
-            />
-          )}
-        </section>
+      <DeterministicPlanSection
+        planError={planError}
+        planSuccess={planSuccess}
+        planLoading={planLoading}
+        trainingPlanInfo={trainingPlanInfo}
+        config={config}
+        setConfig={setConfig}
+        isTrainingLinked={isTrainingLinked}
+        isDailySchedule={isDailySchedule}
+        previewSchedule={previewSchedule}
+        trainingDaysCount={trainingDaysCount}
+        restDaysCount={restDaysCount}
+        trainingScheduleTitle={trainingScheduleTitle}
+        scheduleHelperText={scheduleHelperText}
+        setPreset={setPreset}
+        toggleTrainingDay={toggleTrainingDay}
+        handleGeneratePlan={handleGeneratePlan}
+        mealCountWarning={mealCountWarning}
+        closeMealCountWarning={closeMealCountWarning}
+        handleMealCountWarningConfirm={handleMealCountWarningConfirm}
+      />
 
         <GeneratedPlanSummary plan={generatedPlan} />
     </div>
