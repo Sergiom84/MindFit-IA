@@ -11,7 +11,7 @@ import { normalizeDayAbbrev } from '../../utils/shared/dayNormalizer.js';
 import { resolveUserInjuryRules } from '../../services/hipertrofiaV2/injuryFilter.js';
 import {
   resolveAdaptationProfile,
-  resolveDayPatternForTag,
+  resolveDayPatternForFrequency,
   generateAdaptationSessions
 } from '../../services/hipertrofiaV2/adaptation/adaptationHelpers.js';
 
@@ -77,7 +77,8 @@ router.post('/generate', authenticateToken, async (req, res) => {
         effectiveDurationWeeks = existingBlock.duration_weeks || effectiveDurationWeeks;
         effectiveAiTag = existingBlock.ai_tag || effectiveAiTag;
         effectiveSessionsPerWeek = existingBlock.sessions_per_week || effectiveSessionsPerWeek;
-        effectiveDayPattern = resolveDayPatternForTag(effectiveAiTag);
+        // Patrón coherente con la frecuencia almacenada del bloque (A-03).
+        effectiveDayPattern = resolveDayPatternForFrequency(effectiveSessionsPerWeek);
         existingBlockId = existingBlock.id;
 
         if (existingBlock.methodology_plan_id) {
