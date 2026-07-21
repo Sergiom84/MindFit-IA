@@ -8,12 +8,14 @@
  * - Carga de estilos globales
  * - Debugging y logging de desarrollo
  */
+/* global __APP_VERSION__ */
 
 // =============================================================================
 // 📚 REACT CORE IMPORTS
 // =============================================================================
 import React, { StrictMode, Component } from 'react';
 import { createRoot } from 'react-dom/client';
+import * as Sentry from '@sentry/react';
 import { initWebVitals } from './utils/webVitals';
 
 // =============================================================================
@@ -26,6 +28,31 @@ import { BrowserRouter } from 'react-router-dom';
 // =============================================================================
 import './index.css';
 import App from './App.jsx';
+
+// =============================================================================
+// 🛰️ SENTRY - inicializar lo antes posible para capturar fallos de arranque
+// (pantalla en blanco al abrir el APK, errores antes de montar React, etc.)
+// El DSN es una clave pública (no un secreto) diseñada para ir en el bundle cliente.
+// =============================================================================
+const SENTRY_DSN = 'https://ad6f5d8d11153a5e013a7bf9e3ddb219@o4511752258584576.ingest.de.sentry.io/4511752266580048';
+
+if (!import.meta.env.DEV) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    environment: import.meta.env.MODE,
+    release: `entrenaconia@${__APP_VERSION__ || 'dev'}`,
+    tracesSampleRate: 0.2,
+  });
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (event) => {
+    Sentry.captureException(event.error || new Error(event.message));
+  });
+  window.addEventListener('unhandledrejection', (event) => {
+    Sentry.captureException(event.reason || new Error('Unhandled promise rejection'));
+  });
+}
 
 function installDevApiHostRewrite() {
   if (!import.meta.env.DEV || typeof window === 'undefined' || typeof window.fetch !== 'function') {
@@ -111,10 +138,7 @@ class GlobalErrorBoundary extends Component {
       errorInfo: errorInfo
     });
 
-    // En production, aquí podrías enviar el error a un servicio de logging
-    if (import.meta.env.PROD) {
-      // analytics.track('app_error', { error: error.message, stack: error.stack });
-    }
+    Sentry.captureException(error, { extra: { componentStack: errorInfo?.componentStack } });
   }
 
   render() {

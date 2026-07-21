@@ -37,8 +37,11 @@ const ENVIRONMENTS = {
   }
 };
 
-const ENV = import.meta.env.MODE || 'development';
-const CONFIG = ENVIRONMENTS[ENV];
+// El build móvil (Capacitor) usa mode 'mobile', que no existe en ENVIRONMENTS;
+// vite.config.js ya fuerza VITE_ENVIRONMENT='production' para ese caso, así que
+// se prioriza esa variable sobre el MODE crudo (igual que hace api.js).
+const ENV = import.meta.env.VITE_ENVIRONMENT || import.meta.env.MODE || 'development';
+const CONFIG = ENVIRONMENTS[ENV] || ENVIRONMENTS.production;
 
 // =============================================================================
 // 🔗 ENDPOINTS DE AUTENTICACIÓN

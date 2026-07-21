@@ -2,8 +2,11 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { createRequire } from 'module'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const require = createRequire(import.meta.url)
+const pkg = require('./package.json')
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -46,6 +49,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version),
+    },
     // En modo 'mobile' (Capacitor) forzamos la config de PRODUCCIÓN de la app,
     // ya que import.meta.env.MODE sería 'mobile' y las configs por entorno solo
     // conocen development/production.
@@ -58,6 +64,7 @@ export default defineConfig(({ mode }) => {
     ...(mode === 'mobile'
       ? {
           define: {
+            __APP_VERSION__: JSON.stringify(pkg.version),
             'import.meta.env.VITE_ENVIRONMENT': JSON.stringify('production'),
             'import.meta.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL),
             'import.meta.env.VITE_API_BASE_URL': JSON.stringify(env.VITE_API_BASE_URL || env.VITE_API_URL),
