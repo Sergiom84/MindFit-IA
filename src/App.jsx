@@ -40,6 +40,7 @@ import { WorkoutProvider } from './contexts/WorkoutContext';
 // 🎵 GLOBAL COMPONENTS (No Lazy Loading)
 // =============================================================================
 import AudioBubble from './components/AudioBubble';
+import { isAudioBubbleEnabled, AUDIO_BUBBLE_PREF_EVENT, AUDIO_BUBBLE_PREF_KEY } from './utils/audioBubblePreference';
 import { DialogServiceHost } from './components/ui/dialogService.jsx';
 
 // =============================================================================
@@ -331,6 +332,21 @@ function AppContent() {
     return excludedPaths.some(path => location.pathname.includes(path));
   }, [location.pathname]);
 
+  // Preferencia de usuario (Perfil → Música): burbuja oculta por defecto.
+  const [audioBubbleEnabled, setAudioBubbleEnabled] = useState(isAudioBubbleEnabled());
+  useEffect(() => {
+    const onPrefChange = (e) => setAudioBubbleEnabled(!!e.detail);
+    const onStorage = (e) => {
+      if (e.key === AUDIO_BUBBLE_PREF_KEY) setAudioBubbleEnabled(isAudioBubbleEnabled());
+    };
+    window.addEventListener(AUDIO_BUBBLE_PREF_EVENT, onPrefChange);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener(AUDIO_BUBBLE_PREF_EVENT, onPrefChange);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, []);
+
   // Listen for exercise changes from various components
   useEffect(() => {
     const handleExerciseChange = (event) => {
@@ -364,8 +380,8 @@ function AppContent() {
         </Route>
       </Routes>
 
-      {/* Audio Bubble - Solo para usuarios autenticados */}
-      {isAuthenticated && user && !shouldHideAudioBubble && (
+      {/* Audio Bubble - Solo autenticado y si el usuario la activó (oculta por defecto) */}
+      {isAuthenticated && user && !shouldHideAudioBubble && audioBubbleEnabled && (
         <AudioBubble
           musicConfig={musicConfig}
           currentExercise={currentExercise}

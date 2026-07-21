@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Save, Music, Headphones, Smartphone, Volume2, Settings, ExternalLink, Check, X } from 'lucide-react';
 import { FaSpotify, FaYoutube, FaApple } from 'react-icons/fa';
 import tokenManager from '../../utils/tokenManager';
+import { isAudioBubbleEnabled, setAudioBubbleEnabled } from '../../utils/audioBubblePreference';
 
 const MusicConfigTab = ({ userId }) => {
   // Initialize hooks FIRST - NEVER after conditional returns
@@ -41,6 +42,12 @@ const MusicConfigTab = ({ userId }) => {
   
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [bubbleVisible, setBubbleVisible] = useState(isAudioBubbleEnabled());
+
+  const toggleBubble = (checked) => {
+    setBubbleVisible(checked);
+    setAudioBubbleEnabled(checked); // efecto inmediato + persistencia local
+  };
 
   useEffect(() => {
     loadMusicConfig();
@@ -189,6 +196,30 @@ const MusicConfigTab = ({ userId }) => {
           <p className="text-yellow-400 text-sm">{message}</p>
         </div>
       )}
+
+      {/* Burbuja flotante de música */}
+      <div className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-lg p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Music className="w-6 h-6 text-yellow-400" />
+            <div>
+              <h4 className="text-white font-medium">Burbuja flotante de música</h4>
+              <p className="text-sm text-gray-300/70">
+                Botón flotante para controlar la música. Oculta por defecto; actívala si la quieres.
+              </p>
+            </div>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              className="sr-only peer"
+              checked={bubbleVisible}
+              onChange={(e) => toggleBubble(e.target.checked)}
+            />
+            <div className="w-11 h-6 bg-white/10 rounded-full peer peer-checked:bg-yellow-400 transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5" />
+          </label>
+        </div>
+      </div>
 
       {/* Spotify Configuration */}
       <div className="bg-neutral-900/70 border border-white/10 ring-1 ring-white/5 rounded-lg p-6">
