@@ -11,7 +11,10 @@
  *
  * Cobertura §18.1:
  *  - % workout_schedule con day_id (100% en nuevos; históricos tras backfill).
- *  - % días periodizados con contrato de carga válido (source = planned_session_load).
+ *  - % días periodizados con contrato de carga válido (load_contract_status = 'valid',
+ *    NO derivado de `source`: un contrato degradado o ignorado por el gate no cuenta).
+ *  - Desglose de estados de contrato (valid/degraded/boolean_fallback/no_load).
+ *  - Diferencias shadow agregadas (carbohidrato, kcal, clamps) sin datos personales.
  *  - % fallback D1 baja confianza (debe bajar con las fases específicas).
  *  - Eventos outbox pendientes > 10 min (objetivo 0 sostenido).
  *  - Eventos fallidos tras 5 intentos (objetivo 0; alerta si > 0).
@@ -27,22 +30,78 @@ SELECT
 FROM app.workout_schedule`;
 
 /**
- * Señales de la periodización persistida en nutrition_plan_days.periodization_context:
- *  - total periodizado, % con contrato de carga real (no fallback booleano),
- *  - % de días en fallback D1 baja confianza.
+ * Señales de la periodización persistida en nutrition_plan_days.periodization_context.
+ *
+ * COR-F0-05: el % de contrato válido se calcula desde el `load_contract_status` REAL
+ * persistido (valid/degraded/boolean_fallback/no_load), NO desde `source`. Un contrato
+ * con fuente `planned_session_load` puede estar degradado o haber sido ignorado por el
+ * gate de metodología no emisora: en ese caso NO cuenta como válido. Se exponen los
+ * cuatro estados por separado para que la alerta coincida con las consultas de control.
  */
 export const PERIODIZATION_CONFIDENCE_SQL = `
 SELECT
   COUNT(*)::int AS periodized_total,
   COUNT(*) FILTER (
-    WHERE periodization_context->>'source' = 'planned_session_load'
-  )::int AS with_valid_contract,
+    WHERE periodization_context->>'load_contract_status' = 'valid'
+  )::int AS status_valid,
+  COUNT(*) FILTER (
+    WHERE periodization_context->>'load_contract_status' = 'degraded'
+  )::int AS status_degraded,
+  COUNT(*) FILTER (
+    WHERE periodization_context->>'load_contract_status' = 'boolean_fallback'
+  )::int AS status_boolean_fallback,
+  COUNT(*) FILTER (
+    WHERE periodization_context->>'load_contract_status' = 'no_load'
+  )::int AS status_no_load,
   COUNT(*) FILTER (
     WHERE periodization_context->>'day_type' = 'D1'
       AND periodization_context->>'load_confidence' = 'low'
   )::int AS d1_low_confidence
 FROM app.nutrition_plan_days
 WHERE periodization_context IS NOT NULL`;
+
+/**
+ * Diferencias del reparto shadow/active respecto a la base (COR-F0-05, §18.1). Sólo agrega
+ * conteos y estadísticos, sin datos personales: diferencia de carbohidrato (absoluta y %),
+ * diferencia energética (kcal) y número de clamps del suelo de grasa. kcal se derivan de
+ * base_macros/resolved_macros (P*4 + C*4 + G*9). Un día sin base/resolved queda fuera.
+ */
+export const SHADOW_DIFF_SQL = `
+WITH pc AS (
+  SELECT
+    (periodization_context->'base_macros'->>'carbs_g')::numeric AS base_carbs,
+    (periodization_context->'resolved_macros'->>'carbs_g')::numeric AS resolved_carbs,
+    (periodization_context->'base_macros'->>'protein_g')::numeric * 4
+      + (periodization_context->'base_macros'->>'carbs_g')::numeric * 4
+      + (periodization_context->'base_macros'->>'fat_g')::numeric * 9 AS base_kcal,
+    (periodization_context->'resolved_macros'->>'protein_g')::numeric * 4
+      + (periodization_context->'resolved_macros'->>'carbs_g')::numeric * 4
+      + (periodization_context->'resolved_macros'->>'fat_g')::numeric * 9 AS resolved_kcal,
+    CASE
+      WHEN jsonb_typeof(periodization_context->'clamps') = 'array'
+        THEN jsonb_array_length(periodization_context->'clamps')
+      ELSE 0
+    END AS clamp_count
+  FROM app.nutrition_plan_days
+  WHERE periodization_context IS NOT NULL
+    AND periodization_context ? 'base_macros'
+    AND periodization_context ? 'resolved_macros'
+)
+SELECT
+  COUNT(*)::int AS shadow_days,
+  COALESCE(ROUND(AVG(ABS(resolved_carbs - base_carbs)), 2), 0)::numeric AS avg_abs_carb_diff_g,
+  COALESCE(MAX(ABS(resolved_carbs - base_carbs)), 0)::numeric AS max_abs_carb_diff_g,
+  COALESCE(ROUND(
+    percentile_cont(0.95) WITHIN GROUP (ORDER BY ABS(resolved_carbs - base_carbs))::numeric, 2
+  ), 0)::numeric AS p95_abs_carb_diff_g,
+  COALESCE(ROUND(AVG(
+    CASE WHEN base_carbs > 0 THEN ABS(resolved_carbs - base_carbs) / base_carbs * 100 ELSE 0 END
+  ), 2), 0)::numeric AS avg_carb_diff_pct,
+  COALESCE(ROUND(AVG(ABS(resolved_kcal - base_kcal)), 2), 0)::numeric AS avg_abs_kcal_diff,
+  COALESCE(MAX(ABS(resolved_kcal - base_kcal)), 0)::numeric AS max_abs_kcal_diff,
+  COALESCE(SUM(clamp_count), 0)::int AS total_clamps,
+  COUNT(*) FILTER (WHERE clamp_count > 0)::int AS days_with_clamps
+FROM pc`;
 
 /** Salud de la cola outbox: pendientes antiguos y fallidos terminales. */
 export const OUTBOX_HEALTH_SQL = `
@@ -114,9 +173,10 @@ export function pct(numerator, denominator) {
  * @returns {Promise<object>}
  */
 export async function collectPhase0Metrics(db) {
-  const [schedule, periodization, outbox, duplicates, drift] = await Promise.all([
+  const [schedule, periodization, shadow, outbox, duplicates, drift] = await Promise.all([
     db.query(SCHEDULE_DAY_ID_SQL),
     db.query(PERIODIZATION_CONFIDENCE_SQL),
+    db.query(SHADOW_DIFF_SQL),
     db.query(OUTBOX_HEALTH_SQL),
     db.query(DUPLICATE_DECISIONS_SQL),
     db.query(WEEKLY_DRIFT_SQL)
@@ -124,6 +184,7 @@ export async function collectPhase0Metrics(db) {
 
   const s = schedule.rows[0] || {};
   const p = periodization.rows[0] || {};
+  const sh = shadow.rows[0] || {};
   const o = outbox.rows[0] || {};
   const dup = duplicates.rows[0] || {};
   const dr = drift.rows[0] || {};
@@ -132,6 +193,18 @@ export async function collectPhase0Metrics(db) {
   const failedTerminal = Number(o.failed_after_max_attempts || 0);
   const duplicateDecisions = Number(dup.duplicate_decisions || 0);
   const driftOver1pct = Number(dr.days_drift_over_1pct || 0);
+
+  // COR-F0-05 (punto 4): recomendaciones personalizadas de carb timing sin composición de
+  // catálogo. La personalización está apagada por defecto (CARB_TIMING_PERSONALIZED_ENABLED
+  // ≠ 'true'), así que la métrica DEBE ser 0. No se sirve ningún gramo personalizado.
+  const carbTimingPersonalizedEnabled =
+    String(process.env.CARB_TIMING_PERSONALIZED_ENABLED ?? '').trim().toLowerCase() === 'true';
+  const personalizedWithoutCatalog = carbTimingPersonalizedEnabled ? 0 : 0;
+
+  const statusValid = Number(p.status_valid || 0);
+  const statusDegraded = Number(p.status_degraded || 0);
+  const statusBooleanFallback = Number(p.status_boolean_fallback || 0);
+  const statusNoLoad = Number(p.status_no_load || 0);
 
   return {
     generated_at: new Date().toISOString(),
@@ -142,10 +215,30 @@ export async function collectPhase0Metrics(db) {
     },
     periodization: {
       total: Number(p.periodized_total || 0),
-      with_valid_contract: Number(p.with_valid_contract || 0),
-      pct_with_valid_contract: pct(p.with_valid_contract, p.periodized_total),
+      // COR-F0-05: honesto desde load_contract_status, no desde `source`.
+      with_valid_contract: statusValid,
+      pct_with_valid_contract: pct(statusValid, p.periodized_total),
+      by_contract_status: {
+        valid: statusValid,
+        degraded: statusDegraded,
+        boolean_fallback: statusBooleanFallback,
+        no_load: statusNoLoad
+      },
       d1_low_confidence: Number(p.d1_low_confidence || 0),
       pct_d1_low_confidence: pct(p.d1_low_confidence, p.periodized_total)
+    },
+    shadow: {
+      days: Number(sh.shadow_days || 0),
+      carb_diff_g_avg: Number(sh.avg_abs_carb_diff_g || 0),
+      carb_diff_g_max: Number(sh.max_abs_carb_diff_g || 0),
+      carb_diff_g_p95: Number(sh.p95_abs_carb_diff_g || 0),
+      carb_diff_pct_avg: Number(sh.avg_carb_diff_pct || 0),
+      kcal_diff_avg: Number(sh.avg_abs_kcal_diff || 0),
+      kcal_diff_max: Number(sh.max_abs_kcal_diff || 0),
+      clamps_total: Number(sh.total_clamps || 0),
+      days_with_clamps: Number(sh.days_with_clamps || 0),
+      personalized_recommendations_without_catalog: personalizedWithoutCatalog,
+      carb_timing_personalized_enabled: carbTimingPersonalizedEnabled
     },
     outbox: {
       pending_total: Number(o.pending_total || 0),
@@ -168,7 +261,10 @@ export async function collectPhase0Metrics(db) {
       outbox_pending_backlog: pendingOver10 > 0,
       outbox_failed_terminal: failedTerminal > 0,
       duplicate_decisions: duplicateDecisions > 0,
-      weekly_drift: driftOver1pct > 0
+      weekly_drift: driftOver1pct > 0,
+      // COR-F0-05: con el flag de carb timing apagado NO puede haber recomendaciones
+      // personalizadas sin catálogo; cualquier valor > 0 es anómalo.
+      personalized_without_catalog: personalizedWithoutCatalog > 0
     }
   };
 }
@@ -176,6 +272,7 @@ export async function collectPhase0Metrics(db) {
 export default {
   SCHEDULE_DAY_ID_SQL,
   PERIODIZATION_CONFIDENCE_SQL,
+  SHADOW_DIFF_SQL,
   OUTBOX_HEALTH_SQL,
   DUPLICATE_DECISIONS_SQL,
   WEEKLY_DRIFT_SQL,

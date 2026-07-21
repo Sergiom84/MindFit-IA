@@ -18,6 +18,7 @@ import {
   buildMealSelectionSeedSuffix
 } from './mealSelectionHelpers.js';
 import { parseJsonObject, normalizeFoodName } from '../nutritionUtils.js';
+import { isTrainingDay } from '../trainingLoad/dayType.js';
 
 export function extractMenuItemsForPersistence(menuData) {
   if (!menuData || !Array.isArray(menuData.items)) {
@@ -254,7 +255,7 @@ export function mapMethodologyToTrainingType(value) {
 
 export async function getDeterministicTemplateCandidates({ userId, mealType, dayInfo, profile, userFoodFilters }) {
   const phaseContext = resolvePhaseContext(profile);
-  const dayTypeContext = String(dayInfo?.tipo_dia || '').toLowerCase() === 'entreno' ? 'ENTRENO' : null;
+  const dayTypeContext = isTrainingDay(dayInfo?.tipo_dia) ? 'ENTRENO' : null;
   const contexts = [
     normalizeTemplateContext(phaseContext),
     normalizeTemplateContext(dayTypeContext),
@@ -301,7 +302,7 @@ export async function getDeterministicTemplateCandidates({ userId, mealType, day
 
 export async function getRecipeExampleCandidates({ userId, mealType, meal, dayInfo, profile, userFoodFilters, varietyContext = null }) {
   const phaseContext = resolvePhaseContext(profile);
-  const dayTypeContext = String(dayInfo?.tipo_dia || '').toLowerCase() === 'entreno' ? 'ENTRENO' : null;
+  const dayTypeContext = isTrainingDay(dayInfo?.tipo_dia) ? 'ENTRENO' : null;
   const contexts = [
     normalizeTemplateContext(phaseContext),
     normalizeTemplateContext(dayTypeContext),

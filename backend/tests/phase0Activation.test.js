@@ -206,7 +206,12 @@ test('§18.1 · las queries de métricas son SOLO LECTURA y cubren las tablas es
 test('§18.1 · collectPhase0Metrics agrega conteos y marca alertas', async () => {
   const rowsBySql = new Map([
     [SCHEDULE_DAY_ID_SQL, { schedule_total: 100, schedule_with_day_id: 80 }],
-    [PERIODIZATION_CONFIDENCE_SQL, { periodized_total: 40, with_valid_contract: 10, d1_low_confidence: 25 }],
+    // COR-F0-05: with_valid_contract se deriva de load_contract_status='valid' (status_valid),
+    // no de la fuente del dato. 10 válidos de 40 periodizados → 25%.
+    [PERIODIZATION_CONFIDENCE_SQL, {
+      periodized_total: 40, status_valid: 10, status_degraded: 5,
+      status_boolean_fallback: 20, status_no_load: 5, d1_low_confidence: 25
+    }],
     [OUTBOX_HEALTH_SQL, {
       pending_over_10min: 2, failed_after_max_attempts: 1, pending_total: 3,
       processing_total: 0, failed_total: 1, completed_total: 90, skipped_total: 6
