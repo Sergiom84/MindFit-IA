@@ -28,9 +28,33 @@ function normalizeKey(value) {
 }
 
 /**
- * Descriptores en ORDEN DE PRECEDENCIA (las no-oposiciones antes que las oposiciones),
- * replicando el matching por substring del orquestador histórico para no cambiar la
- * normalización existente. Los `aliases` se comparan como substring del valor normalizado.
+ * Trocea un valor normalizado en tokens de palabra completa (separados por espacio o `-`).
+ * COR-F0-03: el matching por substring de aliases producía falsos positivos
+ * (`entrenamiento local`→policia-local, `guardia activa`→guardia-civil). Ahora un alias
+ * solo casa si su SECUENCIA de tokens aparece de forma contigua en el valor.
+ */
+function tokenize(value) {
+  return normalizeKey(value).split(/[\s-]+/).filter(Boolean);
+}
+
+/** ¿La secuencia de tokens del alias aparece contigua dentro de los tokens del valor? */
+function containsTokenSequence(keyTokens, aliasTokens) {
+  if (aliasTokens.length === 0) return false;
+  for (let i = 0; i + aliasTokens.length <= keyTokens.length; i += 1) {
+    let match = true;
+    for (let j = 0; j < aliasTokens.length; j += 1) {
+      if (keyTokens[i + j] !== aliasTokens[j]) { match = false; break; }
+    }
+    if (match) return true;
+  }
+  return false;
+}
+
+/**
+ * Descriptores en ORDEN DE PRECEDENCIA (las no-oposiciones antes que las oposiciones).
+ * Los `aliases` se comparan por SECUENCIA DE TOKENS de palabra completa (ver `tokenize`),
+ * no por substring: `guardia`/`nacional`/`local`/`policia` sueltos se han retirado por generar
+ * falsos positivos (COR-F0-03). Las 4 oposiciones siguen normalizando por su nombre real.
  */
 export const METHODOLOGY_DESCRIPTORS = [
   {
@@ -166,7 +190,7 @@ export const METHODOLOGY_DESCRIPTORS = [
     id: 'guardia-civil',
     display_name: 'Guardia Civil',
     description: 'Preparación física para oposiciones de Guardia Civil',
-    aliases: ['guardia-civil', 'guardia civil', 'guardia'],
+    aliases: ['guardia-civil', 'guardia civil'],
     selectable: true,
     legacy: false,
     levels: ['principiante', 'intermedio', 'avanzado'],
@@ -180,7 +204,7 @@ export const METHODOLOGY_DESCRIPTORS = [
     id: 'policia-nacional',
     display_name: 'Policía Nacional',
     description: 'Preparación física para oposiciones de Policía Nacional',
-    aliases: ['policia-nacional', 'policia nacional', 'nacional'],
+    aliases: ['policia-nacional', 'policia nacional'],
     selectable: true,
     legacy: false,
     levels: ['principiante', 'intermedio', 'avanzado'],
@@ -194,7 +218,7 @@ export const METHODOLOGY_DESCRIPTORS = [
     id: 'policia-local',
     display_name: 'Policía Local',
     description: 'Preparación física para oposiciones de Policía Local',
-    aliases: ['policia-local', 'policia local', 'local', 'policia'],
+    aliases: ['policia-local', 'policia local'],
     selectable: true,
     legacy: false,
     levels: ['principiante', 'intermedio', 'avanzado'],
@@ -210,8 +234,9 @@ const DESCRIPTOR_BY_ID = new Map(METHODOLOGY_DESCRIPTORS.map((d) => [d.id, d]));
 
 /**
  * Normaliza un valor a su ID canónico, o `null` si no lo reconoce (NUNCA a Hipertrofia
- * ni a "general"). Usa matching por substring de los aliases, en orden de precedencia,
- * replicando el comportamiento histórico del orquestador.
+ * ni a "general"). Coincidencia exacta por ID y, si no, por SECUENCIA DE TOKENS de los
+ * aliases (palabra completa) en orden de precedencia. COR-F0-03: se retiró el matching por
+ * substring para eliminar falsos positivos de oposiciones.
  * @param {string} value
  * @returns {string|null}
  */
@@ -219,8 +244,11 @@ export function normalizeMethodologyId(value) {
   const key = normalizeKey(value);
   if (!key) return null;
   if (DESCRIPTOR_BY_ID.has(key)) return key;
+  const keyTokens = tokenize(key);
   for (const d of METHODOLOGY_DESCRIPTORS) {
-    if (d.aliases.some((alias) => key.includes(alias))) return d.id;
+    if (d.aliases.some((alias) => containsTokenSequence(keyTokens, tokenize(alias)))) {
+      return d.id;
+    }
   }
   return null;
 }
