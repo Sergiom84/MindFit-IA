@@ -10,6 +10,35 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =================================================================== */
+/* 🔠 TEXTO FLUIDO (alternativa real a la propuesta `text-fit`)         */
+/* `text-fit` no existe como CSS estándar; ningún navegador estable lo  */
+/* soporta. Esto logra el mismo objetivo —que el texto se ajuste a su   */
+/* caja sin romperse— con `clamp()` (fluido por viewport) y `cqi`       */
+/* (fluido por el ancho del contenedor, el equivalente más cercano).    */
+/* =================================================================== */
+@layer utilities {
+  /* Fluidas por viewport: úsalas en títulos/botones/tarjetas que deben
+     escalar entre móvil y desktop sin desbordar. */
+  .text-fluid-sm   { font-size: clamp(0.8125rem, 0.75rem + 0.6vw, 0.95rem); line-height: 1.3; }
+  .text-fluid-base { font-size: clamp(0.9375rem, 0.85rem + 0.8vw, 1.125rem); line-height: 1.35; }
+  .text-fluid-lg   { font-size: clamp(1.05rem, 0.9rem + 1.2vw, 1.375rem); line-height: 1.25; }
+  .text-fluid-xl   { font-size: clamp(1.25rem, 1rem + 2vw, 1.875rem); line-height: 1.2; }
+
+  /* "Fit" al contenedor: el elemento padre debe declarar `.text-fit-box`
+     (define un contenedor de tamaño). El hijo con `.text-fit` escala con
+     el ancho real de la caja — el comportamiento que se pedía con
+     `text-fit: grow`, pero con CSS soportado hoy. Incluye fallback y
+     evita romper palabras largas. */
+  .text-fit-box { container-type: inline-size; }
+  .text-fit {
+    font-size: clamp(0.75rem, 8cqi, 2rem); /* fallback si no hay soporte cqi: el clamp usa el mínimo */
+    line-height: 1.15;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+}
+
 :root {
   /* =================================================================== */
   /* 🎨 DESIGN SYSTEM - MindFit Theme Variables */
