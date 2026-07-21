@@ -195,7 +195,7 @@ export default function AdaptationProgressPanel({ userId, onReadyForTransition, 
             met={latestCriteria.adherence.met}
             value={
               currentWeek
-                ? `${(currentWeek.adherence_percentage ?? 0).toFixed(0)}% (${currentWeek.adherence_met ? '✓' : '✗'})`
+                ? `${Number(currentWeek.adherence_percentage ?? 0).toFixed(0)}% (${currentWeek.adherence_met ? '✓' : '✗'})`
                 : 'N/A'
             }
             details={`Meta: ${latestCriteria.adherence.threshold}% | Umbral: 4/5 sesiones`}
@@ -207,7 +207,7 @@ export default function AdaptationProgressPanel({ userId, onReadyForTransition, 
             met={latestCriteria.rir.met}
             value={
               currentWeek
-                ? `${currentWeek.mean_rir?.toFixed(1) || 'N/A'}`
+                ? `${currentWeek.mean_rir != null ? Number(currentWeek.mean_rir).toFixed(1) : 'N/A'}`
                 : 'N/A'
             }
             details={`Meta: ≤${latestCriteria.rir.threshold}`}
@@ -231,7 +231,7 @@ export default function AdaptationProgressPanel({ userId, onReadyForTransition, 
             met={latestCriteria.progress.met}
             value={
               currentWeek
-                ? `${currentWeek.weight_progress_percentage?.toFixed(1) || 0}%`
+                ? `${Number(currentWeek.weight_progress_percentage ?? 0).toFixed(1)}%`
                 : 'N/A'
             }
             details={`Meta: ≥${latestCriteria.progress.threshold}% vs Sem 1`}
