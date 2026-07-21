@@ -19,11 +19,15 @@ import {
   SESSION_ACTIONS,
   createSessionContext
 } from '../../services/sessionStateMachine.js';
-import { normalizeMethodologyId } from '../../services/routineGeneration/methodologies/methodologyRegistry.js';
 import { buildActualSessionLoad } from '../../services/trainingLoad/actualLoadBuilder.js';
 import {
   buildSessionCompletedEvent,
-  enqueueEvent
+  enqueueEvent,
+  isOutboxEmissionEnabled,
+  resolveEventMethodologyId,
+  shouldEmitSessionCompleted,
+  resolveMethodologyLevel,
+  resolveSessionDurationSeconds
 } from '../../services/bridgeEventOutboxService.js';
 
 const router = express.Router();
@@ -46,25 +50,39 @@ async function safeEnqueueSessionCompleted(client, params) {
       finalStatus, completionRate, keyNamespace = null
     } = params;
 
+    // COR-F0-06: emisión gobernada por un flag INDEPENDIENTE del worker. Con la emisión apagada
+    // (default seguro) el cierre no encola nada → cero backlog con el consumidor apagado.
+    if (!isOutboxEmissionEnabled()) {
+      return { enqueued: false, skipped: true, reason: 'OUTBOX_EMIT_DISABLED' };
+    }
+
     const meta = (session && typeof session.session_metadata === 'object' && session.session_metadata)
       ? session.session_metadata
       : {};
     const plannedLoad = meta.planned_session_load ?? null;
-    const methodologyId = normalizeMethodologyId(session?.methodology_type)
-      || (keyNamespace === 'home' ? 'casa' : null);
-    const methodologyLevel = plannedLoad?.methodology_level
-      ?? meta.methodology_level
-      ?? null;
+    const methodologyId = resolveEventMethodologyId(session?.methodology_type, { keyNamespace });
 
-    // Duración real: total_duration_seconds si existe, si no NOW - started_at (misma lógica
-    // que el UPDATE del cierre); nunca se inventan minutos (§13.3).
-    let durationSeconds = Number.isFinite(Number(session?.total_duration_seconds))
-      ? Number(session.total_duration_seconds)
-      : null;
-    if (durationSeconds === null && session?.started_at) {
-      const started = new Date(session.started_at).getTime();
-      if (Number.isFinite(started)) durationSeconds = Math.round((Date.now() - started) / 1000);
+    // COR-F0-02 §4/§7: Hipertrofia e Hipertrofia V2 (y cualquier metodología no registrada) NO
+    // deben emitir un contrato con methodology_id=null. Se conserva su cierre previo sin encolar.
+    if (!shouldEmitSessionCompleted(methodologyId)) {
+      return { enqueued: false, skipped: true, reason: 'NON_REGISTERED_METHODOLOGY' };
     }
+
+    // COR-F0-02 §5: nivel en orden carga planificada válida → session.methodology_level →
+    // metadata legacy normalizada → null. Normalización explícita (básico/basico → principiante).
+    const methodologyLevel = resolveMethodologyLevel({
+      plannedLevel: plannedLoad?.methodology_level,
+      sessionLevel: session?.methodology_level,
+      metadataLevel: meta.methodology_level
+    });
+
+    // COR-F0-02 §2/§4: duración real de fuente inequívoca (valor actualizado por el UPDATE, o
+    // completed_at - started_at). El 0 inicial NUNCA se toma como medición real.
+    const durationSeconds = resolveSessionDurationSeconds({
+      totalDurationSeconds: session?.total_duration_seconds,
+      startedAt: session?.started_at,
+      completedAt: session?.completed_at
+    });
 
     const actualLoad = buildActualSessionLoad({
       plannedLoad,
@@ -74,13 +92,17 @@ async function safeEnqueueSessionCompleted(client, params) {
       exerciseRows
     });
 
+    const completedAtIso = session?.completed_at
+      ? new Date(session.completed_at).toISOString()
+      : new Date().toISOString();
+
     const event = buildSessionCompletedEvent({
       sessionId,
       userId,
       methodologyPlanId: session?.methodology_plan_id ?? null,
       methodologyId,
       methodologyLevel,
-      completedAt: new Date().toISOString(),
+      completedAt: completedAtIso,
       finalStatus,
       completionRate,
       plannedSessionLoad: plannedLoad,
@@ -189,7 +211,9 @@ router.post('/complete/methodology/:sessionId', authenticateToken, async (req, r
       console.log(`🔄 [StateMachine] Transición exitosa: ${currentStatus} → ${finalSessionStatus}`);
     }
 
-    await client.query(
+    // COR-F0-02 §1: el UPDATE devuelve la fila ACTUALIZADA (RETURNING *) para construir el
+    // evento con la duración real recién calculada y no con la lectura previa (0 inicial).
+    const updatedSessionResult = await client.query(
       `UPDATE app.methodology_exercise_sessions
        SET session_status = $2,
            exercises_completed = $3,
@@ -202,9 +226,11 @@ router.post('/complete/methodology/:sessionId', authenticateToken, async (req, r
              WHEN started_at IS NOT NULL THEN EXTRACT(EPOCH FROM (NOW() - started_at))::INTEGER
              ELSE total_duration_seconds
            END
-       WHERE id = $1`,
+       WHERE id = $1
+       RETURNING *`,
       [sessionId, finalSessionStatus, completedExercises, skippedExercises, cancelledExercises, totalExercises, completionRate]
     );
+    const updatedSession = updatedSessionResult.rows[0] || ses.rows[0];
 
     // Obtener todos los ejercicios de la sesión para mover al historial
     const exercisesForHistory = await client.query(
@@ -289,7 +315,7 @@ router.post('/complete/methodology/:sessionId', authenticateToken, async (req, r
     await safeEnqueueSessionCompleted(client, {
       userId,
       sessionId,
-      session: ses.rows[0],
+      session: updatedSession,
       exerciseRows: exercisesQuery.rows,
       finalStatus: finalSessionStatus,
       completionRate

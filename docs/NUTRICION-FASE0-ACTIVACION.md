@@ -10,6 +10,7 @@ fábrica el comportamiento observable es idéntico al baseline.
 | ----------------------------------- | ----------- | --------------------------------------------------------------------- |
 | `NUTRITION_LOAD_PERIODIZATION_MODE` | `legacy`    | Reparto legado byte-compatible; no se calcula ni persiste nada nuevo. |
 | `NUTRITION_PERIODIZATION_QA_USERS`  | (vacío)     | Ningún usuario escala de modo.                                        |
+| `BRIDGE_OUTBOX_EMIT_ENABLED`        | `false`     | El cierre de sesión NO encola eventos → cero backlog con worker off.  |
 | `BRIDGE_OUTBOX_WORKER_ENABLED`      | `false`     | El worker del outbox no arranca; los eventos encolados son inertes.   |
 | `CARB_TIMING_PERSONALIZED_ENABLED`  | `false`     | El timing responde en modo educativo, sin gramos.                     |
 | `ADMIN_TOKEN`                       | (sin fijar) | El endpoint de métricas responde 404 (fail-closed).                   |
@@ -48,14 +49,14 @@ fase específica ponga `emits_training_load: true` tras sus pruebas.
 `GET /api/admin/phase0/metrics` (cabecera `x-admin-token: <ADMIN_TOKEN>`). Devuelve conteos y
 porcentajes agregados (sin datos sensibles). Umbrales de referencia (§18.1):
 
-| Señal                                 | Objetivo                                  | Alerta                          |
-| ------------------------------------- | ----------------------------------------- | ------------------------------- |
-| `schedule.pct_with_day_id`            | 100% en nuevos (históricos tras backfill) | —                               |
-| `periodization.pct_d1_low_confidence` | baja al migrar metodologías               | —                               |
-| `outbox.pending_over_10min`           | 0 sostenido                               | `alerts.outbox_pending_backlog` |
-| `outbox.failed_after_max_attempts`    | 0                                         | `alerts.outbox_failed_terminal` |
-| `decisions.duplicate_decisions`       | 0 (índice único)                          | `alerts.duplicate_decisions`    |
-| `drift.days_drift_over_1pct`          | 0 (isocalórico)                           | `alerts.weekly_drift`           |
+| Señal                                 | Objetivo                                                       | Alerta                          |
+| ------------------------------------- | -------------------------------------------------------------- | ------------------------------- |
+| `schedule.pct_with_day_id`            | 100% en nuevos (históricos tras backfill)                      | —                               |
+| `periodization.pct_d1_low_confidence` | baja al migrar metodologías                                    | —                               |
+| `outbox.pending_over_10min`           | 0 sostenido (salvo ventana `EMIT=true`/`WORKER=false`, ver §4) | `alerts.outbox_pending_backlog` |
+| `outbox.failed_after_max_attempts`    | 0                                                              | `alerts.outbox_failed_terminal` |
+| `decisions.duplicate_decisions`       | 0 (índice único)                                               | `alerts.duplicate_decisions`    |
+| `drift.days_drift_over_1pct`          | 0 (isocalórico)                                                | `alerts.weekly_drift`           |
 
 ## Procedimiento de activación
 
@@ -81,15 +82,59 @@ porcentajes agregados (sin datos sensibles). Umbrales de referencia (§18.1):
    sus pruebas. Sin eso, `active` global sigue cayendo a conservador para esa metodología.
 2. Subir el modo global a `active` solo cuando shadow lleve estable y las métricas limpias.
 
-### 4. Worker del outbox
+### 4. Outbox de eventos: emisión y worker (dos flags independientes)
 
-1. Poner `BRIDGE_OUTBOX_WORKER_ENABLED=true` (opcionalmente `intervalMs`).
-2. Verificar en métricas que `pending`/`failed` drenan y no hay `failed_after_max_attempts`.
+La **emisión** (`BRIDGE_OUTBOX_EMIT_ENABLED`, encola en el cierre) y el **consumo**
+(`BRIDGE_OUTBOX_WORKER_ENABLED`, drena) son flags SEPARADOS a propósito (COR-F0-06). Emitir
+siempre con el worker apagado generaría backlog indefinido sin control; por eso, en fábrica,
+ambos están en `false` y el cierre no encola nada.
+
+Política de secuencia (encender emisión ANTES que el worker, apagar en orden inverso):
+
+| Paso    | `EMIT`  | `WORKER` | Estado esperado del outbox                                                                                                           |
+| ------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Fábrica | `false` | `false`  | 0 filas. El cierre no encola. Comportamiento = baseline.                                                                             |
+| Emisión | `true`  | `false`  | **Backlog ESPERADO y acotado**: cada cierre deja 1 evento `pending`. `outbox.pending_over_10min` subirá y es normal en esta ventana. |
+| Drenaje | `true`  | `true`   | El worker reclama, registra 1 decisión por evento y marca `completed`. `pending_over_10min` → 0.                                     |
+
+**Backlog esperado con worker pausado.** Mientras `EMIT=true` y `WORKER=false`, el backlog es
+intencional, no una anomalía: son eventos aditivos e inertes esperando consumo. La alerta
+`outbox_pending_backlog` en esa ventana es **esperada**; se resuelve al arrancar el worker.
+Backlog anómalo = `EMIT=false` con filas `pending` acumulándose, o `failed_after_max_attempts>0`.
+
+#### Pausar
+
+- **Pausar consumo** (dejar de drenar, seguir encolando): `BRIDGE_OUTBOX_WORKER_ENABLED=false`.
+  Los eventos quedan `pending` (backlog esperado, ver arriba). Idempotente y sin pérdida.
+- **Pausar emisión** (dejar de encolar, no tocar lo ya en cola): `BRIDGE_OUTBOX_EMIT_ENABLED=false`.
+  Los cierres dejan de generar eventos nuevos; los `pending` existentes se conservan.
+
+#### Reanudar
+
+1. Confirmar `BRIDGE_OUTBOX_EMIT_ENABLED=true` si se quiere seguir capturando cierres.
+2. Poner `BRIDGE_OUTBOX_WORKER_ENABLED=true` (opcionalmente `intervalMs`).
+3. En multi-instancia, el advisory lock (OPS-001) garantiza que solo una réplica procesa el lote.
+
+#### Drenar
+
+1. Con el worker activo, esperar a que `outbox.pending_over_10min` llegue a 0.
+2. Verificar en `GET /api/admin/phase0/metrics`: `outbox.failed_after_max_attempts=0` y
+   `decisions.duplicate_decisions=0` (el índice único de PR3 impide decisiones duplicadas).
+3. Un error temporal reintenta con backoff exponencial (30s→60s→120s… acotado); un error
+   terminal (agotados los intentos) queda `failed` visible para alerta, sin bloquear ningún cierre.
+
+#### Rollback del outbox (funcional, no destructivo)
+
+1. `BRIDGE_OUTBOX_WORKER_ENABLED=false` (detener consumo).
+2. `BRIDGE_OUTBOX_EMIT_ENABLED=false` (detener emisión).
+3. **No** borrar `app.bridge_event_outbox` ni las decisiones ya registradas: son aditivas y no
+   afectan a consumidores antiguos. Un evento `pending` con emisión y worker apagados es inerte.
 
 ## Rollback (§10.2) — funcional, no destructivo
 
 1. `NUTRITION_LOAD_PERIODIZATION_MODE=legacy` (respuesta al usuario vuelve al legado).
-2. `BRIDGE_OUTBOX_WORKER_ENABLED=false` (detener el worker).
+2. `BRIDGE_OUTBOX_WORKER_ENABLED=false` (detener el worker) y `BRIDGE_OUTBOX_EMIT_ENABLED=false`
+   (detener la emisión de eventos en el cierre).
 3. Vaciar `NUTRITION_PERIODIZATION_QA_USERS`.
 4. **Mantener** columnas y tabla (`periodization_context`, `bridge_event_outbox`,
    `bridge_decision_logs.source_event_id/contract_version`): son aditivas y no afectan a
