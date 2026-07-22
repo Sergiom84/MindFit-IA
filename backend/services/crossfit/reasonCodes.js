@@ -27,6 +27,7 @@ const DEFINITIONS = [
   ["GEN_SEARCH_BUDGET_EXCEEDED", "generator", "medium", "use_fallback"],
   ["TRACE_MISSING", "system", "high", "reject"],
   ["IDEMPOTENCY_BROKEN", "system", "critical", "fail"],
+  ["PLAN_REGENERATED", "system", "info", "preserve_prior_revision"],
   ["AI_VALIDATION_FAILED", "system", "high", "use_deterministic_copy"],
   ["AUTOREG_BUILD", "autoreg", "info", "progress_one_variable"],
   ["AUTOREG_HOLD", "autoreg", "info", "maintain_or_calibrate"],

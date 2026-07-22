@@ -18,6 +18,7 @@ import {
   getMethodologyLevels,
   getSupportedMethodologies,
   CrossFitService,
+  methodologyUsesImmutableDraftRevisions,
 
   // Utilities
   cleanUserDrafts,
@@ -85,8 +86,11 @@ router.post('/specialist/:methodology/generate', authenticateToken, async (req, 
   try {
     logger.info(`🏗️ Generando plan de ${methodology} para usuario ${userId}`);
 
-    // Clean drafts before generation
-    await cleanUserDrafts(userId);
+    // Los motores legacy mantienen su limpieza histórica. CrossFit v2 conserva
+    // revisiones y las supersede de forma transaccional dentro de su adaptador.
+    if (!methodologyUsesImmutableDraftRevisions(methodology)) {
+      await cleanUserDrafts(userId);
+    }
 
     // Delegate to methodology orchestrator
     const result = await generateMethodologyPlan(methodology, userId, planData);

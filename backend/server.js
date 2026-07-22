@@ -435,6 +435,9 @@ app.post('/api/methodology/generate', authenticateToken, (req, res, next) => {
       // Metodología manual genérica
       req.url = '/api/routine-generation/manual/methodology';
     }
+  } else if (mode === 'regenerate' && methodology === 'crossfit') {
+    console.log('🤸 Regeneración CrossFit v2 - specialist/crossfit/generate');
+    req.url = '/api/routine-generation/specialist/crossfit/generate';
   } else if (mode === 'automatic' || mode === 'regenerate') {
     // AUTOMÁTICO: IA decide la metodología
     req.url = '/api/routine-generation/ai/methodology';

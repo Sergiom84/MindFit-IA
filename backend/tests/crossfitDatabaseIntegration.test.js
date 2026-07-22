@@ -199,6 +199,34 @@ test("migraciones CrossFit crean objetos, RLS y políticas esperadas", async () 
   });
 });
 
+test("una idempotency key CrossFit v2 solo identifica una revisión por usuario", async () => {
+  await withRollback(async (client) => {
+    await client.query(
+      `INSERT INTO app.users (id, email, password_hash, nombre, apellido) VALUES
+       (996001, 'crossfit-plan-revision-a@example.invalid', 'qa-only', 'A', 'QA'),
+       (996002, 'crossfit-plan-revision-b@example.invalid', 'qa-only', 'B', 'QA')`,
+    );
+    const payload = {
+      schema_version: "crossfit-plan/v2",
+      crossfit_v2: {
+        generation: { idempotency_key: "qa-plan-revision-key" },
+      },
+    };
+    const insert = (userId) => client.query(
+      `INSERT INTO app.methodology_plans
+         (user_id, nivel, methodology_type, generation_mode, status, plan_data)
+       VALUES ($1, 'basico', 'CrossFit', 'manual', 'draft', $2::jsonb)`,
+      [userId, JSON.stringify(payload)],
+    );
+
+    await insert(996001);
+    await client.query("SAVEPOINT duplicate_revision");
+    await assert.rejects(insert(996001), (error) => error.code === "23505");
+    await client.query("ROLLBACK TO SAVEPOINT duplicate_revision");
+    await insert(996002);
+  });
+});
+
 test("evaluaciones aíslan usuarios y no admiten update ni delete", async () => {
   await withRollback(async (client) => {
     await client.query(

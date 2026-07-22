@@ -84,6 +84,8 @@ export const METHODOLOGY_DESCRIPTORS = [
     demand_family: 'mixed_conditioning',
     is_opposition: false,
     emits_training_load: false,
+    immutable_draft_revisions: true,
+    immutable_draft_revisions_flag: 'CROSSFIT_V2_GENERATION',
     training_load_flag: 'CROSSFIT_EMITS_TRAINING_LOAD',
     nutrition_load_flag: 'CROSSFIT_NUTRITION_LOAD'
   },
@@ -318,6 +320,14 @@ export function methodologyEmitsTrainingLoad(value, env = process.env) {
   if (d.emits_training_load === true) return true;
   if (!d.training_load_flag) return false;
   return String(env?.[d.training_load_flag] ?? '').trim().toLowerCase() === 'true';
+}
+
+/** ¿La metodología conserva revisiones draft en vez de limpiarlas físicamente? */
+export function methodologyUsesImmutableDraftRevisions(value, env = process.env) {
+  const descriptor = getMethodologyDescriptor(value);
+  if (!descriptor?.immutable_draft_revisions) return false;
+  if (!descriptor.immutable_draft_revisions_flag) return true;
+  return String(env?.[descriptor.immutable_draft_revisions_flag] ?? '').trim().toLowerCase() === 'true';
 }
 
 /**

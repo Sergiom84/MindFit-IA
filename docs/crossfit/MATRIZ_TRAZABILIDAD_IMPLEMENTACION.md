@@ -8,7 +8,7 @@ efímero y nunca debe sustituirse por producción.
 | ---------------------------------- | ----------------------------- | ------------------------------------------- | ------------------------------------------- | -------------------------- |
 | Flags independientes off           | docs 08/15                    | `backend/services/crossfit/featureFlags.js` | contract flags                              | COMPLETADO                 |
 | Plan/session/WOD/result/autoreg v2 | docs 15/16                    | `backend/services/crossfit/contracts/`      | strict + legacy fixtures                    | COMPLETADO                 |
-| Reason codes centralizados         | data/reason_codes.csv         | `backend/services/crossfit/reasonCodes.js`  | paridad 64/64; cero huérfanos               | COMPLETADO                 |
+| Reason codes centralizados         | data/reason_codes.csv         | `backend/services/crossfit/reasonCodes.js`  | paridad 65/65; cero huérfanos               | COMPLETADO                 |
 | Catálogo canónico 92               | docs 04 + data                | repository + migración aditiva              | 92/92 + 104 variants + 236 edges; 120/120   | COMPLETADO_GATE_BD         |
 | Safety antes de composer           | docs 07                       | `backend/services/crossfit/safety/`         | prioridades stop/block/substitute           | COMPLETADO                 |
 | Level-model/2.0.0                  | docs 02/11-13                 | `backend/services/crossfit/classification/` | 11/11 boundary/asimetría/retorno            | COMPLETADO_TECNICO         |
@@ -25,8 +25,9 @@ efímero y nunca debe sustituirse por producción.
 | Calendario y metadata canónica     | docs 05/17                    | schedule adapter + metadata hydrator        | bloque 8/10/12, day_id, fail-closed         | COMPLETADO_GATE_BD_E2E     |
 | WOD player y feedback              | docs 14/16/17                 | player + effort modal + result adapter      | timer persistente, escala autoritativa      | COMPLETADO_GATE_E2E        |
 | Runtime y sustitucion validada     | docs 07/14/17                 | runtime service + ledger + API aislada      | 13/13 backend + 5/5 estado frontend         | UI_BACKEND_OK_GATE_BD_E2E  |
+| Regeneración inmutable de draft    | docs 05/15/17                 | product adapter + índice parcial            | transacción, replay, colisión y revisión    | COMPLETADO_GATE_BD_E2E     |
 | Flujos completos                   | docs 05/17                    | front-back-BD                               | unit/contract verdes; matriz E2E pendiente  | EN_PROGRESO_GATE_E2E       |
 | Migración y RLS                    | docs 02/04/08/16/17           | assessment/catalog/result/runtime ledgers   | estático verde; CI efímero preparado        | PENDIENTE_EJECUCION_CI     |
-| Regresión ajena                    | guardas repositorio           | sin cambios en motores ajenos               | 365/365 unit; E2E/golden UI pendiente       | PARCIAL_GATE_E2E           |
+| Regresión ajena                    | guardas repositorio           | sin cambios en motores ajenos               | 382/382 unit; E2E/golden UI pendiente       | PARCIAL_GATE_E2E           |
 | QA fail-closed                     | docs 09                       | CI + localQaGuard + Playwright              | local-only; 10 E2E descubiertos             | PREPARADO_GATE_CI          |
 | Validación humana/legal            | docs 01/07/09/10              | gate preproducción                          | acta externa                                | REQUIERE_VALIDACION_HUMANA |

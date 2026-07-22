@@ -41,14 +41,14 @@ Estado global: `EN_PROGRESO`
 | CI `main`                  | CI y Android verdes en el SHA de referencia                        |
 | `npm ci` raíz/backend      | correcto desde lockfiles                                           |
 | `npm run test:backend`     | 231/231                                                            |
-| Regresión actual           | 365/365 tras runtime validado, evaluación objetiva y guardas QA    |
+| Regresión actual           | 382/382 tras regeneración inmutable, runtime y guardas QA          |
 | `npm run lint -- --quiet`  | correcto                                                           |
 | `npm run build`            | correcto; warnings preexistentes de chunks/browser data            |
 | Integración backend        | no ejecutada: no hay PostgreSQL/Docker local ni URL QA             |
 | Migración 20260721         | registrada en Supabase, checksum coincide; no reescribir           |
 | Deuda histórica            | 29 calendarios sin `day_id`; sesiones se auditan por relación real |
 | Dossier baseline           | 120/120, 92, 44, 45, 32; PDF 43 páginas válido                     |
-| Corrección reason codes    | 64: 45 baseline + 18 huérfanos + monitor de molestia 1-2           |
+| Corrección reason codes    | 65: paridad código/CSV, incluida regeneración inmutable trazable   |
 
 ## Semáforos de rollout
 
@@ -180,15 +180,39 @@ Estado global: `EN_PROGRESO`
   backend, lint quiet y build productivo verdes. Playwright y las 5 pruebas de
   PostgreSQL/RLS siguen `PENDIENTE_EJECUCION_CI`; no se levantaron servicios.
 - No se considera cerrado aún el flujo G completo: faltan terminación explícita
-  `partial/abandoned/cancelled`, recuperación durable de feedback tras una
-  recarga completa y regeneración versionada.
+  `partial/abandoned/cancelled` y recuperación durable de feedback tras una
+  recarga completa. La regeneración versionada se cierra en G.3.
+
+## Gate técnico G.3: regeneración inmutable de drafts
+
+- El cliente identifica exclusivamente el envelope `crossfit-plan/v2`, fija
+  `methodology=crossfit` y envía plan origen, revisión esperada, motivos,
+  `request_id` e `idempotency_key`; legacy conserva su payload y limpieza previa.
+- Con `CROSSFIT_V2_GENERATION=false` el registro mantiene el comportamiento
+  histórico. Con el flag activo, la ruta compartida no limpia drafts CrossFit y
+  delega el versionado al adaptador de producto.
+- El servicio bloquea el draft origen con `FOR UPDATE`, exige ownership, contrato
+  válido, revisión exacta y cero sesiones materializadas. La revisión nueva se
+  inserta antes de marcar la anterior `superseded`, todo en una transacción.
+- `generation.revision` aumenta en uno, `supersedes` conserva el `plan_id`
+  lógico, y `PLAN_REGENERATED` registra motivos y revisión previa. Fecha,
+  frecuencia y objetivo del bloque se conservan para evitar cambiar el encargo.
+- El replay compara el hash del payload cliente antes de recargar perfil,
+  equipamiento o catálogo. Reutilizar una clave con otro contenido, regenerar un
+  plan activo o materializado, o perder una carrera concurrente falla cerrado.
+- Preparada, no aplicada, `20260722_crossfit_v2_plan_revisions.sql`: índice
+  único parcial por usuario/idempotency e índice de cadena `supersedes`, sin
+  reescritura histórica. CI la aplica dos veces y prueba la unicidad real.
+- Evidencia local: 36/36 focalizados, 382/382 backend, lint quiet, build y budget
+  verdes. Las 6 pruebas PostgreSQL/RLS y Playwright siguen
+  `PENDIENTE_EJECUCION_CI`; no se levantaron servicios ni se aplicó la migración.
 
 ## Gate técnico J
 
 - El arnés `localQaGuard` queda desactivado sin acuse explícito y, aun con acuse,
   rechaza cualquier API, frontend o PostgreSQL que no sea local. La regresión E2E
   histórica deja de permitir Supabase/producción.
-- CI prepara PostgreSQL 17 efímero, restaura baseline, aplica dos veces las cuatro
+- CI prepara PostgreSQL 17 efímero, restaura baseline, aplica dos veces las cinco
   migraciones CrossFit y ejecuta la integración registrada por el runner.
 - El job E2E importa el catálogo draft, lo activa solo en la BD desechable y
   verifica que un segundo import es un no-op con hash y conteos idénticos.
@@ -198,7 +222,7 @@ Estado global: `EN_PROGRESO`
 - Playwright descubre diez casos en proyectos escritorio y móvil 375x812: tres
   ciclos API por nivel y dos recorridos UI por viewport. Generation/results están
   activos solo dentro del job; carga, nutrición y workers continúan apagados.
-- Verificación local segura: 375/375 unitarios, lint quiet, build y budget de
+- Verificación local segura: 382/382 unitarios, lint quiet, build y budget de
   bundle verdes. PostgreSQL/Docker no están disponibles y no hay servidores
   levantados; por tanto DB/RLS/E2E permanecen `PENDIENTE_EJECUCION_CI`, no verdes.
 

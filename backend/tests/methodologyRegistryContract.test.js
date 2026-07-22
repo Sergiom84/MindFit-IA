@@ -7,6 +7,7 @@ import {
   getMethodologyDescriptor,
   getSupportedMethodologies,
   isOppositionMethodology,
+  methodologyUsesImmutableDraftRevisions,
   resolveDemandFamily,
   METHODOLOGY_DESCRIPTORS
 } from "../services/routineGeneration/methodologies/methodologyRegistry.js";
@@ -66,6 +67,14 @@ test("§17.1: oposiciones y familia de demanda", () => {
   assert.equal(isOppositionMethodology("powerlifting"), false);
   assert.equal(resolveDemandFamily("powerlifting"), "strength");
   assert.equal(resolveDemandFamily("desconocido"), null);
+});
+
+test("CrossFit v2: las revisiones inmutables solo se activan con su flag", () => {
+  assert.equal(methodologyUsesImmutableDraftRevisions("crossfit", {}), false);
+  assert.equal(methodologyUsesImmutableDraftRevisions("crossfit", { CROSSFIT_V2_GENERATION: "true" }), true);
+  assert.equal(methodologyUsesImmutableDraftRevisions("crossfit", { CROSSFIT_V2_GENERATION: "TRUE" }), true);
+  assert.equal(methodologyUsesImmutableDraftRevisions("calistenia", { CROSSFIT_V2_GENERATION: "true" }), false);
+  assert.equal(methodologyUsesImmutableDraftRevisions("desconocido", { CROSSFIT_V2_GENERATION: "true" }), false);
 });
 
 // ── §7.4: el orquestador delega sin cambiar su contrato ─────────────────────────

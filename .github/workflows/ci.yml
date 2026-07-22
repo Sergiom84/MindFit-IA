@@ -146,7 +146,8 @@ jobs:
               -f backend/migrations/20260722_crossfit_v2_assessments.sql \
               -f backend/migrations/20260722_crossfit_v2_catalog.sql \
               -f backend/migrations/20260722_crossfit_v2_results_autoreg.sql \
-              -f backend/migrations/20260722_crossfit_v2_runtime_events.sql
+              -f backend/migrations/20260722_crossfit_v2_runtime_events.sql \
+              -f backend/migrations/20260722_crossfit_v2_plan_revisions.sql
           done
 
       - name: Tests de integración (BD efímera)
@@ -204,7 +205,8 @@ jobs:
             -f backend/migrations/20260722_crossfit_v2_assessments.sql \
             -f backend/migrations/20260722_crossfit_v2_catalog.sql \
             -f backend/migrations/20260722_crossfit_v2_results_autoreg.sql \
-            -f backend/migrations/20260722_crossfit_v2_runtime_events.sql
+            -f backend/migrations/20260722_crossfit_v2_runtime_events.sql \
+            -f backend/migrations/20260722_crossfit_v2_plan_revisions.sql
           CROSSFIT_CATALOG_DATABASE_URL="$DATABASE_URL" \
             CROSSFIT_CATALOG_APPLY_ACK=EPHEMERAL_ONLY \
             node backend/scripts/import-crossfit-v2-catalog.mjs --apply

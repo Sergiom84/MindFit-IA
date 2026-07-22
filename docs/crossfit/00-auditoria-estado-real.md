@@ -44,24 +44,24 @@ flowchart TD
 
 ## Inventario funcional
 
-| Pieza               | Estado                      | Evidencia                                     | Brecha o riesgo                                               |
-| ------------------- | --------------------------- | --------------------------------------------- | ------------------------------------------------------------- |
-| Registro/login      | Funciona                    | `backend/routes/auth.js`                      | No captura screening estructurado                             |
-| Perfil canonico     | Parcial                     | `userRepository.js`, `userProfileContract.js` | Duplicidad `users`/`user_profiles`; solo lesiones textuales   |
-| Selector            | Funciona                    | componentes de Methodologie                   | Debe conservarse agnostico                                    |
-| Evaluacion CrossFit | Parcial                     | prompt en `CrossFitService.js`                | IA decide demasiado; no hay matriz objetiva persistida        |
-| Plan completo       | Funciona con modelo legacy  | orquestador y `CrossFitService`               | Cuotas genericas y Elite mezclado                             |
-| Single-day          | Funciona con modelo legacy  | `singleDay/crossfitSingleDay.js`              | Seleccion aleatoria, validacion incompleta                    |
-| Calendario/Hoy      | Funciona parcialmente       | plan days y Today tab                         | Fase 0 esta consolidando `day_id`                             |
-| Player WOD          | Funciona                    | `WodSessionModal.jsx`                         | Resultado no cubre todas las metricas nuevas                  |
-| Sustitucion         | Parcial                     | filtros y UI compartidos                      | No preserva siempre stimulus ni explica razon                 |
-| Cierre/abandono     | Parcial                     | rutas de training session y WOD result        | Dos cierres a reconciliar; outbox de Fase 0 pendiente de gate |
-| Autorregulacion     | Simulada/simplificada       | `planAutoregService.js` y SQL                 | Regla de faciles/duros no modela tecnica, dolor o tendencias  |
-| Nutricion           | Parcial                     | `carbTiming.js`, bridge generico              | CrossFit `emits_training_load:false` en `origin/main`         |
-| Historial/metricas  | Parcial                     | sesiones y progreso                           | No existe resultado WOD canonico versionado                   |
-| Offline/reintento   | Parcial/no probado para WOD | infraestructura general                       | Idempotencia de cierre/regeneracion no demostrada             |
-| Observabilidad      | Parcial                     | metricas Fase 0                               | Sin reason codes CrossFit ni PII policy especifica            |
-| RLS                 | Riesgo alto                 | consulta live                                 | Desactivado en tablas revisadas                               |
+| Pieza               | Estado                     | Evidencia                                     | Brecha o riesgo                                               |
+| ------------------- | -------------------------- | --------------------------------------------- | ------------------------------------------------------------- |
+| Registro/login      | Funciona                   | `backend/routes/auth.js`                      | No captura screening estructurado                             |
+| Perfil canonico     | Parcial                    | `userRepository.js`, `userProfileContract.js` | Duplicidad `users`/`user_profiles`; solo lesiones textuales   |
+| Selector            | Funciona                   | componentes de Methodologie                   | Debe conservarse agnostico                                    |
+| Evaluacion CrossFit | Parcial                    | prompt en `CrossFitService.js`                | IA decide demasiado; no hay matriz objetiva persistida        |
+| Plan completo       | Funciona con modelo legacy | orquestador y `CrossFitService`               | Cuotas genericas y Elite mezclado                             |
+| Single-day          | Funciona con modelo legacy | `singleDay/crossfitSingleDay.js`              | Seleccion aleatoria, validacion incompleta                    |
+| Calendario/Hoy      | Funciona parcialmente      | plan days y Today tab                         | Fase 0 esta consolidando `day_id`                             |
+| Player WOD          | Funciona                   | `WodSessionModal.jsx`                         | Resultado no cubre todas las metricas nuevas                  |
+| Sustitucion         | Parcial                    | filtros y UI compartidos                      | No preserva siempre stimulus ni explica razon                 |
+| Cierre/abandono     | Parcial                    | rutas de training session y WOD result        | Dos cierres a reconciliar; outbox de Fase 0 pendiente de gate |
+| Autorregulacion     | Simulada/simplificada      | `planAutoregService.js` y SQL                 | Regla de faciles/duros no modela tecnica, dolor o tendencias  |
+| Nutricion           | Parcial                    | `carbTiming.js`, bridge generico              | CrossFit `emits_training_load:false` en `origin/main`         |
+| Historial/metricas  | Parcial                    | sesiones y progreso                           | No existe resultado WOD canonico versionado                   |
+| Offline/reintento   | Parcial                    | runtime v2 + revisión inmutable preparada     | Cierre/feedback durable y E2E efímero aún pendientes          |
+| Observabilidad      | Parcial                    | metricas Fase 0                               | Sin reason codes CrossFit ni PII policy especifica            |
+| RLS                 | Riesgo alto                | consulta live                                 | Desactivado en tablas revisadas                               |
 
 ## Perfil real reutilizable
 

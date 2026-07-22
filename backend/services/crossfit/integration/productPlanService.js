@@ -1,5 +1,6 @@
 import { classifyCrossfitLevel } from "../classification/levelModel.js";
 import { CrossfitCatalogRepository } from "../catalog/catalogRepository.js";
+import { validateCrossfitPlan } from "../contracts/schemas.js";
 import { generateCrossfitPlanV2 } from "../generator/planGenerator.js";
 import { crossfitHash, stableCrossfitId } from "../generator/deterministic.js";
 import { getCrossfitProgramRules } from "../programming/programRules.js";
@@ -26,6 +27,7 @@ const EQUIPMENT_ALIASES = Object.freeze({
   anillas: "rings",
   "barra de dominadas": "pull_up_bar"
 });
+const REGENERATION_REASONS = new Set(["too_difficult", "too_easy", "dont_like", "change_focus"]);
 
 function normalizedToken(value) {
   const key = String(value ?? "")
@@ -122,6 +124,114 @@ function serviceError(code, message, status = 422, details = {}) {
   return error;
 }
 
+function crossfitCanonicalPlan(planData) {
+  const canonical = planData?.crossfit_v2 ?? planData;
+  return canonical?.schema_version === CROSSFIT_VERSIONS.plan ? canonical : null;
+}
+
+function normalizedRegenerationReasons(value) {
+  if (!Array.isArray(value) || value.length === 0 || value.length > 4) {
+    throw serviceError("CROSSFIT_REGENERATION_INVALID", "La regeneración requiere entre uno y cuatro motivos");
+  }
+  const reasons = [...new Set(value.map((item) => String(item).trim().toLowerCase()))].sort();
+  if (reasons.some((reason) => !REGENERATION_REASONS.has(reason))) {
+    throw serviceError("CROSSFIT_REGENERATION_INVALID", "La regeneración contiene un motivo no admitido");
+  }
+  return reasons;
+}
+
+function explicitRequestValue(value) {
+  const normalized = String(value ?? "").trim();
+  return normalized || null;
+}
+
+async function lockRegenerationSource(db, userId, planData) {
+  if (planData.mode !== "regenerate") return null;
+  const previousPlanId = Number(planData.previous_plan_id);
+  const expectedRevision = Number(planData.expected_revision);
+  if (!Number.isInteger(previousPlanId) || previousPlanId <= 0 || !Number.isInteger(expectedRevision) || expectedRevision < 0) {
+    throw serviceError("CROSSFIT_REGENERATION_INVALID", "previous_plan_id y expected_revision son obligatorios");
+  }
+  if (!explicitRequestValue(planData.request_id) || !explicitRequestValue(planData.idempotency_key)) {
+    throw serviceError("CROSSFIT_REGENERATION_INVALID", "request_id e idempotency_key explícitos son obligatorios");
+  }
+  const source = await db.query(
+    `SELECT id, status, plan_data
+       FROM app.methodology_plans
+      WHERE id = $1 AND user_id = $2 AND methodology_type = 'CrossFit'
+      FOR UPDATE`,
+    [previousPlanId, userId]
+  );
+  if (!source.rowCount) {
+    throw serviceError("CROSSFIT_REGENERATION_SOURCE_NOT_FOUND", "El plan origen no existe o no pertenece al usuario", 404);
+  }
+  const row = source.rows[0];
+  const canonical = crossfitCanonicalPlan(row.plan_data);
+  const contract = canonical ? validateCrossfitPlan(canonical) : { valid: false };
+  if (!contract.valid) {
+    throw serviceError("CROSSFIT_REGENERATION_INVALID", "El plan origen no contiene un contrato CrossFit v2 válido");
+  }
+  if (canonical.generation.revision !== expectedRevision) {
+    throw serviceError("IDEMPOTENCY_BROKEN", "expected_revision no coincide con la revisión persistida", 409, {
+      expected_revision: canonical.generation.revision
+    });
+  }
+  if (!["draft", "superseded"].includes(row.status)) {
+    throw serviceError("HISTORY_IMMUTABLE", "Solo un draft CrossFit v2 puede regenerarse", 409);
+  }
+  const sessions = await db.query(
+    `SELECT COUNT(*)::int AS session_count
+       FROM app.methodology_exercise_sessions
+      WHERE methodology_plan_id = $1`,
+    [previousPlanId]
+  );
+  if (Number(sessions.rows[0]?.session_count) > 0) {
+    throw serviceError("HISTORY_IMMUTABLE", "Un plan con sesiones materializadas no puede regenerarse", 409);
+  }
+  return {
+    db_plan_id: previousPlanId,
+    status: row.status,
+    canonical,
+    next_revision: expectedRevision + 1,
+    reasons: normalizedRegenerationReasons(planData.regeneration_reasons),
+    start_date: canonical.weeks[0]?.sessions[0]?.date,
+    frequency: canonical.weeks[0]?.sessions.length,
+    objective: row.plan_data?.objetivo ?? null
+  };
+}
+
+function requestHashForGeneration(planData = {}) {
+  const { idempotency_key: _idempotencyKey, request_id: _requestId, ...requestPayload } = planData;
+  return crossfitHash(requestPayload);
+}
+
+async function findPlanByIdempotency(db, userId, idempotencyKey) {
+  return db.query(
+    `SELECT id, status, plan_data
+       FROM app.methodology_plans
+      WHERE user_id = $1 AND methodology_type = 'CrossFit'
+        AND plan_data -> 'crossfit_v2' -> 'generation' ->> 'idempotency_key' = $2
+      ORDER BY id DESC
+      LIMIT 1`,
+    [userId, idempotencyKey]
+  );
+}
+
+function replayExistingPlan(existing, requestHash) {
+  const row = existing.rows[0];
+  const storedHash = row?.plan_data?.configuracion?.generation_request_hash;
+  if (!storedHash || storedHash !== requestHash) {
+    throw serviceError("IDEMPOTENCY_BROKEN", "La idempotency_key ya existe con otra entrada", 409);
+  }
+  return {
+    plan: row.plan_data,
+    planId: row.id,
+    classification: row.plan_data.crossfit_classification ?? null,
+    safety: row.plan_data.crossfit_safety ?? null,
+    idempotentReplay: true
+  };
+}
+
 function levelToLegacy(level) {
   return level === "beginner" ? "basico" : level === "intermediate" ? "intermedio" : "avanzado";
 }
@@ -133,10 +243,41 @@ export async function generateCrossfitProductPlan({
   profileLoader,
   catalogLoader = null,
   equipmentLoader = loadCrossfitEquipment,
-  now = new Date()
+  now = new Date(),
+  transactionActive = false
 } = {}) {
   if (!db?.query || typeof profileLoader !== "function") {
     throw new TypeError("generateCrossfitProductPlan requiere db y profileLoader");
+  }
+  if (planData.mode === "regenerate" && !transactionActive && typeof db.connect === "function") {
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+      const result = await generateCrossfitProductPlan({
+        userId,
+        planData,
+        db: client,
+        profileLoader,
+        catalogLoader,
+        equipmentLoader,
+        now,
+        transactionActive: true
+      });
+      await client.query("COMMIT");
+      return result;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+  const regeneration = await lockRegenerationSource(db, userId, planData);
+  const requestHash = requestHashForGeneration(planData);
+  const explicitIdempotencyKey = explicitRequestValue(planData.idempotency_key);
+  if (explicitIdempotencyKey) {
+    const existing = await findPlanByIdempotency(db, userId, explicitIdempotencyKey);
+    if (existing.rowCount > 0) return replayExistingPlan(existing, requestHash);
   }
   const profile = await profileLoader(userId);
   const equipment = await equipmentLoader(db, userId, planData.available_equipment ?? []);
@@ -163,47 +304,43 @@ export async function generateCrossfitProductPlan({
 
   const level = classification.global_level;
   const rules = getCrossfitProgramRules(level);
-  const requestedFrequency = Number(planData.frecuencia_semanal ?? profile.frecuencia_semanal);
+  const requestedFrequency = Number(
+    planData.frecuencia_semanal ?? regeneration?.frequency ?? profile.frecuencia_semanal
+  );
   const frequency = rules.frequencies.includes(requestedFrequency)
     ? requestedFrequency
     : rules.recommended_frequency;
-  const startDate = resolveCrossfitStartDate(planData, now);
-  const revision = Number.isInteger(planData.revision) ? planData.revision : 0;
+  const startDate = regeneration?.start_date ?? resolveCrossfitStartDate(planData, now);
+  const revision = regeneration?.next_revision ?? (Number.isInteger(planData.revision) ? planData.revision : 0);
+  const assessmentId = planData.crossfitAssessmentId ?? planData.crossfit_assessment_id ?? null;
   const generationBasis = {
     user_id: String(userId),
     classification_id: classification.classification_id,
-    assessment_id: planData.crossfitAssessmentId ?? null,
+    assessment_id: assessmentId,
     level,
     frequency,
     start_date: startDate,
     available_minutes: planData.available_minutes ?? rules.session_minutes.max,
     equipment,
     preferences: planData.selectedDomains ?? planData.preferences ?? [],
+    regeneration_reasons: regeneration?.reasons ?? [],
+    supersedes: regeneration?.canonical.plan_id ?? null,
+    safety_decision: safety.decision,
+    safety_reason_codes: safety.reason_codes,
     revision,
     ruleset_version: CROSSFIT_VERSIONS.ruleset,
     catalog_version: CROSSFIT_VERSIONS.catalog
   };
-  const idempotencyKey = planData.idempotency_key
+  const idempotencyKey = explicitIdempotencyKey
     ?? stableCrossfitId("idem", generationBasis);
-  const requestId = planData.request_id
+  const requestId = explicitRequestValue(planData.request_id)
     ?? stableCrossfitId("req", [idempotencyKey, revision]);
-  const existing = await db.query(
-    `SELECT id, plan_data
-       FROM app.methodology_plans
-      WHERE user_id = $1 AND methodology_type = 'CrossFit' AND status = 'draft'
-        AND plan_data -> 'crossfit_v2' -> 'generation' ->> 'idempotency_key' = $2
-      ORDER BY id DESC
-      LIMIT 1`,
-    [userId, idempotencyKey]
-  );
-  if (existing.rowCount > 0) {
-    return {
-      plan: existing.rows[0].plan_data,
-      planId: existing.rows[0].id,
-      classification,
-      safety,
-      idempotentReplay: true
-    };
+  if (!explicitIdempotencyKey) {
+    const existing = await findPlanByIdempotency(db, userId, idempotencyKey);
+    if (existing.rowCount > 0) return replayExistingPlan(existing, requestHash);
+  }
+  if (regeneration?.status === "superseded") {
+    throw serviceError("HISTORY_IMMUTABLE", "La revisión origen ya fue superseded por otra petición", 409);
   }
 
   const catalog = catalogLoader
@@ -226,7 +363,8 @@ export async function generateCrossfitProductPlan({
     return_protocol: classification.return_protocol,
     history_ids: planData.history_ids ?? [],
     preferences: generationBasis.preferences,
-    revision
+    revision,
+    supersedes: regeneration?.canonical.plan_id ?? null
   });
   if (!generated.ok) {
     throw serviceError(
@@ -236,9 +374,40 @@ export async function generateCrossfitProductPlan({
       { reason_codes: generated.reason_codes ?? [], validation: generated.validation ?? null }
     );
   }
-  const objective = planData.goals ?? profile.objetivo_principal ?? "Preparación física general";
+  if (regeneration) {
+    generated.plan.decision_trace.push({
+      rule_id: "CF-GEN-REGEN",
+      reason_code: "PLAN_REGENERATED",
+      scope: "plan",
+      action: "create_immutable_revision",
+      details: {
+        previous_plan_id: regeneration.canonical.plan_id,
+        previous_revision: regeneration.canonical.generation.revision,
+        reasons: regeneration.reasons
+      }
+    });
+  }
+  const finalContract = validateCrossfitPlan(generated.plan);
+  if (!finalContract.valid) {
+    throw serviceError(
+      "CROSSFIT_GENERATION_INVALID",
+      "La revisión CrossFit v2 no cumple el contrato después de añadir su trazabilidad",
+      422,
+      { validation: finalContract.errors }
+    );
+  }
+  const objective = planData.goals
+    ?? regeneration?.objective
+    ?? profile.objetivo_principal
+    ?? "Preparación física general";
   const presentation = presentCrossfitPlanV2(generated.plan, catalog, { objective });
-  presentation.crossfit_assessment_id = planData.crossfitAssessmentId ?? null;
+  presentation.configuracion.generation_request_hash = requestHash;
+  presentation.configuracion.regeneration = regeneration ? {
+    previous_db_plan_id: regeneration.db_plan_id,
+    previous_plan_id: regeneration.canonical.plan_id,
+    reasons: regeneration.reasons
+  } : null;
+  presentation.crossfit_assessment_id = assessmentId;
   presentation.crossfit_classification = classification;
   presentation.crossfit_safety = {
     safety_version: safety.safety_version,
@@ -252,6 +421,7 @@ export async function generateCrossfitProductPlan({
        user_id, methodology_type, nivel, plan_data, generation_mode, status,
        version_type, custom_weeks, total_days, created_at
      ) VALUES ($1, 'CrossFit', $2, $3::jsonb, 'manual', 'draft', $4, $5, $6, NOW())
+     ON CONFLICT DO NOTHING
      RETURNING id`,
     [
       userId,
@@ -262,6 +432,25 @@ export async function generateCrossfitProductPlan({
       generated.plan.block.week_count * 7
     ]
   );
+  if (!persisted.rowCount) {
+    const concurrent = await findPlanByIdempotency(db, userId, idempotencyKey);
+    if (!concurrent.rowCount) {
+      throw serviceError("IDEMPOTENCY_BROKEN", "No se pudo resolver la colisión de generación", 409);
+    }
+    return replayExistingPlan(concurrent, requestHash);
+  }
+  if (regeneration) {
+    const superseded = await db.query(
+      `UPDATE app.methodology_plans
+          SET status = 'superseded', updated_at = NOW()
+        WHERE id = $1 AND user_id = $2 AND status = 'draft'
+        RETURNING id`,
+      [regeneration.db_plan_id, userId]
+    );
+    if (superseded.rowCount !== 1) {
+      throw serviceError("HISTORY_IMMUTABLE", "La revisión origen cambió durante la regeneración", 409);
+    }
+  }
   return {
     plan: presentation,
     planId: persisted.rows[0].id,

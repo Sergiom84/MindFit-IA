@@ -44,15 +44,56 @@ function fakeDb({ existing = null } = {}) {
     calls,
     async query(sql, params = []) {
       calls.push({ sql, params });
-      if (/SELECT id, plan_data/.test(sql)) {
+      if (/FROM app\.methodology_plans/.test(sql) && /idempotency_key/.test(sql)) {
         return existing
-          ? { rowCount: 1, rows: [{ id: 31, plan_data: existing }] }
+          ? { rowCount: 1, rows: [{ id: 31, status: 'draft', plan_data: existing }] }
           : { rowCount: 0, rows: [] };
       }
       if (/INSERT INTO app\.methodology_plans/.test(sql)) {
         return { rowCount: 1, rows: [{ id: 73 }] };
       }
       throw new Error(`SQL inesperado: ${sql}`);
+    }
+  };
+}
+
+function regenerationDb(sourcePlan, { status = 'draft', sessionCount = 0 } = {}) {
+  const calls = [];
+  const client = {
+    calls,
+    released: false,
+    async query(sql, params = []) {
+      calls.push({ sql: String(sql), params });
+      if (['BEGIN', 'COMMIT', 'ROLLBACK'].includes(sql)) return { rowCount: 0, rows: [] };
+      if (/FROM app\.methodology_plans/.test(sql) && /FOR UPDATE/.test(sql)) {
+        return { rowCount: 1, rows: [{ id: 81, status, plan_data: sourcePlan }] };
+      }
+      if (/FROM app\.methodology_exercise_sessions/.test(sql)) {
+        return { rowCount: 1, rows: [{ session_count: sessionCount }] };
+      }
+      if (/FROM app\.methodology_plans/.test(sql) && /idempotency_key/.test(sql)) {
+        return { rowCount: 0, rows: [] };
+      }
+      if (/INSERT INTO app\.methodology_plans/.test(sql)) {
+        return { rowCount: 1, rows: [{ id: 82 }] };
+      }
+      if (/UPDATE app\.methodology_plans/.test(sql) && /superseded/.test(sql)) {
+        return { rowCount: 1, rows: [{ id: 81 }] };
+      }
+      throw new Error(`SQL inesperado: ${sql}`);
+    },
+    release() {
+      this.released = true;
+    }
+  };
+  return {
+    calls,
+    client,
+    async query(...args) {
+      return client.query(...args);
+    },
+    async connect() {
+      return client;
     }
   };
 }
@@ -164,17 +205,33 @@ test('red flag bloquea antes de buscar borrador o escribir el plan', async () =>
 });
 
 test('la misma idempotency key devuelve el draft existente sin regenerar ni insertar', async () => {
-  const existing = { schema_version: 'crossfit-plan/v2', marker: 'existing' };
+  const planData = { idempotency_key: 'idem_replay', available_minutes: 55 };
+  const firstDb = fakeDb();
+  await generateCrossfitProductPlan({
+    userId: 'usr_replay',
+    planData,
+    db: firstDb,
+    profileLoader: async () => ({}),
+    catalogLoader: async () => catalog,
+    equipmentLoader: async () => equipment,
+    now
+  });
+  const insert = firstDb.calls.find((call) => /INSERT INTO app\.methodology_plans/.test(call.sql));
+  const existing = JSON.parse(insert.params[2]);
   const db = fakeDb({ existing });
   const result = await generateCrossfitProductPlan({
     userId: 'usr_replay',
-    planData: { idempotency_key: 'idem_replay' },
+    planData,
     db,
-    profileLoader: async () => ({}),
+    profileLoader: async () => {
+      throw new Error('no debe recargar perfil en replay');
+    },
     catalogLoader: async () => {
       throw new Error('no debe cargar catálogo en replay');
     },
-    equipmentLoader: async () => equipment,
+    equipmentLoader: async () => {
+      throw new Error('no debe recargar equipamiento en replay');
+    },
     now
   });
 
@@ -182,4 +239,110 @@ test('la misma idempotency key devuelve el draft existente sin regenerar ni inse
   assert.equal(result.planId, 31);
   assert.deepEqual(result.plan, existing);
   assert.equal(db.calls.some((call) => /INSERT INTO/.test(call.sql)), false);
+});
+
+test('acepta el assessment_id snake_case del contrato frontend', async () => {
+  const db = fakeDb();
+  const result = await generateCrossfitProductPlan({
+    userId: 'usr_assessment_alias',
+    planData: { crossfit_assessment_id: 'cfx_assessment_alias' },
+    db,
+    profileLoader: async () => ({}),
+    catalogLoader: async () => catalog,
+    equipmentLoader: async () => equipment,
+    now
+  });
+
+  assert.equal(result.plan.crossfit_assessment_id, 'cfx_assessment_alias');
+});
+
+test('una idempotency key reutilizada con otra entrada falla cerrada', async () => {
+  const initialData = { idempotency_key: 'idem_collision', available_minutes: 55 };
+  const firstDb = fakeDb();
+  await generateCrossfitProductPlan({
+    userId: 'usr_collision',
+    planData: initialData,
+    db: firstDb,
+    profileLoader: async () => ({}),
+    catalogLoader: async () => catalog,
+    equipmentLoader: async () => equipment,
+    now
+  });
+  const insert = firstDb.calls.find((call) => /INSERT INTO app\.methodology_plans/.test(call.sql));
+  const existing = JSON.parse(insert.params[2]);
+  await assert.rejects(
+    generateCrossfitProductPlan({
+      userId: 'usr_collision',
+      planData: { ...initialData, available_minutes: 70 },
+      db: fakeDb({ existing }),
+      profileLoader: async () => ({}),
+      catalogLoader: async () => catalog,
+      equipmentLoader: async () => equipment,
+      now
+    }),
+    (error) => error.code === 'IDEMPOTENCY_BROKEN' && error.status === 409
+  );
+});
+
+test('regenera un draft como revisión inmutable y supersede el origen en transacción', async () => {
+  const source = presentCrossfitPlanV2(generatedPlan(), catalog);
+  source.configuracion.generation_request_hash = 'source-hash';
+  const db = regenerationDb(source);
+  const result = await generateCrossfitProductPlan({
+    userId: 'usr_regeneration',
+    planData: {
+      mode: 'regenerate',
+      previous_plan_id: 81,
+      expected_revision: 0,
+      regeneration_reasons: ['dont_like', 'change_focus'],
+      request_id: 'crossfit_regeneration_request_1',
+      idempotency_key: 'crossfit_regeneration_idempotency_1'
+    },
+    db,
+    profileLoader: async () => ({}),
+    catalogLoader: async () => catalog,
+    equipmentLoader: async () => equipment,
+    now
+  });
+
+  assert.equal(result.planId, 82);
+  assert.equal(result.plan.crossfit_v2.generation.revision, 1);
+  assert.equal(result.plan.crossfit_v2.generation.supersedes, source.crossfit_v2.plan_id);
+  assert.deepEqual(result.plan.configuracion.regeneration.reasons, ['change_focus', 'dont_like']);
+  assert.ok(result.plan.crossfit_v2.decision_trace.some((item) => item.reason_code === 'PLAN_REGENERATED'));
+  assert.deepEqual(db.calls.filter((call) => ['BEGIN', 'COMMIT'].includes(call.sql)).map((call) => call.sql), ['BEGIN', 'COMMIT']);
+  assert.ok(db.calls.some((call) => /status = 'superseded'/.test(call.sql)));
+  assert.equal(db.client.released, true);
+});
+
+test('regeneración rechaza revisión obsoleta, plan activo o sesiones materializadas', async () => {
+  const source = presentCrossfitPlanV2(generatedPlan(), catalog);
+  const base = {
+    mode: 'regenerate',
+    previous_plan_id: 81,
+    expected_revision: 0,
+    regeneration_reasons: ['too_difficult'],
+    request_id: 'crossfit_regeneration_request_2',
+    idempotency_key: 'crossfit_regeneration_idempotency_2'
+  };
+  const common = {
+    userId: 'usr_regeneration_reject',
+    profileLoader: async () => ({}),
+    catalogLoader: async () => catalog,
+    equipmentLoader: async () => equipment,
+    now
+  };
+
+  await assert.rejects(
+    generateCrossfitProductPlan({ ...common, planData: { ...base, expected_revision: 1 }, db: regenerationDb(source) }),
+    (error) => error.code === 'IDEMPOTENCY_BROKEN'
+  );
+  await assert.rejects(
+    generateCrossfitProductPlan({ ...common, planData: base, db: regenerationDb(source, { status: 'active' }) }),
+    (error) => error.code === 'HISTORY_IMMUTABLE'
+  );
+  await assert.rejects(
+    generateCrossfitProductPlan({ ...common, planData: base, db: regenerationDb(source, { sessionCount: 1 }) }),
+    (error) => error.code === 'HISTORY_IMMUTABLE'
+  );
 });

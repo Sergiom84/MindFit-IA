@@ -15,14 +15,15 @@
 | Canonico completo y altas            | canonical CSV + reference JSON + operations CSV                                        | editorial/media/human review                     |
 | Benchmarks separados                 | docs 04/14                                                                             | entidad futura                                   |
 | Generador determinista               | doc 15 + composer/validator + 30.000 regeneraciones idénticas                          | integrado bajo flag; E2E pendiente               |
-| Reason codes huérfanos               | 18 códigos usados por invariantes/nutrición añadidos al catálogo                       | cerrado: 63 totales; test de paridad obligatorio |
+| Reason codes huérfanos               | catálogo código/CSV con trazabilidad de invariantes, seguridad y regeneración          | cerrado: 65 totales; paridad automatizada        |
 | Autorreg profesional                 | doc 16 + reducer/result service + SQL                                                  | lógica cerrada; migración/RLS/E2E pendientes     |
 | Seguridad por patron/sintoma         | doc 07 + safety CSV                                                                    | contrato clinico/RLS/human review                |
 | Embarazo/posparto                    | bloqueo funcional y contrato definido                                                  | BLOQUEADO_CLINICAL_PROFILE_CONTRACT              |
 | Nutricion por nivel/objetivo/carga   | doc 03 + adapter/matriz 3x4x3, plan/day, safety y métricas                             | código flag off; BD/shadow/dietista pendientes   |
 | Flujos plan/single-day/player        | docs 05/17 + adaptadores + 51 pruebas focalizadas                                      | código cerrado; BD/E2E/offline pendientes        |
+| Regeneración de draft                | revisión inmutable, transacción, replay por hash e índice parcial preparado            | PostgreSQL/E2E pendientes                        |
 | QA/oraculos/perfiles                 | doc 09 + 32 perfiles + invariantes; gate puro 30.000 verde                             | BD/E2E/humanos pendientes                        |
-| QA efímero fail-closed               | PostgreSQL 17/CI, RLS cross-user y 10 E2E preparados; 355/355 unit verdes              | ejecución CI aún pendiente                       |
+| QA efímero fail-closed               | PostgreSQL 17/CI, RLS cross-user y 10 E2E preparados; 382/382 unit verdes              | ejecución CI aún pendiente                       |
 | Roadmap/DoR/DoD/rollback             | doc 08 + checkpoints                                                                   | implementación iniciada                          |
 | Etiquetas de gate                    | maestro, docs 08/10 y operaciones                                                      | Fase 0 desbloqueada; rollout aún bloqueado       |
 | PDF maestro                          | PDF consolidado, extraccion y render de todas las paginas                              | verificacion visual repetida tras ultima edicion |
