@@ -10,7 +10,7 @@
  */
 
 import { persistSingleDaySession } from './persistSingleDaySession.js';
-import { logger } from '../hipertrofiaV2/logger.js';
+import { logger } from '../hipertrofia/logger.js';
 
 const LEVEL_HIERARCHY = ['Principiante', 'Intermedio', 'Avanzado'];
 const NIVEL_NORMALIZED = { Principiante: 'basico', Intermedio: 'intermedio', Avanzado: 'avanzado' };

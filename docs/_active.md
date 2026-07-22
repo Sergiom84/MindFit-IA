@@ -5,6 +5,7 @@
 - branch: codex/crossfit-profesional-v2
 - worktree: /Users/pablo/Documents/mindfit-crossfit-profesional
 - base_sha: e7f57116363d9283a27c1d5d375da674414ddf1f
+- synced_main_sha: 3e0955921ed75244bd4f205dba20c1878f1b6da4
 - started_at: 2026-07-22 Europe/Madrid
 - status: implementation_in_progress
 

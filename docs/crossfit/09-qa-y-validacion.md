@@ -16,7 +16,7 @@ El 2026-07-22 se ejecutó `backend/scripts/qa-crossfit-generator-statistical.mjs
 | Movimiento contraindicado   | 0             | 0             | 0             | cumplido  |
 | Frecuencias por nivel       | 5.000 + 5.000 | 5.000 + 5.000 | 5.000 + 5.000 | cumplido  |
 
-Los ocho formatos de metcon soportados aparecen en cada nivel. El runner usa perfiles con equipo completo, sin equipo, equipo limitado y dolor de hombro; no consulta BD ni red. Duración: 527.253 ms. Hash SHA-256 del informe efímero: `66246f862c058ce8496ffcd03c36472f4ca97e028ebfe1b4f718e16d30a19db6`.
+Los ocho formatos de metcon soportados aparecen en cada nivel. El runner usa perfiles con equipo completo, sin equipo, equipo limitado y dolor de hombro; no consulta BD ni red. La repetición posterior a sincronizar `origin/main@3e09559` pasó en 552.501 ms. Hash SHA-256 canónico de ese resumen: `c91364fef30e23e83ac6cc7cc84acea475fe4a61536a1251045bbfdd86b16b6e`.
 
 Este gate valida invariantes algorítmicas, no eficacia deportiva ni los flujos persistentes de producto.
 
@@ -57,8 +57,8 @@ equivale a E2E: no se han levantado servidores, creado usuarios ni usado una BD.
 
 ## Resultado ejecutado de training load y nutrición
 
-La Fase I ejecuta 49/49 pruebas focalizadas y deja la regresión backend en
-336/336 antes de sincronizar el nuevo `origin/main`. Quedan cubiertos:
+La Fase I ejecuta 49/49 pruebas focalizadas y la regresión posterior a sincronizar
+`origin/main@3e09559` deja 104/104 CrossFit y 336/336 backend. Quedan cubiertos:
 
 - rollout `legacy -> shadow -> active` con ambos flags y default `false`;
 - matriz estricta de 36 combinaciones: tres niveles, cuatro objetivos y D0/D1/D2;

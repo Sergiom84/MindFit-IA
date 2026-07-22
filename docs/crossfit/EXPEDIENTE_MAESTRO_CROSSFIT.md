@@ -7,7 +7,7 @@ Gate externo: `FASE_0_COMPARTIDA_DESBLOQUEADA_PARA_DESARROLLO`
 
 ## Dictamen
 
-Este paquete es la especificacion de la implementación CrossFit profesional v2 para principiante, intermedio y avanzado. Pablo confirmó el desbloqueo técnico de la **Fase 0 compartida** y el desarrollo comenzó en la rama aislada `codex/crossfit-profesional-v2` desde `origin/main@e7f5711`. Este cambio de estado permite código, migraciones preparadas y QA aislada; no autoriza escrituras en Supabase/Render, despliegues, flags activos, push ni PR.
+Este paquete es la especificacion de la implementación CrossFit profesional v2 para principiante, intermedio y avanzado. Pablo confirmó el desbloqueo técnico de la **Fase 0 compartida** y el desarrollo comenzó en la rama aislada `codex/crossfit-profesional-v2` desde `origin/main@e7f5711`. La rama quedó sincronizada sin rebase con `origin/main@3e09559`, incluido el retiro de Hipertrofia legacy y el rename interno HipertrofiaV2 -> Hipertrofia. Este cambio de estado permite código, migraciones preparadas y QA aislada; no autoriza escrituras en Supabase/Render, despliegues, flags activos, push ni PR.
 
 El nombre publico recomendado es **Acondicionamiento funcional de alta intensidad** hasta obtener revision legal o autorizacion de marca. `crossfit` puede mantenerse como identificador interno de compatibilidad durante la migracion. Elite/competicion queda expresamente fuera de la primera entrega.
 
@@ -24,7 +24,7 @@ El nombre publico recomendado es **Acondicionamiento funcional de alta intensida
 | Seguridad                        | Stop rules y matriz por patron/sintoma definidas                 | Evaluador previo al composer; contratos clínicos externos pendientes      |
 | Nutricion                        | Algoritmo por objetivo, carga y nivel definido                   | Adapter canónico implementado; rollout bloqueado por BD/shadow/aprobación |
 | Flujos                           | Contratos front-back-BD y errores trazados                       | Plan/single-day/calendario/player/cierre integrados; E2E/RLS pendientes   |
-| QA                               | Oraculos, perfiles y gates cuantificados                         | 327/327 backend y 30.000 gate; BD/E2E/humanos pendientes                  |
+| QA                               | Oraculos, perfiles y gates cuantificados                         | 336/336 backend y 30.000 gate post-merge; BD/E2E/humanos pendientes       |
 
 ## Decisiones no negociables
 

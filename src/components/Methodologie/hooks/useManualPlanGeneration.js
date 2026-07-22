@@ -92,7 +92,7 @@ export function useManualPlanGeneration({
     });
   }, [generatePlan, runWithActivePlanGuard, track, ui, validatePlanData]);
 
-  const handleHipertrofiaV2ManualGenerate = useCallback(async (data) => {
+  const handleHipertrofiaManualGenerate = useCallback(async (data) => {
     try {
       track('ACTION', { id: 'generate_hipertrofiav2' }, { component: 'MethodologiesScreen' });
     } catch (error) {
@@ -145,11 +145,11 @@ export function useManualPlanGeneration({
   return useMemo(() => ({
     handleCalisteniaManualGenerate: data => runManualGenerate(MANUAL_GENERATORS.calistenia, data),
     handleHeavyDutyManualGenerate: data => runManualGenerate(MANUAL_GENERATORS.heavyDuty, data),
-    handleHipertrofiaV2ManualGenerate,
+    handleHipertrofiaManualGenerate,
     handlePowerliftingManualGenerate: data => runManualGenerate(MANUAL_GENERATORS.powerlifting, data),
     handleCrossFitManualGenerate: data => runManualGenerate(MANUAL_GENERATORS.crossfit, data),
     handleFuncionalManualGenerate: data => runManualGenerate(MANUAL_GENERATORS.funcional, data),
     handleHalterofíliaManualGenerate: data => runManualGenerate(MANUAL_GENERATORS.halterofilia, data),
     handleCasaManualGenerate: data => runManualGenerate(MANUAL_GENERATORS.casa, data)
-  }), [handleHipertrofiaV2ManualGenerate, runManualGenerate]);
+  }), [handleHipertrofiaManualGenerate, runManualGenerate]);
 }

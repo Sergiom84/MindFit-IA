@@ -3,6 +3,7 @@
 Especificación: `crossfit-product-spec/2.0.0`
 Rama: `codex/crossfit-profesional-v2`
 Base: `origin/main@e7f57116363d9283a27c1d5d375da674414ddf1f`
+Sincronizada con: `origin/main@3e0955921ed75244bd4f205dba20c1878f1b6da4`
 Estado global: `EN_PROGRESO`
 
 ## Guardas permanentes
@@ -33,19 +34,20 @@ Estado global: `EN_PROGRESO`
 
 ## Baseline reproducible
 
-| Comprobación              | Resultado 2026-07-22                                               |
-| ------------------------- | ------------------------------------------------------------------ |
-| `origin/main`             | `e7f5711`; sin commits posteriores al iniciar                      |
-| CI `main`                 | CI y Android verdes en el SHA de referencia                        |
-| `npm ci` raíz/backend     | correcto desde lockfiles                                           |
-| `npm run test:backend`    | 231/231                                                            |
-| `npm run lint -- --quiet` | correcto                                                           |
-| `npm run build`           | correcto; warnings preexistentes de chunks/browser data            |
-| Integración backend       | no ejecutada: no hay PostgreSQL/Docker local ni URL QA             |
-| Migración 20260721        | registrada en Supabase, checksum coincide; no reescribir           |
-| Deuda histórica           | 29 calendarios sin `day_id`; sesiones se auditan por relación real |
-| Dossier baseline          | 120/120, 92, 44, 45, 32; PDF 43 páginas válido                     |
-| Corrección reason codes   | 64: 45 baseline + 18 huérfanos + monitor de molestia 1-2           |
+| Comprobación               | Resultado 2026-07-22                                               |
+| -------------------------- | ------------------------------------------------------------------ |
+| `origin/main` inicial      | `e7f5711`; baseline desde el que se abrió el worktree              |
+| `origin/main` sincronizado | `3e09559`; retiro legacy y rename interno integrados sin rebase    |
+| CI `main`                  | CI y Android verdes en el SHA de referencia                        |
+| `npm ci` raíz/backend      | correcto desde lockfiles                                           |
+| `npm run test:backend`     | 231/231                                                            |
+| `npm run lint -- --quiet`  | correcto                                                           |
+| `npm run build`            | correcto; warnings preexistentes de chunks/browser data            |
+| Integración backend        | no ejecutada: no hay PostgreSQL/Docker local ni URL QA             |
+| Migración 20260721         | registrada en Supabase, checksum coincide; no reescribir           |
+| Deuda histórica            | 29 calendarios sin `day_id`; sesiones se auditan por relación real |
+| Dossier baseline           | 120/120, 92, 44, 45, 32; PDF 43 páginas válido                     |
+| Corrección reason codes    | 64: 45 baseline + 18 huérfanos + monitor de molestia 1-2           |
 
 ## Semáforos de rollout
 
@@ -131,12 +133,26 @@ Estado global: `EN_PROGRESO`
 
 - Runner: `backend/scripts/qa-crossfit-generator-statistical.mjs`.
 - Ejecución: `--per-level=10000 --workers=8` sobre catálogo canónico normalizado.
-- Resultado: `passed` en 527.253 ms; 10.000/10.000 por nivel y 5.000 por frecuencia soportada.
+- Resultado post-sincronización: `passed` en 552.501 ms; 10.000/10.000 por nivel y 5.000 por frecuencia soportada.
 - Reproducibilidad: 30.000 regeneraciones, `non_reproducible=0`.
 - Seguridad: `hard_violations=0`, `unavailable_equipment=0`, `contraindicated=0`, `invalid=0`.
 - Cobertura: AMRAP, EMOM, E2MOM, E3MOM, For Time, RFT, Chipper e Intervals presentes en los tres niveles.
-- SHA-256 del informe efímero verificado: `66246f862c058ce8496ffcd03c36472f4ca97e028ebfe1b4f718e16d30a19db6`.
+- SHA-256 canónico del resumen post-sincronización: `c91364fef30e23e83ac6cc7cc84acea475fe4a61536a1251045bbfdd86b16b6e`.
 - El JSON bruto permanece fuera del entregable; este resumen y el runner reproducible son la evidencia versionada.
+
+## Sincronización con main
+
+- Revisados e integrados `57b7b40`, `26b5fae` y `3e09559`, sin rebase y sin
+  alterar el checkout documental original.
+- El único conflicto textual fue el logger de `crossfitSingleDay.js`: se conservó
+  toda la delegación CrossFit v2 y se adoptó `../hipertrofia/logger.js`.
+- Revisados los otros cuatro solapes funcionales: ruta single-day, persistencia,
+  capa modal de metodologías y capa modal de Hoy. Se conservan `equipment`,
+  `check_in`, `plan_id + day_id`, resumen WOD y las nuevas rutas internas de
+  Hipertrofia.
+- Regresión post-merge: 104/104 CrossFit, 336/336 backend, lint quiet y build
+  verdes; gate estadístico 30.000/30.000 verde. No se ejecutaron migraciones ni
+  se activaron flags.
 
 ## Criterio de cierre técnico
 

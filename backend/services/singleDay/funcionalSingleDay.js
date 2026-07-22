@@ -14,7 +14,7 @@
  */
 
 import { persistSingleDaySession } from './persistSingleDaySession.js';
-import { logger } from '../hipertrofiaV2/logger.js';
+import { logger } from '../hipertrofia/logger.js';
 
 // Categorías de patrón para disciplina='funcional', con su patrón ILIKE.
 // Alineadas con functionalBucket (GymRoutineService): empuje, tracci,

@@ -1,7 +1,7 @@
 /**
  * Persistencia genérica de una sesión de "día único" (single-day / weekend extra).
  *
- * Extraído de hipertrofiaV2/extraWorkoutService.js para poder reutilizarlo entre
+ * Extraído de hipertrofia/extraWorkoutService.js para poder reutilizarlo entre
  * metodologías (HipertrofiaV2, Calistenia, …). Crea el plan temporal, la sesión
  * de ejercicios y el tracking por ejercicio, de modo que el reproductor
  * (RoutineSessionModal) y el guardado de progreso funcionen igual para todas.
@@ -11,7 +11,7 @@
  *     series_reps_objetivo, descanso_seg, ...resto opcional }
  */
 
-import { DAY_NAMES, MONTH_NAMES } from '../hipertrofiaV2/constants.js';
+import { DAY_NAMES, MONTH_NAMES } from '../hipertrofia/constants.js';
 
 /**
  * @param {object} dbClient - Cliente de base de datos (dentro de una transacción)

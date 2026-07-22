@@ -5,8 +5,8 @@ import RoutineSessionModal from "../../../RoutineSessionModal";
 import WodSessionModal from "../../../WodSessionModal.jsx";
 import HipertrofiaSessionModal from "../../../HipertrofiaSessionModal.jsx";
 import WarmupModal from "../../../WarmupModal";
-import MusclePriorityModal from "../../../../Methodologie/methodologies/HipertrofiaV2/components/MusclePriorityModal";
-import AdaptationTransitionModal from "../../../../Methodologie/methodologies/HipertrofiaV2/components/AdaptationTransitionModal";
+import MusclePriorityModal from "../../../../Methodologie/methodologies/Hipertrofia/components/MusclePriorityModal";
+import AdaptationTransitionModal from "../../../../Methodologie/methodologies/Hipertrofia/components/AdaptationTransitionModal";
 import EffortModals from "./EffortModals.jsx";
 
 /**

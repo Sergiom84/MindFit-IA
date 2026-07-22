@@ -22,9 +22,9 @@ import { SummaryHeader } from '../../../summary/SummaryHeader.jsx';
 import { UserProfileDisplay } from '../../../summary/UserProfileDisplay.jsx';
 import { ProgressBar } from '../../../summary/ProgressBar.jsx';
 import { FirstWeekWarning } from '../../../alerts/FirstWeekWarning.jsx';
-import CycleStatusBadge from '../../../../Methodologie/methodologies/HipertrofiaV2/components/CycleStatusBadge';
-import AdaptationTrackingBadge from '../../../../Methodologie/methodologies/HipertrofiaV2/components/AdaptationTrackingBadge.jsx';
-import AdaptationProgressPanel from '../../../../Methodologie/methodologies/HipertrofiaV2/components/AdaptationProgressPanel';
+import CycleStatusBadge from '../../../../Methodologie/methodologies/Hipertrofia/components/CycleStatusBadge';
+import AdaptationTrackingBadge from '../../../../Methodologie/methodologies/Hipertrofia/components/AdaptationTrackingBadge.jsx';
+import AdaptationProgressPanel from '../../../../Methodologie/methodologies/Hipertrofia/components/AdaptationProgressPanel';
 
 export default function TodayTrainingHeader({
   methodologyPlanId,

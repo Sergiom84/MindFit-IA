@@ -29,7 +29,7 @@
  */
 
 import { persistSingleDaySession } from './persistSingleDaySession.js';
-import { logger } from '../hipertrofiaV2/logger.js';
+import { logger } from '../hipertrofia/logger.js';
 import { getCrossfitFeatureFlags } from '../crossfit/featureFlags.js';
 import { generateCrossfitSingleDayV2 } from '../crossfit/integration/singleDayService.js';
 
