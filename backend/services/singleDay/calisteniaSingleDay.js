@@ -10,6 +10,12 @@
 
 import { persistSingleDaySession } from './persistSingleDaySession.js';
 import { logger } from '../hipertrofia/logger.js';
+import { getUserFullProfile } from '../routineGeneration/database/userRepository.js';
+import {
+  extractInjuryText,
+  activeInjuryRules,
+  isContraindicated
+} from '../routineGeneration/injuryContraindications.js';
 
 // Categorías reales en app.ejercicios para disciplina='calistenia'.
 const FULLBODY_CATEGORIES = ['Empuje', 'Tracción', 'Piernas', 'Core'];
@@ -158,11 +164,27 @@ function toPlanExercise(row, orden) {
  * @returns {Promise<{sessionId:number, workout:object}>}
  */
 export async function generateCalisteniaSingleDay(dbClient, userId, rawNivel, isWeekendExtra = true, options = {}) {
-  const { selectionMode = 'full_body', focusGroup = null } = options || {};
+  const { selectionMode = 'full_body', focusGroup = null, profileLoader = getUserFullProfile } = options || {};
   const nivel = normalizeLevel(rawNivel);
   const niveles = getAccumulativeLevels(nivel);
 
   logger.info('🤸 [CALISTENIA-SINGLE-DAY] Generando para usuario:', userId, 'Nivel:', nivel, 'Modo:', selectionMode, 'Foco:', focusGroup);
+
+  // 🩹 SEGURIDAD POR LESIÓN (G8): single-day carecía de filtro de lesiones (la
+  // generación multi-semana sí lo tiene, ver CalisteniaService.js). Un usuario con
+  // muñeca lesionada recibía flexiones/apoyos de manos. Leemos las limitaciones del
+  // perfil (la función ya recibe userId) y excluimos del pool los movimientos
+  // contraindicados, con el MISMO filtro compartido que las demás metodologías.
+  // Si el perfil no se puede leer, se degrada a "sin reglas" (paridad con multi-semana),
+  // nunca bloquea el flujo.
+  let injuryRules = [];
+  try {
+    const profile = await profileLoader(userId);
+    injuryRules = activeInjuryRules(extractInjuryText(profile));
+  } catch (profileError) {
+    logger.warn(`⚠️ [CALISTENIA-SINGLE-DAY] No se pudo leer el perfil para el filtro de lesiones: ${profileError.message}`);
+  }
+  const filterSafe = (rows) => (injuryRules.length ? rows.filter((r) => !isContraindicated(r, injuryRules)) : rows);
 
   const chosen = [];
   const usedNames = [];
@@ -171,22 +193,22 @@ export async function generateCalisteniaSingleDay(dbClient, userId, rawNivel, is
 
   if (isFocus) {
     const focusCount = nivel === 'Avanzado' ? 5 : 4;
-    const rows = await selectByCategory(dbClient, {
+    const rows = filterSafe(await selectByCategory(dbClient, {
       niveles,
       categoria: focusGroup,
       cantidad: focusCount,
       excludeNames: usedNames
-    });
+    }));
     chosen.push(...rows);
     usedNames.push(...rows.map((r) => r.nombre));
   } else {
     for (const { categoria, count } of FULLBODY_PLAN) {
-      const rows = await selectByCategory(dbClient, {
+      const rows = filterSafe(await selectByCategory(dbClient, {
         niveles,
         categoria,
         cantidad: count,
         excludeNames: usedNames
-      });
+      }));
       chosen.push(...rows);
       usedNames.push(...rows.map((r) => r.nombre));
     }
@@ -199,12 +221,12 @@ export async function generateCalisteniaSingleDay(dbClient, userId, rawNivel, is
     for (const categoria of FULLBODY_CATEGORIES) {
       if (chosen.length >= MIN_EXERCISES) break;
       const needed = MIN_EXERCISES - chosen.length;
-      const rows = await selectByCategory(dbClient, {
+      const rows = filterSafe(await selectByCategory(dbClient, {
         niveles,
         categoria,
         cantidad: needed,
         excludeNames: usedNames
-      });
+      }));
       chosen.push(...rows);
       usedNames.push(...rows.map((r) => r.nombre));
     }
