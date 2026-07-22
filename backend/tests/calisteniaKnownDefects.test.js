@@ -77,7 +77,6 @@ test(
 // ── S6 (PR-CAL-00b): /effort acepta avgRir/rpe fuera de rango sin 422 ──
 test(
   "S6: validación pura de esfuerzo rechaza avgRir/rpe fuera de rango",
-  { todo: "PR-CAL-00b: clamp [0,5]/[0,10] con 422 en /effort" },
   async () => {
     const { validateEffortInput } = await import("../services/routines/effortValidation.js");
     assert.equal(typeof validateEffortInput, "function");
