@@ -55,6 +55,24 @@ backend completa queda en 327/327. Los oráculos cubren:
 avisos preexistentes de chunks circulares y browser data desactualizada. Esto no
 equivale a E2E: no se han levantado servidores, creado usuarios ni usado una BD.
 
+## Resultado ejecutado de training load y nutrición
+
+La Fase I ejecuta 49/49 pruebas focalizadas y deja la regresión backend en
+336/336 antes de sincronizar el nuevo `origin/main`. Quedan cubiertos:
+
+- rollout `legacy -> shadow -> active` con ambos flags y default `false`;
+- matriz estricta de 36 combinaciones: tres niveles, cuatro objetivos y D0/D1/D2;
+- energía isocalórica dentro de 1 %, proteína canónica fija, suelo de grasa y
+  macro constraint trazable;
+- descanso real, fallback D1 conservador e identidad obligatoria `plan_id + day_id`;
+- outbox idempotente con carga real y modo nutricional limitado a shadow;
+- señales canónicas de RED-S/baja energía, embarazo/posparto,
+  renal/cardiovascular y medicación, sin documentos ni diagnóstico;
+- métricas admin de >=99 % carga válida, <1 % degradada, duplicados y drift.
+
+No se marca verde la activación: faltan PostgreSQL efímero, shadow con muestra,
+menú idempotente persistido, E2E y revisión de nutricionista deportivo.
+
 ## Perfiles
 
 [`data/qa_synthetic_profiles.csv`](./data/qa_synthetic_profiles.csv) contiene 32 perfiles: niveles, capacidades asimetricas, 2-5 dias, equipos, objetivos, dolor, red flags, pausas, fatiga, embarazo/posparto, hipertension, alergias, dieta, horario y nutricion.
@@ -146,7 +164,7 @@ Antes de migracion: entrenador cualificado revisa umbrales, progresiones, 120 ma
 - [ ] Nutrición CrossFit idempotente en shadow/BD aislada.
 - [ ] E2E movil/escritorio/offline verde.
 - [ ] Regresion ajena verde sin modificar otras metodologias.
-- [ ] Observabilidad y alertas probadas.
+- [x] Observabilidad y alertas probadas a nivel unitario; pendiente muestra QA/operativa.
 - [ ] Revision legal de nombre.
 - [ ] Firmas entrenador/nutricionista.
 - [ ] Riesgo residual y decision de rollout documentados.

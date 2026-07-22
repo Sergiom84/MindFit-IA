@@ -10,8 +10,8 @@
  *  - Se conservan los IDs que ya usa el backend (sin migración masiva).
  *  - `gimnasio` NO se expone como metodología seleccionable (Hipertrofia legacy retirada):
  *    `legacy:true`, `selectable:false`. No se elimina de constantes por compatibilidad.
- *  - `emits_training_load:false` en TODAS por ahora; pasará a true cuando la fase específica
- *    de esa metodología pase sus pruebas (evita declarar una integración terminada antes).
+ *  - `emits_training_load:false` por defecto. Una metodología puede declarar un flag
+ *    de activación propio; nunca se infiere emisión por nombre o presencia de metadata.
  *  - La normalización NO cae en Hipertrofia ni en "general" para IDs desconocidos: devuelve
  *    null, y el contrato en modo strict lo rechaza explícitamente.
  */
@@ -83,7 +83,9 @@ export const METHODOLOGY_DESCRIPTORS = [
     generator: 'crossfit',
     demand_family: 'mixed_conditioning',
     is_opposition: false,
-    emits_training_load: false
+    emits_training_load: false,
+    training_load_flag: 'CROSSFIT_EMITS_TRAINING_LOAD',
+    nutrition_load_flag: 'CROSSFIT_NUTRITION_LOAD'
   },
   {
     id: 'funcional',
@@ -304,15 +306,36 @@ export function resolveDemandFamily(value) {
 /**
  * ¿La metodología emite carga de sesión validada (`training-load/v1`)? (§7.2, gate PR6).
  *
- * `emits_training_load` es `false` en TODAS hasta que la fase específica de cada metodología
- * pase sus pruebas. El gate de activación (§16 PR6, punto 3) usa esta señal: si la metodología
- * del plan NO emite, la periodización cae a la política conservadora aunque exista un contrato
- * en los metadatos (no se declara terminada una integración antes de estarlo). Una metodología
- * desconocida devuelve `false` (nunca se asume que emite).
+ * El valor estático sigue siendo `false` salvo que el descriptor declare un flag propio y
+ * ese flag sea exactamente `true`. Una metodología desconocida nunca emite.
  * @param {string} value
+ * @param {object} [env]
  * @returns {boolean}
  */
-export function methodologyEmitsTrainingLoad(value) {
+export function methodologyEmitsTrainingLoad(value, env = process.env) {
   const d = getMethodologyDescriptor(value);
-  return !!(d && d.emits_training_load === true);
+  if (!d) return false;
+  if (d.emits_training_load === true) return true;
+  if (!d.training_load_flag) return false;
+  return String(env?.[d.training_load_flag] ?? '').trim().toLowerCase() === 'true';
+}
+
+/**
+ * Aplica el rollout específico de Nutrición sin saltarse etapas:
+ * - sin emisión validada, CrossFit queda en legacy;
+ * - con emisión y modo shadow, calcula/persiste shadow aunque el flag nutricional siga off;
+ * - un modo active se limita a shadow hasta activar también el flag nutricional.
+ * Las metodologías sin política específica conservan el modo solicitado.
+ */
+export function resolveMethodologyNutritionPeriodizationMode(value, requestedMode, env = process.env) {
+  const mode = ['legacy', 'shadow', 'active'].includes(String(requestedMode).toLowerCase())
+    ? String(requestedMode).toLowerCase()
+    : 'legacy';
+  const d = getMethodologyDescriptor(value);
+  if (!d) return 'legacy';
+  if (!d.nutrition_load_flag) return mode;
+  if (!methodologyEmitsTrainingLoad(value, env)) return 'legacy';
+  if (mode !== 'active') return mode;
+  const nutritionEnabled = String(env?.[d.nutrition_load_flag] ?? '').trim().toLowerCase() === 'true';
+  return nutritionEnabled ? 'active' : 'shadow';
 }

@@ -567,6 +567,19 @@ app.get('/api/admin/phase0/metrics', requireAdmin, async (req, res) => {
   }
 });
 
+// Observabilidad CrossFit v2. Solo agregados técnicos y sin contenido de perfil/usuario.
+app.get('/api/admin/crossfit-v2/metrics', requireAdmin, async (req, res) => {
+  try {
+    const { collectCrossfitV2Metrics } = await import('./services/crossfit/observability/metrics.js');
+    res.json(await collectCrossfitV2Metrics(pool));
+  } catch (error) {
+    res.status(500).json({
+      error: 'Error obteniendo métricas de CrossFit v2',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 // === SERVIR FRONTEND ESTÁTICO (después de las rutas /api/*) ===
 app.use(express.static(FRONTEND_DIST));
 

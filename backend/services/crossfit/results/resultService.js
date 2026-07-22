@@ -173,6 +173,7 @@ async function enqueueCrossfitLoad(client, { session, result, flags, env }) {
     sessionId: session.id,
     userId: session.user_id,
     methodologyPlanId: session.methodology_plan_id,
+    dayId: session.day_id,
     methodologyId: "crossfit",
     methodologyLevel: result.actual_training_load.methodology_level,
     completedAt: result.recorded_at,

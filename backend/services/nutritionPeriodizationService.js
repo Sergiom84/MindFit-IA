@@ -128,12 +128,21 @@ function normalizeBaseMacros(baseMacros = {}) {
  * @returns {{floor_g: number|null, configured: boolean, reason_code: string}}
  */
 export function resolvePerformanceCarbFloor({ weightKg, sessionLoad, objective, professionalRulePack } = {}) {
-  void weightKg; void sessionLoad; void objective; // reservados para packs futuros
+  void objective;
   if (!professionalRulePack) {
     return { floor_g: null, configured: false, reason_code: 'PERFORMANCE_FLOOR_NOT_CONFIGURED' };
   }
-  // Los packs específicos (fuerza, resistencia, competición) se añadirán con cada metodología.
-  return { floor_g: null, configured: false, reason_code: 'PERFORMANCE_FLOOR_NOT_CONFIGURED' };
+  const range = professionalRulePack?.carb_gkg_by_day?.[sessionLoad?.day_type];
+  const minGkg = Number(Array.isArray(range) ? range[0] : null);
+  const weight = Number(weightKg);
+  if (!Number.isFinite(minGkg) || minGkg < 0 || !Number.isFinite(weight) || weight <= 0) {
+    return { floor_g: null, configured: false, reason_code: 'PERFORMANCE_FLOOR_NOT_CONFIGURED' };
+  }
+  return {
+    floor_g: Math.ceil(minGkg * weight),
+    configured: true,
+    reason_code: professionalRulePack.reason_code ?? null
+  };
 }
 
 /**
@@ -223,21 +232,44 @@ function computeLegacyMacros(base, dayType) {
  * compensa (isocalórico respecto a la base) y guardarraíl de grasa mínima. Si el suelo de
  * grasa obliga a bajar carbohidrato por debajo del objetivo, queda registrado como clamp.
  */
-function computePeriodizedMacros(base, dayType, weightKg, kcalTarget) {
+function computePeriodizedMacros(base, dayType, weightKg, kcalTarget, professionalRulePack = null) {
   const { protein_g, carbs_g, fat_g } = base;
   const baseKcal = protein_g * 4 + carbs_g * 4 + fat_g * 9;
   const kcalRef = isFiniteNumber(Number(kcalTarget)) && Number(kcalTarget) > 0 ? Number(kcalTarget) : baseKcal;
   const multiplier = CARB_MULTIPLIER_BY_DAY_TYPE[dayType] ?? 1.0;
 
   let newCarbs = Math.round(carbs_g * multiplier);
+  const packReasons = [];
+  const carbRange = professionalRulePack?.carb_gkg_by_day?.[dayType];
+  const weight = Number(weightKg);
+  let carbMin = null;
+  let carbMax = null;
+  if (Array.isArray(carbRange) && Number.isFinite(weight) && weight > 0) {
+    carbMin = Math.ceil(Number(carbRange[0]) * weight);
+    carbMax = Math.floor(Number(carbRange[1]) * weight);
+    if (Number.isFinite(carbMin) && Number.isFinite(carbMax) && carbMax >= carbMin) {
+      const clamped = Math.min(carbMax, Math.max(carbMin, newCarbs));
+      if (clamped !== newCarbs) {
+        packReasons.push(professionalRulePack.reason_code ?? 'PROFESSIONAL_CARB_RANGE');
+        newCarbs = clamped;
+      }
+    } else {
+      carbMin = null;
+      carbMax = null;
+    }
+  }
   let remainingFatKcal = Math.max(0, baseKcal - protein_g * 4 - newCarbs * 4);
   let newFat = Math.max(0, Math.round(remainingFatKcal / 9));
 
   const clamps = [];
   // Suelo de grasa (§11.2.6): mayor de 0.6 g/kg o 20% de las kcal de referencia.
+  const fatMinPerKg = Number(professionalRulePack?.fat_floor_gkg)
+    || FAT_GUARDRAILS.min_per_kg;
+  const fatMinPercentage = Number(professionalRulePack?.fat_floor_percentage)
+    || FAT_GUARDRAILS.min_percentage;
   const fatMin_g = Math.ceil(Math.max(
-    Math.max(0, num(weightKg)) * FAT_GUARDRAILS.min_per_kg,
-    (kcalRef * FAT_GUARDRAILS.min_percentage) / 9
+    Math.max(0, num(weightKg)) * fatMinPerKg,
+    (kcalRef * fatMinPercentage) / 9
   ));
 
   if (newFat < fatMin_g && baseKcal - protein_g * 4 - fatMin_g * 9 >= 0) {
@@ -248,14 +280,24 @@ function computePeriodizedMacros(base, dayType, weightKg, kcalTarget) {
       to_g: fatMin_g,
       carbs_from_g: newCarbs,
       carbs_to_g: carbsForFatMin,
-      reason: `Suelo de grasa ${FAT_GUARDRAILS.min_per_kg} g/kg o ${Math.round(FAT_GUARDRAILS.min_percentage * 100)}% kcal`
+      reason: `Suelo de grasa ${fatMinPerKg} g/kg o ${Math.round(fatMinPercentage * 100)}% kcal`
     });
     newFat = fatMin_g;
     newCarbs = carbsForFatMin;
   }
 
+  const macroConstraint = carbMin !== null && newCarbs < carbMin;
+  if (macroConstraint) packReasons.push(professionalRulePack?.constraint_reason_code ?? 'MACRO_CONSTRAINT');
+
   const adjustedKcal = protein_g * 4 + newCarbs * 4 + newFat * 9;
-  return { macros: { protein_g, carbs_g: newCarbs, fat_g: newFat, kcal: adjustedKcal }, clamps, fat_min_g: fatMin_g };
+  return {
+    macros: { protein_g, carbs_g: newCarbs, fat_g: newFat, kcal: adjustedKcal },
+    clamps,
+    fat_min_g: fatMin_g,
+    carb_range_g: carbMin === null ? null : [carbMin, carbMax],
+    macro_constraint: macroConstraint,
+    reason_codes: [...new Set(packReasons.filter(Boolean))]
+  };
 }
 
 /**
@@ -273,6 +315,8 @@ function computePeriodizedMacros(base, dayType, weightKg, kcalTarget) {
  * @param {'legacy'|'shadow'|'active'} [args.mode]
  * @param {boolean} [args.methodologyEmitsLoad=true] - Gate §16 PR6: si la metodología del plan
  *   NO emite carga validada, un contrato explícito se ignora y cae a la política conservadora.
+ * @param {object|null} [args.professionalRulePack=null] - Límites versionados aportados por
+ *   un adaptador de metodología. El motor canónico conserva energía/proteína y aplica clamps.
  * @returns {{macros:object, day_type:string, policy_version:string, changed:boolean, audit:object}}
  */
 export function resolveDayNutritionTargets({
@@ -285,7 +329,8 @@ export function resolveDayNutritionTargets({
   weeklyContext,
   bridgeState,
   mode,
-  methodologyEmitsLoad = true
+  methodologyEmitsLoad = true,
+  professionalRulePack = null
 } = {}) {
   void objective; void metabolicProfile; void weeklyContext; void bridgeState; // reservados Fase 0
   const resolvedMode = normalizePeriodizationMode(mode);
@@ -302,16 +347,31 @@ export function resolveDayNutritionTargets({
     clamps = out.clamps;
     reasonCodes.push('LEGACY_CARB_CYCLING');
   } else {
-    const out = computePeriodizedMacros(base, day_type, weightKg, kcalTarget);
+    const out = computePeriodizedMacros(base, day_type, weightKg, kcalTarget, professionalRulePack);
     macros = out.macros;
     clamps = out.clamps;
+    reasonCodes.push(...(out.reason_codes ?? []));
+
+    const proteinRange = professionalRulePack?.protein_gkg;
+    const weight = Number(weightKg);
+    if (Array.isArray(proteinRange) && Number.isFinite(weight) && weight > 0) {
+      const proteinGkg = macros.protein_g / weight;
+      if (proteinGkg < Number(proteinRange[0]) || proteinGkg > Number(proteinRange[1])) {
+        reasonCodes.push(professionalRulePack?.constraint_reason_code ?? 'MACRO_CONSTRAINT');
+      }
+    }
     // Punto de extensión del suelo de rendimiento para días exigentes (§11.6).
     if (
       day_type === 'D2' ||
       sessionLoad?.recovery?.double_session_day === true ||
       sessionLoad?.context?.competition === true
     ) {
-      const floor = resolvePerformanceCarbFloor({ weightKg, sessionLoad, objective });
+      const floor = resolvePerformanceCarbFloor({
+        weightKg,
+        sessionLoad,
+        objective,
+        professionalRulePack
+      });
       if (floor.reason_code) reasonCodes.push(floor.reason_code);
     }
     if (clamps.length > 0) reasonCodes.push('FAT_FLOOR_CLAMP');

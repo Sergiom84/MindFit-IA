@@ -56,11 +56,21 @@ DoD: pause/reload/offline, scale por movimiento, cap, completion/abandon, pain/t
 
 ### 6. Training load y nutricion
 
-Estado: `DESARROLLO_DESBLOQUEADO_FLAG_OFF`.
+Estado: `COMPLETADA_TECNICA_FLAG_OFF`, `PENDIENTE_QA_BD_SHADOW`.
 
-Extender descriptor CrossFit y builders mediante adapter; planned load al generar, actual al cerrar; outbox y mapper D0/D1/D2; menú/lista por `day_id`. Activar en orden: generation/results -> shadow training load -> validar métricas -> `emits_training_load` -> shadow nutrition -> active nutrition con aprobación expresa.
+Implementado: descriptor y rollout por flag, planned load al generar, actual al cerrar,
+outbox con `plan_id + day_id`, repositorio de días de entrenamiento/descanso,
+mapper D0/D1/D2 y adapter nutricional sobre el motor canónico. La ruta existente
+conserva menús/recetas/compras y solo cambia el objetivo diario cuando el modo es
+autoritativo. Señales explícitas de baja energía o embarazo/posparto bloquean déficit;
+riesgo renal/cardiovascular bloquea dosis de electrolitos. Endpoint admin agregado
+sin PII. Activar en orden: generation/results -> shadow training load -> validar
+métricas -> `emits_training_load` -> shadow nutrition -> active nutrition con aprobación expresa.
 
-DoD: valid load >=99 %, degraded <1 % justificado, cero duplicado outbox, menu idempotente, fallback base. Rollback: flags nutrition/load off, conservar eventos.
+Verificación local: 49/49 focalizados, matriz 3 niveles x 4 objetivos x D0/D1/D2,
+336/336 backend y lint. DoD operativo aún pendiente: valid load >=99 %, degraded
+<1 % justificado, cero duplicado outbox, menú idempotente en BD aislada y shadow.
+Rollback: flags nutrition/load off, conservar eventos.
 
 ### 7. Flujos, RLS y observabilidad
 

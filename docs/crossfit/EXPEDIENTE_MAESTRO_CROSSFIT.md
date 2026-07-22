@@ -22,7 +22,7 @@ El nombre publico recomendado es **Acondicionamiento funcional de alta intensida
 | Generador                        | Contrato, semilla, scoring, fallback e invariantes definidos     | Integrado bajo flag; 30.000 planes y regeneraciones verdes                |
 | Autorregulacion                  | Maquina de estados y prioridades definidas                       | Siete estados persistentes; migración/RLS no aplicados                    |
 | Seguridad                        | Stop rules y matriz por patron/sintoma definidas                 | Evaluador previo al composer; contratos clínicos externos pendientes      |
-| Nutricion                        | Algoritmo por objetivo, carga y nivel definido                   | Desarrollo permitido; rollout bloqueado por shadow, métricas y aprobación |
+| Nutricion                        | Algoritmo por objetivo, carga y nivel definido                   | Adapter canónico implementado; rollout bloqueado por BD/shadow/aprobación |
 | Flujos                           | Contratos front-back-BD y errores trazados                       | Plan/single-day/calendario/player/cierre integrados; E2E/RLS pendientes   |
 | QA                               | Oraculos, perfiles y gates cuantificados                         | 327/327 backend y 30.000 gate; BD/E2E/humanos pendientes                  |
 
@@ -81,7 +81,7 @@ CrossFit permanece inactiva hasta completar shadow, métricas y aprobación.
 1. `COMPLETADO_TECNICO`: contratos, flags, clasificación, programación, composer y gate estadístico.
 2. `COMPLETADO_CON_GATE_BD`: catálogo, seguridad, resultados y autorregulación; migraciones no aplicadas.
 3. `COMPLETADO_CON_GATE_E2E`: generación, plan, single-day, calendario, player, feedback y cierre por adaptadores.
-4. `EN_PROGRESO`: training load y nutrición con flags apagados; validar en shadow/QA.
+4. `COMPLETADO_TECNICO_FLAG_OFF`: training load, outbox, nutrición por nivel/carga y métricas; validar en BD/shadow QA.
 5. `PENDIENTE_INFRAESTRUCTURA`: migraciones, RLS, E2E, accesibilidad y regresión con PostgreSQL aislado.
 6. `REQUIERE_VALIDACION_HUMANA`: entrenador y nutricionista revisan reglas y muestra; legal decide el nombre.
 7. Solicitar a Pablo autorización de push; PR revisable y revisión Sergio/Pablo. Nunca push directo a `main`.

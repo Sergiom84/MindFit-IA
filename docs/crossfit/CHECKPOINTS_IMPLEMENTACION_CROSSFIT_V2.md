@@ -17,19 +17,19 @@ Estado global: `EN_PROGRESO`
 
 ## Estado de fases
 
-| Fase                          | Estado                      | Evidencia / gate                                           |
-| ----------------------------- | --------------------------- | ---------------------------------------------------------- |
-| A. Baseline y DoR             | `COMPLETADA_CON_LIMITACION` | 231/231 unit, lint, build; integración requiere BD efímera |
-| B. Contratos/versionado/flags | `COMPLETADA`                | 8/8 específicos; suite 239/239; lint; flags off            |
-| C. Catálogo/seguridad         | `COMPLETADA_CON_GATE_BD`    | 13/13; 92+104+236; 120/120; SQL/RLS requiere BD efímera    |
-| D. Clasificación              | `COMPLETADA_TECNICA`        | level-model/2.0.0; 11/11 decisiones y límites              |
-| E. Programación por nivel     | `COMPLETADA_TECNICA`        | bloques 8/10/12; seis frecuencias; 12/12 tests             |
-| F. Composer/validadores       | `COMPLETADA_TECNICA`        | 30.000 planes + 30.000 regeneraciones; cero hard violation |
-| G. Flujos de producto         | `COMPLETADA_CON_GATE_E2E`   | 51/51 focalizados; generación, plan, single-day y player   |
-| H. Resultados/autorregulación | `COMPLETADA_CON_GATE_BD`    | siete estados; 18/18 específicos; SQL/RLS requiere BD      |
-| I. Training load/nutrición    | `PENDIENTE_FLAG_OFF`        | shadow primero; activación requiere aprobación             |
-| J. QA integral                | `PENDIENTE`                 | unit/contract/integration/E2E/regresión                    |
-| K. Validaciones externas      | `GATE_PREPRODUCCION`        | entrenador, nutricionista, clínico si aplica y legal       |
+| Fase                          | Estado                        | Evidencia / gate                                           |
+| ----------------------------- | ----------------------------- | ---------------------------------------------------------- |
+| A. Baseline y DoR             | `COMPLETADA_CON_LIMITACION`   | 231/231 unit, lint, build; integración requiere BD efímera |
+| B. Contratos/versionado/flags | `COMPLETADA`                  | 8/8 específicos; suite 239/239; lint; flags off            |
+| C. Catálogo/seguridad         | `COMPLETADA_CON_GATE_BD`      | 13/13; 92+104+236; 120/120; SQL/RLS requiere BD efímera    |
+| D. Clasificación              | `COMPLETADA_TECNICA`          | level-model/2.0.0; 11/11 decisiones y límites              |
+| E. Programación por nivel     | `COMPLETADA_TECNICA`          | bloques 8/10/12; seis frecuencias; 12/12 tests             |
+| F. Composer/validadores       | `COMPLETADA_TECNICA`          | 30.000 planes + 30.000 regeneraciones; cero hard violation |
+| G. Flujos de producto         | `COMPLETADA_CON_GATE_E2E`     | 51/51 focalizados; generación, plan, single-day y player   |
+| H. Resultados/autorregulación | `COMPLETADA_CON_GATE_BD`      | siete estados; 18/18 específicos; SQL/RLS requiere BD      |
+| I. Training load/nutrición    | `COMPLETADA_TECNICA_FLAG_OFF` | 49/49; 336/336; shadow/BD/aprobación pendientes            |
+| J. QA integral                | `PENDIENTE`                   | unit/contract/integration/E2E/regresión                    |
+| K. Validaciones externas      | `GATE_PREPRODUCCION`          | entrenador, nutricionista, clínico si aplica y legal       |
 
 ## Baseline reproducible
 
@@ -73,6 +73,32 @@ Estado global: `EN_PROGRESO`
 - Verificación: 18/18 focalizados, 307/307 backend y lint quiet. La migración
   `20260722_crossfit_v2_results_autoreg.sql` está preparada, no aplicada; up,
   re-run y RLS cross-user siguen pendientes de PostgreSQL efímero/CI.
+
+## Gate técnico I
+
+- El registro compartido resuelve emisión y modo nutricional por flags CrossFit,
+  sin alterar descriptores ni rollout de otras metodologías: sin emisión queda
+  `legacy`; emisión + modo `shadow` calcula shadow; `active` exige además
+  `CROSSFIT_NUTRITION_LOAD=true`.
+- El adaptador `crossfit-nutrition/2.0.0` reutiliza
+  `resolveDayNutritionTargets`: no recalcula BMR, TDEE, objetivo, menú, recetas ni
+  lista de compra. Conserva energía y proteína canónicas y aplica rangos por los
+  tres niveles, cuatro objetivos y D0/D1/D2.
+- Los días nutricionales se enlazan por `methodology_plan_days(plan_id, day_id)` e
+  incluyen descanso D0. Una sesión sin carga válida cae a D1 de baja confianza;
+  una identidad ausente no se inventa ni se periodiza.
+- El cierre/outbox transporta `methodology_plan_id + day_id`; CrossFit se omite
+  fail-closed si falta identidad o `CROSSFIT_EMITS_TRAINING_LOAD` está apagado.
+- Perfil médico canónico y último snapshot nutricional se proyectan a señales
+  booleanas sin leer documentos clínicos. RED-S/baja energía y
+  embarazo/posparto bloquean déficit automático; riesgo renal/cardiovascular o
+  diuréticos bloquea dosis de electrolitos. No se emite diagnóstico.
+- Endpoint admin read-only `/api/admin/crossfit-v2/metrics`: carga válida/degradada,
+  contratos shadow/active, drift >1 %, outbox y duplicados, sin PII.
+- Verificación: 49/49 focalizados, 336/336 backend y lint quiet verdes. Flags y
+  `.env.example` siguen `false`; no se ejecutó shadow real, DB efímera, Render,
+  Supabase ni activación. Gate operativo pendiente: valid load >=99 %, degradados
+  <1 %, cero duplicados/drift en muestra QA y aprobación de nutricionista.
 
 ## Gate técnico G
 

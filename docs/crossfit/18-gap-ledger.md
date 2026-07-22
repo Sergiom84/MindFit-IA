@@ -18,7 +18,7 @@
 | Autorreg profesional                 | doc 16 + reducer/result service + SQL                                                  | lógica cerrada; migración/RLS/E2E pendientes     |
 | Seguridad por patron/sintoma         | doc 07 + safety CSV                                                                    | contrato clinico/RLS/human review                |
 | Embarazo/posparto                    | bloqueo funcional y contrato definido                                                  | BLOQUEADO_CLINICAL_PROFILE_CONTRACT              |
-| Nutricion por nivel/objetivo/carga   | doc 03 + nutrition/load CSV                                                            | desarrollo flag off + dietista + shadow          |
+| Nutricion por nivel/objetivo/carga   | doc 03 + adapter/matriz 3x4x3, plan/day, safety y métricas                             | código flag off; BD/shadow/dietista pendientes   |
 | Flujos plan/single-day/player        | docs 05/17 + adaptadores + 51 pruebas focalizadas                                      | código cerrado; BD/E2E/offline pendientes        |
 | QA/oraculos/perfiles                 | doc 09 + 32 perfiles + invariantes; gate puro 30.000 verde                             | BD/E2E/humanos pendientes                        |
 | Roadmap/DoR/DoD/rollback             | doc 08 + checkpoints                                                                   | implementación iniciada                          |
@@ -29,11 +29,12 @@
 
 - `LISTO_AHORA_DOCUMENTAL`: fundamento, niveles, programas, WOD, contratos, matrices, roadmap y oraculos.
 - `FASE_0_COMPARTIDA_DESBLOQUEADA_PARA_DESARROLLO`: contratos compartidos disponibles en `origin/main@e7f5711`.
-- `PENDIENTE_GATE_LOAD_SHADOW`: training load, cierre/outbox y nutrición se implementan con flags apagados hasta QA/métricas/aprobación.
+- `COMPLETADO_TECNICO_FLAG_OFF`: training load, cierre/outbox, nutrición y métricas están implementados y pasan unit/contract; no equivale a shadow real.
+- `PENDIENTE_GATE_LOAD_SHADOW`: ejecutar PostgreSQL efímero y shadow QA hasta lograr >=99 % carga válida, <1 % degradada justificada y cero duplicados/drift.
 - `IMPLEMENTACION_EN_RAMA`: código, flags y tests v2 en `codex/crossfit-profesional-v2`.
 - `REQUIERE_MIGRACION_AUTORIZADA`: catalogo normalizado, RLS, resultados/eventos y backfill.
 - `REQUIERE_VALIDACION_HUMANA`: deporte, nutricion, seguridad, media y muestra final.
 
 ## Criterio honesto
 
-Los déficits de decisión deportiva/funcional quedan cerrados a nivel de especificación. Contratos, motor, autorregulación y flujo técnico principal están implementados bajo flags apagados. No queda cerrada la eficacia ni seguridad real del software: exige BD aislada, E2E, shadow y profesionales. La rama sigue siendo apta para desarrollar y revisar, no para activar producción.
+Los déficits de decisión deportiva/funcional quedan cerrados a nivel de especificación. Contratos, motor, autorregulación, training load, nutrición y flujo técnico principal están implementados bajo flags apagados. No queda cerrada la eficacia ni seguridad real del software: exige BD aislada, E2E, shadow y profesionales. La rama sigue siendo apta para desarrollar y revisar, no para activar producción.

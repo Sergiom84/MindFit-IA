@@ -115,6 +115,7 @@ async function safeEnqueueSessionCompleted(client, params) {
       sessionId,
       userId,
       methodologyPlanId: session?.methodology_plan_id ?? null,
+      dayId: session?.day_id ?? null,
       methodologyId,
       methodologyLevel,
       completedAt: completedAtIso,
