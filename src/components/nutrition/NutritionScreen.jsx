@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useUserContext } from '@/contexts/UserContext';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { Calendar, Target, TrendingUp } from 'lucide-react';
+import { Calendar, ShoppingCart, Target, TrendingUp } from 'lucide-react';
 
 // Sistema V2 + Dashboard
 import NutritionPlanGenerator from './NutritionPlanGenerator';
 import NutritionCalendarView from './NutritionCalendarView';
 import NutritionDashboard from './NutritionDashboard';
+import ShoppingList from './ShoppingList';
 import {
   getActiveNutritionPlan,
   getNutritionProfile,
@@ -18,7 +19,7 @@ export default function NutritionScreen() {
   const { userData } = useUserContext();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [activeTab, setActiveTab] = useState('generate-plan');
-  const [, setNutritionPlan] = useState(null);
+  const [nutritionPlan, setNutritionPlan] = useState(null);
   const [, setIsLoading] = useState(false);
   const [kcalInfo, setKcalInfo] = useState({ value: null, source: null, note: null });
 
@@ -29,6 +30,13 @@ export default function NutritionScreen() {
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'shopping-list') return;
+    getActiveNutritionPlan({ force: true }).then((result) => {
+      if (result.ok) setNutritionPlan(result.data);
+    });
+  }, [activeTab]);
 
   // Obtener información del usuario y rutina actual.
   // B-01: guard para no duplicar el fetch de perfil/plan en el doble montaje de
@@ -194,6 +202,13 @@ export default function NutritionScreen() {
       description: 'Vista semanal del plan determinista',
       isV2: true
     },
+    {
+      id: 'shopping-list',
+      label: 'Lista de compra',
+      icon: ShoppingCart,
+      description: 'Cantidades derivadas de tus menús actuales',
+      isV2: true
+    },
     // ===== CONTROL Y PROGRESO (NUEVO DASHBOARD) =====
     {
       id: 'dashboard',
@@ -303,6 +318,10 @@ export default function NutritionScreen() {
 
           {activeTab === 'calendar-v2' && (
             <NutritionCalendarView />
+          )}
+
+          {activeTab === 'shopping-list' && (
+            <ShoppingList nutritionPlan={nutritionPlan} />
           )}
 
           {/* ===== DASHBOARD DE CONTROL ===== */}

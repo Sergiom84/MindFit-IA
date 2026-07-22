@@ -47,6 +47,7 @@ export function resolveCrossfitNutritionPlanDay(row, { level } = {}) {
       plan_id: row.plan_id,
       day_id: row.day_id,
       date: row.date_local,
+      metadata: row.metadata ?? {},
       source: "crossfit_plan_day_rest",
       training_load: buildSafeLoad({
         level: normalizedLevel,
@@ -65,6 +66,7 @@ export function resolveCrossfitNutritionPlanDay(row, { level } = {}) {
       plan_id: row.plan_id,
       day_id: row.day_id,
       date: row.date_local,
+      metadata: row.metadata ?? {},
       source: "crossfit_planned_session_load",
       training_load: candidate
     };
@@ -74,6 +76,7 @@ export function resolveCrossfitNutritionPlanDay(row, { level } = {}) {
     plan_id: row.plan_id,
     day_id: row.day_id,
     date: row.date_local,
+    metadata: row.metadata ?? {},
     source: "crossfit_conservative_d1",
     degraded: true,
     training_load: buildSafeLoad({

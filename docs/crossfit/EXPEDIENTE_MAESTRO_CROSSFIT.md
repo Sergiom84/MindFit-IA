@@ -13,18 +13,18 @@ El nombre publico recomendado es **Acondicionamiento funcional de alta intensida
 
 ## Resultado real de la preparacion
 
-| Area                             | Estado documental                                                | Estado real de producto                                                   |
-| -------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Modelo por niveles               | Cerrado con criterios multidimensionales, confianza y asimetrias | UI 8D, ledger y revisión profesional implementados; BD/E2E pendientes     |
-| Programacion 2/3, 3/4 y 4/5 dias | Cerrada por nivel y bloque                                       | Bloques 8/10/12 implementados y validados                                 |
-| Biblioteca WOD                   | Formatos, dosis, caps, interferencias y escalado definidos       | Composer y player v2 implementados; E2E pendiente                         |
-| Catalogo                         | 120 filas auditadas y modelo canonico propuesto                  | Repositorio/importador/SQL preparados; migración no aplicada              |
-| Generador                        | Contrato, semilla, scoring, fallback e invariantes definidos     | Integrado bajo flag; 30.000 planes y regeneraciones verdes                |
-| Autorregulacion                  | Maquina de estados y prioridades definidas                       | Siete estados persistentes; migración/RLS no aplicados                    |
-| Seguridad                        | Stop rules y matriz por patron/sintoma definidas                 | Evaluador previo al composer; contratos clínicos externos pendientes      |
-| Nutricion                        | Algoritmo por objetivo, carga y nivel definido                   | Adapter canónico implementado; rollout bloqueado por BD/shadow/aprobación |
-| Flujos                           | Contratos front-back-BD y errores trazados                       | Evaluación/plan/single-day/player/cierre integrados; E2E/RLS pendientes   |
-| QA                               | Oraculos, perfiles y gates cuantificados                         | 355/355 backend y 30.000 gate; CI DB/RLS/E2E preparado, no ejecutado      |
+| Area                             | Estado documental                                                | Estado real de producto                                                         |
+| -------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Modelo por niveles               | Cerrado con criterios multidimensionales, confianza y asimetrias | UI 8D, ledger y revisión profesional implementados; BD/E2E pendientes           |
+| Programacion 2/3, 3/4 y 4/5 dias | Cerrada por nivel y bloque                                       | Bloques 8/10/12 implementados y validados                                       |
+| Biblioteca WOD                   | Formatos, dosis, caps, interferencias y escalado definidos       | Composer y player v2 implementados; E2E pendiente                               |
+| Catalogo                         | 120 filas auditadas y modelo canonico propuesto                  | Repositorio/importador/SQL preparados; migración no aplicada                    |
+| Generador                        | Contrato, semilla, scoring, fallback e invariantes definidos     | Integrado bajo flag; 30.000 planes y regeneraciones verdes                      |
+| Autorregulacion                  | Maquina de estados y prioridades definidas                       | Siete estados persistentes; migración/RLS no aplicados                          |
+| Seguridad                        | Stop rules y matriz por patron/sintoma definidas                 | Evaluador previo al composer; contratos clínicos externos pendientes            |
+| Nutricion                        | Algoritmo por objetivo, carga y nivel definido                   | Adapter/UI/compras V2 implementados; rollout bloqueado por BD/shadow/aprobación |
+| Flujos                           | Contratos front-back-BD y errores trazados                       | Evaluación/plan/single-day/player/cierre integrados; E2E/RLS pendientes         |
+| QA                               | Oraculos, perfiles y gates cuantificados                         | 400/400 backend y 30.000 gate; CI DB/RLS/E2E preparado, no ejecutado            |
 
 ## Decisiones no negociables
 
@@ -83,7 +83,7 @@ CrossFit permanece inactiva hasta completar shadow, métricas y aprobación.
 1. `COMPLETADO_TECNICO`: contratos, flags, clasificacion, programacion, composer y gate estadistico.
 2. `COMPLETADO_CON_GATE_BD`: evaluacion/ledger, catalogo, seguridad, resultados y autorregulacion; migraciones no aplicadas.
 3. `COMPLETADO_CON_GATE_E2E`: generación, plan, single-day, calendario, player, feedback y cierre por adaptadores.
-4. `COMPLETADO_TECNICO_FLAG_OFF`: training load, outbox, nutrición por nivel/carga y métricas; validar en BD/shadow QA.
+4. `COMPLETADO_TECNICO_FLAG_OFF`: training load, outbox, nutrición por nivel/carga, presentación active, compras V2 y métricas; validar migración/BD/shadow QA.
 5. `PENDIENTE_INFRAESTRUCTURA`: migraciones, RLS, E2E, accesibilidad y regresión con PostgreSQL aislado.
 6. `REQUIERE_VALIDACION_HUMANA`: entrenador y nutricionista revisan reglas y muestra; legal decide el nombre.
 7. Solicitar a Pablo autorización de push; PR revisable y revisión Sergio/Pablo. Nunca push directo a `main`.

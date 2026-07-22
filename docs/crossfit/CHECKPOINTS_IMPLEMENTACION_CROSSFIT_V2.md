@@ -28,7 +28,7 @@ Estado global: `EN_PROGRESO`
 | F. Composer/validadores       | `COMPLETADA_TECNICA`          | 30.000 planes + 30.000 regeneraciones; cero hard violation   |
 | G. Flujos de producto         | `COMPLETADA_CON_GATE_E2E`     | cierre terminal/draft durable; 12 E2E preparados             |
 | H. Resultados/autorregulación | `COMPLETADA_CON_GATE_BD`      | siete estados; cierre transaccional; SQL/RLS requiere BD     |
-| I. Training load/nutrición    | `COMPLETADA_TECNICA_FLAG_OFF` | 49/49; 355/355; shadow/BD/aprobación pendientes              |
+| I. Training load/nutrición    | `COMPLETADA_TECNICA_FLAG_OFF` | 400/400; active UI/compras; shadow/BD/aprobación pendientes  |
 | J. QA integral                | `PREPARADA_GATE_CI`           | unit/lint/build verdes; BD/RLS/E2E preparados, no ejecutados |
 | K. Validaciones externas      | `GATE_PREPRODUCCION`          | entrenador, nutricionista, clínico si aplica y legal         |
 
@@ -41,7 +41,7 @@ Estado global: `EN_PROGRESO`
 | CI `main`                  | CI y Android verdes en el SHA de referencia                        |
 | `npm ci` raíz/backend      | correcto desde lockfiles                                           |
 | `npm run test:backend`     | 231/231                                                            |
-| Regresión actual           | 392/392 tras cierre terminal, feedback durable y regeneración      |
+| Regresión actual           | 400/400 tras integración nutricional active/shadow y compras V2    |
 | `npm run lint -- --quiet`  | correcto                                                           |
 | `npm run build`            | correcto; warnings preexistentes de chunks/browser data            |
 | Integración backend        | no ejecutada: no hay PostgreSQL/Docker local ni URL QA             |
@@ -92,13 +92,22 @@ Estado global: `EN_PROGRESO`
   una identidad ausente no se inventa ni se periodiza.
 - El cierre/outbox transporta `methodology_plan_id + day_id`; CrossFit se omite
   fail-closed si falta identidad o `CROSSFIT_EMITS_TRAINING_LOAD` está apagado.
+- La decisión del bridge conserva la carga real completa; observabilidad agrega
+  cargas planned/actual por separado y mantiene los gates sin PII.
 - Perfil médico canónico y último snapshot nutricional se proyectan a señales
   booleanas sin leer documentos clínicos. RED-S/baja energía y
   embarazo/posparto bloquean déficit automático; riesgo renal/cardiovascular o
   diuréticos bloquea dosis de electrolitos. No se emite diagnóstico.
 - Endpoint admin read-only `/api/admin/crossfit-v2/metrics`: carga válida/degradada,
   contratos shadow/active, drift >1 %, outbox y duplicados, sin PII.
-- Verificación: 49/49 focalizados, 355/355 backend y lint quiet verdes. Flags y
+- El contexto nutricional se expone al propietario en `/active-plan`, pero la UI
+  solo presenta timing/hidratación si el contrato es active y autoritativo. La
+  lista de compra usa los ítems V2 persistidos y conserva sustituciones/estado.
+- Preparada, no aplicada, `20260722_crossfit_v2_nutrition_day_types.sql`; corrige
+  el constraint que bloquearía `entreno_normal/entreno_alto` y CI la carga en sus
+  dos entornos efímeros.
+- Verificación: gate previo 49/49 + 8 casos nuevos, 400/400 backend, lint quiet,
+  build y budget verdes. Flags y
   `.env.example` siguen `false`; no se ejecutó shadow real, DB efímera, Render,
   Supabase ni activación. Gate operativo pendiente: valid load >=99 %, degradados
   <1 %, cero duplicados/drift en muestra QA y aprobación de nutricionista.
@@ -241,7 +250,7 @@ Estado global: `EN_PROGRESO`
 - El arnés `localQaGuard` queda desactivado sin acuse explícito y, aun con acuse,
   rechaza cualquier API, frontend o PostgreSQL que no sea local. La regresión E2E
   histórica deja de permitir Supabase/producción.
-- CI prepara PostgreSQL 17 efímero, restaura baseline, aplica dos veces las cinco
+- CI prepara PostgreSQL 17 efímero, restaura baseline, aplica dos veces las seis
   migraciones CrossFit y ejecuta la integración registrada por el runner.
 - El job E2E importa el catálogo draft, lo activa solo en la BD desechable y
   verifica que un segundo import es un no-op con hash y conteos idénticos.
@@ -251,7 +260,7 @@ Estado global: `EN_PROGRESO`
 - Playwright descubre 12 casos en proyectos escritorio y móvil 375x812: tres
   ciclos API por nivel, cierre parcial transaccional y dos recorridos UI por viewport. Generation/results están
   activos solo dentro del job; carga, nutrición y workers continúan apagados.
-- Verificación local segura: 392/392 unitarios, lint quiet, build y budget verdes.
+- Verificación local segura: 400/400 unitarios, lint quiet, build y budget verdes.
   PostgreSQL/Docker no están disponibles y no hay servidores
   levantados; por tanto DB/RLS/E2E permanecen `PENDIENTE_EJECUCION_CI`, no verdes.
 

@@ -142,7 +142,8 @@ export async function handleSessionCompletedEvent(client, event, deps = {}) {
       methodology_id: payload.methodology_id,
       methodology_level: payload.methodology_level,
       final_status: payload.final_status,
-      completion_rate: payload.completion_rate
+      completion_rate: payload.completion_rate,
+      actual_session_load: load
     },
     decisionDetails: {
       // §18.2: shape completo del log de decisión (user_id va en la columna de la tabla).

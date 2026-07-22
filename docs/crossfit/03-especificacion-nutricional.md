@@ -100,6 +100,23 @@ Flags: perdida rapida, fatiga persistente, deterioro de rendimiento, alteracione
 
 El dia de entrenamiento aporta `day_id`, hora y carga. El motor redistribuye macros entre comidas existentes, prioriza recetas compatibles y recalcula lista de compra; no crea un segundo menu. Cambio de sesion reperiodiza solo dias no consumidos/no cerrados, conserva sustituciones y registra diff. Error de outbox o carga degradada mantiene plan base, muestra estado `sync_pending` y reintenta idempotentemente.
 
+Estado implementado en rama: la generación del plan enlaza cada día por
+`plan_id + day_id`, conserva `metadata.session_time`, persiste el contrato en
+`periodization_context` y solo sirve D0/D1/D2 cuando el modo es `active` y
+autoritativo. `/active-plan` devuelve ese contexto al propietario; la UI muestra
+timing e hidratación únicamente en active, nunca durante shadow. Recetas y
+sustituciones siguen en las tablas canónicas. La lista V2 se deriva de los
+`nutrition_meal_items` realmente persistidos, agrega gramajes de forma
+determinista y separa estados crudo/cocido/seco, por lo que no inventa ni sustituye
+alimentos.
+
+La migración `20260722_crossfit_v2_nutrition_day_types.sql`, preparada y no
+aplicada, amplía el constraint histórico para admitir `entreno_normal` y
+`entreno_alto`; sin ella el modo active fallaría al insertar. El cierre registra
+la carga actual completa en la decisión del bridge y las métricas agregan muestras
+planned/actual. La reperiodización persistente por cambios futuros de calendario y
+el estado visible `sync_pending` siguen siendo gate E2E/BD, no se declaran validados.
+
 ## Reason codes y limites
 
 `NUTR_CF_D0/D1/D2`, `NUTR_CF_LOW_ADHERENCE`, `NUTR_CF_PERFORMANCE_DROP`, `NUTR_CF_REDS_RISK`, `NUTR_CF_HYDRATION_PERSONALIZE`, `NUTR_CF_MACRO_CONSTRAINT`. Toda recomendacion muestra rango y razon, no decimal clinico falso. `REQUIERE_VALIDACION_HUMANA` por nutricionista deportivo.

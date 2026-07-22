@@ -39,7 +39,12 @@ test("métricas CrossFit exponen gates >=99%, <1%, duplicados y drift sin PII", 
   });
   const db = {
     async query(sql) {
-      if (sql === CROSSFIT_LOAD_SAMPLE_SQL) return { rows: [{ session_load: trainingLoad }] };
+      if (sql === CROSSFIT_LOAD_SAMPLE_SQL) {
+        return { rows: [
+          { load_source: "planned", session_load: trainingLoad },
+          { load_source: "actual", session_load: { ...trainingLoad, status: "completed" } }
+        ] };
+      }
       if (sql === CROSSFIT_NUTRITION_SAMPLE_SQL) {
         return { rows: [{
           periodization_context: {
@@ -71,6 +76,8 @@ test("métricas CrossFit exponen gates >=99%, <1%, duplicados y drift sin PII", 
   const metrics = await collectCrossfitV2Metrics(db);
   assert.equal(metrics.training_load.valid_pct, 100);
   assert.equal(metrics.training_load.degraded_pct, 0);
+  assert.equal(metrics.training_load.planned_total, 1);
+  assert.equal(metrics.training_load.actual_total, 1);
   assert.equal(metrics.nutrition.valid_contracts, 1);
   assert.equal(metrics.assessments.active_verified, 1);
   assert.equal(metrics.gates.valid_load_at_least_99pct, true);

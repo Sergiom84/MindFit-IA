@@ -893,6 +893,7 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
               'tipo_dia', d.tipo_dia,
               'kcal', d.kcal,
               'macros', d.macros,
+              'periodization_context', d.periodization_context,
               'day_id', d.id,
               'meals', (
                 SELECT json_agg(

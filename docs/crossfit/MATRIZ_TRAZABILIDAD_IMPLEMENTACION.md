@@ -20,14 +20,14 @@ efímero y nunca debe sustituirse por producción.
 | Single-day y plan                  | docs 05/17                    | adaptadores existentes                      | composer/persistencia 51/51; E2E pendiente  | COMPLETADO_GATE_E2E        |
 | Resultado WOD v2                   | docs 16/17                    | result service + migración preparada        | terminales/atomicidad/idempotencia/outbox   | COMPLETADO_GATE_BD_E2E     |
 | Autorregulación 7 estados          | docs 16                       | reducer + ledger + snapshot                 | prioridad/histéresis/out-of-order           | COMPLETADO_GATE_BD         |
-| Planned/actual training-load       | docs 03/15                    | adapter + plan/result/outbox                | strict, plan/day y flags 49/49              | COMPLETADO_FLAG_OFF        |
-| Nutrición D0/D1/D2                 | docs 03 + mapping CSV         | motor canónico + adapter CrossFit           | matriz 3x4x3, seguridad, energía y métricas | COMPLETADO_GATE_SHADOW_BD  |
+| Planned/actual training-load       | docs 03/15                    | adapter + plan/result/outbox                | strict, plan/day, D0 cancel y métricas      | COMPLETADO_FLAG_OFF        |
+| Nutrición D0/D1/D2                 | docs 03 + mapping CSV         | motor/adaptador + presentación/compras V2   | 3x4x3, seguridad, active/shadow y migración | COMPLETADO_GATE_SHADOW_BD  |
 | Calendario y metadata canónica     | docs 05/17                    | schedule adapter + metadata hydrator        | bloque 8/10/12, day_id, fail-closed         | COMPLETADO_GATE_BD_E2E     |
 | WOD player y feedback              | docs 14/16/17                 | player + draft owner-bound + result adapter | reload, terminales, escala autoritativa     | COMPLETADO_GATE_E2E        |
 | Runtime y sustitucion validada     | docs 07/14/17                 | runtime service + ledger + API aislada      | 13/13 backend + 5/5 estado frontend         | UI_BACKEND_OK_GATE_BD_E2E  |
 | Regeneración inmutable de draft    | docs 05/15/17                 | product adapter + índice parcial            | transacción, replay, colisión y revisión    | COMPLETADO_GATE_BD_E2E     |
-| Flujos completos                   | docs 05/17                    | front-back-BD                               | 392 unit; 12 E2E preparados                 | EN_PROGRESO_GATE_E2E       |
+| Flujos completos                   | docs 05/17                    | front-back-BD                               | 400 unit; 12 E2E preparados                 | EN_PROGRESO_GATE_E2E       |
 | Migración y RLS                    | docs 02/04/08/16/17           | assessment/catalog/result/runtime ledgers   | estático verde; CI efímero preparado        | PENDIENTE_EJECUCION_CI     |
-| Regresión ajena                    | guardas repositorio           | sin cambios en motores ajenos               | 392/392 unit; E2E/golden UI pendiente       | PARCIAL_GATE_E2E           |
+| Regresión ajena                    | guardas repositorio           | sin cambios en motores ajenos               | 400/400 unit; E2E/golden UI pendiente       | PARCIAL_GATE_E2E           |
 | QA fail-closed                     | docs 09                       | CI + localQaGuard + Playwright              | local-only; 12 E2E descubiertos             | PREPARADO_GATE_CI          |
 | Validación humana/legal            | docs 01/07/09/10              | gate preproducción                          | acta externa                                | REQUIERE_VALIDACION_HUMANA |

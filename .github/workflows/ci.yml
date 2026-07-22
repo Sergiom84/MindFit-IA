@@ -145,6 +145,7 @@ jobs:
             psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
               -f backend/migrations/20260722_crossfit_v2_assessments.sql \
               -f backend/migrations/20260722_crossfit_v2_catalog.sql \
+              -f backend/migrations/20260722_crossfit_v2_nutrition_day_types.sql \
               -f backend/migrations/20260722_crossfit_v2_results_autoreg.sql \
               -f backend/migrations/20260722_crossfit_v2_runtime_events.sql \
               -f backend/migrations/20260722_crossfit_v2_plan_revisions.sql
@@ -204,6 +205,7 @@ jobs:
             -f backend/db/baseline/app_schema_baseline.sql \
             -f backend/migrations/20260722_crossfit_v2_assessments.sql \
             -f backend/migrations/20260722_crossfit_v2_catalog.sql \
+            -f backend/migrations/20260722_crossfit_v2_nutrition_day_types.sql \
             -f backend/migrations/20260722_crossfit_v2_results_autoreg.sql \
             -f backend/migrations/20260722_crossfit_v2_runtime_events.sql \
             -f backend/migrations/20260722_crossfit_v2_plan_revisions.sql

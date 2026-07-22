@@ -28,10 +28,10 @@ unit/contract verdes en rama, pero no recorrido Playwright ni BD real.
 | Autorregulacion      | IMPLEMENTADO_GATE_E2E | event reducer v2                                            | events + snapshot                      | migración/RLS                        |
 | Progresion/reeval    | PARCIAL               | block gates/classification                                  | assessments + plan snapshots           | captura objetiva al cierre pendiente |
 | Historial/metricas   | PARCIAL               | version-aware comparable results                            | results/metrics                        | legacy low confidence                |
-| Nutricion/menu       | PARCIAL               | load mapper + canonical engine                              | override/menu by day_id                | sync pending/degraded                |
+| Nutricion/menu       | IMPLEMENTADO_GATE_E2E | load mapper + canonical engine                              | context/menu by plan_id+day_id         | shadow/active/constraint DB          |
 | Recetas/sustitucion  | OK general            | reuse preferences/macros                                    | nutrition tables                       | allergy hard filter                  |
-| Lista compra         | OK general            | recalc only unconsumed days                                 | shopping list                          | idempotent diff                      |
-| Hidratacion          | PARCIAL               | sweat-rate education and flags                              | user observations                      | no universal sodium                  |
+| Lista compra         | IMPLEMENTADO_GATE_E2E | derivar cantidades de ítems reales                          | proyección de meal_items, sin tabla    | determinismo/estado pesado/E2E       |
+| Hidratacion          | IMPLEMENTADO_GATE_E2E | rangos educativos solo active autoritativo                  | periodization_context                  | shadow invisible/no sodio universal  |
 | Notificaciones       | DESCONECTADO          | reason-aware reminders only                                 | notification event                     | no medical claim/fatigue spam        |
 | Logros               | RIESGO                | no reward pain/Rx/intensity; reward consistency/skill       | achievement event                      | gamification safety review           |
 | Movil/escritorio     | PARCIAL               | same contract, responsive WOD controls                      | n/a                                    | 375x812 and desktop matrix           |

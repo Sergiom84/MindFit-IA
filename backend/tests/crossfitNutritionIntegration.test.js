@@ -26,6 +26,17 @@ import {
   buildSessionCompletedEvent
 } from "../services/bridgeEventOutboxService.js";
 import { handleSessionCompletedEvent } from "../jobs/processBridgeEventOutbox.js";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const nutritionDayTypesMigration = fs.readFileSync(path.join(
+  __dirname,
+  "../migrations/20260722_crossfit_v2_nutrition_day_types.sql"
+), "utf8");
+const ciWorkflow = fs.readFileSync(path.join(__dirname, "../../.github/workflows/ci.yml"), "utf8");
 
 const LEVELS = ["beginner", "intermediate", "advanced"];
 const GOALS = ["performance", "recomposition", "fat_loss", "mass_gain"];
@@ -222,11 +233,12 @@ test("repositorio de días incluye descansos, identidad y fallback D1 conservado
     day_id: 2,
     date_local: "2026-07-23",
     is_rest: false,
-    metadata: {}
+    metadata: { session_time: "early" }
   }, { level: "beginner" });
   assert.equal(fallback.degraded, true);
   assert.equal(fallback.training_load.day_type, "D1");
   assert.equal(fallback.training_load.provenance.confidence, "low");
+  assert.equal(fallback.metadata.session_time, "early");
 
   const db = {
     async query(sql, params) {
@@ -247,6 +259,22 @@ test("repositorio de días incluye descansos, identidad y fallback D1 conservado
   });
   assert.equal(days.size, 2);
   assert.equal(days.get("2026-07-23").day_id, 2);
+});
+
+test("migración nutricional CrossFit amplía D1/D2 de forma transaccional e idempotente", () => {
+  assert.match(nutritionDayTypesMigration, /^BEGIN;/m);
+  assert.match(nutritionDayTypesMigration, /COMMIT;\s*$/);
+  assert.match(nutritionDayTypesMigration, /DROP CONSTRAINT IF EXISTS nutrition_plan_days_tipo_dia_check/);
+  assert.match(
+    nutritionDayTypesMigration,
+    /CHECK \(tipo_dia IN \('entreno', 'entreno_normal', 'entreno_alto', 'descanso'\)\)/
+  );
+  assert.match(nutritionDayTypesMigration, /v_definition NOT LIKE '%entreno_normal%'/);
+  assert.doesNotMatch(nutritionDayTypesMigration, /UPDATE app\.nutrition_plan_days/);
+  assert.equal(
+    ciWorkflow.match(/20260722_crossfit_v2_nutrition_day_types\.sql/g)?.length,
+    2
+  );
 });
 
 test("outbox CrossFit transporta day_id y aplica rollout en shadow", async () => {
@@ -274,6 +302,7 @@ test("outbox CrossFit transporta day_id y aplica rollout en shadow", async () =>
   });
   assert.equal(result.status, "completed");
   assert.equal(decision.trainingInputs.day_id, 3);
+  assert.equal(decision.trainingInputs.actual_session_load.day_type, "D2");
   assert.equal(decision.decisionDetails.crossfit_nutrition_mode, "shadow");
   assert.deepEqual(decision.decisionDetails.reason_codes, ["NUTR_CF_D2"]);
 
@@ -285,4 +314,42 @@ test("outbox CrossFit transporta day_id y aplica rollout en shadow", async () =>
     status: "skipped",
     reason: "CROSSFIT_EMITS_TRAINING_LOAD_DISABLED"
   });
+});
+
+test("outbox CrossFit registra cancelación sin exposición como D0 sin métricas fabricadas", async () => {
+  const cancelledLoad = buildCrossfitPlannedTrainingLoad({
+    level: "beginner",
+    sessionType: "recovery",
+    dayType: "D0",
+    loadTier: "rest",
+    durationMin: 0,
+    ruleIds: ["CF-RESULT-CANCELLED-D0"]
+  }).load;
+  const event = buildSessionCompletedEvent({
+    sessionId: 91,
+    userId: 7,
+    methodologyPlanId: 11,
+    dayId: 4,
+    methodologyId: "crossfit",
+    methodologyLevel: "principiante",
+    finalStatus: "cancelled",
+    completionRate: 0,
+    actualSessionLoad: { ...cancelledLoad, status: "completed" }
+  });
+  let decision = null;
+  const result = await handleSessionCompletedEvent({}, event, {
+    env: {
+      CROSSFIT_EMITS_TRAINING_LOAD: "true",
+      NUTRITION_LOAD_PERIODIZATION_MODE: "shadow"
+    },
+    hasNutritionProfile: async () => true,
+    logBridgeDecision: async (_client, input) => {
+      decision = input;
+      return 92;
+    }
+  });
+  assert.equal(result.status, "completed");
+  assert.equal(decision.trainingInputs.actual_session_load.day_type, "D0");
+  assert.equal(decision.trainingInputs.actual_session_load.effort.rpe_actual, null);
+  assert.deepEqual(decision.decisionDetails.reason_codes, ["NUTR_CF_D0"]);
 });

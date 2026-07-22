@@ -2,11 +2,17 @@ import { validateCrossfitNutrition } from "../contracts/index.js";
 import { validateTrainingLoad } from "../../trainingLoad/trainingLoadContract.js";
 
 export const CROSSFIT_LOAD_SAMPLE_SQL = `
-SELECT mpd.metadata->'session_load' AS session_load
+SELECT 'planned'::text AS load_source, mpd.metadata->'session_load' AS session_load
 FROM app.methodology_plan_days mpd
 JOIN app.methodology_plans mp ON mp.id = mpd.plan_id
 WHERE LOWER(mp.methodology_type) = 'crossfit'
-  AND mpd.is_rest = FALSE`;
+  AND mpd.is_rest = FALSE
+  AND mpd.metadata->'session_load' IS NOT NULL
+UNION ALL
+SELECT 'actual'::text AS load_source, o.payload->'actual_session_load' AS session_load
+FROM app.bridge_event_outbox o
+WHERE o.payload->>'methodology_id' = 'crossfit'
+  AND o.payload->'actual_session_load' IS NOT NULL`;
 
 export const CROSSFIT_NUTRITION_SAMPLE_SQL = `
 SELECT periodization_context
@@ -71,7 +77,11 @@ export async function collectCrossfitV2Metrics(db) {
 
   let validLoads = 0;
   let degradedLoads = 0;
+  let plannedLoads = 0;
+  let actualLoads = 0;
   for (const row of loadResult.rows) {
+    if (row.load_source === "planned") plannedLoads += 1;
+    if (row.load_source === "actual") actualLoads += 1;
     const validation = validateTrainingLoad(row.session_load, { mode: "strict" });
     if (validation.valid) validLoads += 1;
     else degradedLoads += 1;
@@ -114,6 +124,8 @@ export async function collectCrossfitV2Metrics(db) {
     },
     training_load: {
       total: totalLoads,
+      planned_total: plannedLoads,
+      actual_total: actualLoads,
       valid: validLoads,
       degraded: degradedLoads,
       valid_pct: validLoadPct,

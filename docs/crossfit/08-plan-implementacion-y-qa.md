@@ -72,14 +72,18 @@ Estado: `COMPLETADA_TECNICA_FLAG_OFF`, `PENDIENTE_QA_BD_SHADOW`.
 Implementado: descriptor y rollout por flag, planned load al generar, actual al cerrar,
 outbox con `plan_id + day_id`, repositorio de días de entrenamiento/descanso,
 mapper D0/D1/D2 y adapter nutricional sobre el motor canónico. La ruta existente
-conserva menús/recetas/compras y solo cambia el objetivo diario cuando el modo es
-autoritativo. Señales explícitas de baja energía o embarazo/posparto bloquean déficit;
+conserva menús/recetas y solo cambia el objetivo diario cuando el modo es
+autoritativo. El plan activo transporta timing/hidratación únicamente en active y
+la lista de compra V2 se deriva de los ítems persistidos, preservando sustituciones
+y estados de pesado. Señales explícitas de baja energía o embarazo/posparto bloquean déficit;
 riesgo renal/cardiovascular bloquea dosis de electrolitos. Endpoint admin agregado
-sin PII. Activar en orden: generation/results -> shadow training load -> validar
+sin PII y con muestras separadas planned/actual. Preparada, no aplicada, la migración
+de tipos `entreno_normal/entreno_alto`. Activar en orden: generation/results -> shadow training load -> validar
 métricas -> `emits_training_load` -> shadow nutrition -> active nutrition con aprobación expresa.
 
-Verificación local: 49/49 focalizados, matriz 3 niveles x 4 objetivos x D0/D1/D2,
-355/355 backend y lint. DoD operativo aún pendiente: valid load >=99 %, degraded
+Verificación local: gate previo 49/49 más 8 casos nuevos de migración, D0 real,
+presentación active/shadow y compras; matriz 3 niveles x 4 objetivos x D0/D1/D2,
+400/400 backend, lint, build y budget. DoD operativo aún pendiente: valid load >=99 %, degraded
 <1 % justificado, cero duplicado outbox, menú idempotente en BD aislada y shadow.
 Rollback: flags nutrition/load off, conservar eventos.
 

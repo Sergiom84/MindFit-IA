@@ -57,18 +57,22 @@ equivale a E2E: no se han levantado servidores, creado usuarios ni usado una BD.
 
 ## Resultado ejecutado de training load y nutrición
 
-La Fase I ejecuta 49/49 pruebas focalizadas y la regresión actual posterior a
-sincronizar `origin/main@3e09559` y añadir evaluación v2 deja 355/355 backend. Quedan cubiertos:
+La Fase I conserva su gate previo de 49/49 y añade ocho casos de integración
+nutricional; la regresión actual sobre `origin/main@3e09559` queda en 400/400
+backend. Quedan cubiertos:
 
 - rollout `legacy -> shadow -> active` con ambos flags y default `false`;
 - matriz estricta de 36 combinaciones: tres niveles, cuatro objetivos y D0/D1/D2;
 - energía isocalórica dentro de 1 %, proteína canónica fija, suelo de grasa y
   macro constraint trazable;
 - descanso real, fallback D1 conservador e identidad obligatoria `plan_id + day_id`;
-- outbox idempotente con carga real y modo nutricional limitado a shadow;
+- outbox idempotente con carga real completa, cancelación D0 y modo nutricional limitado a shadow;
 - señales canónicas de RED-S/baja energía, embarazo/posparto,
   renal/cardiovascular y medicación, sin documentos ni diagnóstico;
-- métricas admin de >=99 % carga válida, <1 % degradada, duplicados y drift.
+- métricas admin planned/actual de >=99 % carga válida, <1 % degradada, duplicados y drift;
+- constraint D1/D2 preparado y conectado dos veces al workflow de CI;
+- presentación fail-closed: shadow invisible, active autoritativo con timing e hidratación;
+- lista de compra V2 determinista desde los ítems persistidos, conservando sustituciones y estados de pesado.
 
 No se marca verde la activación: faltan PostgreSQL efímero, shadow con muestra,
 menú idempotente persistido, E2E y revisión de nutricionista deportivo.
@@ -81,7 +85,7 @@ PostgreSQL. La suite histórica de regresión también usa esta guarda; se elimi
 posibilidad documentada de apuntarla a producción.
 
 - `integration-tests` restaura el baseline en PostgreSQL 17, aplica dos veces las
-  cinco migraciones CrossFit y ejecuta el grupo de integración registrado.
+  seis migraciones CrossFit y ejecuta el grupo de integración registrado.
 - `crossfit-v2-e2e` importa el catálogo en draft, lo activa solo en la BD efímera,
   verifica el re-run activo por hash/conteos y levanta API/preview locales dentro
   del job.
@@ -91,9 +95,9 @@ posibilidad documentada de apuntarla a producción.
 - La matriz API de nivel avanzado registra primero evidencia profesional por la
   ruta admin fail-closed. Se prohíbe usar en QA un payload cliente con
   `technique_verified=true`; principiante/intermedio ejercitan self-report.
-- Playwright descubre diez casos: tres ciclos API por nivel, tarjeta de
+- Playwright descubre doce casos: tres ciclos API por nivel, cierre parcial y tarjeta de
   evaluacion 8D con Axe y recorrido WOD, repetidos en escritorio y movil 375x812.
-- La regresión local ejecutada queda en 355/355, lint quiet, build y budget de
+- La regresión local ejecutada queda en 400/400, lint quiet, build y budget de
   bundle verdes.
 
 No se atribuyen resultados de DB/RLS/E2E todavía: este equipo no dispone de

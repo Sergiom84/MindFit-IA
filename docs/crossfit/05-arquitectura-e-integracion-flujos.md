@@ -14,7 +14,7 @@ Objetivo: incorporar `crossfit-plan/v2` mediante adaptadores de metodologia, sin
 | CrossFitPlanValidator         | 44 invariantes implementadas        | no autocorregir sin trace    |
 | CrossFitAutoregReducer        | implementado; SQL no aplicado       | no mutar historia            |
 | CrossFitTrainingLoadAdapter   | planned/actual implementado         | flag emisión sigue apagado   |
-| CrossFitNutritionMapper       | contrato/matriz; Fase I en curso    | no calcular menu paralelo    |
+| CrossFitNutritionMapper       | implementado flag off; BD/shadow    | no calcular menu paralelo    |
 | CrossFitDecisionTrace         | incluido en contratos/snapshots     | no guardar prompts sensibles |
 
 La integración de producto usa `productPlanService`, `scheduleMaterializer`,
@@ -51,7 +51,10 @@ Todos responden `schema_version`, `ruleset_version`, `catalog_version`, `request
   `verified` puede habilitar confianza alta y uno `revoked` la invalida.
 - Autoreg: reducer por eventos y snapshot derivado.
 - Training load: metadata canonica de Fase 0 y outbox.
-- Nutricion: solo override/periodizacion del motor existente, enlazado por `day_id`.
+- Nutricion: solo override/periodizacion del motor existente, enlazado por
+  `plan_id + day_id`; `periodization_context` viaja en la lectura del plan activo.
+- Menú/recetas/compras: tablas y generadores canónicos. La lista de compra es una
+  proyección determinista de `nutrition_meal_items`, no una segunda persistencia.
 - Catalogo: version inmutable; historia conserva IDs/version.
 
 ## Secuencia de plan y cierre
@@ -102,7 +105,7 @@ Autorizacion backend por `user_id`; RLS como segunda barrera; service role solo 
 Metricas sin PII: generaciones/latencia, fallback por stage, invariant failures,
 bloqueos por family reason, autoevaluaciones, eventos profesionales activos,
 revocaciones/evidencia caducada, completion/cap/abandon, outbox
-lag/retry/dead-letter, carga valid/degraded, nutrition sync, drift de movimientos
+lag/retry/dead-letter, carga planned/actual valid/degraded, nutrition sync, drift de movimientos
 y media de catalogo. Alertas: evidencia verificada >28 dias, cualquier hard
 invariant persistido, duplicado de cierre, load degradado >1 % o acceso cruzado.
 
@@ -129,4 +132,4 @@ invariant persistido, duplicado de cierre, load degradado >1 % o acceso cruzado.
 
 ## Fase 0 compartida
 
-`FASE_0_COMPARTIDA_DESBLOQUEADA_PARA_DESARROLLO`: planned/actual load, `day_id`, cierre/outbox, consumidor nutricional y métricas existen en el baseline. CrossFit se integra solo por extensión de registro/adaptador; no se reescribe convergencia. Los flags de emisión y nutrición siguen `false` hasta sus contract/integration/E2E y shadow metrics.
+`FASE_0_COMPARTIDA_DESBLOQUEADA_PARA_DESARROLLO`: planned/actual load, `day_id`, cierre/outbox, consumidor nutricional y métricas existen en el baseline. CrossFit se integra solo por extensión de registro/adaptador; no se reescribe convergencia. La migración correctiva, idempotente y sin DML de tipos D1/D2 está preparada, no aplicada. Los flags de emisión y nutrición siguen `false` hasta sus contract/integration/E2E y shadow metrics.
