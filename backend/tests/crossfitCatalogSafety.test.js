@@ -78,6 +78,20 @@ test("CrossFit catálogo: rechaza IDs heredados incompatibles con PostgreSQL", (
   assert.equal(invalidCatalog.variants.some((variant) => variant.variant_id === "variant_Invalid"), false);
 });
 
+test("CrossFit catálogo: los permisos de skills usan IDs canónicos estables", () => {
+  const { canonicalRows, references, instructions } = loadCatalog();
+  const invalidRows = canonicalRows.map((row, index) => index === 0
+    ? { ...row, skill_prerequisites: "strict_pull;C2B" }
+    : row);
+  const invalidCatalog = validateCanonicalCatalog(invalidRows, references, {
+    legacyInstructions: instructions
+  });
+
+  assert.equal(invalidCatalog.valid, false);
+  assert.ok(invalidCatalog.errors.some((error) =>
+    error.includes("skill_prerequisites contiene ID no ASCII estable C2B")));
+});
+
 test("CrossFit catálogo: Elite queda mapeado por historia pero no se activa como core", () => {
   const { auditRows, catalog } = loadCatalog();
   const eliteRows = auditRows.filter((row) => row.nivel_actual === "Elite");

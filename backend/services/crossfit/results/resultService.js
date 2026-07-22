@@ -303,10 +303,6 @@ async function finalizeCrossfitV2Session(client, session, normalized) {
               WHEN $2 = 'cancelled' THEN COALESCE(cancelled_at, $7::timestamptz)
               ELSE cancelled_at
             END,
-            abandoned_at = CASE
-              WHEN $2 = 'abandoned' THEN COALESCE(abandoned_at, $7::timestamptz)
-              ELSE abandoned_at
-            END,
             total_duration_seconds = CASE
               WHEN started_at IS NOT NULL THEN GREATEST(
                 COALESCE(total_duration_seconds, 0),

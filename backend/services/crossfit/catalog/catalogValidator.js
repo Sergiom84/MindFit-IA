@@ -130,6 +130,11 @@ export function validateCanonicalCatalog(rows, referenceSets, { expectedCount = 
   }
   const movements = rows.map((row) => normalizeCanonicalMovement(row, referenceSets, errors, legacyInstructions));
   for (const movement of movements) {
+    for (const prerequisite of movement.skill_prerequisites) {
+      if (!STABLE_ID_PATTERN.test(prerequisite)) {
+        errors.push(`${movement.canonical_id}: skill_prerequisites contiene ID no ASCII estable ${prerequisite}`);
+      }
+    }
     if (movement.cues.length < 2) errors.push(`${movement.canonical_id}: requiere al menos 2 cues`);
     if (movement.common_errors.length < 2) errors.push(`${movement.canonical_id}: requiere al menos 2 errores`);
     if (movement.contraindication_keys.length === 0) errors.push(`${movement.canonical_id}: requiere safety key`);

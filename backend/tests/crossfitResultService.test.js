@@ -204,6 +204,7 @@ test("feedback parcial cierra sesión, conserva porcentaje y traza el motivo", a
   const closure = client.calls.find((call) => /crossfit_v2_closure/.test(call.sql));
   assert.equal(closure.params[1], "partial");
   assert.equal(closure.params[5], 45);
+  assert.doesNotMatch(closure.sql, /abandoned_at/);
 });
 
 test("cancelación sin exposición no inventa métricas y emite carga real D0", async () => {

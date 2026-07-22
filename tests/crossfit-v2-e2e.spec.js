@@ -261,6 +261,7 @@ async function recordRuntimeEvent(
     eventType,
     elapsedSeconds,
     timeCapSeconds,
+    occurredAt = new Date().toISOString(),
   },
 ) {
   const identity = `${streamId}-${clientSequence}`;
@@ -277,7 +278,7 @@ async function recordRuntimeEvent(
         stream_id: streamId,
         client_sequence: clientSequence,
         event_type: eventType,
-        occurred_at: new Date().toISOString(),
+        occurred_at: occurredAt,
         payload: {
           elapsed_seconds: elapsedSeconds,
           time_cap_seconds: timeCapSeconds,
@@ -339,6 +340,7 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
       );
       const timeCapSeconds = canonicalSession.wod.time_cap_seconds;
       const streamId = `e2e_runtime_${levelCase.level}_${sessionId}`;
+      const runtimeStartedAt = new Date().toISOString();
       const runtimeStarted = await recordRuntimeEvent(
         request,
         provisioned.token,
@@ -349,6 +351,7 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
           eventType: "timer_started",
           elapsedSeconds: 0,
           timeCapSeconds,
+          occurredAt: runtimeStartedAt,
         },
       );
       expect(
@@ -382,6 +385,7 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
           eventType: "timer_started",
           elapsedSeconds: 0,
           timeCapSeconds,
+          occurredAt: runtimeStartedAt,
         },
       );
       expect(replayedStart.response.status()).toBe(200);
