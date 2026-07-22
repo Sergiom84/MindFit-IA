@@ -68,30 +68,42 @@ test.describe('Hipertrofia · identidad canónica (fuente, CI-safe)', () => {
     expect(contract).toContain('gym: "gimnasio"');
     expect(contract).toContain('bodybuilding: "gimnasio"');
   });
-});
 
-/**
- * E2E autenticado (STAGING). Requiere E2E_BASE_URL + credenciales de un usuario de prueba
- * con un plan de Hipertrofia. NO ejecutar contra producción (decisión del equipo).
- * Cubre escritorio y móvil (390×844).
- */
-const STAGING = process.env.E2E_STAGING_BASE_URL;
-test.describe('Hipertrofia · flujo E2E (staging)', () => {
-  test.skip(!STAGING, 'Define E2E_STAGING_BASE_URL y credenciales de staging para ejecutar');
+  test('C1: aiLimiter protege los generadores canónicos igual que los legacy', () => {
+    const server = read('backend/server.js');
+    for (const path of ['generate-d1d5', 'generate-fullbody', 'generate-single-day']) {
+      expect(server).toContain(`app.use('/api/hipertrofia/${path}', aiLimiter)`);
+      expect(server).toContain(`app.use('/api/hipertrofiav2/${path}', aiLimiter)`);
+    }
+  });
 
-  for (const viewport of [
-    { name: 'desktop', width: 1280, height: 800 },
-    { name: 'movil', width: 390, height: 844 }
-  ]) {
-    test(`(${viewport.name}) seleccionar Hipertrofia → Hoy → reproductor → RIR → resumen`, async ({ page }) => {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      // 1) Login + seleccionar Hipertrofia. 2) Generar/abrir plan. 3) Entrar en Hoy.
-      // 4) Abrir el reproductor DEDICADO (HipertrofiaSessionModal), no el genérico de gimnasio.
-      // 5) Registrar series/RIR. 6) Completar sesión. 7) Ver resumen. 8) Abrir plan histórico
-      //    con methodology_type='HipertrofiaV2_MindFeed'. 9) Confirmar que NUNCA se abre el
-      //    reproductor genérico de gimnasio.
-      // Implementación pendiente de credenciales de staging (CI-001).
-      expect(STAGING).toBeTruthy();
-    });
-  }
+  test('C2: /ai/methodology DELEGA en el flujo dedicado (no devuelve 409)', () => {
+    const route = read('backend/routes/routineGeneration.js');
+    expect(route).toContain('generateAndPersistD1D5Plan');
+    // El error 409 stub ya no existe: el usuario recibe un plan real.
+    expect(route).not.toContain('METHODOLOGY_REQUIRES_DEDICATED_FLOW');
+    // El orquestador compartido existe y lo usa también la ruta dedicada.
+    const orch = read('backend/services/hipertrofia/d1d5Orchestrator.js');
+    expect(orch).toContain('export async function generateAndPersistD1D5Plan');
+    const dedicated = read('backend/routes/hipertrofiaV2.js');
+    expect(dedicated).toContain('generateAndPersistD1D5Plan');
+  });
+
+  test('C4: el frontend llama a la ruta canónica /api/hipertrofia (no la legacy)', () => {
+    const dirs = [
+      'src/components/routines/RoutineSessionModal.jsx',
+      'src/components/routines/session/SessionSummaryModal.jsx',
+      'src/components/Methodologie/methodologies/Hipertrofia/HipertrofiaManualCard.jsx'
+    ];
+    for (const rel of dirs) {
+      const src = read(rel);
+      expect(src).not.toMatch(/hipertrofiav2\//); // ninguna URL legacy en minúsculas
+    }
+  });
+
+  test('C5: no queda "HipertrofiaV2" en texto visible (mensaje post-adaptación)', () => {
+    const transition = read('backend/routes/adaptation/transition.js');
+    expect(transition).toContain('Genera tu plan D1-D5 de Hipertrofia');
+    expect(transition).not.toContain('de HipertrofiaV2');
+  });
 });

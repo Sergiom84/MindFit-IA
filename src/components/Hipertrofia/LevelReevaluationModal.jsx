@@ -36,7 +36,7 @@ const LevelReevaluationModal = ({
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/hipertrofiav2/check-reevaluation/${userId}`, {
+      const response = await fetch(`/api/hipertrofia/check-reevaluation/${userId}`, {
         headers: {
           'Authorization': `Bearer ${tokenManager.getToken()}`
         }
@@ -95,7 +95,7 @@ const LevelReevaluationModal = ({
 
     setProcessing(true);
     try {
-      const response = await fetch('/api/hipertrofiav2/accept-reevaluation', {
+      const response = await fetch('/api/hipertrofia/accept-reevaluation', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

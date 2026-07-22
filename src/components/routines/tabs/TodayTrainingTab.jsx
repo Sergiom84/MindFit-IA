@@ -734,7 +734,7 @@ export default function TodayTrainingTab({
       try {
         const token = tokenManager.getToken();
         const response = await fetch(
-          `${API_URL}/api/hipertrofiav2/priority-status/${userId}`,
+          `${API_URL}/api/hipertrofia/priority-status/${userId}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`

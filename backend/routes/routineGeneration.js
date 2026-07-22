@@ -30,6 +30,7 @@ import {
 import { getUserFullProfile } from '../services/routineGeneration/database/userRepository.js';
 import { buildProfileAwarePlanData } from '../services/userProfileContract.js';
 import { isHipertrofiaMethodology } from '../services/hipertrofia/identity.js';
+import { generateAndPersistD1D5Plan } from '../services/hipertrofia/d1d5Orchestrator.js';
 
 const router = express.Router();
 
@@ -121,18 +122,28 @@ router.post('/ai/methodology', authenticateToken, async (req, res) => {
     const personalizedPlanData = buildProfileAwarePlanData(planData, userProfile);
 
     // 🧬 Hipertrofia tiene motor DEDICADO (D1-D5 MindFeed) fuera del orquestador genérico.
-    // Si la preferencia explícita (o un alias histórico) resuelve a Hipertrofia, NO se
-    // genera aquí una rutina genérica de gimnasio: se devuelve una REDIRECCIÓN explícita
-    // al flujo dedicado. Fallo controlado, nunca caída silenciosa a gimnasio (Fase 4).
+    // Si la preferencia explícita (o un alias histórico) resuelve a Hipertrofia, se DELEGA
+    // internamente en el mismo flujo que /api/hipertrofia/generate-d1d5, produciendo un plan
+    // REAL. Nunca se genera una rutina genérica de gimnasio ni se devuelve un error al
+    // usuario (Fase 4 + cierre de Pablo). NO se toca WorkoutContext.generatePlan().
     if (isHipertrofiaMethodology(personalizedPlanData.methodology)) {
-      logger.info(`🧬 Redirigiendo generación a flujo dedicado de Hipertrofia (user ${userId})`);
-      return res.status(409).json({
-        success: false,
-        error: 'METHODOLOGY_REQUIRES_DEDICATED_FLOW',
+      logger.info(`🧬 Delegación interna al flujo dedicado de Hipertrofia (user ${userId})`);
+      const nivel = personalizedPlanData.selectedLevel
+        || planData.selectedLevel || planData.nivel || planData.level || 'Principiante';
+      const dedicated = await generateAndPersistD1D5Plan(userId, {
+        nivel,
+        totalWeeks: planData.totalWeeks,
+        startConfig: planData.startConfig,
+        includeWeek0: planData.includeWeek0 !== undefined ? planData.includeWeek0 : true
+      });
+      return res.json({
+        success: true,
         methodology: 'hipertrofia',
-        redirect: '/api/hipertrofia/generate-d1d5',
-        legacyRedirect: '/api/hipertrofiav2/generate-d1d5',
-        message: 'Hipertrofia usa su generador dedicado D1-D5. Usa el endpoint indicado en "redirect".'
+        plan: dedicated.plan,
+        methodologyPlanId: dedicated.methodologyPlanId,
+        planId: dedicated.planId,
+        message: 'Plan MindFeed D1-D5 generado exitosamente',
+        system_info: { motor: 'MindFeed v1.0', ciclo: 'D1-D5' }
       });
     }
 

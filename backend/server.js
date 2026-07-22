@@ -461,6 +461,10 @@ app.post('/api/methodology/generate', authenticateToken, (req, res, next) => {
 app.use('/api/ai', aiLimiter);
 app.use('/api/ai-photo-correction', aiLimiter);
 app.use('/api/routine-generation', aiLimiter);
+// Ruta CANÓNICA y alias LEGACY: MISMA protección aiLimiter en ambos prefijos.
+app.use('/api/hipertrofia/generate-d1d5', aiLimiter);
+app.use('/api/hipertrofia/generate-fullbody', aiLimiter);
+app.use('/api/hipertrofia/generate-single-day', aiLimiter);
 app.use('/api/hipertrofiav2/generate-d1d5', aiLimiter);
 app.use('/api/hipertrofiav2/generate-fullbody', aiLimiter);
 app.use('/api/hipertrofiav2/generate-single-day', aiLimiter);

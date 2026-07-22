@@ -79,7 +79,7 @@ export const SessionSummaryModal = ({
           console.log('🤖 [FATIGUE] Detectando fatiga automática para sesión', sessionId);
           const token = tokenManager.getToken();
           const fatigueResponse = await fetch(
-            `${API_URL}/api/hipertrofiav2/detect-auto-fatigue`,
+            `${API_URL}/api/hipertrofia/detect-auto-fatigue`,
             {
               method: 'POST',
               headers: {
@@ -118,7 +118,7 @@ export const SessionSummaryModal = ({
           try {
             const token = tokenManager.getToken();
             const response = await fetch(
-              `${API_URL}/api/hipertrofiav2/advance-cycle`,
+              `${API_URL}/api/hipertrofia/advance-cycle`,
               {
                 method: 'POST',
                 headers: {

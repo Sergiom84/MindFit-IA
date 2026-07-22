@@ -47,7 +47,7 @@ export default function FatigueReportModal({ show, onClose, onSubmit }) {
     try {
       const token = tokenManager.getToken();
       const response = await fetch(
-        `${API_URL}/api/hipertrofiav2/submit-fatigue-report`,
+        `${API_URL}/api/hipertrofia/submit-fatigue-report`,
         {
           method: 'POST',
           headers: {

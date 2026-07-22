@@ -45,7 +45,7 @@ const MusclePriorityPanel = ({
 
   const fetchPriorityStatus = useCallback(async () => {
     try {
-      const response = await fetch(`/api/hipertrofiav2/priority-status/${userId}`, {
+      const response = await fetch(`/api/hipertrofia/priority-status/${userId}`, {
         headers: {
           'Authorization': `Bearer ${tokenManager.getToken()}`
         }
@@ -111,7 +111,7 @@ const MusclePriorityPanel = ({
 
     setLoading(true);
     try {
-      const response = await fetch('/api/hipertrofiav2/activate-priority', {
+      const response = await fetch('/api/hipertrofia/activate-priority', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -189,7 +189,7 @@ const MusclePriorityPanel = ({
 
     setLoading(true);
     try {
-      const response = await fetch('/api/hipertrofiav2/deactivate-priority', {
+      const response = await fetch('/api/hipertrofia/deactivate-priority', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${tokenManager.getToken()}`

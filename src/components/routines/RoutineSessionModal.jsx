@@ -143,7 +143,7 @@ export default function RoutineSessionModal({
       if (!userId || !token) return null;
 
       const response = await fetch(
-        `${API_URL}/api/hipertrofiav2/progression/${userId}/${exerciseId}`,
+        `${API_URL}/api/hipertrofia/progression/${userId}/${exerciseId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -238,7 +238,7 @@ export default function RoutineSessionModal({
         if (!token || !userProfile?.id) return;
 
         const resp = await fetch(
-          `${API_URL}/api/hipertrofiav2/current-session-with-adjustments/${userProfile.id}/${cycleDay}`,
+          `${API_URL}/api/hipertrofia/current-session-with-adjustments/${userProfile.id}/${cycleDay}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -472,7 +472,7 @@ export default function RoutineSessionModal({
 
       // Guardar en backend
       const response = await fetch(
-        `${API_URL}/api/hipertrofiav2/save-set`,
+        `${API_URL}/api/hipertrofia/save-set`,
         {
           method: 'POST',
           headers: {
