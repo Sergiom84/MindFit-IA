@@ -237,6 +237,7 @@ async function firstScheduledSession(request, token, planId) {
     })),
   );
   expect(sessions.length).toBeGreaterThan(0);
+  expect(sessions[0].dayId).toBeTruthy();
   return sessions[0];
 }
 
