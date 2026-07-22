@@ -13,6 +13,7 @@ const REQUIRED_FIELDS = [
 const ENTITY_TYPES = new Set(["movement", "variant", "drill", "progression", "composite"]);
 const LEVELS = new Set(["beginner", "intermediate", "advanced", "elite_legacy"]);
 const MEDIA_STATES = new Set(["missing", "media_missing", "existing_unverified", "verified_owned", "verified_licensed", "rejected", "new_media_required"]);
+const STABLE_ID_PATTERN = /^[a-z0-9_]+$/;
 const CUE_TO_INSTRUCTION_FAMILY = Object.freeze({
   SQUAT: "squat",
   HINGE: "hinge",
@@ -119,7 +120,7 @@ export function validateCanonicalCatalog(rows, referenceSets, { expectedCount = 
     for (const field of REQUIRED_FIELDS) {
       if (!Object.hasOwn(row, field) || row[field] === "") errors.push(`${path}: ${field} requerido`);
     }
-    if (!/^[a-z0-9_]+$/.test(row.canonical_id ?? "")) errors.push(`${path}: canonical_id no ASCII estable`);
+    if (!STABLE_ID_PATTERN.test(row.canonical_id ?? "")) errors.push(`${path}: canonical_id no ASCII estable`);
     if (ids.has(row.canonical_id)) errors.push(`${path}: canonical_id duplicado ${row.canonical_id}`);
     ids.add(row.canonical_id);
     if (!ENTITY_TYPES.has(row.entity_type)) errors.push(`${path}: entity_type inválido`);
@@ -146,6 +147,10 @@ export function validateCanonicalCatalog(rows, referenceSets, { expectedCount = 
     for (const [field, relationType] of Object.entries(relationFields)) {
       for (const targetId of movement[field]) {
         if (targetId === movement.canonical_id) continue;
+        if (!STABLE_ID_PATTERN.test(targetId)) {
+          errors.push(`${movement.canonical_id}: ${field} contiene ID no ASCII estable ${targetId}`);
+          continue;
+        }
         const targetKind = canonicalIds.has(targetId) ? "movement" : "variant";
         if (targetKind === "variant") {
           const variant = {

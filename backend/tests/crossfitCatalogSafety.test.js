@@ -34,6 +34,8 @@ function loadCatalog() {
   return {
     canonicalRows,
     auditRows,
+    references,
+    instructions,
     catalog: validateCanonicalCatalog(canonicalRows, references, { legacyInstructions: instructions })
   };
 }
@@ -59,6 +61,21 @@ test("CrossFit catálogo: toda relación resuelve a movimiento o variante hereda
     if (edge.target_kind === "movement") assert.equal(movementIds.has(edge.target_id), true);
     else assert.equal(variantKeys.has(`${edge.source_id}|${edge.target_id}|${edge.relation_type}`), true);
   }
+});
+
+test("CrossFit catálogo: rechaza IDs heredados incompatibles con PostgreSQL", () => {
+  const { canonicalRows, references, instructions } = loadCatalog();
+  const invalidRows = canonicalRows.map((row, index) => index === 0
+    ? { ...row, substitutions: "variant_Invalid" }
+    : row);
+  const invalidCatalog = validateCanonicalCatalog(invalidRows, references, {
+    legacyInstructions: instructions
+  });
+
+  assert.equal(invalidCatalog.valid, false);
+  assert.ok(invalidCatalog.errors.some((error) =>
+    error.includes("substitutions contiene ID no ASCII estable variant_Invalid")));
+  assert.equal(invalidCatalog.variants.some((variant) => variant.variant_id === "variant_Invalid"), false);
 });
 
 test("CrossFit catálogo: Elite queda mapeado por historia pero no se activa como core", () => {
