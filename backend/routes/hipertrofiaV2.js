@@ -8,10 +8,10 @@ import pool from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 // Importar servicios
-import { buildD1D5Plan, persistD1D5Plan } from '../services/hipertrofiaV2/planGenerationService.js';
-import { evaluateHipertrofiaLevel } from '../services/hipertrofiaV2/levelEvaluator.js';
-import { buildFullBodyWorkout, persistFullBodyWorkout, buildSingleDayWorkout, persistSingleDayWorkout } from '../services/hipertrofiaV2/extraWorkoutService.js';
-import { selectExercises } from '../services/hipertrofiaV2/exerciseSelector.js';
+import { buildD1D5Plan, persistD1D5Plan } from '../services/hipertrofia/planGenerationService.js';
+import { evaluateHipertrofiaLevel } from '../services/hipertrofia/levelEvaluator.js';
+import { buildFullBodyWorkout, persistFullBodyWorkout, buildSingleDayWorkout, persistSingleDayWorkout } from '../services/hipertrofia/extraWorkoutService.js';
+import { selectExercises } from '../services/hipertrofia/exerciseSelector.js';
 
 // Importar controladores
 import {
@@ -20,16 +20,16 @@ import {
   priorityControllers,
   overlapControllers,
   progressionControllers
-} from '../services/hipertrofiaV2/sqlControllers.js';
+} from '../services/hipertrofia/sqlControllers.js';
 
 import {
   fatigueControllers,
   warmupControllers,
   reevaluationControllers,
   sessionControllers
-} from '../services/hipertrofiaV2/additionalControllers.js';
+} from '../services/hipertrofia/additionalControllers.js';
 
-import { logger } from '../services/hipertrofiaV2/logger.js';
+import { logger } from '../services/hipertrofia/logger.js';
 
 // Importar servicio centralizado de limpieza de drafts
 import { cleanUserDrafts } from '../services/routineGeneration/draftCleaner.js';

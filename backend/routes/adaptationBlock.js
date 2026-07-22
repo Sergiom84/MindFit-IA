@@ -12,7 +12,7 @@
  *
  * Este fichero es un agregador: cada grupo de endpoints vive en
  * routes/adaptation/*.js y los helpers en
- * services/hipertrofiaV2/adaptation/adaptationHelpers.js.
+ * services/hipertrofia/adaptation/adaptationHelpers.js.
  * Todos se montan bajo /api/adaptation (ver server.js) sin cambiar rutas.
  */
 

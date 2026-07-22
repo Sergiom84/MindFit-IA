@@ -18,7 +18,7 @@
  */
 
 import { persistSingleDaySession } from './persistSingleDaySession.js';
-import { logger } from '../hipertrofiaV2/logger.js';
+import { logger } from '../hipertrofia/logger.js';
 
 // Categorías reales en app.ejercicios para disciplina='powerlifting', con su
 // patrón ILIKE (robusto a variantes del catálogo). El id del foco del frontend

@@ -19,7 +19,7 @@
  */
 
 import { persistSingleDaySession } from './persistSingleDaySession.js';
-import { logger } from '../hipertrofiaV2/logger.js';
+import { logger } from '../hipertrofia/logger.js';
 
 // Agrupación por grupo muscular de las categorías reales del catálogo
 // (disciplina='heavy_duty') mediante patrones ILIKE robustos a variantes. La

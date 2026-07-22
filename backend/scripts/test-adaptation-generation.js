@@ -1,6 +1,6 @@
 import pool from '../db.js';
-import { generateFullBodySessions } from '../services/hipertrofiaV2/adaptation/fullBodyGenerator.js';
-import { generateHalfBodySessions } from '../services/hipertrofiaV2/adaptation/halfBodyGenerator.js';
+import { generateFullBodySessions } from '../services/hipertrofia/adaptation/fullBodyGenerator.js';
+import { generateHalfBodySessions } from '../services/hipertrofia/adaptation/halfBodyGenerator.js';
 
 async function testAdaptation() {
     console.log('🧪 Testing Adaptation Generation...');

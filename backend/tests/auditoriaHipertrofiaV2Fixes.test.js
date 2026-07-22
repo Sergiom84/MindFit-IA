@@ -8,9 +8,9 @@
  */
 
 import { foodTriggersAllergen, expandAllergenTerms } from '../services/nutritionUtils.js';
-import { resolveScopeForLevel } from '../services/hipertrofiaV2/rulesetService.js';
-import { resolveCycleSessions } from '../services/hipertrofiaV2/sessionService.js';
-import { evaluateHipertrofiaLevel } from '../services/hipertrofiaV2/levelEvaluator.js';
+import { resolveScopeForLevel } from '../services/hipertrofia/rulesetService.js';
+import { resolveCycleSessions } from '../services/hipertrofia/sessionService.js';
+import { evaluateHipertrofiaLevel } from '../services/hipertrofia/levelEvaluator.js';
 import { evaluateCandidateMealBalance } from '../services/nutritionV2/mealSelectionHelpers.js';
 import { activeInjuryRules, isContraindicated } from '../services/routineGeneration/injuryContraindications.js';
 

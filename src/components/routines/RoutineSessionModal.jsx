@@ -5,8 +5,8 @@ import { formatExerciseName, extractSessionPatterns } from '../../utils/exercise
 import ExerciseFeedbackModal from '../HomeTraining/ExerciseFeedbackModal';
 import ExerciseInfoModal from './ExerciseInfoModal';
 import { saveExerciseFeedback, getSessionFeedback } from './api';
-import SeriesTrackingModal from '../Methodologie/methodologies/HipertrofiaV2/components/SeriesTrackingModal';
-import ApproximationSeriesModal from '../Methodologie/methodologies/HipertrofiaV2/components/ApproximationSeriesModal.jsx';
+import SeriesTrackingModal from '../Methodologie/methodologies/Hipertrofia/components/SeriesTrackingModal';
+import ApproximationSeriesModal from '../Methodologie/methodologies/Hipertrofia/components/ApproximationSeriesModal.jsx';
 
 // Componentes refactorizados
 import { useExerciseTimer } from './session/useExerciseTimer';

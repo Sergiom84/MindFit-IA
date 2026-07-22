@@ -8,7 +8,7 @@
  * ejercicios respete `limitaciones_fisicas` con el mismo criterio (sin acentos,
  * conservador, muñeca excluye apoyos de manos, etc.). No dupliques reglas aquí.
  *
- * @module hipertrofiaV2/injuryFilter
+ * @module hipertrofia/injuryFilter
  */
 
 import { getUserFullProfile } from '../routineGeneration/database/userRepository.js';

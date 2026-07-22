@@ -12,7 +12,7 @@
 
 import { persistSingleDaySession } from './persistSingleDaySession.js';
 import { buildAllowedMaterials } from './casaEquipment.js';
-import { logger } from '../hipertrofiaV2/logger.js';
+import { logger } from '../hipertrofia/logger.js';
 
 // Buckets de casa → categorías reales en app.ejercicios (disciplina='casa').
 // Las categorías reales son: Fuerza, Funcional, Cardio, HIIT, Movilidad.

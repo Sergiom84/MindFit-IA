@@ -16,7 +16,7 @@ import WodSessionModal from '../routines/WodSessionModal.jsx';
 import WarmupModal from '../routines/WarmupModal.jsx';
 import CalisteniaManualCard from './methodologies/CalisteniaManual/CalisteniaManualCard.jsx';
 import HeavyDutyManualCard from './methodologies/HeavyDuty/HeavyDutyManualCard.jsx';
-import HipertrofiaV2ManualCard from './methodologies/HipertrofiaV2/HipertrofiaV2ManualCard.jsx';
+import HipertrofiaManualCard from './methodologies/Hipertrofia/HipertrofiaManualCard.jsx';
 import PowerliftingManualCard from './methodologies/Powerlifting/PowerliftingManualCard.jsx';
 import CrossFitManualCard from './methodologies/CrossFit/CrossFitManualCard.jsx';
 import FuncionalManualCard from './methodologies/Funcional/FuncionalManualCard.jsx';
@@ -44,7 +44,7 @@ export default function MethodologiesModalLayer({
   confirmManualSelection,
   handleCalisteniaManualGenerate,
   handleHeavyDutyManualGenerate,
-  handleHipertrofiaV2ManualGenerate,
+  handleHipertrofiaManualGenerate,
   handlePowerliftingManualGenerate,
   handleCrossFitManualGenerate,
   handleFuncionalManualGenerate,
@@ -209,8 +209,8 @@ export default function MethodologiesModalLayer({
             <DialogHeader className="sr-only">
               <DialogTitle>Hipertrofia - Tracking RIR</DialogTitle>
             </DialogHeader>
-            <HipertrofiaV2ManualCard
-              onGenerate={handleHipertrofiaV2ManualGenerate}
+            <HipertrofiaManualCard
+              onGenerate={handleHipertrofiaManualGenerate}
               isLoading={ui.isLoading}
               error={ui.error}
               startConfig={localState.startConfig}
