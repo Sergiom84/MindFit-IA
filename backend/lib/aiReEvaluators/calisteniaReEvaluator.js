@@ -132,18 +132,25 @@ IMPORTANTE:
   } catch (error) {
     console.error('❌ [CALISTENIA RE-EVAL] Error:', error);
 
-    // Fallback: respuesta genérica si falla la IA
+    // A5: ante fallo de IA NO fabricamos un 'stalled' inventado (que aguas abajo se
+    // persistía como análisis real). Devolvemos un resultado marcado explícitamente
+    // como fallo/insuficiente para que el endpoint lo distinga y NO lo guarde como
+    // análisis válido. Se conserva `suggested_adjustments` en 'maintain' para no
+    // romper a los consumidores que leen ese shape (todos neutros).
     return {
-      progress_assessment: 'stalled',
+      decision: 'insufficient_data',
+      ai_failed: true,
+      analysis_available: false,
+      progress_assessment: 'insufficient_data',
       suggested_adjustments: {
         intensity_change: 'maintain',
         volume_change: 'maintain',
         rest_modifications: 'maintain',
         exercise_progressions: []
       },
-      motivational_feedback: '¡Sigue así! Cada entrenamiento cuenta.',
-      warnings: ['Error al analizar con IA. Consulta con un entrenador.'],
-      reasoning: `Error en análisis de IA: ${error.message}`
+      motivational_feedback: 'No hemos podido analizar tu progreso automáticamente esta vez. Mantén tu plan y vuelve a intentarlo.',
+      warnings: ['El análisis con IA no está disponible ahora mismo; no se ha guardado ninguna sugerencia.'],
+      reasoning: `Análisis de IA no disponible: ${error.message}`
     };
   }
 }

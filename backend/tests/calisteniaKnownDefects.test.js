@@ -91,7 +91,6 @@ test(
 // ── A5 (PR-CAL-00b): fallo de IA fabrica y persiste 'stalled' ──
 test(
   "A5: fallo de IA NO fabrica 'stalled' (devuelve insufficient_data)",
-  { todo: "PR-CAL-00b: fallback ai_failed/insufficient_data, sin persistir análisis" },
   async () => {
     const savedKey = process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_API_KEY; // fuerza el path de fallo de IA de forma determinista (sin red)

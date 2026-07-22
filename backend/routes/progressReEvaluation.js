@@ -149,38 +149,49 @@ router.post('/re-evaluation', async (req, res) => {
 
     console.log('✅ [RE-EVAL] Análisis de IA completado');
 
-    // 6. Guardar sugerencias de IA
-    const aiSuggestionsResult = await client.query(`
-      INSERT INTO app.ai_adjustment_suggestions (
-        re_evaluation_id,
-        progress_assessment,
-        intensity_change,
-        volume_change,
-        rest_modifications,
-        suggested_progressions,
-        ai_reasoning,
-        motivational_feedback,
-        warnings,
-        created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-      RETURNING id
-    `, [
-      reEvaluationId,
-      aiResponse.progress_assessment || null,
-      aiResponse.suggested_adjustments?.intensity_change || null,
-      aiResponse.suggested_adjustments?.volume_change || null,
-      aiResponse.suggested_adjustments?.rest_modifications || null,
-      JSON.stringify(aiResponse.suggested_adjustments?.exercise_progressions || []),
-      aiResponse.reasoning || null,
-      aiResponse.motivational_feedback || null,
-      aiResponse.warnings || []
-    ]);
+    // 6. Guardar sugerencias de IA — SALVO que la IA haya fallado.
+    // A5: antes se persistía un 'stalled' fabricado por el fallback como si fuera
+    // análisis real. Ahora, si el re-evaluador marca `ai_failed`, NO insertamos nada
+    // en ai_adjustment_suggestions (la re-evaluación y los ejercicios sí se guardan,
+    // porque son datos reales del usuario). Así no contaminamos el histórico con
+    // análisis inventado.
+    const aiFailed = aiResponse.ai_failed === true || aiResponse.analysis_available === false;
+    if (!aiFailed) {
+      const aiSuggestionsResult = await client.query(`
+        INSERT INTO app.ai_adjustment_suggestions (
+          re_evaluation_id,
+          progress_assessment,
+          intensity_change,
+          volume_change,
+          rest_modifications,
+          suggested_progressions,
+          ai_reasoning,
+          motivational_feedback,
+          warnings,
+          created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+        RETURNING id
+      `, [
+        reEvaluationId,
+        aiResponse.progress_assessment || null,
+        aiResponse.suggested_adjustments?.intensity_change || null,
+        aiResponse.suggested_adjustments?.volume_change || null,
+        aiResponse.suggested_adjustments?.rest_modifications || null,
+        JSON.stringify(aiResponse.suggested_adjustments?.exercise_progressions || []),
+        aiResponse.reasoning || null,
+        aiResponse.motivational_feedback || null,
+        aiResponse.warnings || []
+      ]);
 
-    console.log(`✅ [RE-EVAL] Sugerencias de IA guardadas con ID: ${aiSuggestionsResult.rows[0].id}`);
+      console.log(`✅ [RE-EVAL] Sugerencias de IA guardadas con ID: ${aiSuggestionsResult.rows[0].id}`);
+    } else {
+      console.warn('⚠️ [RE-EVAL] Análisis de IA no disponible: no se persiste sugerencia (A5).');
+    }
 
     await client.query('COMMIT');
 
-    // Responder con datos completos
+    // Responder con datos completos. `analysis_available` (aditivo) distingue el caso
+    // de fallo de IA sin romper el shape del caso de éxito (que sigue idéntico).
     res.json({
       success: true,
       re_evaluation_id: reEvaluationId,
@@ -188,7 +199,8 @@ router.post('/re-evaluation', async (req, res) => {
       progress_assessment: aiResponse.progress_assessment,
       motivational_feedback: aiResponse.motivational_feedback,
       warnings: aiResponse.warnings,
-      reasoning: aiResponse.reasoning
+      reasoning: aiResponse.reasoning,
+      analysis_available: !aiFailed
     });
 
   } catch (error) {
