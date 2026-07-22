@@ -78,7 +78,17 @@ test("CI conecta migraciones y E2E CrossFit solo a PostgreSQL efímero local", (
     workflow.match(/20260720_add_consent_columns_users\.sql/g)?.length,
     2,
   );
+  assert.equal(
+    workflow.match(/20260717_workout_schedule_unique_plan_user_date\.sql/g)
+      ?.length,
+    2,
+  );
+  assert.equal(
+    workflow.match(/20260718_auth001_refresh_rotativo\.sql/g)?.length,
+    2,
+  );
   assert.match(e2e, /PROFILE_COUNT\)\.toBe\(32\)/);
   assert.match(e2e, /acceptTerms: true/);
+  assert.match(e2e, /\.\.\.\(data === null \? \{\} : \{ data \}\)/);
   assert.match(playwright, /width: 375, height: 812/);
 });

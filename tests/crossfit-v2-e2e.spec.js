@@ -49,11 +49,11 @@ async function api(
   const response = await request.fetch(`${QA_GATE.apiBase}${path}`, {
     method,
     headers: {
-      "content-type": "application/json",
+      ...(data === null ? {} : { "content-type": "application/json" }),
       ...(token ? { authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
-    data,
+    ...(data === null ? {} : { data }),
   });
   let body = {};
   try {
@@ -68,7 +68,8 @@ async function ensureUser(request, email, frequency) {
   const login = await api(request, "POST", "/api/auth/login", {
     data: { email, password: PASSWORD },
   });
-  if (login.body.token) return { token: login.body.token, userId: login.body.user.id };
+  if (login.body.token)
+    return { token: login.body.token, userId: login.body.user.id };
 
   const registration = await api(request, "POST", "/api/auth/register", {
     data: {
@@ -240,18 +241,27 @@ async function firstScheduledSession(request, token, planId) {
 }
 
 function canonicalSessionFor(canonical, scheduled) {
-  const sessions = (canonical?.weeks ?? []).flatMap((week) => week.sessions ?? []);
+  const sessions = (canonical?.weeks ?? []).flatMap(
+    (week) => week.sessions ?? [],
+  );
   expect(sessions.length).toBeGreaterThan(0);
-  return sessions.find((session) => session.date === scheduled.date) ?? sessions[0];
+  return (
+    sessions.find((session) => session.date === scheduled.date) ?? sessions[0]
+  );
 }
 
-async function recordRuntimeEvent(request, token, sessionId, {
-  streamId,
-  sequence: clientSequence,
-  eventType,
-  elapsedSeconds,
-  timeCapSeconds,
-}) {
+async function recordRuntimeEvent(
+  request,
+  token,
+  sessionId,
+  {
+    streamId,
+    sequence: clientSequence,
+    eventType,
+    elapsedSeconds,
+    timeCapSeconds,
+  },
+) {
   const identity = `${streamId}-${clientSequence}`;
   return api(
     request,
@@ -538,9 +548,10 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
         day_id: scheduled.dayId,
       },
     });
-    expect(started.response.status(), JSON.stringify(started.body)).toBeLessThan(
-      300,
-    );
+    expect(
+      started.response.status(),
+      JSON.stringify(started.body),
+    ).toBeLessThan(300);
     const sessionId = started.body.session_id ?? started.body.sessionId;
     expect(sessionId).toBeTruthy();
 
@@ -628,12 +639,18 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
     nextWednesday.setHours(10, 0, 0, 0);
     await page.clock.setFixedTime(nextWednesday);
 
-    await page.goto(`${QA_GATE.appBase}/login`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${QA_GATE.appBase}/login`, {
+      waitUntil: "domcontentloaded",
+    });
     await page.locator('input[name="email"]').fill(email);
     await page.locator('input[name="password"]').fill(PASSWORD);
-    await page.getByRole("button", { name: "Iniciar Sesión", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Iniciar Sesión", exact: true })
+      .click();
     await page.waitForURL((url) => !url.pathname.includes("login"));
-    await page.goto(`${QA_GATE.appBase}/methodologies`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${QA_GATE.appBase}/methodologies`, {
+      waitUntil: "domcontentloaded",
+    });
     await page
       .getByRole("button", { name: "Seleccionar metodología CrossFit" })
       .click();
@@ -649,11 +666,16 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
       .getByRole("button", { name: "Evaluar nivel y seguridad" })
       .click();
     await expect(
-      assessmentCard.getByRole("heading", { name: "Principiante", exact: true }),
+      assessmentCard.getByRole("heading", {
+        name: "Principiante",
+        exact: true,
+      }),
     ).toBeVisible();
     await expect(assessmentCard.getByText(/confianza media/i)).toBeVisible();
     await expect(
-      assessmentCard.getByRole("button", { name: "Generar bloque principiante" }),
+      assessmentCard.getByRole("button", {
+        name: "Generar bloque principiante",
+      }),
     ).toBeVisible();
 
     const blocking = (
@@ -707,11 +729,15 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
       page.getByRole("button", { name: "Terminar WOD" }),
     ).toBeVisible();
     await expect(page.getByText("Escalado por movimiento")).toBeVisible();
-    await expect(page.getByText(/No se puede elegir RX\+ manualmente/)).toBeVisible();
+    await expect(
+      page.getByText(/No se puede elegir RX\+ manualmente/),
+    ).toBeVisible();
     const movementScales = page.getByRole("combobox", { name: /Escala para/i });
     await expect(movementScales).toHaveCount(0);
     await expect(page.getByText("RX+", { exact: true })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Sustituir" }).first()).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Sustituir" }).first(),
+    ).toBeVisible();
 
     await page.getByRole("button", { name: "Iniciar", exact: true }).click();
     await expect(
