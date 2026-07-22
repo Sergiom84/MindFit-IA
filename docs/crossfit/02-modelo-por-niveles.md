@@ -75,7 +75,7 @@ Se asigna nivel global conservador y tiers independientes. Ejemplo: motor aerobi
 
 | Condicion                                     | Accion                                                                               |
 | --------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Dolor 3-4 o tecnica cae a 0                   | regresion inmediata del patron; `HOLD` o `RECOVERY`                                  |
+| Dolor 3-4 o tecnica cae a 0                   | regresión inmediata del patrón; estado `regress` o `hold` según seguridad            |
 | Pausa 14-27 dias                              | volumen -20 %, sin skills nuevos, 1 semana de retorno                                |
 | Pausa 28-55 dias                              | volumen -35 %, skill tier dinamico -1, 2 semanas                                     |
 | Pausa >=56 dias                               | volumen -50 %, clasificacion provisional principiante/intermedio inferior, reevaluar |

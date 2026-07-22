@@ -4,14 +4,14 @@ Version: `crossfit-safety/2.0.0`. No diagnostica, trata ni rehabilita. Una lesio
 
 ## Estados
 
-| Estado                       | Definicion operativa                                      | Accion maxima                         |
-| ---------------------------- | --------------------------------------------------------- | ------------------------------------- |
-| Molestia                     | 1-2/10 estable, no altera tecnica                         | ajustar y monitorizar                 |
-| Dolor moderado               | 3-4 o aumento >=2                                         | parar patron, sustituir/RECOVERY      |
-| Dolor severo/agudo           | >=5, punzante, creciente o perdida funcional              | bloquear sesion y derivar             |
-| Lesion diagnosticada estable | restricciones y autorizacion conocidas                    | respetar plan profesional; no inferir |
-| Retorno autorizado           | criterios/fecha/profesional declarados                    | estado RETURN y carga reducida        |
-| Red flag                     | cardiorrespiratoria, neurologica, obstetrica o traumatica | bloqueo inmediato/atencion apropiada  |
+| Estado                       | Definicion operativa                                      | Accion maxima                           |
+| ---------------------------- | --------------------------------------------------------- | --------------------------------------- |
+| Molestia                     | 1-2/10 estable, no altera tecnica                         | ajustar y monitorizar                   |
+| Dolor moderado               | 3-4 o aumento >=2                                         | parar patrón, sustituir/`regress`       |
+| Dolor severo/agudo           | >=5, punzante, creciente o perdida funcional              | bloquear sesion y derivar               |
+| Lesion diagnosticada estable | restricciones y autorizacion conocidas                    | respetar plan profesional; no inferir   |
+| Retorno autorizado           | criterios/fecha/profesional declarados                    | estado `regress` + protocolo de retorno |
+| Red flag                     | cardiorrespiratoria, neurologica, obstetrica o traumatica | bloqueo inmediato/atencion apropiada    |
 
 ## Stop rules
 
@@ -32,7 +32,7 @@ Preservar stimulus nunca prevalece sobre seguridad. Todas las reglas concretas e
 ## Poblaciones y condiciones
 
 - Edad: no bloquea por si sola. La experiencia, screening, impacto, tecnica y recuperacion mandan.
-- Desentrenamiento: protocolo RETURN por pausa; no etiquetar enfermedad.
+- Desentrenamiento: `RETURN_PROTOCOL_REQUIRED` dentro de `regress`; no etiquetar enfermedad.
 - Obesidad: no bloquea; priorizar impacto bajo, rango tolerado, control termico y equipo adecuado.
 - Hipertension/cardiovascular/metabolica/renal conocida: aplicar screening ACSM; sintomas o alta intensidad sin autorizacion cuando proceda -> bloqueo/derivacion. No ajustar medicacion ni sodio clinicamente.
 - Embarazo/posparto: `BLOQUEADO_CLINICAL_PROFILE_CONTRACT`. Sin trimestre/posparto, sintomas y autorizacion estructurados, no generar alta intensidad ni posiciones de riesgo. El producto puede ofrecer solo mensaje y derivacion.

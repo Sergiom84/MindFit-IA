@@ -15,7 +15,7 @@ La primera version mezclaba principios y una heuristica insuficiente. La especif
 | --------------------------------------- | ----------------------------------------------------------- |
 | nivel decidido por prompt               | score multidimensional + confianza + permisos               |
 | eleccion aleatoria                      | seed, hard filters, integer scoring y hash tie-break        |
-| dos faciles progresan/tres duros deload | reducer NORMAL/BUILD/HOLD/RECOVERY/DELOAD/RETURN/BLOCKED    |
+| dos fáciles progresan/tres duros deload | reducer de siete estados con tres evidencias y prioridades  |
 | lesiones por regex de zona              | screening estructurado + matriz, regex fallback conservador |
 | Rx como señal de nivel                  | escala independiente por movimiento                         |
 | texto WOD                               | contrato versionado con score/dosis/stimulus                |

@@ -14,6 +14,7 @@
 | Canonico completo y altas            | canonical CSV + reference JSON + operations CSV                                        | editorial/media/human review                     |
 | Benchmarks separados                 | docs 04/14                                                                             | entidad futura                                   |
 | Generador determinista               | doc 15 + invariantes/reasons                                                           | codigo no existe                                 |
+| Reason codes huérfanos               | 18 códigos usados por invariantes/nutrición añadidos al catálogo                       | cerrado: 63 totales; test de paridad obligatorio |
 | Autorreg profesional                 | doc 16                                                                                 | reducer/eventos no existen                       |
 | Seguridad por patron/sintoma         | doc 07 + safety CSV                                                                    | contrato clinico/RLS/human review                |
 | Embarazo/posparto                    | bloqueo funcional y contrato definido                                                  | BLOQUEADO_CLINICAL_PROFILE_CONTRACT              |
