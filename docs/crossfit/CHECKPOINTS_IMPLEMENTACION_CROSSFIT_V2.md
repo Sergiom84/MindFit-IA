@@ -1,0 +1,63 @@
+# Checkpoints de implementación CrossFit profesional v2
+
+Especificación: `crossfit-product-spec/2.0.0`
+Rama: `codex/crossfit-profesional-v2`
+Base: `origin/main@e7f57116363d9283a27c1d5d375da674414ddf1f`
+Estado global: `EN_PROGRESO`
+
+## Guardas permanentes
+
+- Worktree aislado; no modificar el checkout documental previo.
+- No tocar `WorkoutContext.generatePlan()`, la redirección ni el frontend agnóstico.
+- No cambiar programación de Hipertrofia, Hipertrofia V2 o Calistenia.
+- No escribir en Supabase/Render ni aplicar migraciones/flags sin autorización.
+- No hacer push ni abrir PR sin confirmación expresa de Pablo.
+- Dolor, red flags y técnica insegura tienen precedencia sobre rendimiento.
+- Elite se conserva como legacy y queda fuera del producto principal.
+
+## Estado de fases
+
+| Fase                          | Estado                      | Evidencia / gate                                           |
+| ----------------------------- | --------------------------- | ---------------------------------------------------------- |
+| A. Baseline y DoR             | `COMPLETADA_CON_LIMITACION` | 231/231 unit, lint, build; integración requiere BD efímera |
+| B. Contratos/versionado/flags | `EN_PROGRESO`               | contratos estrictos, legacy y flags off                    |
+| C. Catálogo/seguridad         | `PENDIENTE`                 | migración aditiva no aplicada, repositorio, RLS aislada    |
+| D. Clasificación              | `PENDIENTE`                 | level-model/2.0.0 y tabla de decisiones                    |
+| E. Programación por nivel     | `PENDIENTE`                 | bloques 8/10/12 y frecuencias 2-3/3-4/4-5                  |
+| F. Composer/validadores       | `PENDIENTE`                 | 10.000 planes por nivel, cero hard violations              |
+| G. Flujos de producto         | `PENDIENTE`                 | contratos, persistencia y E2E por flujo                    |
+| H. Resultados/autorregulación | `PENDIENTE`                 | siete estados, eventos idempotentes                        |
+| I. Training load/nutrición    | `PENDIENTE_FLAG_OFF`        | shadow primero; activación requiere aprobación             |
+| J. QA integral                | `PENDIENTE`                 | unit/contract/integration/E2E/regresión                    |
+| K. Validaciones externas      | `GATE_PREPRODUCCION`        | entrenador, nutricionista, clínico si aplica y legal       |
+
+## Baseline reproducible
+
+| Comprobación              | Resultado 2026-07-22                                               |
+| ------------------------- | ------------------------------------------------------------------ |
+| `origin/main`             | `e7f5711`; sin commits posteriores al iniciar                      |
+| CI `main`                 | CI y Android verdes en el SHA de referencia                        |
+| `npm ci` raíz/backend     | correcto desde lockfiles                                           |
+| `npm run test:backend`    | 231/231                                                            |
+| `npm run lint -- --quiet` | correcto                                                           |
+| `npm run build`           | correcto; warnings preexistentes de chunks/browser data            |
+| Integración backend       | no ejecutada: no hay PostgreSQL/Docker local ni URL QA             |
+| Migración 20260721        | registrada en Supabase, checksum coincide; no reescribir           |
+| Deuda histórica           | 29 calendarios sin `day_id`; sesiones se auditan por relación real |
+| Dossier                   | 120/120, 92, 44, 45, 32; PDF 43 páginas válido                     |
+
+## Semáforos de rollout
+
+- `FASE_0_COMPARTIDA_DESBLOQUEADA_PARA_DESARROLLO`.
+- `CROSSFIT_V2_GENERATION=false` hasta el gate funcional de generación.
+- `CROSSFIT_V2_RESULTS=false` hasta persistencia e idempotencia verdes.
+- `CROSSFIT_EMITS_TRAINING_LOAD=false` hasta contracts, outbox y métricas verdes.
+- `CROSSFIT_NUTRITION_LOAD=false` hasta shadow, métricas y aprobación.
+- Migraciones nuevas: solo archivo + test aislado; no aplicar en producción.
+
+## Criterio de cierre técnico
+
+Cada fase exige diff de alcance, tests de subfase, registro diario y trazabilidad
+actualizada. Una limitación de infraestructura se marca como gate, nunca como test
+verde. La eficacia deportiva, clínica, nutricional y legal solo se considera
+validada con revisión humana documentada.

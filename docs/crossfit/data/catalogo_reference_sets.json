@@ -1,0 +1,239 @@
+{
+  "schema_version": "crossfit-catalog-reference/2.0.0",
+  "resolution": {
+    "instructions": "Existing rows retain the live validated Como_hacerlo text under the primary source id. New rows use the family instruction below plus their row-specific start, range and equipment fields.",
+    "cues": "Resolve cues_set first; append equipment-specific setup from the canonical row.",
+    "errors": "Resolve error_set first; append movement override when present.",
+    "contraindications": "contra_set is a screening key, never a diagnosis. safety_rules.csv decides action from symptom and severity.",
+    "media": "Only verified owned/licensed assets can become verified. missing and existing_unverified never generate a URL."
+  },
+  "instruction_families": {
+    "squat": "Brace before descent; track knees with feet; use the authorised pain-free depth; stand by extending hips and knees without losing foot pressure.",
+    "hinge": "Set a neutral braced trunk; move hips back while the implement stays close; create leg and hip drive; finish tall without lumbar overextension.",
+    "lunge": "Set stance and balance; descend through the authorised range with controlled knee tracking; drive through the whole front foot; regain control before the next rep.",
+    "horizontal_push": "Brace the body; lower with controlled shoulder and elbow position; keep the authorised range; press without losing trunk alignment.",
+    "vertical_push": "Brace ribs and pelvis; start from the specified rack; press through the authorised path; finish with controlled overhead alignment, not lumbar extension.",
+    "horizontal_pull": "Set trunk and shoulder; initiate with scapular control; pull toward the prescribed contact point; lower without reaching or rotating.",
+    "vertical_pull": "Begin from the authorised hang; set the shoulder; pull without uncontrolled swing unless a kipping permission exists; descend under control.",
+    "brace": "Choose the prescribed lever; align ribs and pelvis; breathe behind the brace; end the set before position is lost.",
+    "carry": "Lift with the authorised hinge or squat; stand balanced; walk with short controlled steps and stable trunk; place the load down with the same setup.",
+    "cyclical": "Set the device or route; accelerate to target pace rather than sprinting the first interval; maintain repeatable mechanics; stop at the programmed score.",
+    "landing": "Use the authorised height; land quietly on a stable whole foot with knee and hip flexion; show control before the next rep; step down when required.",
+    "olympic": "Use the authorised start position and technical load; keep the implement close; extend then receive in the prescribed position; stand with control; terminate on repeated misses.",
+    "inversion": "Verify wrist, shoulder and exit permissions; create a braced line; use the wall or spot specified; stop before loss of control.",
+    "sprawl": "Brace before floor contact; use the authorised step or jump transition; keep shoulder and trunk control; stand or jump only after stable foot placement.",
+    "mobility": "Move only through a symptom-free range at low tension; do not force end range; breathe normally; stop if symptoms increase."
+  },
+  "cue_sets": {
+    "SQUAT": [
+      "whole foot pressure",
+      "knees track with feet",
+      "ribs over pelvis"
+    ],
+    "HINGE": [
+      "hips back",
+      "implement close",
+      "stand with glutes not lumbar extension"
+    ],
+    "PUSH": [
+      "brace first",
+      "controlled elbow path",
+      "finish without shrugging or arching"
+    ],
+    "PRESS": [
+      "stable rack",
+      "vertical or prescribed path",
+      "lock out with ribs controlled"
+    ],
+    "PULL": ["set shoulder", "lead with elbows", "control the return"],
+    "BRACE": [
+      "ribs down",
+      "breathe behind the brace",
+      "stop before position changes"
+    ],
+    "LANDING": ["quiet feet", "knees track", "show control before next rep"],
+    "PACING": [
+      "start at target pace",
+      "match repeat intervals",
+      "save acceleration for final authorised segment"
+    ],
+    "OLY": ["balanced start", "keep load close", "receive before adding speed"],
+    "HANDSTAND": ["push tall", "brace line", "know the exit"],
+    "MUSCLE_UP": [
+      "prerequisites first",
+      "keep transition close",
+      "finish stable support"
+    ]
+  },
+  "error_sets": {
+    "SQUAT": [
+      "heel or arch collapse",
+      "knee loses tracking",
+      "depth exceeds control"
+    ],
+    "HINGE": [
+      "lumbar position changes",
+      "load drifts away",
+      "jerking from the floor"
+    ],
+    "PUSH": [
+      "trunk sags or rotates",
+      "uncontrolled bottom",
+      "shoulder advances beyond authorised range"
+    ],
+    "PRESS": [
+      "lumbar overextension",
+      "unstable rack",
+      "pressing into symptoms"
+    ],
+    "PULL": [
+      "uncontrolled swing",
+      "shoulder loses position",
+      "neck reaches for target"
+    ],
+    "BRACE": [
+      "breath holding beyond prescription",
+      "rib flare",
+      "continuing after position loss"
+    ],
+    "LANDING": [
+      "loud or stiff landing",
+      "knee collapse",
+      "rebound before control"
+    ],
+    "PACING": [
+      "first interval unsustainably fast",
+      "score not recorded consistently",
+      "technique changes to preserve output"
+    ],
+    "OLY": [
+      "pulling before position is set",
+      "load loops away",
+      "chasing a missed catch"
+    ],
+    "HANDSTAND": [
+      "no safe exit",
+      "collapsed shoulder",
+      "uncontrolled lumbar extension"
+    ],
+    "MUSCLE_UP": [
+      "attempt without strict prerequisites",
+      "chicken-wing transition",
+      "unstable support"
+    ]
+  },
+  "contraindication_sets": {
+    "KNEE_HIP": [
+      "acute lower-limb injury",
+      "pain increasing with squat or step",
+      "inability to bear weight"
+    ],
+    "LUMBAR_HAMSTRING": [
+      "acute back or posterior-chain injury",
+      "radiating symptoms",
+      "pain increasing with hinge"
+    ],
+    "WRIST_SHOULDER": [
+      "acute wrist or shoulder injury",
+      "pain increasing in support",
+      "loss of overhead control"
+    ],
+    "SHOULDER_WRIST": [
+      "acute shoulder or wrist injury",
+      "symptomatic overhead range",
+      "unstable support"
+    ],
+    "UPPER_LIMB": [
+      "acute shoulder elbow wrist injury",
+      "neurological symptoms",
+      "pain increasing with grip or pull"
+    ],
+    "LOWER_LIMB": ["acute injury", "impact pain", "balance or landing failure"],
+    "LUMBAR": [
+      "acute back injury",
+      "radiating symptoms",
+      "position cannot be maintained"
+    ],
+    "CARDIO": [
+      "chest pain",
+      "syncope or presyncope",
+      "dyspnoea at rest or mild effort",
+      "unusual palpitations"
+    ]
+  },
+  "movement_overrides": {
+    "box_jump": {
+      "stop": "Any uncontrolled landing ends jump exposure; regress to step-up."
+    },
+    "kettlebell_swing_american": {
+      "stop": "Overhead range must remain symptom-free; Russian swing preserves hinge power when overhead is not authorised."
+    },
+    "toes_to_bar": {
+      "stop": "Loss of active shoulder or uncontrolled lumbar swing triggers knee-raise regression."
+    },
+    "ghd_sit_up": {
+      "stop": "No novice or unfamiliarised volume; range and reps require explicit permission."
+    },
+    "bar_muscle_up": {
+      "stop": "No attempt without strict pull, dip/transition and kipping permissions."
+    },
+    "ring_muscle_up": {
+      "stop": "No attempt without false-grip transition, strict pull and stable ring support."
+    },
+    "handstand_push_up": {
+      "stop": "No attempt without inversion exit, shoulder/wrist permission and strict pressing reserve."
+    },
+    "squat_snatch": {
+      "stop": "Two consecutive misses reduce load 7.5-10%; three total misses end the lift."
+    },
+    "clean_and_jerk": {
+      "stop": "Two consecutive misses reduce load 7.5-10%; three total misses end the lift."
+    },
+    "rope_climb": {
+      "stop": "Safe descent and foot lock are prerequisites; fatigue never justifies sliding uncontrolled."
+    }
+  },
+  "progression_trees": {
+    "vertical_pull": [
+      "ring_row",
+      "scapular_pull_up",
+      "band_strict_pull_up",
+      "strict_pull_up",
+      "chest_to_bar_pull_up",
+      "bar_muscle_up"
+    ],
+    "ring_transition": [
+      "ring_support_hold",
+      "low_ring_transition",
+      "ring_dip",
+      "strict_ring_muscle_up",
+      "ring_muscle_up"
+    ],
+    "inversion": [
+      "pike_hold",
+      "wall_walk",
+      "wall_handstand_hold",
+      "handstand_push_up",
+      "handstand_walk"
+    ],
+    "snatch": [
+      "dowel_hinge",
+      "db_hang_snatch",
+      "hang_power_snatch",
+      "overhead_squat",
+      "hang_squat_snatch",
+      "squat_snatch"
+    ],
+    "clean_jerk": [
+      "med_ball_clean",
+      "hang_power_clean",
+      "power_clean",
+      "hang_squat_clean",
+      "squat_clean",
+      "push_jerk",
+      "split_jerk",
+      "clean_and_jerk"
+    ],
+    "jump_rope": ["penguin_tap", "single_under", "double_under", "triple_under"]
+  }
+}

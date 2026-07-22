@@ -1,0 +1,89 @@
+# Plan de implementacion sin ambiguedad
+
+Rama aislada creada tras confirmación expresa: `codex/crossfit-profesional-v2`, desde `origin/main@e7f5711`. No se usa ni altera el checkout documental anterior.
+
+## Definition of Ready global
+
+- Fase 0 compartida desbloqueada para desarrollo por confirmación de Pablo.
+- nombre publico decidido o default neutral aceptado;
+- entrenador y nutricionista asignados;
+- entorno QA aislado y estrategia de fixtures/rollback;
+- owners de archivos compartidos y ventana de revision Sergio;
+- criterios de catalogo/RLS/migracion aprobados.
+
+## Fases
+
+### 0. Gate y rama
+
+Estado: `COMPLETADA`.
+
+Evidencia: `origin/main@e7f5711`, worktree limpio aislado, dossier transferido por checksum, 231/231 unitarios, lint y build verdes, CI `main` verde. Integración queda pendiente de PostgreSQL efímero; nunca se sustituye por producción. Rollback: eliminar la rama no publicada; ningún cambio de datos.
+
+### 1. Contratos y feature flags
+
+Archivos nuevos previstos: `backend/services/crossfit/contracts/*`, `backend/services/crossfit/reasonCodes.js`, schemas/tests. Extensiones: registry de metodologia y adaptador de training load, sin tocar convergencia frontend.
+
+Flags separados, default off: `CROSSFIT_V2_GENERATION`, `CROSSFIT_V2_RESULTS`, `CROSSFIT_EMITS_TRAINING_LOAD`, `CROSSFIT_NUTRITION_LOAD`. DoD: schemas validan fixtures, flags independientes, legacy intacto. Tests: contract, idempotency, old reader. Rollback: flags off.
+
+### 2. Catalogo y seguridad
+
+Estado: `REQUIERE_MIGRACION_AUTORIZADA`, `REQUIERE_VALIDACION_HUMANA`.
+
+Migraciones futuras: tablas de versiones/movimientos/variants/rules/media/benchmarks, mapeo legacy y RLS. Servicios: repositorio de snapshot y safety evaluator. No editar/ejecutar SQL antes de autorizacion.
+
+DoD: 120/120 mapeadas, altas revisadas, cero dangling/duplicate, RLS cross-user verde, rollback de puntero. Riesgo: romper IDs historicos; mitigacion = fuente/ID legacy inmutable y activacion atomica.
+
+### 3. Clasificacion y programacion
+
+Archivos previstos: `CrossFitClassificationService`, `CrossFitProgramBuilder`, cuotas por nivel y fixtures. Integrar por `CrossFitService`/orquestador existente, no por `WorkoutContext.generatePlan()`.
+
+DoD: reglas de level-model exactas, asimetrias/retorno/confianza, 2/3-3/4-4/5 dias, bloques y deloads. Tests: tabla de decisiones, boundary values, stale evidence. Rollback: flag generation off.
+
+### 4. Composer determinista y validadores
+
+Archivos previstos: `CrossFitWodComposer`, `CrossFitCandidateScorer`, `CrossFitPlanValidator`, `CrossFitDecisionTrace`, adaptador single-day. DoD: seed/idempotency/fallback/invariantes; >=10.000 planes por nivel, cero hard fail. Riesgo: pool insuficiente; fallback recovery/block, nunca relajacion.
+
+### 5. Player, resultado y autorregulacion
+
+Backend: resultado v2, reducer, eventos/snapshot. Frontend concreto CrossFit: ampliar WOD player/effort modal solo tras contrato; Today consume adaptador sin cambiar agnosticidad.
+
+DoD: pause/reload/offline, scale por movimiento, cap, completion/abandon, pain/technique/readiness, hysteresis y eventos fuera de orden. Rollback: read v2/write legacy adapter segun flag; resultados append-only.
+
+### 6. Training load y nutricion
+
+Estado: `DESARROLLO_DESBLOQUEADO_FLAG_OFF`.
+
+Extender descriptor CrossFit y builders mediante adapter; planned load al generar, actual al cerrar; outbox y mapper D0/D1/D2; menú/lista por `day_id`. Activar en orden: generation/results -> shadow training load -> validar métricas -> `emits_training_load` -> shadow nutrition -> active nutrition con aprobación expresa.
+
+DoD: valid load >=99 %, degraded <1 % justificado, cero duplicado outbox, menu idempotente, fallback base. Rollback: flags nutrition/load off, conservar eventos.
+
+### 7. Flujos, RLS y observabilidad
+
+Completar cambio de metodologia, regeneracion, empty/error/offline, historial, metrics y admin read-only. DoD: matriz 17 cubierta, alertas y privacy review, cero PII en traces/logs.
+
+### 8. QA y validacion humana
+
+Ejecutar matriz 09 y perfiles sintéticos. Entrenador/nutricionista revisan muestra y firman. Legal decide nombre. DoD: todos los gates, riesgo residual y rollback drill.
+
+### 9. PR y rollout
+
+Commits revisables por subfase, PR con migraciones/flags/QA/capturas, revision Sergio/Pablo, merge solo aprobado. Rollout canary/shadow segun Fase 0, monitorizar y ampliar. Nunca push directo a main.
+
+## Archivos actuales previsiblemente afectados
+
+- `backend/services/routineGeneration/methodologies/CrossFitService.js`
+- `backend/services/singleDay/crossfitSingleDay.js`
+- `backend/services/progression/planAutoregService.js`
+- `backend/routes/methodologySingleDay.js`
+- `backend/routes/trainingSession/complete.js` mediante extension compartida revisada
+- `backend/services/routineGeneration/methodologies/methodologyRegistry.js`
+- `backend/services/trainingLoad/*` mediante adaptador, no fork
+- `src/components/routines/WodSessionModal.jsx`
+- `src/components/routines/modals/CrossFitEffortModal.jsx`
+- `src/components/routines/tabs/TodayTrainingTab.jsx`
+
+Nuevos servicios se prefieren a inflar los existentes. Hipertrofia/HipertrofiaV2/Calistenia son solo targets de regresion.
+
+## Criterio de merge
+
+DoR/DoD de todas las fases, migraciones autorizadas y reversibles, zero hard invariant, Fase 0 y regresiones verdes, human review sin findings criticos/altos, legal/name decision, observabilidad activa, rollback probado y aprobaciones Sergio/Pablo.
