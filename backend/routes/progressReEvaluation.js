@@ -503,13 +503,18 @@ router.put('/config', async (req, res) => {
 // 🔧 HELPER: Extraer ejercicios clave de una semana específica
 // =============================================================================
 
-function extractKeyExercisesFromWeek(planData, weekNumber) {
+export function extractKeyExercisesFromWeek(planData, weekNumber) {
   try {
     if (!planData || !Array.isArray(planData.semanas)) {
       return [];
     }
 
-    const week = planData.semanas.find(w => w.semana === weekNumber || w.week === weekNumber);
+    // A3: el plan calistenia_v2 persiste las semanas con la clave `numero`
+    // (CalisteniaService.js). Buscar solo por `semana`/`week` devolvía [] siempre y
+    // el frontend caía a ejercicios hardcodeados. Aceptamos también `numero`.
+    const week = planData.semanas.find(
+      w => w.semana === weekNumber || w.week === weekNumber || w.numero === weekNumber
+    );
 
     if (!week || !Array.isArray(week.sesiones)) {
       return [];

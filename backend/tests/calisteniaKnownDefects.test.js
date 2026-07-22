@@ -41,7 +41,6 @@ const readRepoFile = (rel) => fs.readFileSync(path.join(repoRoot, rel), "utf8");
 // ── A3 (PR-CAL-00b): /key-exercises devuelve [] para plan v2 (semanas `numero`) ──
 test(
   "A3: extractKeyExercisesFromWeek devuelve ejercicios reales para plan v2 (numero)",
-  { todo: "PR-CAL-00b: aceptar w.numero además de w.semana/w.week" },
   async () => {
     const ns = await import("../routes/progressReEvaluation.js");
     assert.equal(

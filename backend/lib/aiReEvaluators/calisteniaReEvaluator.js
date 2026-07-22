@@ -161,7 +161,8 @@ function buildPlanContext(plan, currentWeek) {
 
   let weekInfo = '';
   if (Array.isArray(plan.semanas)) {
-    const week = plan.semanas.find(w => w.semana === currentWeek || w.week === currentWeek);
+    // A3: las semanas de calistenia_v2 usan la clave `numero` (no `semana`/`week`).
+    const week = plan.semanas.find(w => w.semana === currentWeek || w.week === currentWeek || w.numero === currentWeek);
     if (week) {
       const sesiones = week.sesiones?.length || 0;
       const ejerciciosPorSesion = week.sesiones?.[0]?.ejercicios?.length || 0;
