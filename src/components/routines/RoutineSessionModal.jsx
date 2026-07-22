@@ -15,6 +15,7 @@ import { ExerciseSessionView } from './session/ExerciseSessionView';
 import { SessionSummaryModal } from './session/SessionSummaryModal';
 import tokenManager from '../../utils/tokenManager';
 import { getApiBaseUrl } from '../../config/api';
+import { isHipertrofiaMethodology } from '../../utils/hipertrofiaIdentity';
 
 const API_URL = getApiBaseUrl();
 
@@ -82,9 +83,10 @@ export default function RoutineSessionModal({
   const timerState = useExerciseTimer(progressState.currentExercise, progressState.seriesTotal, 45, allowManualTimer);
   const sessionPatterns = useMemo(() => extractSessionPatterns(sourceSession), [sourceSession]);
   const methodologyTag = sourceSession?.metodologia || sourceSession?.methodology_type;
-  const isHypertrofiaV2 = methodologyTag === 'HipertrofiaV2_MindFeed' || methodologyTag === 'HipertrofiaV2';
+  // Identidad canónica: acepta el literal persistido y alias históricos (helper único).
+  const isHipertrofia = isHipertrofiaMethodology(methodologyTag);
   const trackingFlag = sourceSession?.tracking_enabled ?? sourceSession?.trackingEnabled;
-  const requiresSeriesTracking = isHypertrofiaV2 || trackingFlag === undefined
+  const requiresSeriesTracking = isHipertrofia || trackingFlag === undefined
     ? true
     : Boolean(trackingFlag);
 
@@ -175,7 +177,7 @@ export default function RoutineSessionModal({
   // Mostrar modal de series de aproximación al cambiar de ejercicio (solo HipertrofiaV2)
   useEffect(() => {
     const currentId = progressState.currentExercise?.exercise_id || progressState.currentExercise?.id;
-    if (isHypertrofiaV2 && currentId && !approxShownFor.has(currentId)) {
+    if (isHipertrofia && currentId && !approxShownFor.has(currentId)) {
       setShowApproximationModal(true);
       setApproxShownFor((prev) => {
         const next = new Set(prev);
@@ -183,7 +185,7 @@ export default function RoutineSessionModal({
         return next;
       });
     }
-  }, [progressState.currentExercise, isHypertrofiaV2, approxShownFor]);
+  }, [progressState.currentExercise, isHipertrofia, approxShownFor]);
 
 
   // Cargar feedback existente al abrir modal
@@ -220,7 +222,7 @@ export default function RoutineSessionModal({
   // 🔄 Ajuste menstrual aplicado sobre la sesión (HipertrofiaV2)
   useEffect(() => {
     const cycleDay = session?.ciclo_dia || session?.cycle_day;
-    if (!isHypertrofiaV2 || !cycleDay) return;
+    if (!isHipertrofia || !cycleDay) return;
 
     const loadAdjustedSession = async () => {
       try {
@@ -266,7 +268,7 @@ export default function RoutineSessionModal({
     };
 
     loadAdjustedSession();
-  }, [isHypertrofiaV2, session, session?.ciclo_dia, session?.cycle_day]);
+  }, [isHipertrofia, session, session?.ciclo_dia, session?.cycle_day]);
 
   // 🎯 Cargar progresión del ejercicio actual (para sugerencias de peso)
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import RoutineSessionModal from './RoutineSessionModal';
+import { HIPERTROFIA_PERSISTED_TYPE } from '../../utils/hipertrofiaIdentity';
 
 /**
  * 🧬 Reproductor propio de HipertrofiaV2 (MindFeed) para la pestaña "Hoy".
@@ -53,8 +54,8 @@ export default function HipertrofiaSessionModal({
     return {
       sessionId,
       methodologyPlanId,
-      metodologia: metodologia || 'HipertrofiaV2_MindFeed',
-      methodology_type: 'HipertrofiaV2_MindFeed',
+      metodologia: metodologia || HIPERTROFIA_PERSISTED_TYPE,
+      methodology_type: HIPERTROFIA_PERSISTED_TYPE,
       dia: todayStatus?.session?.day_name || null,
       tipo: todayStatus?.session?.session_name || 'Entrenamiento del día',
       currentExerciseIndex: 0,

@@ -59,6 +59,7 @@ import { useRoutineAuxiliaryActions } from './TodayTrainingTab/hooks/useRoutineA
 import { useAdaptationEvaluation } from '@/hooks/useAdaptationEvaluation';
 import tokenManager from '../../../utils/tokenManager';
 import { getApiBaseUrl } from '../../../config/api';
+import { isHipertrofiaMethodology } from '@/utils/hipertrofiaIdentity';
 
 // ARCH-001 residual: sin base URL hardcodeada; usa getApiBaseUrl() (respeta VITE_API_URL/origen).
 const API_URL = getApiBaseUrl();
@@ -930,11 +931,12 @@ export default function TodayTrainingTab({
     || routinePlan?.methodologyType
     || routinePlan?.methodology_type;
 
-  // 🧬 HipertrofiaV2 (MindFeed) usa su reproductor propio, alimentado por el
+  // 🧬 Hipertrofia (MindFeed) usa su reproductor propio, alimentado por el
   // backend (todayStatus), porque su plan_data etiqueta los días D1-D5 con nombres
   // de semana y el reproductor común mostraría la sesión equivocada. No afecta al
   // resto de metodologías (incluido Gimnasio, cuyo tipo es 'Gimnasio', no MindFeed).
-  const isHipertrofiaV2 = /hipertrofia|mindfeed/i.test(String(planMethodology || ''));
+  // Identidad canónica vía helper (allowlist), no un regex laxo con falsos positivos.
+  const isHipertrofia = isHipertrofiaMethodology(planMethodology);
 
   const effectiveSession = localState.pendingSessionData?.session || (
     wantRoutineModal && (session.sessionId || localState.pendingSessionData?.sessionId) && filteredSessionData
@@ -1179,7 +1181,7 @@ export default function TodayTrainingTab({
         session={session}
         routinePlan={routinePlan}
         plan={plan}
-        isHipertrofiaV2={isHipertrofiaV2}
+        isHipertrofia={isHipertrofia}
         todayStatus={todayStatus}
         effectiveSessionId={effectiveSessionId}
         methodologyPlanId={methodologyPlanId}
