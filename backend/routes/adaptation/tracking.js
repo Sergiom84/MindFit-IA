@@ -11,7 +11,7 @@
 import express from 'express';
 import pool from '../../db.js';
 import { authenticateToken } from '../../middleware/auth.js';
-import { getWeekBounds } from '../../services/hipertrofiaV2/adaptation/adaptationHelpers.js';
+import { getWeekBounds } from '../../services/hipertrofia/adaptation/adaptationHelpers.js';
 
 const router = express.Router();
 

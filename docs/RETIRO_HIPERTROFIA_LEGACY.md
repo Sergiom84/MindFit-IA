@@ -46,6 +46,50 @@ Este documento registra el inventario, las decisiones (con `fichero:línea`) y l
 
 ## Fase 2 — Renombrado HipertrofiaV2 → Hipertrofia (identificadores internos)
 
-Ver sección al final tras confirmación de Alcance (A por defecto). El renombrado es de **identificadores internos** (directorios, ficheros, símbolos JS, comentarios/logs), sin tocar endpoints, `name` cableado, valor persistido ni objetos de BD.
+**Alcance A confirmado por Sergio** (2026-07-22). Renombrado de **identificadores internos**, sin tocar endpoints, `name` cableado, valor persistido ni objetos de BD.
 
-_(Pendiente de completar tras cierre de Fase 1 y confirmación de Alcance.)_
+### Renombrados aplicados
+
+**Directorios / ficheros (`git mv`):**
+
+| Antes                                                      | Después                                                  |
+| ---------------------------------------------------------- | -------------------------------------------------------- |
+| `backend/services/hipertrofiaV2/`                          | `backend/services/hipertrofia/`                          |
+| `src/components/HipertrofiaV2/`                            | `src/components/Hipertrofia/`                            |
+| `src/components/Methodologie/methodologies/HipertrofiaV2/` | `src/components/Methodologie/methodologies/Hipertrofia/` |
+| `.../HipertrofiaV2/HipertrofiaV2ManualCard.jsx`            | `.../Hipertrofia/HipertrofiaManualCard.jsx`              |
+
+**Imports actualizados:** todas las rutas de import que apuntaban a esos directorios (backend `hipertrofiaV2/` → `hipertrofia/`; frontend `HipertrofiaV2/` → `Hipertrofia/`).
+
+**Símbolos JS renombrados (código interno, no cruzan el contrato):**
+
+| Antes                                         | Después                           | Fichero                                                                                |
+| --------------------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------- |
+| `HipertrofiaV2ManualCard` (componente/export) | `HipertrofiaManualCard`           | `.../Hipertrofia/HipertrofiaManualCard.jsx`, `MethodologiesModalLayer.jsx`             |
+| `handleHipertrofiaV2ManualGenerate`           | `handleHipertrofiaManualGenerate` | `useManualPlanGeneration.js`, `MethodologiesModalLayer.jsx`, `MethodologiesScreen.jsx` |
+| `hipertrofiaV2Routes` (binding de import)     | `hipertrofiaRoutes`               | `backend/server.js:54,508`                                                             |
+
+### NO tocado (contrato / persistido — verificado intacto)
+
+- Literal `'HipertrofiaV2_MindFeed'` (18 ocurrencias en código): 0 líneas de diff lo tocan.
+- `name: 'HipertrofiaV2'` (`methodologiesData.js:406`, `useManualPlanGeneration.js:108`) y todas las comparaciones `=== 'HipertrofiaV2'` / `|| 'HipertrofiaV2'` (compat de lectura).
+- `id: 'hipertrofiaV2'` (`methodologiesData.js:402`) y `methodology: 'hipertrofiaV2'` (valor de routing/persistencia).
+- Endpoints `/api/hipertrofiav2/*` y fichero `backend/routes/hipertrofiaV2.js` (nombre de fichero conservado: alineado con el endpoint).
+- Objetos de BD `hipertrofia_v2_*` y todas las `backend/migrations/*.sql`.
+- `disciplina: 'hipertrofia'` (catálogo vivo).
+- Comparaciones de compat que aceptan `'HipertrofiaV2'` corto como alias de lectura (`RoutineSessionModal`, `SessionSummaryModal`, `TodayTrainingHeader`, `workoutUtils.js`): conservadas.
+- Claves de modal `'hipertrofiaV2Manual'` y evento de analítica `'generate_hipertrofiav2'`: strings internos ligados al flujo `name`, conservados.
+
+### Decisión reportada (símbolo NO renombrado, en contra del ejemplo del spec)
+
+- **Booleanos/prop `isHypertrofiaV2` / `isHipertrofiaV2`** (`RoutineSessionModal.jsx`, `TodayTrainingTab.jsx`, `TodayTrainingModalLayer.jsx`): **NO renombrados.**
+  Motivo: viven en los ficheros marcados como NO-TOCAR #5 (comparaciones de compat), el prop cruza el límite `TodayTrainingTab` ↔ `TodayTrainingModalLayer`, y el frontend **no tiene tests**. Un `build` no detecta un `ReferenceError` de variable/prop renombrada a medias → riesgo de romper el flujo "Hoy" en silencio, con beneficio puramente cosmético. Se deja para decisión explícita de Sergio.
+- Comentarios/logs incidentales que citan "HipertrofiaV2" en ficheros no relacionados (`singleDay/*`, otros servicios, tests): conservados. El valor cableado sigue siendo `HipertrofiaV2`, así que esas referencias siguen siendo correctas; cambiarlas añadiría ruido sin valor (alcance mínimo).
+
+### Verificación Fase 2
+
+- `npm run test:backend` → **231/231**.
+- `npm run build` → **OK** (warnings de circular/empty chunk preexistentes, ajenos a este cambio).
+- `grep -rIn "hipertrofiaV2/" src backend --include=*.js` → **0** imports viejos.
+- `grep "HipertrofiaV2_MindFeed"` → sigue presente e intacto.
+- **Residual para Sergio:** revisión manual de los flujos de Hipertrofia en UI (selección, sesión de hoy, resumen). El repo no tiene tests de frontend; el build valida la resolución de imports pero no el runtime de los flujos.

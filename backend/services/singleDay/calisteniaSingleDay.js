@@ -9,7 +9,7 @@
  */
 
 import { persistSingleDaySession } from './persistSingleDaySession.js';
-import { logger } from '../hipertrofiaV2/logger.js';
+import { logger } from '../hipertrofia/logger.js';
 
 // Categorías reales en app.ejercicios para disciplina='calistenia'.
 const FULLBODY_CATEGORIES = ['Empuje', 'Tracción', 'Piernas', 'Core'];

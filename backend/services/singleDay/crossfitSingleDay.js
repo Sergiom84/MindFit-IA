@@ -29,7 +29,7 @@
  */
 
 import { persistSingleDaySession } from './persistSingleDaySession.js';
-import { logger } from '../hipertrofiaV2/logger.js';
+import { logger } from '../hipertrofia/logger.js';
 
 // Dominios reales en "Ejercicios_CrossFit".
 const DOMAINS = ['Weightlifting', 'Gymnastic', 'Monostructural', 'Accesorios'];

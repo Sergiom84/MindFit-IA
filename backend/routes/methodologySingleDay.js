@@ -10,7 +10,7 @@ import express from 'express';
 import pool from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
 
-import { generateSingleDayWorkout } from '../services/hipertrofiaV2/extraWorkoutService.js';
+import { generateSingleDayWorkout } from '../services/hipertrofia/extraWorkoutService.js';
 import { generateCalisteniaSingleDay } from '../services/singleDay/calisteniaSingleDay.js';
 import { generateCrossFitSingleDay } from '../services/singleDay/crossfitSingleDay.js';
 import { generateCasaSingleDay } from '../services/singleDay/casaSingleDay.js';
@@ -19,7 +19,7 @@ import { generateHalterofiliaSingleDay } from '../services/singleDay/halterofili
 import { generatePowerliftingSingleDay } from '../services/singleDay/powerliftingSingleDay.js';
 import { generateHeavyDutySingleDay } from '../services/singleDay/heavyDutySingleDay.js';
 import { generatePreferenceSingleDay } from '../services/singleDay/preferenceSingleDay.js';
-import { logger } from '../services/hipertrofiaV2/logger.js';
+import { logger } from '../services/hipertrofia/logger.js';
 import { cleanupUserStaleSessions } from '../services/sessionCleanupService.js';
 
 const router = express.Router();

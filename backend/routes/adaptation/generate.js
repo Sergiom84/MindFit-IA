@@ -8,12 +8,12 @@ import express from 'express';
 import pool from '../../db.js';
 import { authenticateToken } from '../../middleware/auth.js';
 import { normalizeDayAbbrev } from '../../utils/shared/dayNormalizer.js';
-import { resolveUserInjuryRules } from '../../services/hipertrofiaV2/injuryFilter.js';
+import { resolveUserInjuryRules } from '../../services/hipertrofia/injuryFilter.js';
 import {
   resolveAdaptationProfile,
   resolveDayPatternForFrequency,
   generateAdaptationSessions
-} from '../../services/hipertrofiaV2/adaptation/adaptationHelpers.js';
+} from '../../services/hipertrofia/adaptation/adaptationHelpers.js';
 
 const router = express.Router();
 

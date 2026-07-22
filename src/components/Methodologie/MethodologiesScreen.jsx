@@ -212,7 +212,7 @@ export default function MethodologiesScreen() {
   const {
     handleCalisteniaManualGenerate,
     handleHeavyDutyManualGenerate,
-    handleHipertrofiaV2ManualGenerate,
+    handleHipertrofiaManualGenerate,
     handlePowerliftingManualGenerate,
     handleCrossFitManualGenerate,
     handleFuncionalManualGenerate,
@@ -441,7 +441,7 @@ export default function MethodologiesScreen() {
               confirmManualSelection,
               handleCalisteniaManualGenerate,
               handleHeavyDutyManualGenerate,
-              handleHipertrofiaV2ManualGenerate,
+              handleHipertrofiaManualGenerate,
               handlePowerliftingManualGenerate,
               handleCrossFitManualGenerate,
               handleFuncionalManualGenerate,
