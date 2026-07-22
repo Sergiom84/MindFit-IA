@@ -136,7 +136,8 @@ jobs:
             -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;" \
             -c "CREATE SCHEMA IF NOT EXISTS auth;" \
             -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS 'SELECT NULL::uuid';" \
-            -f backend/db/baseline/app_schema_baseline.sql
+            -f backend/db/baseline/app_schema_baseline.sql \
+            -f backend/migrations/20260720_add_consent_columns_users.sql
 
       - name: Aplicar migraciones CrossFit v2 dos veces (idempotencia)
         run: |
@@ -203,6 +204,7 @@ jobs:
             -c "CREATE SCHEMA IF NOT EXISTS auth;" \
             -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS 'SELECT NULL::uuid';" \
             -f backend/db/baseline/app_schema_baseline.sql \
+            -f backend/migrations/20260720_add_consent_columns_users.sql \
             -f backend/migrations/20260722_crossfit_v2_assessments.sql \
             -f backend/migrations/20260722_crossfit_v2_catalog.sql \
             -f backend/migrations/20260722_crossfit_v2_nutrition_day_types.sql \
