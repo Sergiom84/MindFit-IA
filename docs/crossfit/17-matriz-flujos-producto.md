@@ -96,7 +96,7 @@ el worker nutricional no reabre el cierre.
 
 ## QA transversal
 
-Cada fila requiere success, empty, unauthorized, invalid, network retry y stale revision donde aplique. Movil y escritorio deben usar los mismos contratos. Regresion obligatoria comprueba Hipertrofia, HipertrofiaV2 y Calistenia sin modificar sus artefactos.
+Cada fila requiere success, empty, unauthorized, invalid, network retry y stale revision donde aplique. Movil y escritorio deben usar los mismos contratos. Regresion obligatoria comprueba Hipertrofia actual (renombrada desde HipertrofiaV2) y Calistenia sin modificar sus artefactos ni reintroducir Hipertrofia legacy.
 
 | Escenario                     | Respuesta esperada                    | Persistencia/oraculo           |
 | ----------------------------- | ------------------------------------- | ------------------------------ |

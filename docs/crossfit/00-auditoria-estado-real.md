@@ -1,4 +1,4 @@
-# Auditoria CrossFit: estado real y divergencias
+# Auditoria CrossFit: baseline, implementacion y divergencias
 
 ## Reauditoría de implementación 2026-07-22
 
@@ -11,7 +11,9 @@ sin `day_id`; se conservan mediante fallback y no se backfillean en producción.
 
 La migración aditiva `20260722_crossfit_v2_catalog.sql` queda preparada y no
 aplicada. Crea catálogo versionado separado y RLS de lectura de versión activa;
-no altera las tablas legacy ni las de sesiones.
+no altera las tablas legacy ni las de sesiones. El delta de implementación se
+encuentra en `codex/crossfit-profesional-v2`, sincronizado con
+`origin/main@3e09559`, y permanece aislado, sin push ni activación productiva.
 
 Fecha de corte: 2026-07-22. Fuentes de verdad: codigo de la copia local, `origin/main` leido sin cambiar de rama y proyecto Supabase `sbqcnlwpvjavmljzkmfy` consultado en transaccion `READ ONLY`.
 
@@ -20,48 +22,54 @@ Fecha de corte: 2026-07-22. Fuentes de verdad: codigo de la copia local, `origin
 - No se reiniciaron servicios.
 - No se escribio en BD ni se crearon usuarios.
 - No se aplicaron migraciones, flags ni rulesets.
-- El checkout local esta por detras de `origin/main` y contiene cambios ajenos; por eso los contratos de Fase 0 se inspeccionaron con `git show origin/main:...`.
+- La auditoría inicial se hizo sin alterar el checkout documental. La implementación posterior usa un worktree limpio separado y conserva ese baseline como evidencia histórica.
 - Una ruta existente se clasifica como cubierta solo si contrato, persistencia, seguridad y QA cierran juntos.
 
-## Flujo actual comprobado
+## Flujo V2 implementado bajo flags apagados
 
 ```mermaid
 flowchart TD
-  A["Registro y onboarding"] --> B["app.users y espejo parcial user_profiles"]
+  A["Registro y onboarding"] --> B["app.users y perfil canonico"]
   B --> C["Selector agnostico de metodologia"]
-  C --> D["Proxy CrossFit Specialist"]
-  D --> E["MethodologyOrchestrator"]
-  E --> F["CrossFitService y crossfit_v1"]
-  F --> G["methodology_plans y methodology_plan_days"]
-  G --> H["Calendario y Hoy"]
-  H --> I["WodSessionModal"]
-  I --> J["CrossFitEffortModal"]
-  J --> K["POST wod-result"]
-  K --> L["crossfit_register_wod_result"]
-  L --> M["crossfit_autoreg_state y deload generico"]
-  H --> N["Puente nutricional generico"]
+  C --> D["Evaluacion 8D y screening"]
+  D --> E["Orquestador y adaptador registrado"]
+  E --> F["Clasificar, componer y validar V2"]
+  F --> G["Plan/day_id, planned load y trace"]
+  G --> H["Calendario, Hoy y single-day"]
+  H --> I["Player, escalado y sustitucion"]
+  I --> J["Resultado y feedback estructurados"]
+  J --> K["Cierre transaccional y outbox"]
+  K --> L["Autorregulacion siete estados"]
+  K --> M["Actual load y nutricion canonica"]
+  M --> N["Menu, recetas y lista de compra"]
 ```
+
+Con `CROSSFIT_V2_GENERATION`, `CROSSFIT_V2_RESULTS`,
+`CROSSFIT_EMITS_TRAINING_LOAD` y `CROSSFIT_NUTRITION_LOAD` en `false`, el
+comportamiento productivo permanece legacy. La ruta V2 solo puede considerarse
+operativa en QA después de aplicar las migraciones preparadas en PostgreSQL
+aislado y ejecutar RLS/E2E.
 
 ## Inventario funcional
 
-| Pieza               | Estado                     | Evidencia                                     | Brecha o riesgo                                               |
-| ------------------- | -------------------------- | --------------------------------------------- | ------------------------------------------------------------- |
-| Registro/login      | Funciona                   | `backend/routes/auth.js`                      | No captura screening estructurado                             |
-| Perfil canonico     | Parcial                    | `userRepository.js`, `userProfileContract.js` | Duplicidad `users`/`user_profiles`; solo lesiones textuales   |
-| Selector            | Funciona                   | componentes de Methodologie                   | Debe conservarse agnostico                                    |
-| Evaluacion CrossFit | Parcial                    | prompt en `CrossFitService.js`                | IA decide demasiado; no hay matriz objetiva persistida        |
-| Plan completo       | Funciona con modelo legacy | orquestador y `CrossFitService`               | Cuotas genericas y Elite mezclado                             |
-| Single-day          | Funciona con modelo legacy | `singleDay/crossfitSingleDay.js`              | Seleccion aleatoria, validacion incompleta                    |
-| Calendario/Hoy      | Funciona parcialmente      | plan days y Today tab                         | Fase 0 esta consolidando `day_id`                             |
-| Player WOD          | Funciona                   | `WodSessionModal.jsx`                         | Resultado no cubre todas las metricas nuevas                  |
-| Sustitucion         | Parcial                    | filtros y UI compartidos                      | No preserva siempre stimulus ni explica razon                 |
-| Cierre/abandono     | Parcial                    | rutas de training session y WOD result        | Dos cierres a reconciliar; outbox de Fase 0 pendiente de gate |
-| Autorregulacion     | Simulada/simplificada      | `planAutoregService.js` y SQL                 | Regla de faciles/duros no modela tecnica, dolor o tendencias  |
-| Nutricion           | Parcial                    | `carbTiming.js`, bridge generico              | CrossFit `emits_training_load:false` en `origin/main`         |
-| Historial/metricas  | Parcial                    | sesiones y progreso                           | No existe resultado WOD canonico versionado                   |
-| Offline/reintento   | Parcial                    | runtime v2 + revisión inmutable preparada     | Cierre/feedback durable y E2E efímero aún pendientes          |
-| Observabilidad      | Parcial                    | metricas Fase 0                               | Sin reason codes CrossFit ni PII policy especifica            |
-| RLS                 | Riesgo alto                | consulta live                                 | Desactivado en tablas revisadas                               |
+| Pieza               | Estado                    | Evidencia                                      | Brecha o riesgo                                             |
+| ------------------- | ------------------------- | ---------------------------------------------- | ----------------------------------------------------------- |
+| Registro/login      | Funciona                  | `backend/routes/auth.js`                       | No captura screening estructurado                           |
+| Perfil canonico     | Parcial                   | `userRepository.js`, `userProfileContract.js`  | Duplicidad `users`/`user_profiles`; solo lesiones textuales |
+| Selector            | Funciona                  | componentes de Methodologie                    | Debe conservarse agnostico                                  |
+| Evaluacion CrossFit | Implementada con gate BD  | evaluación 8D, servicio y ledger preparado     | migración/RLS/E2E y revisión humana pendientes              |
+| Plan completo       | Implementado bajo flag    | builder 8/10/12, composer y validador          | activación y E2E pendientes                                 |
+| Single-day          | Implementado bajo flag    | adaptador determinista y persistencia          | E2E con PostgreSQL aislado pendiente                        |
+| Calendario/Hoy      | Integrado bajo flag       | `plan_id+day_id`, revisión y fallback          | deuda histórica se conserva; E2E pendiente                  |
+| Player WOD          | Implementado V2           | runtime, draft durable y feedback              | accesibilidad/offline real pendientes                       |
+| Sustitucion         | Implementada V2           | safety evaluator y preservación de stimulus    | validación humana de mappings                               |
+| Cierre/abandono     | Implementado con gate BD  | resultado, autorreg, actual load y outbox      | migración, RLS y reintentos E2E pendientes                  |
+| Autorregulacion     | Implementada V2           | reducer de siete estados y snapshot            | migración/RLS/E2E pendientes                                |
+| Nutricion           | Implementada flag off     | D0/D1/D2, presentación active y compras V2     | migración, shadow, métricas y dietista pendientes           |
+| Historial/metricas  | Implementado con gate BD  | resultado versionado y métricas sin PII        | compatibilidad real y dashboard QA pendientes               |
+| Offline/reintento   | Implementado parcialmente | draft local, revisión inmutable e idempotencia | E2E offline/reload/dispositivo pendiente                    |
+| Observabilidad      | Implementada técnicamente | reason codes y muestras planned/actual         | ejecución sobre datos QA pendiente                          |
+| RLS                 | Preparado, no aplicado    | seis migraciones y suites cross-user de CI     | riesgo alto hasta ejecución/autorización                    |
 
 ## Perfil real reutilizable
 
@@ -78,13 +86,13 @@ Campos que faltan para el modelo profesional:
 - capacidades por patron, permisos de skill y confianza de evaluacion;
 - historial de carga por dominio y resultado comparable.
 
-Decision: `app.users.limitaciones_fisicas` sigue siendo canonico para compatibilidad. La rama futura añadira entidades especificas versionadas; no copiara esos datos en una tercera cadena textual.
+Decision: `app.users.limitaciones_fisicas` sigue siendo canonico para compatibilidad. La rama V2 añade contratos y entidades versionadas de evaluación, resultado y runtime; no copia esos datos en una tercera cadena textual. El screening clínico completo continúa bloqueado hasta contrato y validación profesional.
 
 ## Contrato de Fase 0 comprobado en origin/main
 
-`training-load/v1` contiene metodologia/nivel, tipo y estado de sesion, `D0/D1/D2`, tier de carga, duracion, RPE, trabajo, demandas, recuperacion, entorno, contexto y procedencia. La identidad canonica de dia es `plan_id + day_id`; el cierre emite `training.session_completed` en outbox. CrossFit permanece con `emits_training_load:false` y el backfill de `day_id` esta documentado como no aplicado.
+`training-load/v1` contiene metodologia/nivel, tipo y estado de sesion, `D0/D1/D2`, tier de carga, duracion, RPE, trabajo, demandas, recuperacion, entorno, contexto y procedencia. La identidad canonica de dia es `plan_id + day_id`; el cierre emite `training.session_completed` en outbox. La migración `20260721_backfill_mes_day_id.sql` está registrada en Supabase con checksum coincidente. Las 29 filas de calendario y 1.414 sesiones históricas sin `day_id` son deuda compatible con fallback y no se reescriben.
 
-Consecuencia: todo plan CrossFit futuro debe producir planned load, y el cierre debe producir actual load sin derivar reps, tiempo o escala de texto libre. Activar el descriptor antes del gate violaria el contrato.
+La rama V2 ya produce planned load al generar y actual load al cerrar sin derivar reps, tiempo o escala de texto libre. `CROSSFIT_EMITS_TRAINING_LOAD` y nutrición permanecen apagados hasta superar PostgreSQL/RLS, shadow, métricas y aprobación.
 
 ## Base de datos real
 
@@ -110,9 +118,10 @@ La consulta live mostro `relrowsecurity=false` y cero policies en `users`, `user
 
 - Elite existe en catalogo y descriptor, pero queda fuera del producto principal.
 - `crossfit_autoreg_state` existe; no demuestra que todas las sesiones historicas pasen por autorregulacion.
-- La nutricion reconoce CrossFit por nombre, pero aun no recibe una carga canonica emitida por CrossFit.
-- Los filtros por zona lesionada son regex conservadoras y pueden bloquear en exceso o permitir una variante inadecuada.
-- La generacion actual puede crear planes reales; eso no equivale a cumplir las invariantes de esta especificacion.
+- Producción aún ejecuta el camino legacy porque los flags V2 siguen apagados.
+- Las migraciones V2 y sus políticas RLS están preparadas, pero no ejecutadas ni verificadas contra PostgreSQL local.
+- La regex legacy de lesiones solo actúa como fallback conservador; el safety evaluator V2 no puede autorizar a partir de texto ambiguo.
+- La generación V2 supera el gate puro de 30.000 planes, pero no equivale a validar persistencia, UI ni eficacia deportiva real.
 
 ## Riesgos priorizados
 
@@ -120,12 +129,12 @@ La consulta live mostro `relrowsecurity=false` y cero policies en `users`, `user
 | --------- | ------------------------- | --------------------------------- | -------------------------------------------------------------- |
 | P0        | Seguridad no estructurada | Prescripcion incompatible         | screening, stop rules, permisos por skill, bloqueo conservador |
 | P0        | RLS desactivado           | Privacidad/aislamiento            | policies + tests con roles y usuarios cruzados                 |
-| P0        | Fase 0 no cerrada         | Desajuste entrenamiento-nutricion | mantener descriptor off hasta gate                             |
-| P1        | Generador no reproducible | Planes no auditables              | seed, ruleset, decision trace e invariantes                    |
-| P1        | Catalogo no canonico      | Variantes/dosis incoherentes      | modelo normalizado y backfill idempotente                      |
+| P0        | Rollout sin shadow        | Desajuste entrenamiento-nutricion | mantener flags off hasta BD, métricas y aprobación             |
+| P1        | QA de persistencia/E2E    | Defectos no observados            | ejecutar CI PostgreSQL, RLS, Playwright y offline              |
+| P1        | Catalogo no activado      | Fallback legacy en producción     | migración autorizada, dry-run, revisión y activación separada  |
 | P1        | Nombre CrossFit           | Riesgo de marca                   | denominacion neutral y revision legal                          |
 | P2        | Media no verificada       | Mala ejecucion                    | workflow editorial; nunca inventar URL                         |
 
 ## Veredicto
 
-El flujo legacy es demostrable y parcialmente funcional. No esta listo para validacion profesional porque carece de clasificacion objetiva, seguridad estructurada, contrato de resultado, reglas exhaustivas y QA del nuevo modelo. La documentacion de este expediente cubre el diseño; implementacion y validacion siguen pendientes.
+La implementación técnica V2 cubre clasificación, programación, composer, seguridad, runtime, resultados, autorregulación, training load y nutrición bajo flags apagados. No está lista para producción: faltan ejecutar migraciones/RLS y E2E en infraestructura aislada, completar shadow y obtener validaciones deportiva, nutricional, clínica y legal. El flujo legacy productivo permanece sin cambios mientras esos gates sigan cerrados.

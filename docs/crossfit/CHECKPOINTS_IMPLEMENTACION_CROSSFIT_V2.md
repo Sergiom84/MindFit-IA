@@ -10,7 +10,7 @@ Estado global: `EN_PROGRESO`
 
 - Worktree aislado; no modificar el checkout documental previo.
 - No tocar `WorkoutContext.generatePlan()`, la redirección ni el frontend agnóstico.
-- No cambiar programación de Hipertrofia, Hipertrofia V2 o Calistenia.
+- No cambiar programación de Hipertrofia actual (renombrada desde HipertrofiaV2) ni Calistenia; no reintroducir Hipertrofia legacy.
 - No escribir en Supabase/Render ni aplicar migraciones/flags sin autorización.
 - No hacer push ni abrir PR sin confirmación expresa de Pablo.
 - Dolor, red flags y técnica insegura tienen precedencia sobre rendimiento.
@@ -311,6 +311,11 @@ Estado global: `EN_PROGRESO`
   se activaron flags.
 
 ## Criterio de cierre técnico
+
+Expediente reconciliado contra la rama: 23 documentos narrativos y anexo de
+integridad consolidados en PDF A4, con extracción completa, cero páginas vacías
+y render visual sin recortes ni solapamientos. Los CSV/JSON conservan sus
+checksums en el anexo final.
 
 Cada fase exige diff de alcance, tests de subfase, registro diario y trazabilidad
 actualizada. Una limitación de infraestructura se marca como gate, nunca como test

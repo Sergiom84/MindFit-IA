@@ -112,7 +112,7 @@ Commits revisables por subfase, PR con migraciones/flags/QA/capturas, revision S
 - `src/components/routines/modals/CrossFitEffortModal.jsx`
 - `src/components/routines/tabs/TodayTrainingTab.jsx`
 
-Nuevos servicios se prefieren a inflar los existentes. Hipertrofia/HipertrofiaV2/Calistenia son solo targets de regresion.
+Nuevos servicios se prefieren a inflar los existentes. Hipertrofia actual (renombrada desde HipertrofiaV2) y Calistenia son solo targets de regresion; Hipertrofia legacy fue retirada en `origin/main@3e09559` y no se reintroduce.
 
 ## Criterio de merge
 

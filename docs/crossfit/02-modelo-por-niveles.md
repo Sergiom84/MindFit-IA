@@ -94,6 +94,6 @@ Se asigna nivel global conservador y tiers independientes. Ejemplo: motor aerobi
 
 Los tests de producto deben ser neutrales y escalables: intervalo repetible de remo/bike/run, circuito de patrones basicos, fuerza submaxima y checklist tecnico. Benchmarks con nombre se usan como comparadores opcionales, maximo segun [`14-biblioteca-wods-y-composicion.md`](./14-biblioteca-wods-y-composicion.md), solo si todos los prerequisitos estan desbloqueados. Ningun benchmark aislado cambia nivel.
 
-## Persistencia futura
+## Persistencia implementada con gate de BD
 
-El resultado guarda `dimension_scores`, `test_ids`, `observed_at`, `confidence`, `global_level`, `skill_permissions`, `safety_status`, `ruleset_version` y `decision_trace`. No sobrescribe `nivel_entrenamiento` general sin consentimiento. `REQUIERE_RAMA` y `REQUIERE_MIGRACION_AUTORIZADA`.
+El contrato y el ledger preparados guardan `dimension_scores`, `test_ids`, `observed_at`, `confidence`, `global_level`, `skill_permissions`, `safety_status`, `ruleset_version` y `decision_trace`. No sobrescriben `nivel_entrenamiento` general sin consentimiento. La UI de ocho dimensiones y el endpoint de revisión profesional server-side están implementados; `20260722_crossfit_v2_assessments.sql`, RLS y E2E permanecen `REQUIERE_MIGRACION_AUTORIZADA`.

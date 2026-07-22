@@ -36,7 +36,7 @@
 4. Aprobar estrategia RLS/service-role y ventana de migracion.
 5. Confirmar owners humanos de revision deportiva y nutricional.
 
-Ninguna de estas decisiones impide abrir rama tras Fase 0 si se mantienen los defaults conservadores; si se quieren ampliar menores o embarazo, si bloquean esa parte del producto.
+Ninguna de estas decisiones invalida el desarrollo ya abierto mientras se mantengan los defaults conservadores; sí bloquean producción o la parte específica del producto si se quieren ampliar menores o embarazo.
 
 ## Requiere validacion humana
 
@@ -48,6 +48,6 @@ Ninguna de estas decisiones impide abrir rama tras Fase 0 si se mantienen los de
 - muestra final de planes, sesiones y escalas;
 - revision juridica independiente de marca.
 
-## No validable antes de implementar
+## Gates todavía no validados en infraestructura
 
-Determinismo real, performance, distribuciones, RLS, idempotencia del cierre, outbox, offline, nutricion sincronizada y E2E. Los documentos definen oraculos; no aportan evidencia de que el codigo futuro los cumpla.
+El determinismo puro, las distribuciones y la idempotencia de servicios cuentan con tests locales; no están validados aún RLS, migraciones, cierre/outbox contra PostgreSQL, offline real, shadow nutricional ni E2E. Los documentos y suites definen oráculos, pero no sustituyen la ejecución en CI efímero ni la revisión humana.

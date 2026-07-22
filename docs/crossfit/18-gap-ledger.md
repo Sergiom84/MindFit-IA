@@ -26,12 +26,12 @@
 | QA efímero fail-closed               | PostgreSQL 17/CI, RLS cross-user y 12 E2E preparados; 400/400 unit verdes              | ejecución CI aún pendiente                        |
 | Roadmap/DoR/DoD/rollback             | doc 08 + checkpoints                                                                   | implementación iniciada                           |
 | Etiquetas de gate                    | maestro, docs 08/10 y operaciones                                                      | Fase 0 desbloqueada; rollout aún bloqueado        |
-| PDF maestro                          | PDF consolidado, extraccion y render de todas las paginas                              | verificacion visual repetida tras ultima edicion  |
+| PDF maestro                          | PDF consolidado vigente, extracción completa y render visual integral                  | cerrado; regenerar si cambia una fuente           |
 
 ## Resumen por etiqueta
 
 - `LISTO_AHORA_DOCUMENTAL`: fundamento, niveles, programas, WOD, contratos, matrices, roadmap y oraculos.
-- `FASE_0_COMPARTIDA_DESBLOQUEADA_PARA_DESARROLLO`: contratos compartidos disponibles en `origin/main@e7f5711`.
+- `FASE_0_COMPARTIDA_DESBLOQUEADA_PARA_DESARROLLO`: contratos compartidos disponibles desde `e7f5711` e implementación sincronizada con `origin/main@3e09559`.
 - `COMPLETADO_TECNICO_FLAG_OFF`: training load, cierre/outbox, nutrición, presentación active, compras V2 y métricas están implementados y pasan unit/contract; no equivale a shadow real.
 - `PENDIENTE_GATE_LOAD_SHADOW`: ejecutar PostgreSQL efímero y shadow QA hasta lograr >=99 % carga válida, <1 % degradada justificada y cero duplicados/drift.
 - `IMPLEMENTACION_EN_RAMA`: código, flags y tests v2 en `codex/crossfit-profesional-v2`.

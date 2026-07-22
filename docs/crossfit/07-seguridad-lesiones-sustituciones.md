@@ -44,7 +44,7 @@ Preservar stimulus nunca prevalece sobre seguridad. Todas las reglas concretas e
 
 ## Integracion actual
 
-Actualmente `limitaciones_fisicas` canonico se reutiliza y el filtro regex evita zonas amplias. En rama futura, la regex es fallback de confianza baja: solo puede endurecer/bloquear, no autorizar un movimiento. Equipamiento se consulta de inventario; sueño/estres/fatiga se capturan por check-in temporal y no se guardan como atributo fijo del perfil.
+`limitaciones_fisicas` canonico se reutiliza y la regex legacy queda como fallback de confianza baja: solo puede endurecer/bloquear, no autorizar un movimiento. El safety evaluator V2 se ejecuta antes del composer y de cualquier sustitución; dolor/red flag prevalece sobre stimulus. Equipamiento se consulta de inventario; sueño/estres/fatiga se capturan por check-in temporal y no se guardan como atributo fijo del perfil. La persistencia estructurada y sus políticas RLS siguen pendientes de migración autorizada y QA aislado.
 
 ## Validacion profesional
 
