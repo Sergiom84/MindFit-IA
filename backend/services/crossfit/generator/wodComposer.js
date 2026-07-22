@@ -36,7 +36,7 @@ export function crossfitMovementSkillTier(movement) {
   return highSkill ? Math.max(3, base) : base;
 }
 
-function skillAllowed(movement, level, permissions = {}) {
+export function crossfitSkillAllowed(movement, level, permissions = {}) {
   const tier = crossfitMovementSkillTier(movement);
   if (tier > LEVEL_TIER[level]) return false;
   if ((movement.skill_prerequisites ?? []).some((key) => permissions[key] === false)) return false;
@@ -170,7 +170,7 @@ export function composeCrossfitWod({
     filterCounts.active += 1;
     if (forbiddenIds.has(movement.canonical_id) || blockedPatterns.has(movement.pattern)) continue;
     if ((movement.pairing_tags ?? []).some((tag) => blockedTags.has(tag))) continue;
-    if (!skillAllowed(movement, level, skillPermissions)) continue;
+    if (!crossfitSkillAllowed(movement, level, skillPermissions)) continue;
     filterCounts.skill += 1;
     if (!crossfitEquipmentAvailable(movement.equipment, availableEquipment)) continue;
     filterCounts.equipment += 1;

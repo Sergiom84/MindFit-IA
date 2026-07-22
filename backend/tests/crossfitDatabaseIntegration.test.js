@@ -16,6 +16,7 @@ const TABLES = [
   "crossfit_v2_results",
   "crossfit_v2_autoreg_events",
   "crossfit_v2_autoreg_snapshots",
+  "crossfit_v2_runtime_events",
 ];
 
 function assertEphemeralDatabase(url) {
@@ -190,6 +191,11 @@ test("migraciones CrossFit crean objetos, RLS y políticas esperadas", async () 
         (row) => row.policyname === "crossfit_v2_assessments_owner_read",
       ),
     );
+    assert.ok(
+      policies.rows.some(
+        (row) => row.policyname === "crossfit_v2_runtime_events_owner_read",
+      ),
+    );
   });
 });
 
@@ -323,5 +329,88 @@ test("resultados RLS aíslan usuarios y el ledger es append-only", async () => {
       (error) => error.code === "55000",
     );
     await client.query("ROLLBACK TO SAVEPOINT append_only");
+  });
+});
+
+test("eventos runtime aíslan usuarios, ordenan el stream y son append-only", async () => {
+  await withRollback(async (client) => {
+    const owners = [
+      { suffix: "c", userId: 991003, planId: 992003, sessionId: 993003, dayId: 994003 },
+      { suffix: "d", userId: 991004, planId: 992004, sessionId: 993004, dayId: 994004 },
+    ];
+    for (const owner of owners) {
+      await seedResultOwner(
+        client,
+        owner.suffix,
+        owner.userId,
+        owner.planId,
+        owner.sessionId,
+        owner.dayId,
+      );
+      const eventId = `cfu_${owner.suffix.repeat(24)}`;
+      const payload = {
+        event_id: eventId,
+        schema_version: "crossfit-runtime-event/v2",
+        event_type: "timer_started",
+      };
+      await client.query(
+        `INSERT INTO app.crossfit_v2_runtime_events
+           (event_id, user_id, methodology_plan_id, session_id, day_id,
+            schema_version, ruleset_version, catalog_version, stream_id,
+            client_sequence, event_type, request_id, idempotency_key,
+            content_hash, payload, occurred_at)
+         VALUES ($1,$2,$3,$4,$5,'crossfit-runtime-event/v2','crossfit-rules/2.0.0',
+           'crossfit-catalog/2.0.0',$6,0,'timer_started',$7,$8,$9,$10::jsonb,NOW())`,
+        [
+          eventId,
+          owner.userId,
+          owner.planId,
+          owner.sessionId,
+          owner.dayId,
+          `runtime_${owner.suffix.repeat(8)}`,
+          `req-runtime-${owner.suffix}`,
+          `idem-runtime-${owner.suffix}`,
+          owner.suffix.repeat(64),
+          JSON.stringify(payload),
+        ],
+      );
+    }
+
+    await client.query("SET LOCAL ROLE authenticated");
+    await client.query("SELECT set_config('app.current_user_id', '991003', true)");
+    const visible = await client.query(
+      "SELECT user_id FROM app.crossfit_v2_runtime_events ORDER BY user_id",
+    );
+    assert.deepEqual(visible.rows.map((row) => row.user_id), [991003]);
+    await client.query("RESET ROLE");
+
+    for (const [name, sql] of [
+      ["update", "UPDATE app.crossfit_v2_runtime_events SET request_id = 'mutated' WHERE user_id = 991003"],
+      ["delete", "DELETE FROM app.crossfit_v2_runtime_events WHERE user_id = 991003"],
+    ]) {
+      await client.query(`SAVEPOINT runtime_${name}`);
+      await assert.rejects(client.query(sql), (error) => error.code === "55000");
+      await client.query(`ROLLBACK TO SAVEPOINT runtime_${name}`);
+    }
+
+    await client.query("SAVEPOINT runtime_sequence");
+    await assert.rejects(
+      client.query(
+        `INSERT INTO app.crossfit_v2_runtime_events
+           (event_id, user_id, methodology_plan_id, session_id, day_id,
+            schema_version, ruleset_version, catalog_version, stream_id,
+            client_sequence, event_type, request_id, idempotency_key,
+            content_hash, payload, occurred_at)
+         SELECT 'cfu_${"e".repeat(24)}', user_id, methodology_plan_id, session_id, day_id,
+           schema_version, ruleset_version, catalog_version, stream_id,
+           client_sequence, 'timer_paused', 'req-runtime-duplicate',
+           'idem-runtime-duplicate', '${"e".repeat(64)}',
+           jsonb_build_object('event_id', 'cfu_${"e".repeat(24)}',
+             'schema_version', schema_version, 'event_type', 'timer_paused'), NOW()
+         FROM app.crossfit_v2_runtime_events WHERE user_id = 991003`,
+      ),
+      (error) => error.code === "23505",
+    );
+    await client.query("ROLLBACK TO SAVEPOINT runtime_sequence");
   });
 });

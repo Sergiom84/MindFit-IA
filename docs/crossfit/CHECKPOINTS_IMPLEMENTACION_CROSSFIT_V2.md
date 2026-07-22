@@ -41,7 +41,7 @@ Estado global: `EN_PROGRESO`
 | CI `main`                  | CI y Android verdes en el SHA de referencia                        |
 | `npm ci` raíz/backend      | correcto desde lockfiles                                           |
 | `npm run test:backend`     | 231/231                                                            |
-| Regresión actual           | 355/355 tras evaluación objetiva y guardas QA                      |
+| Regresión actual           | 365/365 tras runtime validado, evaluación objetiva y guardas QA    |
 | `npm run lint -- --quiet`  | correcto                                                           |
 | `npm run build`            | correcto; warnings preexistentes de chunks/browser data            |
 | Integración backend        | no ejecutada: no hay PostgreSQL/Docker local ni URL QA             |
@@ -130,12 +130,35 @@ Estado global: `EN_PROGRESO`
   Quedan pendientes Playwright real, offline/background timer, sustitución
   interactiva, PostgreSQL efímero y RLS cross-user.
 
+## Gate técnico G.1: runtime y sustituciones backend
+
+- Añadidos contratos `crossfit-runtime-event/v2` y `crossfit-substitution/v2`
+  con límites estrictos, identidad, stream y secuencia de cliente.
+- El servidor acepta eventos públicos de inicio, pausa, reanudación, reset y
+  escala `base/scaled`; rechaza RX+, movimientos ajenos al WOD y la inyección
+  directa de `movement_substituted`.
+- La máquina de transición exige secuencia contigua, estado de temporizador
+  válido, tiempo no regresivo y time cap inmutable. Los reintentos con la misma
+  idempotency key devuelven el evento persistido; contenido divergente falla.
+- Las sustituciones solo recorren aristas canónicas de la versión de catálogo
+  congelada en la sesión. Safety, dolor/red flags, skill, equipo, pairing y
+  `stimulus_delta <= 0.15` preceden al scoring; la dosis conserva duración
+  estimada y el servidor genera la traza.
+- Preparada, no aplicada, `20260722_crossfit_v2_runtime_events.sql`: ledger
+  append-only, FK `plan_id + day_id`, owner-read RLS e índices de idempotencia y
+  orden de stream. CI la reaplica dos veces y la incluye en integración/E2E.
+- Evidencia local: 12/12 runtime y 53/53 regresión focalizada, 365/365 backend
+  y lint quiet. Las
+  5 pruebas BD no se ejecutan localmente por ausencia de PostgreSQL/Docker;
+  migración, RLS y aislamiento quedan `PENDIENTE_EJECUCION_CI`. Aún faltan la
+  cola/reanudación frontend y Playwright, por lo que el flujo no está cerrado.
+
 ## Gate técnico J
 
 - El arnés `localQaGuard` queda desactivado sin acuse explícito y, aun con acuse,
   rechaza cualquier API, frontend o PostgreSQL que no sea local. La regresión E2E
   histórica deja de permitir Supabase/producción.
-- CI prepara PostgreSQL 17 efímero, restaura baseline, aplica dos veces las tres
+- CI prepara PostgreSQL 17 efímero, restaura baseline, aplica dos veces las cuatro
   migraciones CrossFit y ejecuta la integración registrada por el runner.
 - El job E2E importa el catálogo draft, lo activa solo en la BD desechable y
   verifica que un segundo import es un no-op con hash y conteos idénticos.
@@ -145,7 +168,7 @@ Estado global: `EN_PROGRESO`
 - Playwright descubre diez casos en proyectos escritorio y móvil 375x812: tres
   ciclos API por nivel y dos recorridos UI por viewport. Generation/results están
   activos solo dentro del job; carga, nutrición y workers continúan apagados.
-- Verificación local segura: 355/355 unitarios, lint quiet, build y budget de
+- Verificación local segura: 365/365 unitarios, lint quiet, build y budget de
   bundle verdes. PostgreSQL/Docker no están disponibles y no hay servidores
   levantados; por tanto DB/RLS/E2E permanecen `PENDIENTE_EJECUCION_CI`, no verdes.
 

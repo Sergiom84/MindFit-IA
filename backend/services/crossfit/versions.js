@@ -4,6 +4,8 @@ export const CROSSFIT_VERSIONS = Object.freeze({
   wod: "crossfit-wod/v2",
   result: "crossfit-result/v2",
   autoreg: "crossfit-autoreg/v2",
+  runtimeEvent: "crossfit-runtime-event/v2",
+  substitution: "crossfit-substitution/v2",
   nutrition: "crossfit-nutrition/2.0.0",
   ruleset: "crossfit-rules/2.0.0",
   catalog: "crossfit-catalog/2.0.0",

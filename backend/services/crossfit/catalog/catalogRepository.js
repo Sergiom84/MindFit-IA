@@ -28,6 +28,14 @@ WHERE m.catalog_version = $1
 GROUP BY m.catalog_version, m.canonical_id
 ORDER BY m.canonical_id`;
 
+export const CROSSFIT_SUBSTITUTION_EDGES_QUERY = `
+SELECT source_id, target_id, target_kind, priority, stimulus_delta, conditions
+FROM app.crossfit_movement_edges
+WHERE catalog_version = $1
+  AND source_id = $2
+  AND relation_type = 'substitution'
+ORDER BY priority, target_id`;
+
 export const LEGACY_CROSSFIT_CATALOG_QUERY = `
 SELECT exercise_id, nombre, nivel, dominio, categoria, equipamiento,
        tipo_wod, intensidad, duracion_seg, descanso_seg, escalamiento,
@@ -93,6 +101,11 @@ export class CrossfitCatalogRepository {
   async listLegacyMovements({ canonicalIdBySource = new Map() } = {}) {
     const { rows } = await this.pool.query(LEGACY_CROSSFIT_CATALOG_QUERY);
     return rows.map((row) => adaptLegacyCrossfitMovement(row, canonicalIdBySource.get(Number(row.exercise_id))));
+  }
+
+  async listSubstitutionEdges(sourceId, { catalogVersion = CROSSFIT_CATALOG_VERSION } = {}) {
+    const { rows } = await this.pool.query(CROSSFIT_SUBSTITUTION_EDGES_QUERY, [catalogVersion, sourceId]);
+    return rows;
   }
 
   async listForGeneration({ useV2 = false, catalogVersion = CROSSFIT_CATALOG_VERSION, canonicalIdBySource } = {}) {

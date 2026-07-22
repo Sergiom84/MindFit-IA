@@ -81,7 +81,7 @@ PostgreSQL. La suite histórica de regresión también usa esta guarda; se elimi
 posibilidad documentada de apuntarla a producción.
 
 - `integration-tests` restaura el baseline en PostgreSQL 17, aplica dos veces las
-  tres migraciones CrossFit y ejecuta el grupo de integración registrado.
+  cuatro migraciones CrossFit y ejecuta el grupo de integración registrado.
 - `crossfit-v2-e2e` importa el catálogo en draft, lo activa solo en la BD efímera,
   verifica el re-run activo por hash/conteos y levanta API/preview locales dentro
   del job.

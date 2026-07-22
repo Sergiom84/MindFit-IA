@@ -34,6 +34,7 @@ import aiPhotoCorrection from './routes/aiPhotoCorrection.js';
 // 🎯 RUTAS CONSOLIDADAS (NUEVA ARQUITECTURA)
 // ===============================================
 import routineGenerationRoutes from './routes/routineGeneration.js';
+import crossfitV2RuntimeRoutes from './routes/crossfitV2Runtime.js';
 import trainingSessionRoutes from './routes/trainingSession.js';
 import exerciseCatalogRoutes from './routes/exerciseCatalog.js';
 import trainingStateRoutes from './routes/trainingState.js';
@@ -467,6 +468,7 @@ app.use('/api/nutrition-v2/generate-full-day-menus', aiLimiter);
 app.use('/api/progress/re-evaluation', aiLimiter);
 
 app.use('/api/routine-generation', routineGenerationRoutes);
+app.use('/api/crossfit-v2/runtime', crossfitV2RuntimeRoutes);
 app.use('/api/training-session', trainingSessionRoutes);
 app.use('/api/training', trainingStateRoutes);
 app.use('/api/exercise-catalog', exerciseCatalogRoutes);
