@@ -28,6 +28,7 @@ export default function TodayTrainingModalLayer({
   effectiveSession,
   activeMethodKey,
   effortModal,
+  userId,
   showPriorityModal,
   currentPriority,
   showTransitionModal,
@@ -101,7 +102,8 @@ export default function TodayTrainingModalLayer({
               onFinishExercise={handleExerciseUpdate}
               onCompleteSession={(summary) => handleCompleteSession({
                 scale: summary?.escala || (summary?.runtimeVersion ? "base" : "rx"),
-                wodSummary: summary || null
+                wodSummary: summary || null,
+                deferCrossfitV2Result: summary?.runtimeVersion === "crossfit-runtime-event/v2"
               })}
             />
           ) : (
@@ -165,6 +167,7 @@ export default function TodayTrainingModalLayer({
 
       <EffortModals
         effortModal={effortModal}
+        ownerId={userId}
         onSubmit={handleEffortSubmit}
         onClose={handleEffortClose}
       />

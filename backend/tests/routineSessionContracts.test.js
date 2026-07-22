@@ -4,6 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { computeGateLogic } from "../../src/components/routines/tabs/TodayTrainingTab/gateLogic.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(__filename), "../..");
 
@@ -111,4 +113,21 @@ test("TodayTrainingTab prioriza today-status.summary como fuente de verdad del g
   assert.match(source, /computeGateCounts/);
   assert.match(source, /computeGateLogic/);
   assert.match(source, /dataSource: hasBackendSummary \? 'backend \(today-status\.summary\)'/);
+});
+
+test("Today cierra terminales CrossFit v2 sin romper el reintento legacy", () => {
+  const counts = { total: 2, completed: 1, pending: 0, inProgress: 0 };
+  const todayStatus = {
+    session: { session_status: "partial" },
+    summary: { skipped: 0, cancelled: 1, canRetry: true }
+  };
+  const crossfitV2 = computeGateLogic({ counts, todayStatus, immutableTerminal: true });
+  assert.equal(crossfitV2.isFinishedToday, true);
+  assert.equal(crossfitV2.hasUnfinishedWorkToday, false);
+  assert.equal(crossfitV2.canRetryToday, false);
+
+  const legacy = computeGateLogic({ counts, todayStatus, immutableTerminal: false });
+  assert.equal(legacy.isFinishedToday, false);
+  assert.equal(legacy.hasUnfinishedWorkToday, true);
+  assert.equal(legacy.canRetryToday, true);
 });

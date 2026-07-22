@@ -14,6 +14,7 @@ function painScore(event) {
 
 function readinessAverage(event) {
   const values = [event?.readiness?.sleep, event?.readiness?.recovery]
+    .filter((value) => value !== null && value !== undefined)
     .map(Number).filter(Number.isFinite);
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
 }
@@ -56,7 +57,10 @@ function fatigueSignals(events) {
   if (recentThree.length >= 3 && recentThree.every((event) => Number(event.readiness?.fatigue) >= 4)) {
     signals.push("fatigue_three_days");
   }
-  if (recentThree.length >= 3 && recentThree.every((event) => Number(event.readiness?.sleep) <= 2)) {
+  if (recentThree.length >= 3 && recentThree.every((event) =>
+    event.readiness?.sleep !== null
+    && event.readiness?.sleep !== undefined
+    && Number(event.readiness.sleep) <= 2)) {
     signals.push("sleep_three_days");
   }
   if (events.some((event) => Number(event.provenance?.srpe_ratio_7_28) > 1.2)) signals.push("srpe_above_baseline");
@@ -132,6 +136,8 @@ export function reduceCrossfitAutoreg({
   } else if (latest && (painScore(latest) >= 3 || Number(latest.pain?.delta) >= 2 || latest.technique === 0)) {
     const reason = latest.technique === 0 ? "SAFETY_TECHNIQUE_STOP" : "SAFETY_PAIN_MODIFY";
     state = decide("CF-AUTOREG-REGRESS-SAFETY", reason, "regress");
+  } else if (latest?.status === "cancelled") {
+    state = decide("CF-AUTOREG-CANCELLED", "SESSION_CANCELLED", "hold", { no_training_exposure: true });
   } else if (pauseDays >= 14) {
     stateDetails = { return_protocol: true, pause_days: pauseDays };
     state = decide("CF-AUTOREG-RETURN", "AUTOREG_RETURN", "regress", stateDetails);

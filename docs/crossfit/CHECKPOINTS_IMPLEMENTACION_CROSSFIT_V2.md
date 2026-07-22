@@ -26,8 +26,8 @@ Estado global: `EN_PROGRESO`
 | D. Clasificación              | `COMPLETADA_CON_GATE_BD_E2E`  | level-model + UI 8D + ledger/revisión; 32 focalizados        |
 | E. Programación por nivel     | `COMPLETADA_TECNICA`          | bloques 8/10/12; seis frecuencias; 12/12 tests               |
 | F. Composer/validadores       | `COMPLETADA_TECNICA`          | 30.000 planes + 30.000 regeneraciones; cero hard violation   |
-| G. Flujos de producto         | `COMPLETADA_CON_GATE_E2E`     | 51/51 focalizados; generación, plan, single-day y player     |
-| H. Resultados/autorregulación | `COMPLETADA_CON_GATE_BD`      | siete estados; 18/18 específicos; SQL/RLS requiere BD        |
+| G. Flujos de producto         | `COMPLETADA_CON_GATE_E2E`     | cierre terminal/draft durable; 12 E2E preparados             |
+| H. Resultados/autorregulación | `COMPLETADA_CON_GATE_BD`      | siete estados; cierre transaccional; SQL/RLS requiere BD     |
 | I. Training load/nutrición    | `COMPLETADA_TECNICA_FLAG_OFF` | 49/49; 355/355; shadow/BD/aprobación pendientes              |
 | J. QA integral                | `PREPARADA_GATE_CI`           | unit/lint/build verdes; BD/RLS/E2E preparados, no ejecutados |
 | K. Validaciones externas      | `GATE_PREPRODUCCION`          | entrenador, nutricionista, clínico si aplica y legal         |
@@ -41,14 +41,14 @@ Estado global: `EN_PROGRESO`
 | CI `main`                  | CI y Android verdes en el SHA de referencia                        |
 | `npm ci` raíz/backend      | correcto desde lockfiles                                           |
 | `npm run test:backend`     | 231/231                                                            |
-| Regresión actual           | 382/382 tras regeneración inmutable, runtime y guardas QA          |
+| Regresión actual           | 392/392 tras cierre terminal, feedback durable y regeneración      |
 | `npm run lint -- --quiet`  | correcto                                                           |
 | `npm run build`            | correcto; warnings preexistentes de chunks/browser data            |
 | Integración backend        | no ejecutada: no hay PostgreSQL/Docker local ni URL QA             |
 | Migración 20260721         | registrada en Supabase, checksum coincide; no reescribir           |
 | Deuda histórica            | 29 calendarios sin `day_id`; sesiones se auditan por relación real |
 | Dossier baseline           | 120/120, 92, 44, 45, 32; PDF 43 páginas válido                     |
-| Corrección reason codes    | 65: paridad código/CSV, incluida regeneración inmutable trazable   |
+| Corrección reason codes    | 70: paridad código/CSV, incluidos los cinco estados de terminación |
 
 ## Semáforos de rollout
 
@@ -179,9 +179,8 @@ Estado global: `EN_PROGRESO`
 - Evidencia local: 5/5 estado frontend, 41/41 regresión focalizada, 375/375
   backend, lint quiet y build productivo verdes. Playwright y las 5 pruebas de
   PostgreSQL/RLS siguen `PENDIENTE_EJECUCION_CI`; no se levantaron servicios.
-- No se considera cerrado aún el flujo G completo: faltan terminación explícita
-  `partial/abandoned/cancelled` y recuperación durable de feedback tras una
-  recarga completa. La regeneración versionada se cierra en G.3.
+- La terminación explícita y la recuperación durable de feedback se cierran en
+  G.4. La ejecución real de Playwright y PostgreSQL continúa como gate de CI.
 
 ## Gate técnico G.3: regeneración inmutable de drafts
 
@@ -207,6 +206,36 @@ Estado global: `EN_PROGRESO`
   verdes. Las 6 pruebas PostgreSQL/RLS y Playwright siguen
   `PENDIENTE_EJECUCION_CI`; no se levantaron servicios ni se aplicó la migración.
 
+## Gate técnico G.4: estados terminales y feedback durable
+
+- CrossFit V2 ya no completa movimientos ni sesión antes del feedback. El player
+  entrega un borrador `completed`, `capped`, `partial`, `abandoned` o `cancelled`;
+  el flujo legacy conserva su cierre previo sin cambios.
+- `completed` exige `completion=1`; `cancelled`, cero; `capped`, `partial` y
+  `abandoned`, un valor entre cero y menos de uno. Cada salida registra un motivo
+  tipado y uno de `SESSION_COMPLETED`, `SESSION_CAPPED`, `SESSION_PARTIAL`,
+  `SESSION_ABANDONED` o `SESSION_CANCELLED`.
+- Una cancelación sin exposición persiste RPE, técnica y readiness como `null`,
+  produce carga real D0/rest y mantiene autorregulación en `hold`; no fabrica
+  métricas para satisfacer el schema. Si el motivo es dolor, exige su contexto.
+- El endpoint de esfuerzo bloquea la sesión con `FOR UPDATE` y, dentro de la
+  transacción de ruta, cierra tracking/sesión, persiste resultado append-only,
+  reduce autorregulación y prepara outbox. Una sesión terminal no se reescribe.
+- `today-status` y el gate frontend reconocen esos terminales solo para el
+  envelope V2 y no vuelven a ofrecer reanudación; el reintento legacy permanece.
+- El hash material del feedback protege reintentos; una misma clave con otro
+  contenido, sesión o plan responde `IDEMPOTENCY_BROKEN`. La unicidad de resultado
+  por sesión sigue impuesta por la migración preparada.
+- El formulario pendiente se guarda localmente con versión, TTL de siete días,
+  propietario y `session_id`, sin PII ni URLs inventadas. Today y single-day lo
+  restauran tras recarga y conservan una clave idempotente estable; datos
+  corruptos, caducados o de otro usuario fallan cerrados.
+- Playwright preparado añade cierre API directo en `partial`, replay, colisión,
+  persistencia de estado y restauración UI en escritorio/móvil. Descubre 12 casos.
+- Evidencia local: 45/45 focalizados, 392/392 backend, lint quiet, build y budget verdes.
+  Playwright y PostgreSQL/RLS permanecen `PENDIENTE_EJECUCION_CI`; no se
+  levantaron servicios ni se aplicaron migraciones o flags.
+
 ## Gate técnico J
 
 - El arnés `localQaGuard` queda desactivado sin acuse explícito y, aun con acuse,
@@ -219,11 +248,11 @@ Estado global: `EN_PROGRESO`
 - La integración comprueba tablas, RLS, catálogo visible solo activo, bloqueo de
   mutación del catálogo activo, aislamiento entre dos usuarios y resultados
   append-only dentro de una transacción con rollback.
-- Playwright descubre diez casos en proyectos escritorio y móvil 375x812: tres
-  ciclos API por nivel y dos recorridos UI por viewport. Generation/results están
+- Playwright descubre 12 casos en proyectos escritorio y móvil 375x812: tres
+  ciclos API por nivel, cierre parcial transaccional y dos recorridos UI por viewport. Generation/results están
   activos solo dentro del job; carga, nutrición y workers continúan apagados.
-- Verificación local segura: 382/382 unitarios, lint quiet, build y budget de
-  bundle verdes. PostgreSQL/Docker no están disponibles y no hay servidores
+- Verificación local segura: 392/392 unitarios, lint quiet, build y budget verdes.
+  PostgreSQL/Docker no están disponibles y no hay servidores
   levantados; por tanto DB/RLS/E2E permanecen `PENDIENTE_EJECUCION_CI`, no verdes.
 
 ## Gate técnico D y evaluación de producto

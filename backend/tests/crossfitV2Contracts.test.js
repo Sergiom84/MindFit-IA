@@ -149,7 +149,7 @@ test("CrossFit v2: los cuatro flags son independientes y false por defecto", () 
 test("CrossFit v2: catálogo de reason codes coincide con CSV y cubre invariantes", () => {
   const reasonRows = fs.readFileSync(new URL("../../docs/crossfit/data/reason_codes.csv", import.meta.url), "utf8").trim().split(/\r?\n/).slice(1);
   const csvCodes = reasonRows.map((row) => row.split(",")[0]);
-  assert.equal(csvCodes.length, 65);
+  assert.equal(csvCodes.length, 70);
   assert.deepEqual([...CROSSFIT_REASON_CODES].sort(), [...csvCodes].sort());
   const invariantRows = fs.readFileSync(new URL("../../docs/crossfit/data/generator_invariants.csv", import.meta.url), "utf8").trim().split(/\r?\n/).slice(1);
   const invariantCodes = invariantRows.map((row) => row.split(",")[5]);

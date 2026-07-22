@@ -11,7 +11,7 @@ import PowerliftingEffortModal from '../../../modals/PowerliftingEffortModal.jsx
  * cuál se muestra; todos comparten onSubmit (incluye feeling) y onClose.
  * Extraído de TodayTrainingTab.jsx (ARCH-002) sin cambios de comportamiento.
  */
-export default function EffortModals({ effortModal, onSubmit, onClose }) {
+export default function EffortModals({ effortModal, onSubmit, onClose, ownerId }) {
   return (
     <>
       <CalisteniaEffortModal
@@ -49,6 +49,8 @@ export default function EffortModals({ effortModal, onSubmit, onClose }) {
         wodSummary={effortModal.wodSummary}
         submitError={effortModal.error}
         isV2Result={effortModal.crossfitV2 === true}
+        resultSessionId={effortModal.sessionId}
+        resultOwnerId={ownerId}
         onSubmit={onSubmit}
         onSkip={onClose}
         onContinue={onClose}

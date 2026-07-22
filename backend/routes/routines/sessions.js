@@ -35,6 +35,7 @@ import {
   hydrateSessionPlanMetadata,
   isCrossfitV2PlanData
 } from '../../services/trainingLoad/sessionPlanMetadataService.js';
+import { isCrossfitV2SessionRecord } from '../../services/crossfit/versions.js';
 
 const router = express.Router();
 
@@ -812,7 +813,7 @@ router.post('/sessions/:sessionId/effort', authenticateToken, async (req, res) =
     const {
       subjective = null, feeling = null,
       avgRir, rpe, targetMet, goodTechnique, reachedFailure, completed, scale,
-      technique, pain, readiness, score, scales, status, completion
+      technique, pain, readiness, score, scales, status, completion, termination_reason
     } = req.body || {};
 
     const ses = await client.query(
@@ -848,7 +849,7 @@ router.post('/sessions/:sessionId/effort', authenticateToken, async (req, res) =
       idempotencyKey: req.headers['idempotency-key'] ?? null,
       manual: {
         avgRir, rpe, targetMet, goodTechnique, reachedFailure, completed, scale,
-        technique, pain, readiness, score, scales, status, completion
+        technique, pain, readiness, score, scales, status, completion, termination_reason
       }
     });
 
@@ -1304,7 +1305,9 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
 
     // 🎯 CORRECCIÓN: isFinished debe reflejar la verdad de la BD (session_status)
     // Esta es la única fuente de verdad para determinar si una sesión está realmente completada
-    const isFinished = session.session_status === 'completed';
+    const isImmutableCrossfitV2Terminal = isCrossfitV2SessionRecord(session)
+      && ['partial', 'abandoned', 'cancelled'].includes(session.session_status);
+    const isFinished = session.session_status === 'completed' || isImmutableCrossfitV2Terminal;
     const isCompleteSuccess = totalExercises > 0 && completedExercises === totalExercises;
 
     // Nuevo flag: Todos fueron procesados (no hay pending/in_progress) pero NO necesariamente completados
@@ -1315,10 +1318,10 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
     // - Comenzar si todo sigue pendiente y session_started_at es null
     const hasAnyProgress = (inProgressExercises > 0) || ((completedExercises + skippedExercises + cancelledExercises) > 0);
     const sessionWasStarted = session.session_started_at != null;
-    const canResume = session.session_status !== 'completed' && (hasAnyProgress || sessionWasStarted);
+    const canResume = !isFinished && (hasAnyProgress || sessionWasStarted);
 
     // canRetry: puede reintentar si todos procesados pero no todos completados exitosamente (ej: skipped/cancelled)
-    const canRetry = allProcessed && !isCompleteSuccess;
+    const canRetry = allProcessed && !isCompleteSuccess && !isImmutableCrossfitV2Terminal;
 
     console.log(`🎯 today-status NUEVA LÓGICA INTELIGENTE:`, {
       session_status: session.session_status,

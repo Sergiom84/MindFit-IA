@@ -1,5 +1,10 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import apiClient from '@/lib/apiClient';
+import {
+  clearCrossfitResultDraft,
+  loadCrossfitResultDraft,
+  loadLatestCrossfitResultDraft
+} from '../../routines/crossfit/resultDraftState.js';
 
 const EFFORT_CONFIG = {
   calistenia: {
@@ -40,11 +45,31 @@ const EFFORT_CONFIG = {
   }
 };
 
-export function useMethodologyEffortActions({ localState, updateLocalState, navigate }) {
+export function useMethodologyEffortActions({ localState, updateLocalState, navigate, userId }) {
   const planId = localState.pendingSessionData?.methodology_plan_id
     ?? localState.pendingSessionData?.planId
     ?? null;
   const sessionId = localState.pendingSessionData?.sessionId ?? null;
+
+  useEffect(() => {
+    const draft = loadLatestCrossfitResultDraft({ surface: 'single-day', ownerId: userId });
+    if (!draft) return;
+    updateLocalState({
+      pendingSessionData: {
+        sessionId: draft.session_id,
+        methodology_plan_id: draft.plan_id,
+        planId: draft.plan_id,
+        discipline: 'crossfit'
+      },
+      showRoutineSessionModal: false,
+      showCrossfitEffort: true,
+      crossfitDecision: null,
+      crossfitEffortError: null,
+      crossfitResultV2: true,
+      crossfitWodScale: 'base',
+      crossfitWodSummary: draft.wod_summary
+    });
+  }, [updateLocalState, userId]);
 
   const submitEffort = useCallback(async (method, payload) => {
     const config = EFFORT_CONFIG[method];
@@ -56,11 +81,15 @@ export function useMethodologyEffortActions({ localState, updateLocalState, navi
       const endpoint = method === 'crossfit' && sessionId
         ? `/routines/sessions/${sessionId}/effort`
         : config.endpoint;
+      const draft = method === 'crossfit' && sessionId
+        ? loadCrossfitResultDraft(sessionId, userId)
+        : null;
       const response = await apiClient.post(endpoint, {
         methodologyPlanId: planId,
         ...payload
-      });
+      }, draft ? { headers: { 'idempotency-key': draft.idempotency_key } } : {});
       const data = response?.data || response;
+      if (method === 'crossfit' && sessionId) clearCrossfitResultDraft(sessionId, userId);
       updateLocalState({
         [config.decisionKey]: data?.decision || 'hold',
         ...(method === 'crossfit' ? { crossfitEffortError: null } : {})
@@ -75,7 +104,7 @@ export function useMethodologyEffortActions({ localState, updateLocalState, navi
     } finally {
       updateLocalState({ isSavingEffort: false });
     }
-  }, [planId, sessionId, updateLocalState]);
+  }, [planId, sessionId, updateLocalState, userId]);
 
   const finishEffort = useCallback((method) => {
     const config = EFFORT_CONFIG[method];

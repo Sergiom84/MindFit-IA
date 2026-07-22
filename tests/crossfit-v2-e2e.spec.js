@@ -510,6 +510,112 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
     });
   }
 
+  test("API cierre parcial: feedback transaccional, replay y colision", async ({
+    request,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== "crossfit-v2-desktop",
+      "El cierre transaccional se ejecuta una sola vez",
+    );
+    const provisioned = await provisionPlan(
+      request,
+      testInfo.project.name,
+      LEVEL_CASES[0],
+      "api-partial",
+    );
+    const scheduled = await firstScheduledSession(
+      request,
+      provisioned.token,
+      provisioned.planId,
+    );
+    const started = await api(request, "POST", "/api/routines/sessions/start", {
+      token: provisioned.token,
+      data: {
+        methodology_plan_id: provisioned.planId,
+        session_date: scheduled.date,
+        week_number: scheduled.week,
+        day_name: scheduled.day,
+        day_id: scheduled.dayId,
+      },
+    });
+    expect(started.response.status(), JSON.stringify(started.body)).toBeLessThan(
+      300,
+    );
+    const sessionId = started.body.session_id ?? started.body.sessionId;
+    expect(sessionId).toBeTruthy();
+
+    const idempotencyKey = `e2e-result-partial-${sessionId}`;
+    const effortPayload = {
+      rpe: 8,
+      completed: false,
+      technique: 2,
+      pain: { score: 0, locations: [], delta: 0 },
+      readiness: { sleep: 3, fatigue: 4, recovery: 2, stress: 3 },
+      score: { type: "none" },
+      status: "partial",
+      completion: 0.45,
+      termination_reason: "fatigue",
+    };
+    const effort = await api(
+      request,
+      "POST",
+      `/api/routines/sessions/${sessionId}/effort`,
+      {
+        token: provisioned.token,
+        headers: { "idempotency-key": idempotencyKey },
+        data: effortPayload,
+      },
+    );
+    expect(effort.response.status(), JSON.stringify(effort.body)).toBe(200);
+    expect(effort.body.result.status).toBe("partial");
+    expect(effort.body.result.completion).toBe(0.45);
+    expect(effort.body.result.reason_codes).toContain("SESSION_PARTIAL");
+    expect(effort.body.result.provenance.termination_reason).toBe("fatigue");
+
+    const progress = await api(
+      request,
+      "GET",
+      `/api/routines/sessions/${sessionId}/progress`,
+      { token: provisioned.token },
+    );
+    expect(progress.response.status(), JSON.stringify(progress.body)).toBe(200);
+    expect(progress.body.session.session_status).toBe("partial");
+    expect(Number(progress.body.session.completion_rate)).toBe(45);
+    expect(progress.body.exercises).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "cancelled" }),
+      ]),
+    );
+
+    const replay = await api(
+      request,
+      "POST",
+      `/api/routines/sessions/${sessionId}/effort`,
+      {
+        token: provisioned.token,
+        headers: { "idempotency-key": idempotencyKey },
+        data: effortPayload,
+      },
+    );
+    expect(replay.response.status(), JSON.stringify(replay.body)).toBe(200);
+    expect(replay.body.alreadyRegistered).toBe(true);
+
+    const collision = await api(
+      request,
+      "POST",
+      `/api/routines/sessions/${sessionId}/effort`,
+      {
+        token: provisioned.token,
+        headers: { "idempotency-key": idempotencyKey },
+        data: { ...effortPayload, completion: 0.5 },
+      },
+    );
+    expect(collision.response.status(), JSON.stringify(collision.body)).toBe(
+      409,
+    );
+    expect(collision.body.code).toBe("IDEMPOTENCY_BROKEN");
+  });
+
   test("UI evaluacion: ocho dimensiones, clasificacion conservadora y a11y", async ({
     page,
     request,
@@ -629,5 +735,23 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1);
     expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 1);
+
+    await page.getByRole("button", { name: "Finalizar antes" }).click();
+    await page.getByRole("button", { name: "Guardar parcial" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Cierre del WOD" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "8", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "8", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(
+      page.getByRole("heading", { name: "Cierre del WOD" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "8", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
   });
 });

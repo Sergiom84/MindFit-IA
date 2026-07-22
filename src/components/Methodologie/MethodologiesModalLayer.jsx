@@ -31,6 +31,10 @@ import CasaEquipmentModal from '../routines/modals/CasaEquipmentModal.jsx';
 import EffortModals from './EffortModals.jsx';
 import tokenManager from '../../utils/tokenManager.js';
 import { getApiBaseUrl } from '../../config/api.js';
+import {
+  createCrossfitResultDraft,
+  persistCrossfitResultDraft
+} from '../routines/crossfit/resultDraftState.js';
 
 const API_URL = getApiBaseUrl();
 
@@ -481,6 +485,7 @@ export default function MethodologiesModalLayer({
       {/* Modales de autorregulación por disciplina (extraído en ARCH-002) */}
       <EffortModals
         localState={localState}
+        ownerId={user?.id}
         handlers={{
           handleCalisteniaEffortSubmit,
           finishCalisteniaEffort,
@@ -568,8 +573,19 @@ export default function MethodologiesModalLayer({
               throw error;
             }
           }}
-          onCompleteSession={(summary) => {
+          onCompleteSession={async (summary) => {
             console.log('🎉 WOD completado:', summary);
+            const sid = localState.pendingSessionData?.sessionId;
+            const draft = createCrossfitResultDraft({
+              sessionId: sid,
+              ownerId: user?.id,
+              planId: localState.pendingSessionData?.methodology_plan_id,
+              surface: 'single-day',
+              wodSummary: summary
+            });
+            if (!draft || !persistCrossfitResultDraft(draft)) {
+              throw new Error('No se pudo preparar el feedback CrossFit. Reintenta el cierre.');
+            }
             // Autorregulación: pedir RPE/escala/resultado antes de cerrar (mantener pendingSessionData).
             updateLocalState({
               showRoutineSessionModal: false,

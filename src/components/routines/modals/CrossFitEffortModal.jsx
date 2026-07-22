@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, Check, Flame, X } from 'lucide-react';
 
+import {
+  clearCrossfitResultDraft,
+  loadCrossfitResultDraft,
+  updateCrossfitResultDraftForm
+} from '../crossfit/resultDraftState.js';
+
 const RPE_OPTIONS = Array.from({ length: 10 }, (_, index) => index + 1);
 const SCALE_OPTIONS = [
   { value: 'scaled', label: 'Scaled' },
@@ -26,6 +32,19 @@ const READINESS_FIELDS = [
   { key: 'fatigue', label: 'Fatiga', low: 'Muy baja', high: 'Muy alta' },
   { key: 'recovery', label: 'Recuperación', low: 'Muy mala', high: 'Muy buena' },
   { key: 'stress', label: 'Estrés', low: 'Muy bajo', high: 'Muy alto' }
+];
+const EARLY_TERMINAL_COPY = {
+  partial: 'Sesión finalizada parcialmente',
+  abandoned: 'Sesión abandonada',
+  cancelled: 'Sesión cancelada'
+};
+const TERMINATION_REASONS = [
+  { value: 'time', label: 'Tiempo disponible' },
+  { value: 'fatigue', label: 'Fatiga' },
+  { value: 'pain', label: 'Dolor o molestia' },
+  { value: 'equipment', label: 'Material no disponible' },
+  { value: 'technical', label: 'Técnica insegura' },
+  { value: 'other', label: 'Otro motivo' }
 ];
 
 const RESULT_COPY = {
@@ -72,13 +91,19 @@ export default function CrossFitEffortModal({
   wodSummary = null,
   isLoading = false,
   submitError = null,
-  isV2Result = false
+  isV2Result = false,
+  resultSessionId = null,
+  resultOwnerId = null
 }) {
   const structuredScales = Array.isArray(wodSummary?.scales) ? wodSummary.scales : [];
   const lockedScales = isV2Result || wodSummary?.runtimeVersion === 'crossfit-runtime-event/v2';
   const recordedScale = lockedScales && structuredScales.some((item) => item.scale_id !== 'base')
     ? 'scaled'
     : lockedScales ? 'base' : defaultScale;
+  const draftSessionId = resultSessionId ?? wodSummary?.sessionId ?? null;
+  const fixedTerminalStatus = lockedScales && Object.hasOwn(EARLY_TERMINAL_COPY, wodSummary?.status)
+    ? wodSummary.status
+    : null;
   const [completed, setCompleted] = useState(null);
   const [rpe, setRpe] = useState(null);
   const [scale, setScale] = useState(recordedScale);
@@ -91,40 +116,96 @@ export default function CrossFitEffortModal({
   const [feeling, setFeeling] = useState(null);
   const [scoreRounds, setScoreRounds] = useState('');
   const [scoreMetric, setScoreMetric] = useState('');
+  const [completionPercent, setCompletionPercent] = useState(null);
+  const [terminationReason, setTerminationReason] = useState('');
+  const [hydratedDraftSessionId, setHydratedDraftSessionId] = useState(null);
 
   useEffect(() => {
     if (!isOpen) return;
+    const stored = lockedScales && draftSessionId != null && resultOwnerId != null
+      ? loadCrossfitResultDraft(draftSessionId, resultOwnerId)
+      : null;
+    const form = stored?.form ?? {};
     setScale(recordedScale);
-    setCompleted(null);
-    setRpe(null);
-    setTechnique(null);
-    setPainScore(null);
-    setPainLocation('');
-    setPainQuality('');
-    setRedFlag(false);
-    setReadiness({ sleep: null, fatigue: null, recovery: null, stress: null });
-    setFeeling(null);
-    setScoreRounds('');
-    setScoreMetric('');
-  }, [isOpen, recordedScale]);
+    setCompleted(form.completed ?? (fixedTerminalStatus ? false : null));
+    setRpe(form.rpe ?? null);
+    setTechnique(form.technique ?? null);
+    setPainScore(form.pain_score ?? null);
+    setPainLocation(form.pain_location ?? '');
+    setPainQuality(form.pain_quality ?? '');
+    setRedFlag(form.red_flag === true);
+    setReadiness(form.readiness ?? { sleep: null, fatigue: null, recovery: null, stress: null });
+    setFeeling(form.feeling ?? null);
+    setScoreRounds(form.score_rounds ?? '');
+    setScoreMetric(form.score_metric ?? '');
+    setCompletionPercent(form.completion_percent ?? (fixedTerminalStatus === 'cancelled' ? 0 : null));
+    setTerminationReason(form.termination_reason ?? '');
+    setHydratedDraftSessionId(draftSessionId == null ? null : String(draftSessionId));
+  }, [draftSessionId, fixedTerminalStatus, isOpen, lockedScales, recordedScale, resultOwnerId]);
+
+  useEffect(() => {
+    if (
+      !isOpen
+      || !lockedScales
+      || resultOwnerId == null
+      || String(draftSessionId) !== hydratedDraftSessionId
+    ) return;
+    updateCrossfitResultDraftForm(draftSessionId, resultOwnerId, {
+      completed,
+      rpe,
+      technique,
+      pain_score: painScore,
+      pain_location: painLocation,
+      pain_quality: painQuality,
+      red_flag: redFlag,
+      readiness,
+      feeling,
+      score_rounds: scoreRounds,
+      score_metric: scoreMetric,
+      completion_percent: completionPercent,
+      termination_reason: terminationReason
+    });
+  }, [
+    completed, completionPercent, draftSessionId, feeling, hydratedDraftSessionId, isOpen,
+    lockedScales, painLocation, painQuality, painScore, readiness, redFlag, resultOwnerId,
+    rpe, scoreMetric, scoreRounds, technique, terminationReason
+  ]);
+
+  useEffect(() => {
+    if (result && draftSessionId != null && resultOwnerId != null) {
+      clearCrossfitResultDraft(draftSessionId, resultOwnerId);
+    }
+  }, [draftSessionId, result, resultOwnerId]);
 
   if (!isOpen) return null;
 
-  const readinessComplete = Object.values(readiness).every((value) => Number.isInteger(value));
-  const painContextComplete = painScore === 0 || Boolean(painLocation);
+  const cancelledWithoutExposure = fixedTerminalStatus === 'cancelled';
+  const readinessComplete = cancelledWithoutExposure
+    || Object.values(readiness).every((value) => Number.isInteger(value));
+  const painRequired = !cancelledWithoutExposure || terminationReason === 'pain';
+  const painContextComplete = !painRequired
+    || (painScore !== null && (painScore === 0 || Boolean(painLocation)));
   const scoreType = scoreTypeFromSummary(wodSummary);
-  const scoreComplete = scoreType === 'rounds_reps'
+  const scoreComplete = fixedTerminalStatus === 'cancelled'
+    ? true
+    : scoreType === 'rounds_reps'
     ? scoreRounds !== '' && scoreMetric !== ''
     : ['reps', 'calories', 'load', 'distance'].includes(scoreType)
       ? scoreMetric !== ''
       : true;
-  const canSubmit = completed !== null
-    && rpe !== null
-    && technique !== null
-    && painScore !== null
+  const resolvedStatus = fixedTerminalStatus ?? (completed === true ? 'completed' : completed === false ? 'capped' : null);
+  const completionComplete = resolvedStatus === 'completed'
+    || resolvedStatus === 'cancelled'
+    || (Number.isInteger(completionPercent) && completionPercent >= 0 && completionPercent < 100);
+  const terminationComplete = !fixedTerminalStatus || Boolean(terminationReason);
+  const canSubmit = resolvedStatus !== null
+    && (cancelledWithoutExposure || rpe !== null)
+    && (cancelledWithoutExposure || technique !== null)
     && painContextComplete
     && readinessComplete
     && scoreComplete
+    && completionComplete
+    && terminationComplete
     && !isLoading;
   const safetyStop = redFlag || painScore >= 5 || technique === 0;
 
@@ -160,31 +241,75 @@ export default function CrossFitEffortModal({
         </div>
 
         <div className="space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
-          <section>
-            <p className="mb-2 text-sm font-semibold text-gray-200">¿Completaste el objetivo dentro del time cap?</p>
-            <div className="flex gap-2">
-              {[
-                { value: true, label: 'Sí' },
-                { value: false, label: 'No / cap alcanzado' }
-              ].map((option) => (
-                <button
-                  key={String(option.value)}
-                  type="button"
-                  onClick={() => setCompleted(option.value)}
-                  aria-pressed={completed === option.value}
-                  className={`flex-1 rounded-xl border px-4 py-3 text-sm transition ${
-                    completed === option.value
-                      ? 'border-yellow-400/60 bg-yellow-400/15 text-yellow-200'
-                      : 'border-white/10 bg-white/5 text-gray-200 hover:border-yellow-400/30'
-                  }`}
+          {fixedTerminalStatus ? (
+            <section className="rounded-xl border border-amber-400/20 bg-amber-500/5 p-4">
+              <p className="text-sm font-semibold text-amber-100">{EARLY_TERMINAL_COPY[fixedTerminalStatus]}</p>
+              <label className="mt-3 block text-xs text-gray-400">
+                Motivo principal
+                <select
+                  value={terminationReason}
+                  onChange={(event) => setTerminationReason(event.target.value)}
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-neutral-800 px-3 py-2 text-sm text-white"
                 >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </section>
+                  <option value="">Selecciona</option>
+                  {TERMINATION_REASONS.map((reason) => (
+                    <option key={reason.value} value={reason.value}>{reason.label}</option>
+                  ))}
+                </select>
+              </label>
+              {cancelledWithoutExposure && (
+                <p className="mt-2 text-[11px] text-gray-400">Sin exposición no se inventan RPE, técnica ni readiness.</p>
+              )}
+            </section>
+          ) : (
+            <section>
+              <p className="mb-2 text-sm font-semibold text-gray-200">¿Completaste el objetivo dentro del time cap?</p>
+              <div className="flex gap-2">
+                {[
+                  { value: true, label: 'Sí' },
+                  { value: false, label: 'No / cap alcanzado' }
+                ].map((option) => (
+                  <button
+                    key={String(option.value)}
+                    type="button"
+                    onClick={() => setCompleted(option.value)}
+                    aria-pressed={completed === option.value}
+                    className={`flex-1 rounded-xl border px-4 py-3 text-sm transition ${
+                      completed === option.value
+                        ? 'border-yellow-400/60 bg-yellow-400/15 text-yellow-200'
+                        : 'border-white/10 bg-white/5 text-gray-200 hover:border-yellow-400/30'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
 
-          {scoreType !== 'none' && scoreType !== 'time' && scoreType !== 'quality' && (
+          {resolvedStatus && !['completed', 'cancelled'].includes(resolvedStatus) && (
+            <section className="rounded-xl border border-white/10 bg-black/15 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <label htmlFor="crossfit-completion" className="text-sm font-semibold text-gray-200">Trabajo completado</label>
+                <span className="text-sm font-semibold text-yellow-200">
+                  {completionPercent == null ? 'Sin valorar' : `${completionPercent}%`}
+                </span>
+              </div>
+              <input
+                id="crossfit-completion"
+                type="range"
+                min="0"
+                max="99"
+                step="5"
+                value={completionPercent ?? 0}
+                onChange={(event) => setCompletionPercent(Number(event.target.value))}
+                className="mt-3 w-full accent-yellow-400"
+              />
+              <p className="mt-1 text-[11px] text-gray-500">Estimación de adherencia, no de carga ni de capacidad clínica.</p>
+            </section>
+          )}
+
+          {!cancelledWithoutExposure && scoreType !== 'none' && scoreType !== 'time' && scoreType !== 'quality' && (
             <section>
               <p className="mb-2 text-sm font-semibold text-gray-200">Resultado del WOD</p>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -219,7 +344,7 @@ export default function CrossFitEffortModal({
             </section>
           )}
 
-          <section>
+          {!cancelledWithoutExposure && <section>
             <p className="mb-2 text-sm font-semibold text-gray-200">Esfuerzo percibido (RPE 1-10)</p>
             <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
               {RPE_OPTIONS.map((value) => (
@@ -238,9 +363,9 @@ export default function CrossFitEffortModal({
                 </button>
               ))}
             </div>
-          </section>
+          </section>}
 
-          <section>
+          {!cancelledWithoutExposure && <section>
             <p className="mb-2 text-sm font-semibold text-gray-200">Calidad técnica bajo fatiga</p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {TECHNIQUE_OPTIONS.map((option) => (
@@ -259,9 +384,9 @@ export default function CrossFitEffortModal({
                 </button>
               ))}
             </div>
-          </section>
+          </section>}
 
-          <section className="rounded-xl border border-white/10 bg-black/15 p-4">
+          {painRequired && <section className="rounded-xl border border-white/10 bg-black/15 p-4">
             <div className="flex items-center justify-between gap-4">
               <label htmlFor="crossfit-pain" className="text-sm font-semibold text-gray-200">Dolor durante el WOD</label>
               <span className="text-sm font-semibold text-yellow-200">{painScore ?? 'Sin valorar'}</span>
@@ -315,7 +440,7 @@ export default function CrossFitEffortModal({
               />
               Hubo dolor súbito/punzante creciente, lesión aguda, dolor torácico, mareo o dificultad respiratoria inusual.
             </label>
-          </section>
+          </section>}
 
           {safetyStop && (
             <div className="flex gap-3 rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100" role="alert">
@@ -324,7 +449,7 @@ export default function CrossFitEffortModal({
             </div>
           )}
 
-          <section>
+          {!cancelledWithoutExposure && <section>
             <p className="mb-2 text-sm font-semibold text-gray-200">Readiness de hoy (1-5)</p>
             <div className="grid gap-3 sm:grid-cols-2">
               {READINESS_FIELDS.map((field) => (
@@ -346,7 +471,7 @@ export default function CrossFitEffortModal({
                 </label>
               ))}
             </div>
-          </section>
+          </section>}
 
           {lockedScales ? (
             <section>
@@ -426,22 +551,35 @@ export default function CrossFitEffortModal({
           <button
             type="button"
             onClick={() => canSubmit && onSubmit({
-              rpe,
+              rpe: cancelledWithoutExposure ? null : rpe,
               completed,
               scale: lockedScales ? recordedScale : scale,
-              technique,
+              technique: cancelledWithoutExposure ? null : technique,
               pain: {
-                score: painScore,
+                score: painRequired ? painScore : null,
                 locations: painLocation ? [painLocation] : [],
                 quality: painQuality || null,
-                delta: 0,
+                delta: cancelledWithoutExposure ? null : 0,
                 red_flag: redFlag,
                 acute_injury: redFlag
               },
-              readiness,
-              score: scoreFromSummary(wodSummary, { rounds: scoreRounds, metric: scoreMetric }, technique),
-              status: completed ? (wodSummary?.status || 'completed') : 'capped',
-              completion: completed ? 1 : 0.9,
+              readiness: cancelledWithoutExposure
+                ? { sleep: null, fatigue: null, recovery: null, stress: null }
+                : readiness,
+              score: resolvedStatus === 'cancelled'
+                ? { type: 'none' }
+                : scoreFromSummary(wodSummary, { rounds: scoreRounds, metric: scoreMetric }, technique),
+              status: resolvedStatus,
+              completion: resolvedStatus === 'completed'
+                ? 1
+                : resolvedStatus === 'cancelled'
+                  ? 0
+                  : Number(completionPercent) / 100,
+              termination_reason: resolvedStatus === 'completed'
+                ? 'objective_completed'
+                : resolvedStatus === 'capped'
+                  ? 'time_cap'
+                  : terminationReason,
               feeling
             })}
             disabled={!canSubmit}

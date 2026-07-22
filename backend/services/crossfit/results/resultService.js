@@ -6,23 +6,25 @@ import {
 } from "../../bridgeEventOutboxService.js";
 import { assertCrossfitContract, validateCrossfitAutoreg } from "../contracts/schemas.js";
 import { getCrossfitFeatureFlags } from "../featureFlags.js";
-import { stableCrossfitId } from "../generator/deterministic.js";
+import { crossfitHash, stableCrossfitId } from "../generator/deterministic.js";
 import { reduceCrossfitAutoreg } from "../autoreg/stateMachine.js";
-import { normalizeCrossfitLevel, CROSSFIT_VERSIONS } from "../versions.js";
+import { CROSSFIT_VERSIONS, isCrossfitV2SessionRecord, normalizeCrossfitLevel } from "../versions.js";
 import { buildCrossfitResultV2 } from "./resultBuilder.js";
 
 export const LOCK_CROSSFIT_SESSION_SQL = `
 SELECT id, user_id, methodology_plan_id, methodology_type, methodology_level,
        day_id, session_type, session_status, completion_rate, total_duration_seconds,
+       total_exercises, exercises_completed, exercises_skipped, exercises_cancelled,
        started_at, completed_at, session_metadata
 FROM app.methodology_exercise_sessions
 WHERE id = $1 AND user_id = $2
 FOR UPDATE`;
 
 export const FIND_CROSSFIT_RESULT_SQL = `
-SELECT payload
+SELECT session_id, methodology_plan_id, idempotency_key, payload
 FROM app.crossfit_v2_results
 WHERE user_id = $1 AND (session_id = $2 OR idempotency_key = $3)
+ORDER BY CASE WHEN idempotency_key = $3 THEN 0 ELSE 1 END
 LIMIT 1`;
 
 export const LOAD_CROSSFIT_EXERCISE_ROWS_SQL = `
@@ -59,6 +61,17 @@ FROM app.crossfit_v2_autoreg_snapshots
 WHERE user_id = $1 AND methodology_plan_id = $2`;
 
 const RESULT_STATUSES = new Set(["completed", "partial", "abandoned", "cancelled", "capped"]);
+const TERMINAL_SESSION_STATUSES = new Set(["completed", "partial", "abandoned", "cancelled"]);
+const TERMINATION_REASONS = new Set([
+  "objective_completed", "time_cap", "time", "fatigue", "pain", "equipment", "technical", "other"
+]);
+const RESULT_TO_SESSION_STATUS = Object.freeze({
+  completed: "completed",
+  capped: "completed",
+  partial: "partial",
+  abandoned: "abandoned",
+  cancelled: "cancelled"
+});
 
 function serviceError(code, message, status = 422) {
   const error = new Error(message);
@@ -110,32 +123,11 @@ export function deriveCrossfitResultScales(session, runtimeEvents = []) {
 }
 
 export function isCrossfitV2Session(session) {
-  const metadata = sessionMetadata(session);
-  const candidates = [
-    metadata.crossfit_v2_session,
-    metadata.crossfit_v2?.session,
-    metadata.crossfit_v2
-  ];
-  return candidates.some((candidate) => candidate?.schema_version === CROSSFIT_VERSIONS.session);
+  return isCrossfitV2SessionRecord(session);
 }
 
 function normalizeResultInput(session, manual = {}, now = new Date()) {
   const metadata = sessionMetadata(session);
-  const rpe = finiteInRange(manual.rpe, 1, 10);
-  const technique = integerInRange(manual.technique, 0, 3);
-  const painScore = finiteInRange(manual.pain?.score, 0, 10);
-  if (rpe === null) throw serviceError("CROSSFIT_RPE_REQUIRED", "RPE CrossFit entre 1 y 10 requerido");
-  if (technique === null) throw serviceError("CROSSFIT_TECHNIQUE_REQUIRED", "Calidad técnica CrossFit entre 0 y 3 requerida");
-  if (painScore === null) throw serviceError("CROSSFIT_PAIN_REQUIRED", "Puntuación de dolor entre 0 y 10 requerida");
-
-  const readiness = Object.fromEntries(["sleep", "fatigue", "recovery", "stress"].map((key) => {
-    const value = integerInRange(manual.readiness?.[key], 1, 5);
-    if (value === null) {
-      throw serviceError("CROSSFIT_READINESS_REQUIRED", `Readiness ${key} entre 1 y 5 requerido`);
-    }
-    return [key, value];
-  }));
-
   const completionRaw = finiteInRange(session.completion_rate, 0, 100) ?? 0;
   const completion = finiteInRange(manual.completion, 0, 1)
     ?? (completionRaw > 1 ? completionRaw / 100 : completionRaw);
@@ -144,6 +136,40 @@ function normalizeResultInput(session, manual = {}, now = new Date()) {
     if (["partial", "abandoned", "cancelled"].includes(session.session_status)) status = session.session_status;
     else status = manual.completed === false ? "capped" : "completed";
   }
+  const terminationReason = String(
+    manual.termination_reason
+    ?? (status === "completed" ? "objective_completed" : status === "capped" ? "time_cap" : "")
+  ).trim().toLowerCase();
+  if (!TERMINATION_REASONS.has(terminationReason)) {
+    throw serviceError("CROSSFIT_TERMINATION_REASON_REQUIRED", "Motivo de terminación CrossFit no válido");
+  }
+  if (status === "completed" && completion !== 1) {
+    throw serviceError("CROSSFIT_COMPLETION_INVALID", "Un resultado completed requiere completion=1");
+  }
+  if (["capped", "partial", "abandoned"].includes(status) && !(completion >= 0 && completion < 1)) {
+    throw serviceError("CROSSFIT_COMPLETION_INVALID", `${status} requiere completion entre 0 y menos de 1`);
+  }
+  if (status === "cancelled" && completion !== 0) {
+    throw serviceError("CROSSFIT_COMPLETION_INVALID", "Un resultado cancelled requiere completion=0");
+  }
+  const cancelled = status === "cancelled";
+  const rpe = cancelled ? null : finiteInRange(manual.rpe, 1, 10);
+  const technique = cancelled ? null : integerInRange(manual.technique, 0, 3);
+  const painScore = finiteInRange(manual.pain?.score, 0, 10);
+  if (!cancelled && rpe === null) throw serviceError("CROSSFIT_RPE_REQUIRED", "RPE CrossFit entre 1 y 10 requerido");
+  if (!cancelled && technique === null) throw serviceError("CROSSFIT_TECHNIQUE_REQUIRED", "Calidad técnica CrossFit entre 0 y 3 requerida");
+  if (!cancelled && painScore === null) throw serviceError("CROSSFIT_PAIN_REQUIRED", "Puntuación de dolor entre 0 y 10 requerida");
+  if (cancelled && terminationReason === "pain" && painScore === null) {
+    throw serviceError("CROSSFIT_PAIN_REQUIRED", "Una cancelación por dolor requiere puntuación de dolor");
+  }
+
+  const readiness = Object.fromEntries(["sleep", "fatigue", "recovery", "stress"].map((key) => {
+    const value = integerInRange(manual.readiness?.[key], 1, 5);
+    if (!cancelled && value === null) {
+      throw serviceError("CROSSFIT_READINESS_REQUIRED", `Readiness ${key} entre 1 y 5 requerido`);
+    }
+    return [key, cancelled ? null : value];
+  }));
 
   const level = normalizeCrossfitLevel(
     metadata.crossfit_v2?.level ?? metadata.crossfit_v2_session?.level ?? session.methodology_level
@@ -173,17 +199,136 @@ function normalizeResultInput(session, manual = {}, now = new Date()) {
       score: painScore,
       locations: Array.isArray(manual.pain?.locations) ? manual.pain.locations : [],
       quality: manual.pain?.quality ? String(manual.pain.quality) : null,
-      delta: finiteInRange(manual.pain?.delta, -10, 10) ?? 0,
+      delta: cancelled ? null : finiteInRange(manual.pain?.delta, -10, 10) ?? 0,
       red_flag: manual.pain?.red_flag === true,
       acute_injury: manual.pain?.acute_injury === true
     },
     readiness,
     score: manual.score && typeof manual.score === "object" ? manual.score : { type: "none" },
+    terminationReason,
     scales,
     plannedLoad: metadata.planned_session_load,
     recordedAt: recordedAt.toISOString(),
     metadata
   };
+}
+
+function canonicalMovementCount(session) {
+  const metadata = sessionMetadata(session);
+  const canonical = metadata.crossfit_v2_session ?? metadata.crossfit_v2?.session ?? null;
+  return Array.isArray(canonical?.wod?.movements) ? canonical.wod.movements.length : 0;
+}
+
+function resultRequestHash(normalized) {
+  return crossfitHash({
+    status: normalized.status,
+    completion: normalized.completion,
+    rpe: normalized.rpe,
+    technique: normalized.technique,
+    pain: normalized.pain,
+    readiness: normalized.readiness,
+    score: normalized.score,
+    termination_reason: normalized.terminationReason
+  });
+}
+
+async function finalizeCrossfitV2Session(client, session, normalized) {
+  const targetStatus = RESULT_TO_SESSION_STATUS[normalized.status];
+  if (!targetStatus) throw serviceError("CROSSFIT_RESULT_STATUS_INVALID", "Estado terminal CrossFit no válido");
+  if (TERMINAL_SESSION_STATUSES.has(session.session_status)) {
+    if (session.session_status !== targetStatus) {
+      throw serviceError("HISTORY_IMMUTABLE", "La sesión ya tiene otro estado terminal", 409);
+    }
+    return session;
+  }
+  if (!["pending", "in_progress"].includes(session.session_status)) {
+    throw serviceError("HISTORY_IMMUTABLE", "La sesión no admite cierre CrossFit v2", 409);
+  }
+  if (session.session_status === "pending" && normalized.status !== "cancelled") {
+    throw serviceError("CROSSFIT_SESSION_NOT_STARTED", "Solo se puede cancelar una sesión CrossFit no iniciada", 409);
+  }
+
+  const completedOutcome = targetStatus === "completed";
+  if (session.session_type === "weekend-extra") {
+    await client.query(
+      completedOutcome
+        ? `UPDATE app.exercise_session_tracking
+             SET status = 'completed',
+                 actual_sets = GREATEST(COALESCE(actual_sets, 0), LEAST(COALESCE(planned_sets, 1), 1)),
+                 completed_at = COALESCE(completed_at, NOW()), updated_at = NOW()
+           WHERE methodology_session_id = $1`
+        : `UPDATE app.exercise_session_tracking
+             SET status = CASE WHEN status = 'completed' THEN status ELSE 'cancelled' END,
+                 updated_at = NOW()
+           WHERE methodology_session_id = $1`,
+      [session.id]
+    );
+  } else {
+    await client.query(
+      completedOutcome
+        ? `UPDATE app.methodology_exercise_progress
+             SET status = 'completed',
+                 series_completed = GREATEST(COALESCE(series_completed, 0), LEAST(COALESCE(series_total, 1), 1)),
+                 completed_at = COALESCE(completed_at, NOW())
+           WHERE methodology_session_id = $1`
+        : `UPDATE app.methodology_exercise_progress
+             SET status = CASE WHEN status = 'completed' THEN status ELSE 'cancelled' END
+           WHERE methodology_session_id = $1`,
+      [session.id]
+    );
+  }
+
+  const totalExercises = Math.max(Number(session.total_exercises) || 0, canonicalMovementCount(session));
+  const completedExercises = completedOutcome
+    ? totalExercises
+    : Math.min(Number(session.exercises_completed) || 0, totalExercises);
+  const cancelledExercises = completedOutcome ? 0 : Math.max(0, totalExercises - completedExercises);
+  const closure = {
+    schema_version: "crossfit-session-closure/v2",
+    result_status: normalized.status,
+    session_status: targetStatus,
+    completion: normalized.completion,
+    termination_reason: normalized.terminationReason,
+    recorded_at: normalized.recordedAt
+  };
+  const updated = await client.query(
+    `UPDATE app.methodology_exercise_sessions
+        SET session_status = $2,
+            exercises_completed = $3,
+            exercises_cancelled = $4,
+            total_exercises = $5,
+            completion_rate = $6,
+            completed_at = COALESCE(completed_at, $7::timestamptz),
+            cancelled_at = CASE
+              WHEN $2 = 'cancelled' THEN COALESCE(cancelled_at, $7::timestamptz)
+              ELSE cancelled_at
+            END,
+            abandoned_at = CASE
+              WHEN $2 = 'abandoned' THEN COALESCE(abandoned_at, $7::timestamptz)
+              ELSE abandoned_at
+            END,
+            total_duration_seconds = CASE
+              WHEN started_at IS NOT NULL THEN GREATEST(
+                COALESCE(total_duration_seconds, 0),
+                EXTRACT(EPOCH FROM ($7::timestamptz - started_at))::integer
+              )
+              ELSE COALESCE(total_duration_seconds, 0)
+            END,
+            session_metadata = COALESCE(session_metadata, '{}'::jsonb)
+              || jsonb_build_object('crossfit_v2_closure', $8::jsonb),
+            is_current_session = false,
+            updated_at = NOW()
+      WHERE id = $1 AND user_id = $9
+      RETURNING *`,
+    [
+      session.id, targetStatus, completedExercises, cancelledExercises, totalExercises,
+      Math.round(normalized.completion * 100), normalized.recordedAt, JSON.stringify(closure), session.user_id
+    ]
+  );
+  if (updated.rowCount !== 1) {
+    throw serviceError("CROSSFIT_SESSION_NOT_FOUND", "La sesión cambió durante el cierre", 409);
+  }
+  return { ...session, ...updated.rows[0], session_status: targetStatus, completion_rate: normalized.completion * 100 };
 }
 
 function pauseDays(history, recordedAt) {
@@ -243,7 +388,7 @@ export async function registerCrossfitV2Result(client, {
 
   const sessionQuery = await client.query(LOCK_CROSSFIT_SESSION_SQL, [sessionId, userId]);
   if (sessionQuery.rowCount === 0) throw serviceError("CROSSFIT_SESSION_NOT_FOUND", "Sesión CrossFit no encontrada", 404);
-  const session = sessionQuery.rows[0];
+  let session = sessionQuery.rows[0];
   if (Number(session.methodology_plan_id) !== Number(planId)) {
     throw serviceError("CROSSFIT_PLAN_SESSION_MISMATCH", "La sesión no pertenece al plan CrossFit indicado", 409);
   }
@@ -261,23 +406,37 @@ export async function registerCrossfitV2Result(client, {
   }
 
   const stableIdempotencyKey = idempotencyKey || `crossfit-result-v2:${sessionId}`;
+  const normalized = normalizeResultInput(session, manual, now);
+  const requestHash = resultRequestHash(normalized);
   const existing = await client.query(FIND_CROSSFIT_RESULT_SQL, [userId, sessionId, stableIdempotencyKey]);
   if (existing.rowCount > 0) {
+    const existingRow = existing.rows[0];
+    if (
+      Number(existingRow.session_id) !== Number(sessionId)
+      || Number(existingRow.methodology_plan_id) !== Number(planId)
+    ) {
+      throw serviceError("IDEMPOTENCY_BROKEN", "La clave de idempotencia pertenece a otra sesión", 409);
+    }
+    const existingResult = existingRow.payload;
+    const storedRequestHash = existingResult?.provenance?.request_hash;
+    if (storedRequestHash && storedRequestHash !== requestHash) {
+      throw serviceError("IDEMPOTENCY_BROKEN", "El resultado ya existe con otro contenido", 409);
+    }
     const snapshotQuery = await client.query(LOAD_CROSSFIT_SNAPSHOT_SQL, [userId, planId]);
     const snapshot = snapshotQuery.rows[0]?.payload ?? null;
     return {
       registered: true,
       alreadyRegistered: true,
       decision: snapshot?.state ?? "hold",
-      result: existing.rows[0].payload,
+      result: existingResult,
       autoreg: snapshot,
       outbox: { enqueued: false, skipped: true, reason: "IDEMPOTENT_REPLAY" }
     };
   }
 
-  const normalized = normalizeResultInput(session, manual, now);
   const runtimeEvents = await client.query(LOAD_CROSSFIT_RUNTIME_EVENTS_SQL, [userId, sessionId]);
   normalized.scales = deriveCrossfitResultScales(session, runtimeEvents.rows);
+  session = await finalizeCrossfitV2Session(client, session, normalized);
   const exerciseSql = session.session_type === "weekend-extra"
     ? LOAD_CROSSFIT_SINGLE_DAY_EXERCISE_ROWS_SQL
     : LOAD_CROSSFIT_EXERCISE_ROWS_SQL;
@@ -328,7 +487,9 @@ export async function registerCrossfitV2Result(client, {
       equipment_signature_changed: sessionProvenance.equipment_signature_changed === true,
       readiness_cut: sessionProvenance.readiness_cut === true,
       srpe_ratio_7_28: sessionProvenance.srpe_ratio_7_28 ?? null,
-      is_test: sessionProvenance.is_test === true
+      is_test: sessionProvenance.is_test === true,
+      termination_reason: normalized.terminationReason,
+      request_hash: requestHash
     }
   });
 

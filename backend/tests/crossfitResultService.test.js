@@ -69,9 +69,18 @@ function manual(overrides = {}) {
 }
 
 class ResultClient {
-  constructor({ sessionRow = session(), existing = null, failOutbox = false, runtimeEvents = [] } = {}) {
+  constructor({
+    sessionRow = session(),
+    existing = null,
+    existingSessionId = null,
+    existingPlanId = null,
+    failOutbox = false,
+    runtimeEvents = []
+  } = {}) {
     this.sessionRow = sessionRow;
     this.existing = existing;
+    this.existingSessionId = existingSessionId;
+    this.existingPlanId = existingPlanId;
     this.failOutbox = failOutbox;
     this.runtimeEvents = runtimeEvents;
     this.calls = [];
@@ -84,7 +93,14 @@ class ResultClient {
       return this.sessionRow ? { rowCount: 1, rows: [this.sessionRow] } : { rowCount: 0, rows: [] };
     }
     if (text.includes("FROM app.crossfit_v2_results") && text.includes("session_id = $2")) {
-      return this.existing ? { rowCount: 1, rows: [{ payload: this.existing }] } : { rowCount: 0, rows: [] };
+      return this.existing ? {
+        rowCount: 1,
+        rows: [{
+          session_id: this.existingSessionId ?? this.sessionRow?.id,
+          methodology_plan_id: this.existingPlanId ?? this.sessionRow?.methodology_plan_id,
+          payload: this.existing
+        }]
+      } : { rowCount: 0, rows: [] };
     }
     if (text.includes("FROM app.crossfit_v2_runtime_events")) {
       return { rowCount: this.runtimeEvents.length, rows: this.runtimeEvents };
@@ -143,6 +159,7 @@ test("resultado v2 persiste ledger, snapshot y actual load sin consultar RIR", a
   assert.equal(output.decision, "hold");
   assert.equal(output.result.day_id, 4);
   assert.equal(output.result.actual_training_load.effort.rpe_actual, 7);
+  assert.ok(output.result.reason_codes.includes("SESSION_COMPLETED"));
   assert.deepEqual(output.result.scales, [
     { movement_id: "air_squat", scale_id: "base" },
     { movement_id: "run", scale_id: "base" }
@@ -153,6 +170,137 @@ test("resultado v2 persiste ledger, snapshot y actual load sin consultar RIR", a
   assert.match(sql, /INSERT INTO app\.crossfit_v2_autoreg_events/);
   assert.match(sql, /INSERT INTO app\.crossfit_v2_autoreg_snapshots/);
   assert.doesNotMatch(sql, /hypertrophy_set_logs|avg_rir|rir_reported/i);
+});
+
+test("feedback parcial cierra sesión, conserva porcentaje y traza el motivo", async () => {
+  const client = new ResultClient({
+    sessionRow: session({
+      session_status: "in_progress",
+      completion_rate: 0,
+      completed_at: null,
+      total_exercises: 2,
+      exercises_completed: 0
+    })
+  });
+  const output = await registerCrossfitV2Result(client, {
+    userId: 7,
+    planId: 22,
+    sessionId: 101,
+    manual: manual({
+      completed: false,
+      status: "partial",
+      completion: 0.45,
+      termination_reason: "fatigue"
+    }),
+    now: NOW,
+    env: { CROSSFIT_V2_RESULTS: "true" }
+  });
+
+  assert.equal(output.result.status, "partial");
+  assert.equal(output.result.completion, 0.45);
+  assert.equal(output.result.provenance.termination_reason, "fatigue");
+  assert.ok(output.result.reason_codes.includes("SESSION_PARTIAL"));
+  assert.ok(client.calls.some((call) => /UPDATE app\.methodology_exercise_progress/.test(call.sql)));
+  const closure = client.calls.find((call) => /crossfit_v2_closure/.test(call.sql));
+  assert.equal(closure.params[1], "partial");
+  assert.equal(closure.params[5], 45);
+});
+
+test("cancelación sin exposición no inventa métricas y emite carga real D0", async () => {
+  const client = new ResultClient({
+    sessionRow: session({
+      session_status: "pending",
+      completion_rate: 0,
+      started_at: null,
+      completed_at: null,
+      total_duration_seconds: 0,
+      total_exercises: 2,
+      exercises_completed: 0
+    })
+  });
+  const output = await registerCrossfitV2Result(client, {
+    userId: 7,
+    planId: 22,
+    sessionId: 101,
+    manual: {
+      status: "cancelled",
+      completion: 0,
+      termination_reason: "time",
+      score: { type: "none" }
+    },
+    now: NOW,
+    env: { CROSSFIT_V2_RESULTS: "true" }
+  });
+
+  assert.equal(output.result.status, "cancelled");
+  assert.equal(output.result.rpe, null);
+  assert.equal(output.result.technique, null);
+  assert.deepEqual(output.result.readiness, {
+    sleep: null,
+    fatigue: null,
+    recovery: null,
+    stress: null
+  });
+  assert.equal(output.result.actual_training_load.day_type, "D0");
+  assert.equal(output.result.actual_training_load.load_tier, "rest");
+  assert.equal(output.result.actual_training_load.duration.actual_min, 0);
+  assert.equal(output.decision, "hold");
+  assert.ok(output.autoreg.reason_codes.includes("SESSION_CANCELLED"));
+  const closure = client.calls.find((call) => /crossfit_v2_closure/.test(call.sql));
+  assert.equal(closure.params[1], "cancelled");
+});
+
+test("cancelación declarada por dolor exige contexto de dolor", async () => {
+  await assert.rejects(
+    registerCrossfitV2Result(new ResultClient({
+      sessionRow: session({ session_status: "pending", completion_rate: 0 })
+    }), {
+      userId: 7,
+      planId: 22,
+      sessionId: 101,
+      manual: {
+        status: "cancelled",
+        completion: 0,
+        termination_reason: "pain",
+        score: { type: "none" }
+      },
+      env: { CROSSFIT_V2_RESULTS: "true" }
+    }),
+    (error) => error.code === "CROSSFIT_PAIN_REQUIRED"
+  );
+});
+
+test("estados terminales exigen porcentajes coherentes y no se pueden reescribir", async () => {
+  await assert.rejects(
+    registerCrossfitV2Result(new ResultClient({ sessionRow: session({ session_status: "in_progress" }) }), {
+      userId: 7,
+      planId: 22,
+      sessionId: 101,
+      manual: manual({ status: "cancelled", completion: 0.2, termination_reason: "time" }),
+      env: { CROSSFIT_V2_RESULTS: "true" }
+    }),
+    (error) => error.code === "CROSSFIT_COMPLETION_INVALID"
+  );
+  await assert.rejects(
+    registerCrossfitV2Result(new ResultClient(), {
+      userId: 7,
+      planId: 22,
+      sessionId: 101,
+      manual: manual({ status: "partial", completion: 0.5, termination_reason: "fatigue" }),
+      env: { CROSSFIT_V2_RESULTS: "true" }
+    }),
+    (error) => error.code === "HISTORY_IMMUTABLE" && error.status === 409
+  );
+  await assert.rejects(
+    registerCrossfitV2Result(new ResultClient({ sessionRow: session({ session_status: "pending" }) }), {
+      userId: 7,
+      planId: 22,
+      sessionId: 101,
+      manual: manual({ status: "partial", completion: 0.5, termination_reason: "time" }),
+      env: { CROSSFIT_V2_RESULTS: "true" }
+    }),
+    (error) => error.code === "CROSSFIT_SESSION_NOT_STARTED" && error.status === 409
+  );
 });
 
 test("escalas de resultado proceden del ledger y no del payload cliente", async () => {
@@ -245,6 +393,50 @@ test("idempotencia devuelve el resultado y snapshot existentes sin reinsertar", 
   assert.equal(output.alreadyRegistered, true);
   assert.equal(output.result, existing);
   assert.equal(client.calls.some((call) => call.sql.includes("INSERT INTO app.crossfit_v2_results")), false);
+});
+
+test("idempotencia rechaza un segundo payload materialmente distinto", async () => {
+  const first = await registerCrossfitV2Result(new ResultClient(), {
+    userId: 7,
+    planId: 22,
+    sessionId: 101,
+    manual: manual(),
+    env: { CROSSFIT_V2_RESULTS: "true" }
+  });
+  await assert.rejects(
+    registerCrossfitV2Result(new ResultClient({ existing: first.result }), {
+      userId: 7,
+      planId: 22,
+      sessionId: 101,
+      manual: manual({ rpe: 9 }),
+      env: { CROSSFIT_V2_RESULTS: "true" }
+    }),
+    (error) => error.code === "IDEMPOTENCY_BROKEN" && error.status === 409
+  );
+});
+
+test("idempotencia rechaza una clave ligada a otra sesión aunque coincida el feedback", async () => {
+  const first = await registerCrossfitV2Result(new ResultClient(), {
+    userId: 7,
+    planId: 22,
+    sessionId: 101,
+    manual: manual(),
+    env: { CROSSFIT_V2_RESULTS: "true" }
+  });
+  await assert.rejects(
+    registerCrossfitV2Result(new ResultClient({
+      existing: first.result,
+      existingSessionId: 999,
+      existingPlanId: 22
+    }), {
+      userId: 7,
+      planId: 22,
+      sessionId: 101,
+      manual: manual(),
+      env: { CROSSFIT_V2_RESULTS: "true" }
+    }),
+    (error) => error.code === "IDEMPOTENCY_BROKEN" && error.status === 409
+  );
 });
 
 test("resultado v2 rechaza payload incompleto, cruce de plan y sesión sin day_id", async () => {

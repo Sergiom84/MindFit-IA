@@ -11,6 +11,16 @@ function resultReasonCode({ pain, technique }) {
   return "AUTOREG_HOLD";
 }
 
+function statusReasonCode(status) {
+  return {
+    completed: "SESSION_COMPLETED",
+    capped: "SESSION_CAPPED",
+    partial: "SESSION_PARTIAL",
+    abandoned: "SESSION_ABANDONED",
+    cancelled: "SESSION_CANCELLED"
+  }[status];
+}
+
 export function buildCrossfitResultV2({
   request_id: requestId,
   session_id: sessionId,
@@ -38,7 +48,9 @@ export function buildCrossfitResultV2({
     level,
     durationSeconds,
     exerciseRows,
-    rpe
+    rpe,
+    status,
+    completion
   });
   if (!actual.valid) {
     const error = new Error(`Carga real CrossFit inválida: ${actual.errors.join("; ")}`);
@@ -47,6 +59,8 @@ export function buildCrossfitResultV2({
   }
   const resultId = stableCrossfitId("cfr", [sessionId, idempotencyKey]);
   const reasonCode = resultReasonCode({ pain, technique });
+  const closureReasonCode = statusReasonCode(status);
+  const reasonCodes = [...new Set([reasonCode, closureReasonCode].filter(Boolean))];
   const result = {
     schema_version: CROSSFIT_VERSIONS.result,
     ruleset_version: CROSSFIT_VERSIONS.ruleset,
@@ -68,14 +82,14 @@ export function buildCrossfitResultV2({
     actual_training_load: actual.load,
     recorded_at: new Date(recordedAt).toISOString(),
     idempotency_key: idempotencyKey,
-    reason_codes: [reasonCode],
-    decision_trace: [{
-      rule_id: "CF-RESULT-BUILD",
-      reason_code: reasonCode,
+    reason_codes: reasonCodes,
+    decision_trace: reasonCodes.map((code) => ({
+      rule_id: code === closureReasonCode ? "CF-RESULT-CLOSE" : "CF-RESULT-BUILD",
+      reason_code: code,
       scope: "result",
-      action: "actual_load_and_result_validated",
+      action: code === closureReasonCode ? "terminal_status_recorded" : "actual_load_and_result_validated",
       details: { source: "crossfit_v2_effort" }
-    }],
+    })),
     provenance: {
       source: "crossfit_v2_result_builder",
       ...provenance

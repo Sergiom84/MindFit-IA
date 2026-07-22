@@ -15,16 +15,16 @@ unit/contract verdes en rama, pero no recorrido Playwright ni BD real.
 | Single-day           | IMPLEMENTADO_GATE_E2E | session v2 determinista                                     | plan/day/session/tracking              | no solution/red flag/reintento       |
 | Plan completo        | IMPLEMENTADO_GATE_E2E | block/week/session v2                                       | methodology plans/days                 | cuotas/contrato/materialización      |
 | Generacion           | IMPLEMENTADO_GATE_E2E | idempotency + trace                                         | draft + snapshot canónico              | same key/different output            |
-| Regeneracion         | FALTA                 | revision/supersedes/reason                                  | immutable revisions                    | no tocar completadas                 |
+| Regeneracion         | IMPLEMENTADO_GATE_E2E | revision/supersedes/reason/hash                             | immutable revisions                    | BD/colisión/revisión stale           |
 | Calendario/Hoy       | IMPLEMENTADO_GATE_E2E | plan_id+day_id + sync states                                | plan days + workout schedule           | timezone/date fallback legacy        |
 | Warm-up              | IMPLEMENTADO_GATE_E2E | especifico a patrones y flags                               | session blocks                         | QA visual/cobertura principal        |
 | WOD player           | IMPLEMENTADO_GATE_E2E | score_type/dose/scale/stop rules v2                         | tracking + result events               | E2E real pendiente                   |
 | Pausa/reanuda        | IMPLEMENTADO_GATE_E2E | monotonic event sequence + local durable queue              | runtime event ledger                   | multi-device fuera de alcance        |
 | Sustitucion          | IMPLEMENTADO_GATE_E2E | same-stimulus validated edge                                | server-created substitution event      | BD/RLS/E2E pendientes                |
-| Finalizacion         | IMPLEMENTADO_GATE_E2E | atomic close + actual load + outbox                         | result/outbox                          | idempotent duplicate/BD              |
-| Abandono             | PARCIAL               | reason taxonomy + partial actual load                       | result                                 | pain vs agenda semantics             |
+| Finalizacion         | IMPLEMENTADO_GATE_E2E | feedback confirma atomic close + actual load + outbox       | session/result/outbox                  | idempotent duplicate/BD              |
+| Abandono             | IMPLEMENTADO_GATE_E2E | partial/abandoned/cancelled + motivo + completion           | session/result                         | PostgreSQL/Playwright real           |
 | Resultado            | IMPLEMENTADO_GATE_E2E | structured score, scale, technique, pain                    | append-only result                     | invalid score/cap/RLS                |
-| Feedback             | IMPLEMENTADO_GATE_E2E | required minimum; optional details                          | result/readiness                       | privacidad/skip pendiente            |
+| Feedback             | IMPLEMENTADO_GATE_E2E | mínimo obligatorio + draft owner/session durable            | local draft + result/readiness         | E2E real pendiente                   |
 | Autorregulacion      | IMPLEMENTADO_GATE_E2E | event reducer v2                                            | events + snapshot                      | migración/RLS                        |
 | Progresion/reeval    | PARCIAL               | block gates/classification                                  | assessments + plan snapshots           | captura objetiva al cierre pendiente |
 | Historial/metricas   | PARCIAL               | version-aware comparable results                            | results/metrics                        | legacy low confidence                |
@@ -35,7 +35,7 @@ unit/contract verdes en rama, pero no recorrido Playwright ni BD real.
 | Notificaciones       | DESCONECTADO          | reason-aware reminders only                                 | notification event                     | no medical claim/fatigue spam        |
 | Logros               | RIESGO                | no reward pain/Rx/intensity; reward consistency/skill       | achievement event                      | gamification safety review           |
 | Movil/escritorio     | PARCIAL               | same contract, responsive WOD controls                      | n/a                                    | 375x812 and desktop matrix           |
-| Offline/retry        | PARCIAL               | event IDs and conflict recovery                             | local queue/outbox                     | airplane/reload/duplicate            |
+| Offline/retry        | IMPLEMENTADO_GATE_E2E | event IDs, cola runtime y feedback durable                  | local queue/draft/outbox               | airplane/CI real pendiente           |
 | RLS/privacidad       | RIESGO                | owner policies + service role + audit                       | policies/logs                          | cross-user tests                     |
 | Observabilidad/admin | PARCIAL               | metricas sin PII + revision fail-closed                     | metrics/assessment audit               | alertas/operacion humana             |
 
@@ -86,7 +86,13 @@ sequenceDiagram
 
 ## Contrato de cierre front-back-BD
 
-Frontend envia: event id, plan/day/session/revision, estado completed/abandoned/capped, score tipado, elapsed, escala por movimiento, carga/reps, RPE, tecnica, dolor y readiness minimo. Backend valida autoria/revision, calcula actual load, persiste resultado y outbox en transaccion y devuelve autoreg/sync. DB impone unicidad de event id y una finalizacion canonica. El worker procesa nutricion sin reabrir el cierre.
+Frontend envía una clave idempotente estable y estado `completed`, `capped`,
+`partial`, `abandoned` o `cancelled`, completion, motivo, score tipado, RPE,
+técnica, dolor y readiness. Las escalas se reconstruyen desde el ledger runtime,
+no desde el payload cliente. Backend valida autoría y contrato, bloquea la sesión,
+actualiza tracking/sesión, calcula actual load y persiste resultado, autorregulación
+y outbox dentro de la transacción de esfuerzo. DB impone un resultado por sesión;
+el worker nutricional no reabre el cierre.
 
 ## QA transversal
 

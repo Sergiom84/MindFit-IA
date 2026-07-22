@@ -152,8 +152,11 @@ No se fija un porcentaje estetico de movimientos (p. ej. 3 %) sin considerar equ
 
 El arnés actual cubre el ciclo API de generación, confirmación, calendario,
 inicio, progreso, cierre, resultado v2 idempotente e historial para los tres
-niveles; el recorrido UI cubre login, Rutinas, warm-up, player, escala, timer y
-controles críticos en escritorio/móvil. El resto de recorridos exigidos (onboarding,
+niveles. Añade cierre directo `partial` sin el endpoint legacy, estado de sesión
+y porcentaje, replay idéntico, colisión divergente y restauración del formulario
+tras recarga. Playwright descubre 12 casos en escritorio y móvil; no se declaran
+ejecutados sin el stack efímero. El recorrido UI cubre login, Rutinas, warm-up,
+player, escala, timer y controles críticos. El resto de recorridos exigidos (onboarding,
 evaluación objetiva, sustitución persistida, offline/retry, nutrición y cruce de
 medianoche Europe/Madrid) continúa abierto y no se infiere de la existencia de una
 ruta.
@@ -193,7 +196,7 @@ Antes de migracion: entrenador cualificado revisa umbrales, progresiones, 120 ma
 - [x] Fase 0 compartida desbloqueada para desarrollo y branch aislada creada.
 - [ ] Catalogo versionado, validado, RLS y rollback.
 - [x] > =30.000 planes total, cero hard invariant y 30.000 regeneraciones idénticas.
-- [x] APIs de generación/resultado y outbox CrossFit idempotentes a nivel unit/contrato.
+- [x] APIs de generación/resultado y outbox CrossFit idempotentes a nivel unit/contrato, incluido cruce de sesión/plan.
 - [ ] Nutrición CrossFit idempotente en shadow/BD aislada.
 - [ ] E2E movil/escritorio/offline verde.
 - [ ] Regresion ajena verde sin modificar otras metodologias.

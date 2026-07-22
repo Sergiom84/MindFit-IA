@@ -46,7 +46,8 @@ export function requireFiniteNumber(value, path, errors, { min = -Infinity, max 
   }
 }
 
-export function requireInteger(value, path, errors, { min = -Infinity, max = Infinity } = {}) {
+export function requireInteger(value, path, errors, { min = -Infinity, max = Infinity, nullable = false } = {}) {
+  if (nullable && value === null) return;
   if (!Number.isInteger(value) || value < min || value > max) {
     errors.push(`${path} debe ser entero entre ${min} y ${max}`);
   }

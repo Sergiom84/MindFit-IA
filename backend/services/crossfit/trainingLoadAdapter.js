@@ -91,7 +91,7 @@ export function resolveCrossfitPlannedTrainingLoad(input, env = process.env) {
 }
 
 export function buildCrossfitActualTrainingLoad(input = {}) {
-  const load = buildActualSessionLoad({
+  let load = buildActualSessionLoad({
     plannedLoad: input.plannedLoad,
     methodologyId: "crossfit",
     methodologyLevel: LEVEL_TO_SHARED[normalizeCrossfitLevel(input.level)] ?? null,
@@ -100,6 +100,29 @@ export function buildCrossfitActualTrainingLoad(input = {}) {
   });
   if (typeof input.rpe === "number" && Number.isFinite(input.rpe)) {
     load.effort.rpe_actual = input.rpe;
+  }
+  if (input.status === "cancelled" && input.completion === 0) {
+    load = {
+      ...load,
+      day_type: "D0",
+      load_tier: "rest",
+      duration: { ...load.duration, actual_min: 0 },
+      effort: { ...load.effort, rpe_actual: null },
+      work: {
+        sets_total: 0,
+        hard_sets: 0,
+        reps_total: 0,
+        volume_kg: 0,
+        work_interval_min: 0,
+        distance_m: 0
+      },
+      demand: { glycolytic: 0, neuromuscular: 0, aerobic: 0, skill: 0 },
+      provenance: {
+        source: "crossfit_cancelled_session",
+        confidence: "high",
+        rule_ids: [...new Set([...(load.provenance?.rule_ids ?? []), "CF-RESULT-CANCELLED-D0"])]
+      }
+    };
   }
   const validation = validateTrainingLoad(load, { mode: "strict" });
   return validation.valid

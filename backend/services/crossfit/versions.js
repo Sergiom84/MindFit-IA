@@ -38,3 +38,11 @@ export function normalizeCrossfitLevel(value) {
     .toLowerCase();
   return CROSSFIT_LEGACY_LEVEL_ALIASES[key] ?? null;
 }
+
+export function isCrossfitV2SessionRecord(session) {
+  const metadata = session?.session_metadata && typeof session.session_metadata === "object"
+    ? session.session_metadata
+    : {};
+  return [metadata.crossfit_v2_session, metadata.crossfit_v2?.session, metadata.crossfit_v2]
+    .some((candidate) => candidate?.schema_version === CROSSFIT_VERSIONS.session);
+}

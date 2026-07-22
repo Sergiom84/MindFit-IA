@@ -99,6 +99,7 @@ export default function WodSessionModal({
   const [substitutionMovement, setSubstitutionMovement] = useState(null);
   const [substitutionLoading, setSubstitutionLoading] = useState(false);
   const [substitutionError, setSubstitutionError] = useState(null);
+  const [showEarlyFinish, setShowEarlyFinish] = useState(false);
   const intervalRef = useRef(null);
   const startPersistedRef = useRef(false);
   const runtime = useCrossfitWodRuntime({
@@ -121,6 +122,7 @@ export default function WodSessionModal({
     setStartError(null);
     setSubstitutionMovement(null);
     setSubstitutionError(null);
+    setShowEarlyFinish(false);
     startPersistedRef.current = false;
   }, [isV2, sessionId, wod.movimientos]);
 
@@ -213,9 +215,9 @@ export default function WodSessionModal({
     );
   };
 
-  const handleFinish = async () => {
+  const handleFinish = async (forcedStatus = null) => {
     if (isV2) {
-      if (runtime.timerState === 'idle') {
+      if (runtime.timerState === 'idle' && forcedStatus !== 'cancelled') {
         setStartError('Inicia el WOD antes de registrar el resultado.');
         return;
       }
@@ -230,8 +232,8 @@ export default function WodSessionModal({
     }
     setFinished(true);
     let persistenceFailures = 0;
-    // Marcar cada movimiento como completado para mantener el tracking coherente.
-    if (typeof onFinishExercise === 'function') {
+    // V2 cierra progreso + sesión + resultado en una única transacción tras el feedback.
+    if (!isV2 && typeof onFinishExercise === 'function') {
       for (let i = 0; i < movimientos.length; i += 1) {
         try {
           const persisted = await onFinishExercise(i, {
@@ -253,6 +255,7 @@ export default function WodSessionModal({
     }
     if (typeof onCompleteSession === 'function') {
       try {
+        const terminalStatus = forcedStatus ?? (atCap ? 'capped' : 'completed');
         const resolvedScale = isV2 && Object.values(runtime.scales).some((value) => value !== 'base')
           ? 'scaled'
           : isV2 ? 'base' : scale;
@@ -262,7 +265,7 @@ export default function WodSessionModal({
           timeCapSeconds,
           formato: wod.formato,
           scoreType: wod.score_type || 'none',
-          status: atCap ? 'capped' : 'completed',
+          status: terminalStatus,
           scales: movimientos.map((movement, index) => {
             const movementId = crossfitMovementId(movement, index);
             return {
@@ -276,6 +279,7 @@ export default function WodSessionModal({
           runtimeVersion: isV2 ? 'crossfit-runtime-event/v2' : null,
           sessionId: sessionId ?? session?.sessionId ?? null
         });
+        setShowEarlyFinish(false);
       } catch (error) {
         setFinished(false);
         setStartError(error?.message || 'No se pudo cerrar el WOD. Reintenta.');
@@ -466,18 +470,63 @@ export default function WodSessionModal({
         </div>
 
         {/* Pie */}
-        <div className="flex items-center justify-between gap-3 border-t border-white/10 px-5 py-4">
-          <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm text-gray-400 transition hover:text-gray-200">
-            Salir
-          </button>
-          <button
-            onClick={handleFinish}
-            disabled={finished || substitutionLoading || (isV2 && runtime.pendingCount > 0)}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 px-5 py-2.5 text-sm font-semibold text-black transition hover:from-yellow-200 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Flag className="h-4 w-4" />
-            {finished ? 'Registrado' : 'Terminar WOD'}
-          </button>
+        <div className="border-t border-white/10 px-5 py-4">
+          {isV2 && showEarlyFinish && (
+            <div className="mb-4 rounded-xl border border-amber-400/20 bg-amber-500/5 p-3">
+              <p className="text-xs font-semibold text-amber-100">¿Cómo termina esta sesión?</p>
+              <p className="mt-1 text-[11px] text-gray-400">El feedback posterior es obligatorio y el historial no se podrá reescribir.</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                <button
+                  type="button"
+                  disabled={runtime.timerState === 'idle'}
+                  onClick={() => handleFinish('partial')}
+                  className="rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-200 hover:bg-white/5 disabled:opacity-40"
+                >
+                  Guardar parcial
+                </button>
+                <button
+                  type="button"
+                  disabled={runtime.timerState === 'idle'}
+                  onClick={() => handleFinish('abandoned')}
+                  className="rounded-lg border border-orange-400/30 px-3 py-2 text-xs text-orange-100 hover:bg-orange-400/10 disabled:opacity-40"
+                >
+                  Abandonar WOD
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleFinish('cancelled')}
+                  className="rounded-lg border border-red-400/30 px-3 py-2 text-xs text-red-100 hover:bg-red-400/10"
+                >
+                  Cancelar sesión
+                </button>
+              </div>
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-3">
+            <button onClick={onClose} className="rounded-xl px-3 py-2 text-sm text-gray-400 transition hover:text-gray-200">
+              Salir y reanudar después
+            </button>
+            <div className="flex items-center gap-2">
+              {isV2 && (
+                <button
+                  type="button"
+                  onClick={() => setShowEarlyFinish((current) => !current)}
+                  disabled={finished || substitutionLoading || runtime.pendingCount > 0}
+                  className="rounded-xl border border-white/10 px-3 py-2.5 text-sm text-gray-300 transition hover:bg-white/5 disabled:opacity-40"
+                >
+                  Finalizar antes
+                </button>
+              )}
+              <button
+                onClick={() => handleFinish()}
+                disabled={finished || substitutionLoading || (isV2 && runtime.pendingCount > 0)}
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 px-5 py-2.5 text-sm font-semibold text-black transition hover:from-yellow-200 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Flag className="h-4 w-4" />
+                {finished ? 'Pendiente de feedback' : 'Terminar WOD'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>,

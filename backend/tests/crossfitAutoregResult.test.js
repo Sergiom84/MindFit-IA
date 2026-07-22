@@ -96,8 +96,8 @@ test("dolor moderado y técnica cero regresan antes del rendimiento", () => {
   const painResult = result({ pain: { score: 3 } });
   const techniqueResult = result({ technique: 0 });
 
-  assert.deepEqual(painResult.reason_codes, ["SAFETY_PAIN_MODIFY"]);
-  assert.deepEqual(techniqueResult.reason_codes, ["SAFETY_TECHNIQUE_STOP"]);
+  assert.deepEqual(painResult.reason_codes, ["SAFETY_PAIN_MODIFY", "SESSION_COMPLETED"]);
+  assert.deepEqual(techniqueResult.reason_codes, ["SAFETY_TECHNIQUE_STOP", "SESSION_COMPLETED"]);
   assert.equal(autoreg([painResult]).state, "regress");
   assert.equal(autoreg([techniqueResult]).state, "regress");
 });

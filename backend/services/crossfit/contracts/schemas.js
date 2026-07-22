@@ -223,6 +223,14 @@ export function validateCrossfitResult(value) {
   for (const key of ["result_id", "session_id", "plan_id", "day_id", "user_id"]) requireId(value[key], `result.${key}`, errors);
   requireEnum(value.status, RESULT_STATUSES, "result.status", errors);
   requireFiniteNumber(value.completion, "result.completion", errors, { min: 0, max: 1 });
+  const cancelled = value.status === "cancelled";
+  if (value.status === "completed" && value.completion !== 1) {
+    errors.push("result completed requiere completion=1");
+  }
+  if (["capped", "partial", "abandoned"].includes(value.status) && !(value.completion >= 0 && value.completion < 1)) {
+    errors.push(`result ${value.status} requiere completion entre 0 y menos de 1`);
+  }
+  if (cancelled && value.completion !== 0) errors.push("result cancelled requiere completion=0");
   if (rejectUnknownKeys(
     value.score,
     ["type", "elapsed_seconds", "rounds", "reps", "calories", "load", "distance_m", "quality"],
@@ -255,8 +263,11 @@ export function validateCrossfitResult(value) {
       requireString(scale.scale_id, `${path}.scale_id`, errors);
     });
   }
-  requireFiniteNumber(value.rpe, "result.rpe", errors, { min: 1, max: 10, nullable: true });
-  requireInteger(value.technique, "result.technique", errors, { min: 0, max: 3 });
+  requireFiniteNumber(value.rpe, "result.rpe", errors, { min: 1, max: 10, nullable: cancelled });
+  requireInteger(value.technique, "result.technique", errors, { min: 0, max: 3, nullable: cancelled });
+  if (cancelled && (value.rpe !== null || value.technique !== null)) {
+    errors.push("result cancelled no admite RPE ni técnica inventados");
+  }
   if (rejectUnknownKeys(
     value.pain,
     ["score", "locations", "quality", "delta", "red_flag", "acute_injury"],
@@ -264,8 +275,8 @@ export function validateCrossfitResult(value) {
     errors
   )) {
     requireKeys(value.pain, ["score", "locations", "delta", "red_flag", "acute_injury"], "result.pain", errors);
-    requireFiniteNumber(value.pain.score, "result.pain.score", errors, { min: 0, max: 10 });
-    requireFiniteNumber(value.pain.delta, "result.pain.delta", errors, { min: -10, max: 10 });
+    requireFiniteNumber(value.pain.score, "result.pain.score", errors, { min: 0, max: 10, nullable: cancelled });
+    requireFiniteNumber(value.pain.delta, "result.pain.delta", errors, { min: -10, max: 10, nullable: cancelled });
     if (requireArray(value.pain.locations, "result.pain.locations", errors)) {
       value.pain.locations.forEach((location, index) => requireString(location, `result.pain.locations[${index}]`, errors));
     }
@@ -279,7 +290,7 @@ export function validateCrossfitResult(value) {
   if (rejectUnknownKeys(value.readiness, ["sleep", "fatigue", "recovery", "stress"], "result.readiness", errors)) {
     requireKeys(value.readiness, ["sleep", "fatigue", "recovery", "stress"], "result.readiness", errors);
     for (const key of ["sleep", "fatigue", "recovery", "stress"]) {
-      requireInteger(value.readiness[key], `result.readiness.${key}`, errors, { min: 1, max: 5 });
+      requireInteger(value.readiness[key], `result.readiness.${key}`, errors, { min: 1, max: 5, nullable: cancelled });
     }
   }
   const load = validateTrainingLoad(value.actual_training_load, { mode: "strict" });
@@ -292,7 +303,8 @@ export function validateCrossfitResult(value) {
     "source", "confidence", "adherence_rate", "domain", "performance_delta",
     "skill_candidate", "skill_prerequisites_met", "skill_id", "dangerous_misses",
     "capacity_progressed_microcycle", "skill_progressed_microcycle",
-    "equipment_signature_changed", "readiness_cut", "srpe_ratio_7_28", "is_test"
+    "equipment_signature_changed", "readiness_cut", "srpe_ratio_7_28", "is_test",
+    "termination_reason", "request_hash"
   ], "result.provenance", errors)) {
     requireKeys(value.provenance, ["source"], "result.provenance", errors);
     requireString(value.provenance.source, "result.provenance.source", errors);
