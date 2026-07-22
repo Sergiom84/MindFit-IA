@@ -57,7 +57,6 @@ test(
 // ── G8 (PR-CAL-00b): single-day sin filtro de lesiones ──
 test(
   "G8: single-day de calistenia NO prescribe empuje contraindicado por muñeca",
-  { todo: "PR-CAL-00b: aplicar filtro de lesiones al pool de single-day" },
   async () => {
     const { generateCalisteniaSingleDay } = await import("../services/singleDay/calisteniaSingleDay.js");
     const db = makeSingleDayDbMock(buildCalisteniaExercisePool());
