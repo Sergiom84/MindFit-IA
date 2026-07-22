@@ -57,8 +57,8 @@ equivale a E2E: no se han levantado servidores, creado usuarios ni usado una BD.
 
 ## Resultado ejecutado de training load y nutrición
 
-La Fase I ejecuta 49/49 pruebas focalizadas y la regresión posterior a sincronizar
-`origin/main@3e09559` deja 104/104 CrossFit y 336/336 backend. Quedan cubiertos:
+La Fase I ejecuta 49/49 pruebas focalizadas y la regresión actual posterior a
+sincronizar `origin/main@3e09559` deja 341/341 backend. Quedan cubiertos:
 
 - rollout `legacy -> shadow -> active` con ambos flags y default `false`;
 - matriz estricta de 36 combinaciones: tres niveles, cuatro objetivos y D0/D1/D2;
@@ -72,6 +72,30 @@ La Fase I ejecuta 49/49 pruebas focalizadas y la regresión posterior a sincroni
 
 No se marca verde la activación: faltan PostgreSQL efímero, shadow con muestra,
 menú idempotente persistido, E2E y revisión de nutricionista deportivo.
+
+## QA integral preparada, pendiente de ejecución efímera
+
+La rama incorpora una ruta reproducible de CI que no acepta infraestructura
+remota: `localQaGuard` exige acuse explícito y valida como locales API, frontend y
+PostgreSQL. La suite histórica de regresión también usa esta guarda; se eliminó la
+posibilidad documentada de apuntarla a producción.
+
+- `integration-tests` restaura el baseline en PostgreSQL 17, aplica dos veces las
+  migraciones CrossFit y ejecuta el grupo de integración registrado.
+- `crossfit-v2-e2e` importa el catálogo en draft, lo activa solo en la BD efímera,
+  verifica el re-run activo por hash/conteos y levanta API/preview locales dentro
+  del job.
+- `crossfitDatabaseIntegration.test.js` comprueba tablas, RLS, políticas,
+  visibilidad de versión activa, inmutabilidad, aislamiento cross-user y
+  append-only con rollback.
+- Playwright descubre ocho casos: tres ciclos API por nivel y un recorrido UI en
+  escritorio, repetidos en el proyecto móvil 375x812 cuando aplica.
+- La regresión local ejecutada queda en 341/341, lint quiet, build y budget de
+  bundle verdes.
+
+No se atribuyen resultados de DB/RLS/E2E todavía: este equipo no dispone de
+PostgreSQL/Docker y no había servidores levantados ni autorización para iniciarlos.
+El job será evidencia solo cuando CI lo ejecute y publique su resultado.
 
 ## Perfiles
 
@@ -123,7 +147,13 @@ No se fija un porcentaje estetico de movimientos (p. ej. 3 %) sin considerar equ
 
 ## Playwright
 
-Recorridos: alta/login, onboarding, perfil, seleccionar/cambiar metodologia, evaluar, single-day, plan, calendario/Hoy, warm-up, player, pause/reload/resume, scaling, substitution, cap, complete, abandon, feedback, history, menu, recipe substitution, shopping list, hydration, offline/retry, unauthorized and empty/error states. Ejecutar en movil y desktop, timezone Europe/Madrid y cruce de medianoche.
+El arnés actual cubre el ciclo API de generación, confirmación, calendario,
+inicio, progreso, cierre, resultado v2 idempotente e historial para los tres
+niveles; el recorrido UI cubre login, Rutinas, warm-up, player, escala, timer y
+controles críticos en escritorio/móvil. El resto de recorridos exigidos (onboarding,
+evaluación objetiva, sustitución persistida, offline/retry, nutrición y cruce de
+medianoche Europe/Madrid) continúa abierto y no se infiere de la existencia de una
+ruta.
 
 No se crean usuarios ni datos reales ahora. La ejecucion futura usa fixtures transaccionales/entorno aislado con rollback. Los servidores no se reinician sin permiso.
 

@@ -138,8 +138,112 @@ jobs:
             -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS 'SELECT NULL::uuid';" \
             -f backend/db/baseline/app_schema_baseline.sql
 
+      - name: Aplicar migraciones CrossFit v2 dos veces (idempotencia)
+        run: |
+          for pass in 1 2; do
+            echo "CrossFit migration pass $pass"
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+              -f backend/migrations/20260722_crossfit_v2_catalog.sql \
+              -f backend/migrations/20260722_crossfit_v2_results_autoreg.sql
+          done
+
       - name: Tests de integración (BD efímera)
         run: npm --prefix backend run test:integration
+
+  crossfit-v2-e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: crossfit_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres@localhost:5432/crossfit_e2e
+      NODE_ENV: test
+      JWT_SECRET: crossfit-e2e-ephemeral-only
+      PORT: 3010
+      E2E_LOCAL_DB: "1"
+      QA_BASE: http://localhost:3010
+      E2E_BASE_URL: http://localhost:4173
+      CROSSFIT_V2_GENERATION: "true"
+      CROSSFIT_V2_RESULTS: "true"
+      CROSSFIT_EMITS_TRAINING_LOAD: "false"
+      CROSSFIT_NUTRITION_LOAD: "false"
+      BRIDGE_OUTBOX_EMIT_ENABLED: "false"
+      BRIDGE_OUTBOX_WORKER_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - run: npm ci --prefix backend
+      - run: npx playwright install --with-deps chromium
+
+      - name: Restaurar baseline y aplicar CrossFit v2
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE anon NOLOGIN;" \
+            -c "CREATE ROLE authenticated NOLOGIN;" \
+            -c "CREATE ROLE service_role NOLOGIN;" \
+            -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;" \
+            -c "CREATE SCHEMA IF NOT EXISTS auth;" \
+            -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS 'SELECT NULL::uuid';" \
+            -f backend/db/baseline/app_schema_baseline.sql \
+            -f backend/migrations/20260722_crossfit_v2_catalog.sql \
+            -f backend/migrations/20260722_crossfit_v2_results_autoreg.sql
+          CROSSFIT_CATALOG_DATABASE_URL="$DATABASE_URL" \
+            CROSSFIT_CATALOG_APPLY_ACK=EPHEMERAL_ONLY \
+            node backend/scripts/import-crossfit-v2-catalog.mjs --apply
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c \
+            "UPDATE app.crossfit_catalog_versions SET status='active', activated_at=NOW() WHERE status='draft';"
+          CROSSFIT_CATALOG_DATABASE_URL="$DATABASE_URL" \
+            CROSSFIT_CATALOG_APPLY_ACK=EPHEMERAL_ONLY \
+            node backend/scripts/import-crossfit-v2-catalog.mjs --apply
+
+      - name: Compilar frontend contra API local
+        env:
+          VITE_API_URL: http://localhost:3010
+        run: npm run build
+
+      - name: E2E CrossFit desktop y móvil
+        run: |
+          npm --prefix backend start > /tmp/crossfit-backend.log 2>&1 &
+          BACKEND_PID=$!
+          npm run preview -- --host localhost --port 4173 --strictPort > /tmp/crossfit-frontend.log 2>&1 &
+          FRONTEND_PID=$!
+          cleanup() {
+            kill "$BACKEND_PID" "$FRONTEND_PID" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          for attempt in $(seq 1 45); do
+            curl -sf http://localhost:3010/api/health >/dev/null \
+              && curl -sf http://localhost:4173/login >/dev/null \
+              && break
+            sleep 2
+          done
+          curl -sf http://localhost:3010/api/health >/dev/null
+          curl -sf http://localhost:4173/login >/dev/null
+          npm run test:crossfit:e2e
+
+      - name: Publicar evidencia E2E si falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crossfit-v2-e2e-failure
+          path: |
+            playwright-report/
+            test-results/
+            /tmp/crossfit-backend.log
+            /tmp/crossfit-frontend.log
 
   # DEP-001: gate de seguridad de dependencias + SBOM CycloneDX.
   dependency-audit:

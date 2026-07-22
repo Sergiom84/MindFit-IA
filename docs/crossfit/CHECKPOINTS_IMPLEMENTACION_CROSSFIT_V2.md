@@ -18,19 +18,19 @@ Estado global: `EN_PROGRESO`
 
 ## Estado de fases
 
-| Fase                          | Estado                        | Evidencia / gate                                           |
-| ----------------------------- | ----------------------------- | ---------------------------------------------------------- |
-| A. Baseline y DoR             | `COMPLETADA_CON_LIMITACION`   | 231/231 unit, lint, build; integración requiere BD efímera |
-| B. Contratos/versionado/flags | `COMPLETADA`                  | 8/8 específicos; suite 239/239; lint; flags off            |
-| C. Catálogo/seguridad         | `COMPLETADA_CON_GATE_BD`      | 13/13; 92+104+236; 120/120; SQL/RLS requiere BD efímera    |
-| D. Clasificación              | `COMPLETADA_TECNICA`          | level-model/2.0.0; 11/11 decisiones y límites              |
-| E. Programación por nivel     | `COMPLETADA_TECNICA`          | bloques 8/10/12; seis frecuencias; 12/12 tests             |
-| F. Composer/validadores       | `COMPLETADA_TECNICA`          | 30.000 planes + 30.000 regeneraciones; cero hard violation |
-| G. Flujos de producto         | `COMPLETADA_CON_GATE_E2E`     | 51/51 focalizados; generación, plan, single-day y player   |
-| H. Resultados/autorregulación | `COMPLETADA_CON_GATE_BD`      | siete estados; 18/18 específicos; SQL/RLS requiere BD      |
-| I. Training load/nutrición    | `COMPLETADA_TECNICA_FLAG_OFF` | 49/49; 336/336; shadow/BD/aprobación pendientes            |
-| J. QA integral                | `PENDIENTE`                   | unit/contract/integration/E2E/regresión                    |
-| K. Validaciones externas      | `GATE_PREPRODUCCION`          | entrenador, nutricionista, clínico si aplica y legal       |
+| Fase                          | Estado                        | Evidencia / gate                                             |
+| ----------------------------- | ----------------------------- | ------------------------------------------------------------ |
+| A. Baseline y DoR             | `COMPLETADA_CON_LIMITACION`   | 231/231 unit, lint, build; integración requiere BD efímera   |
+| B. Contratos/versionado/flags | `COMPLETADA`                  | 8/8 específicos; suite 239/239; lint; flags off              |
+| C. Catálogo/seguridad         | `COMPLETADA_CON_GATE_BD`      | 13/13; 92+104+236; 120/120; SQL/RLS requiere BD efímera      |
+| D. Clasificación              | `COMPLETADA_TECNICA`          | level-model/2.0.0; 11/11 decisiones y límites                |
+| E. Programación por nivel     | `COMPLETADA_TECNICA`          | bloques 8/10/12; seis frecuencias; 12/12 tests               |
+| F. Composer/validadores       | `COMPLETADA_TECNICA`          | 30.000 planes + 30.000 regeneraciones; cero hard violation   |
+| G. Flujos de producto         | `COMPLETADA_CON_GATE_E2E`     | 51/51 focalizados; generación, plan, single-day y player     |
+| H. Resultados/autorregulación | `COMPLETADA_CON_GATE_BD`      | siete estados; 18/18 específicos; SQL/RLS requiere BD        |
+| I. Training load/nutrición    | `COMPLETADA_TECNICA_FLAG_OFF` | 49/49; 341/341; shadow/BD/aprobación pendientes              |
+| J. QA integral                | `PREPARADA_GATE_CI`           | unit/lint/build verdes; BD/RLS/E2E preparados, no ejecutados |
+| K. Validaciones externas      | `GATE_PREPRODUCCION`          | entrenador, nutricionista, clínico si aplica y legal         |
 
 ## Baseline reproducible
 
@@ -41,6 +41,7 @@ Estado global: `EN_PROGRESO`
 | CI `main`                  | CI y Android verdes en el SHA de referencia                        |
 | `npm ci` raíz/backend      | correcto desde lockfiles                                           |
 | `npm run test:backend`     | 231/231                                                            |
+| Regresión actual           | 341/341 tras sincronización y guardas QA                           |
 | `npm run lint -- --quiet`  | correcto                                                           |
 | `npm run build`            | correcto; warnings preexistentes de chunks/browser data            |
 | Integración backend        | no ejecutada: no hay PostgreSQL/Docker local ni URL QA             |
@@ -97,7 +98,7 @@ Estado global: `EN_PROGRESO`
   diuréticos bloquea dosis de electrolitos. No se emite diagnóstico.
 - Endpoint admin read-only `/api/admin/crossfit-v2/metrics`: carga válida/degradada,
   contratos shadow/active, drift >1 %, outbox y duplicados, sin PII.
-- Verificación: 49/49 focalizados, 336/336 backend y lint quiet verdes. Flags y
+- Verificación: 49/49 focalizados, 341/341 backend y lint quiet verdes. Flags y
   `.env.example` siguen `false`; no se ejecutó shadow real, DB efímera, Render,
   Supabase ni activación. Gate operativo pendiente: valid load >=99 %, degradados
   <1 %, cero duplicados/drift en muestra QA y aprobación de nutricionista.
@@ -128,6 +129,25 @@ Estado global: `EN_PROGRESO`
 - Verificación: 51/51 focalizados, 327/327 backend, lint quiet y build verdes.
   Quedan pendientes Playwright real, offline/background timer, sustitución
   interactiva, PostgreSQL efímero y RLS cross-user.
+
+## Gate técnico J
+
+- El arnés `localQaGuard` queda desactivado sin acuse explícito y, aun con acuse,
+  rechaza cualquier API, frontend o PostgreSQL que no sea local. La regresión E2E
+  histórica deja de permitir Supabase/producción.
+- CI prepara PostgreSQL 17 efímero, restaura baseline, aplica dos veces las dos
+  migraciones CrossFit y ejecuta la integración registrada por el runner.
+- El job E2E importa el catálogo draft, lo activa solo en la BD desechable y
+  verifica que un segundo import es un no-op con hash y conteos idénticos.
+- La integración comprueba tablas, RLS, catálogo visible solo activo, bloqueo de
+  mutación del catálogo activo, aislamiento entre dos usuarios y resultados
+  append-only dentro de una transacción con rollback.
+- Playwright descubre ocho casos en proyectos escritorio y móvil 375x812: tres
+  ciclos API por nivel y un recorrido UI por viewport. Generation/results están
+  activos solo dentro del job; carga, nutrición y workers continúan apagados.
+- Verificación local segura: 341/341 unitarios, lint quiet, build y budget de
+  bundle verdes. PostgreSQL/Docker no están disponibles y no hay servidores
+  levantados; por tanto DB/RLS/E2E permanecen `PENDIENTE_EJECUCION_CI`, no verdes.
 
 ## Gate estadístico F
 

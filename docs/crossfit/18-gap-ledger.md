@@ -21,6 +21,7 @@
 | Nutricion por nivel/objetivo/carga   | doc 03 + adapter/matriz 3x4x3, plan/day, safety y métricas                             | código flag off; BD/shadow/dietista pendientes   |
 | Flujos plan/single-day/player        | docs 05/17 + adaptadores + 51 pruebas focalizadas                                      | código cerrado; BD/E2E/offline pendientes        |
 | QA/oraculos/perfiles                 | doc 09 + 32 perfiles + invariantes; gate puro 30.000 verde                             | BD/E2E/humanos pendientes                        |
+| QA efímero fail-closed               | PostgreSQL 17/CI, RLS cross-user y 8 E2E preparados; 341/341 unit verdes               | ejecución CI aún pendiente                       |
 | Roadmap/DoR/DoD/rollback             | doc 08 + checkpoints                                                                   | implementación iniciada                          |
 | Etiquetas de gate                    | maestro, docs 08/10 y operaciones                                                      | Fase 0 desbloqueada; rollout aún bloqueado       |
 | PDF maestro                          | PDF consolidado, extraccion y render de todas las paginas                              | verificacion visual repetida tras ultima edicion |

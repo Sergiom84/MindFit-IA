@@ -190,7 +190,13 @@ export default function WodSessionModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-3 sm:p-4">
-      <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/10 border-l-2 border-l-yellow-400/40 bg-neutral-900/95 shadow-2xl backdrop-blur-xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="crossfit-wod-title"
+        data-testid="crossfit-wod-player"
+        className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/10 border-l-2 border-l-yellow-400/40 bg-neutral-900/95 shadow-2xl backdrop-blur-xl"
+      >
         {/* Cabecera */}
         <div className="flex items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
           <div className="flex items-center gap-3">
@@ -199,7 +205,7 @@ export default function WodSessionModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold text-white font-urbanist">{wod.label || 'WOD del Día'}</h2>
+                <h2 id="crossfit-wod-title" className="text-lg font-semibold text-white font-urbanist">{wod.label || 'WOD del Día'}</h2>
                 <span className="rounded-md border border-yellow-400/30 bg-yellow-400/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-yellow-200">
                   {formatLabel}
                 </span>

@@ -179,7 +179,10 @@ AS $$
 DECLARE
   v_catalog_version text;
 BEGIN
-  v_catalog_version := COALESCE(OLD.catalog_version, NEW.catalog_version);
+  v_catalog_version := CASE
+    WHEN TG_OP = 'DELETE' THEN OLD.catalog_version
+    ELSE NEW.catalog_version
+  END;
   IF EXISTS (
     SELECT 1 FROM app.crossfit_catalog_versions
     WHERE catalog_version = v_catalog_version AND status = 'active'
@@ -187,7 +190,10 @@ BEGIN
     RAISE EXCEPTION 'active CrossFit catalog % is immutable', v_catalog_version
       USING ERRCODE = '55000';
   END IF;
-  RETURN COALESCE(NEW, OLD);
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+  RETURN NEW;
 END;
 $$;
 
@@ -203,7 +209,7 @@ BEGIN
     v_trigger := 'trg_' || v_table || '_immutable_active';
     EXECUTE format('DROP TRIGGER IF EXISTS %I ON app.%I', v_trigger, v_table);
     EXECUTE format(
-      'CREATE TRIGGER %I BEFORE UPDATE OR DELETE ON app.%I '
+      'CREATE TRIGGER %I BEFORE INSERT OR UPDATE OR DELETE ON app.%I '
       'FOR EACH ROW EXECUTE FUNCTION app.crossfit_reject_active_catalog_mutation()',
       v_trigger, v_table
     );
@@ -236,6 +242,7 @@ DECLARE
   v_policy text;
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+    GRANT USAGE ON SCHEMA app TO authenticated;
     IF NOT EXISTS (
       SELECT 1 FROM pg_policies
       WHERE schemaname = 'app' AND tablename = 'crossfit_catalog_versions'
@@ -270,6 +277,7 @@ BEGIN
   END IF;
 
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+    GRANT USAGE ON SCHEMA app TO service_role;
     GRANT ALL ON app.crossfit_catalog_versions, app.crossfit_movements,
       app.crossfit_movement_variants, app.crossfit_movement_edges,
       app.crossfit_benchmark_workouts, app.crossfit_movement_media,

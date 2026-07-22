@@ -125,6 +125,7 @@ DECLARE
   v_policy text;
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+    GRANT USAGE ON SCHEMA app TO authenticated;
     FOREACH v_table IN ARRAY ARRAY[
       'crossfit_v2_results', 'crossfit_v2_autoreg_events', 'crossfit_v2_autoreg_snapshots'
     ] LOOP
@@ -147,6 +148,7 @@ BEGIN
   END IF;
 
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+    GRANT USAGE ON SCHEMA app TO service_role;
     GRANT ALL ON app.crossfit_v2_results,
       app.crossfit_v2_autoreg_events,
       app.crossfit_v2_autoreg_snapshots TO service_role;

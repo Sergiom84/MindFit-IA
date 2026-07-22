@@ -24,6 +24,7 @@ efímero y nunca debe sustituirse por producción.
 | Calendario y metadata canónica     | docs 05/17                    | schedule adapter + metadata hydrator        | bloque 8/10/12, day_id, fail-closed         | COMPLETADO_GATE_BD_E2E     |
 | WOD player y feedback              | docs 14/16/17                 | player + effort modal + result adapter      | formatos, cap, escalas, score y error       | COMPLETADO_GATE_E2E        |
 | Flujos completos                   | docs 05/17                    | front-back-BD                               | unit/contract verdes; matriz E2E pendiente  | EN_PROGRESO_GATE_E2E       |
-| Migración y RLS                    | docs 04/08/16                 | catálogo + results/autoreg SQL              | estático verde; up/status/RLS en CI         | PENDIENTE_QA_BD            |
-| Regresión ajena                    | guardas repositorio           | sin cambios en motores ajenos               | 336/336 unit; E2E/golden UI pendiente       | PARCIAL_GATE_E2E           |
+| Migración y RLS                    | docs 04/08/16                 | catálogo + results/autoreg SQL              | estático verde; CI efímero preparado        | PENDIENTE_EJECUCION_CI     |
+| Regresión ajena                    | guardas repositorio           | sin cambios en motores ajenos               | 341/341 unit; E2E/golden UI pendiente       | PARCIAL_GATE_E2E           |
+| QA fail-closed                     | docs 09                       | CI + localQaGuard + Playwright              | local-only; 8 E2E descubiertos              | PREPARADO_GATE_CI          |
 | Validación humana/legal            | docs 01/07/09/10              | gate preproducción                          | acta externa                                | REQUIERE_VALIDACION_HUMANA |

@@ -4,25 +4,20 @@
 // Cada combo: registrar-o-reusar usuario → generar plan manual → confirmar →
 // completar TODAS las sesiones → verificar progreso y filtro de lesiones → limpiar plan.
 //
-// Requisitos: backend en http://localhost:3010 y DATABASE_URL en backend/.env.
+// Requisitos: backend y PostgreSQL efímero en localhost. La suite aborta antes
+// de crear usuarios si cualquier URL sale del host local.
 // Uso:
 //   npx playwright test regresion-metodologias --project=regresion-api
 //   MATRIX_QUICK=1 ...   → solo la primera semana de cada combo (humo rápido)
 //   MATRIX_ONLY=calistenia,crossfit ...  → filtra por metodología
 //
-// Corre en serie (workers=1) para no agotar el pooler de Supabase.
-//
-// ⚠️ POOLER: contra la BD de producción (Supabase, pool_size=15) ejecutar los 13 combos
-// de una vez satura el pooler a partir de ~7 combos (EMAXCONNSESSION). Para una corrida
-// verde completa contra prod, ejecuta por lotes con MATRIX_ONLY, p. ej.:
-//   MATRIX_ONLY=calistenia,crossfit,casa npx playwright test --project=regresion-api
-//   MATRIX_ONLY=funcional,halterofilia,powerlifting,heavy_duty,hipertrofiav2 ...
-// El pooler se recupera solo entre lotes. QUICK reduce sesiones pero no la presión de picos.
+// Nunca debe ejecutarse contra Supabase/Render ni otra URL remota.
 
 import { test, expect } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { resolveLocalQaGateFromEnv } from './helpers/localQaGuard.js';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -34,10 +29,13 @@ const BASE = process.env.QA_BASE || 'http://localhost:3010';
 const QUICK = !!process.env.MATRIX_QUICK;
 const ONLY = (process.env.MATRIX_ONLY || '').split(',').map(s => s.trim()).filter(Boolean);
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false }, max: 1 });
-// El pooler de Supabase cierra conexiones idle; sin este handler el evento 'error'
-// del cliente revienta el test aunque la query tenga su propio .catch.
-pool.on('error', () => {});
+const LOCAL_QA_GATE = resolveLocalQaGateFromEnv(process.env);
+const pool = LOCAL_QA_GATE.enabled
+  ? new Pool({ connectionString: LOCAL_QA_GATE.databaseUrl, max: 1 })
+  : null;
+// Una conexión local puede cerrarse al destruir el stack; el handler evita que
+// ese evento oculte el resultado del test que ya está terminando.
+pool?.on('error', () => {});
 
 // --- Usuarios canónicos de la suite (se crean si no existen) ---
 const PASSWORD = 'QaTest1234!';
@@ -78,8 +76,8 @@ let COMBOS = [
 if (ONLY.length) COMBOS = COMBOS.filter(([m]) => ONLY.includes(m));
 
 // Reintenta SOLO ante error de red transitorio (ECONNRESET por reinicio de nodemon en
-// dev). NO reintenta 5xx: cuando el pooler de Supabase se agota (pool_size=15) los 500
-// no se recuperan dentro del run y reintentar agrava la saturación (retry storm).
+// dev). NO reintenta 5xx: un fallo del backend local no se corrige generando una
+// tormenta de reintentos.
 async function api(method, p, token, body, attempt = 0) {
   try {
     const r = await fetch(BASE + p, {
@@ -108,7 +106,8 @@ async function ensureUser(key) {
     edad: 30, sexo: 'masculino', peso: 78, altura: 178,
     anosEntrenando: 3, nivelActividad: 'moderado',
     limitacionesFisicas: u.limitaciones,
-    objetivoPrincipal: 'ganar_musculo', enfoqueEntrenamiento: 'mixto',
+    objetivoPrincipal: 'ganar_masa_muscular', enfoqueEntrenamiento: 'fuerza',
+    acceptTerms: true,
   });
   if (!reg.j.token) throw new Error(`No se pudo crear/loguear ${u.email}: ${reg.status} ${JSON.stringify(reg.j).slice(0, 160)}`);
   return reg.j.token;
@@ -136,10 +135,11 @@ const DAY_FULL = { Lun: 'Lunes', Mar: 'Martes', Mie: 'Miercoles', 'Mié': 'Mierc
 
 // Tests independientes ejecutados en serie por `workers: 1` (no 'serial' mode:
 // así un combo que falle no aborta el resto y el informe cubre toda la matriz).
-test.afterAll(async () => { await pool.end().catch(() => {}); });
+test.afterAll(async () => { await pool?.end().catch(() => {}); });
 
 for (const [methodology, level, userKey] of COMBOS) {
   test(`${methodology} · ${level} · ${userKey}`, async () => {
+    test.skip(!LOCAL_QA_GATE.enabled, LOCAL_QA_GATE.reason);
     test.setTimeout(QUICK ? 120_000 : 600_000);
     const u = USERS[userKey];
     const token = await ensureUser(userKey);

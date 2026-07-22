@@ -24,7 +24,7 @@ El nombre publico recomendado es **Acondicionamiento funcional de alta intensida
 | Seguridad                        | Stop rules y matriz por patron/sintoma definidas                 | Evaluador previo al composer; contratos clínicos externos pendientes      |
 | Nutricion                        | Algoritmo por objetivo, carga y nivel definido                   | Adapter canónico implementado; rollout bloqueado por BD/shadow/aprobación |
 | Flujos                           | Contratos front-back-BD y errores trazados                       | Plan/single-day/calendario/player/cierre integrados; E2E/RLS pendientes   |
-| QA                               | Oraculos, perfiles y gates cuantificados                         | 336/336 backend y 30.000 gate post-merge; BD/E2E/humanos pendientes       |
+| QA                               | Oraculos, perfiles y gates cuantificados                         | 341/341 backend y 30.000 gate; CI DB/RLS/E2E preparado, no ejecutado      |
 
 ## Decisiones no negociables
 

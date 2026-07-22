@@ -68,7 +68,7 @@ sin PII. Activar en orden: generation/results -> shadow training load -> validar
 métricas -> `emits_training_load` -> shadow nutrition -> active nutrition con aprobación expresa.
 
 Verificación local: 49/49 focalizados, matriz 3 niveles x 4 objetivos x D0/D1/D2,
-336/336 backend y lint. DoD operativo aún pendiente: valid load >=99 %, degraded
+341/341 backend y lint. DoD operativo aún pendiente: valid load >=99 %, degraded
 <1 % justificado, cero duplicado outbox, menú idempotente en BD aislada y shadow.
 Rollback: flags nutrition/load off, conservar eventos.
 

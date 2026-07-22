@@ -115,7 +115,9 @@ test("CrossFit migración: aditiva, idempotente, RLS y catálogo activo inmutabl
   assert.match(sql, /CREATE TABLE IF NOT EXISTS app\.crossfit_movement_variants/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS app\.crossfit_benchmark_workouts/);
   assert.match(sql, /ENABLE ROW LEVEL SECURITY/g);
+  assert.match(sql, /GRANT USAGE ON SCHEMA app TO authenticated/);
   assert.match(sql, /crossfit_reject_active_catalog_mutation/);
+  assert.match(sql, /BEFORE INSERT OR UPDATE OR DELETE/);
   assert.match(sql, /crossfit_validate_movement_edge_target/);
   assert.doesNotMatch(sql, /(?:UPDATE|DELETE FROM|TRUNCATE)\s+app\."Ejercicios_CrossFit"/i);
   assert.doesNotMatch(sql, /(?:UPDATE|DELETE FROM|TRUNCATE)\s+app\.methodology_exercise_sessions/i);
@@ -123,6 +125,11 @@ test("CrossFit migración: aditiva, idempotente, RLS y catálogo activo inmutabl
 });
 
 test("CrossFit importador: dry-run valida y --apply rechaza host de producción", () => {
+  const source = fs.readFileSync(new URL("../scripts/import-crossfit-v2-catalog.mjs", import.meta.url), "utf8");
+  assert.match(source, /already_active_verified/);
+  assert.match(source, /content_hash !== catalog\.content_hash/);
+  assert.match(source, /local_ephemeral_noop/);
+
   const dry = spawnSync(process.execPath, ["scripts/import-crossfit-v2-catalog.mjs"], {
     cwd: new URL("..", import.meta.url),
     encoding: "utf8"
