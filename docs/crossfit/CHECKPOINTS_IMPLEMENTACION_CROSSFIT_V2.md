@@ -17,19 +17,19 @@ Estado global: `EN_PROGRESO`
 
 ## Estado de fases
 
-| Fase                          | Estado                      | Evidencia / gate                                           |
-| ----------------------------- | --------------------------- | ---------------------------------------------------------- |
-| A. Baseline y DoR             | `COMPLETADA_CON_LIMITACION` | 231/231 unit, lint, build; integración requiere BD efímera |
-| B. Contratos/versionado/flags | `COMPLETADA`                | 8/8 específicos; suite 239/239; lint; flags off            |
-| C. Catálogo/seguridad         | `COMPLETADA_CON_GATE_BD`    | 13/13; 92+104+236; 120/120; SQL/RLS requiere BD efímera    |
-| D. Clasificación              | `COMPLETADA_TECNICA`        | level-model/2.0.0; 11/11 decisiones y límites              |
-| E. Programación por nivel     | `COMPLETADA_TECNICA`        | bloques 8/10/12; seis frecuencias; 12/12 tests             |
-| F. Composer/validadores       | `COMPLETADA_TECNICA`        | 30.000 planes + 30.000 regeneraciones; cero hard violation |
-| G. Flujos de producto         | `PENDIENTE`                 | contratos, persistencia y E2E por flujo                    |
-| H. Resultados/autorregulación | `PENDIENTE`                 | siete estados, eventos idempotentes                        |
-| I. Training load/nutrición    | `PENDIENTE_FLAG_OFF`        | shadow primero; activación requiere aprobación             |
-| J. QA integral                | `PENDIENTE`                 | unit/contract/integration/E2E/regresión                    |
-| K. Validaciones externas      | `GATE_PREPRODUCCION`        | entrenador, nutricionista, clínico si aplica y legal       |
+| Fase                          | Estado                      | Evidencia / gate                                            |
+| ----------------------------- | --------------------------- | ----------------------------------------------------------- |
+| A. Baseline y DoR             | `COMPLETADA_CON_LIMITACION` | 231/231 unit, lint, build; integración requiere BD efímera  |
+| B. Contratos/versionado/flags | `COMPLETADA`                | 8/8 específicos; suite 239/239; lint; flags off             |
+| C. Catálogo/seguridad         | `COMPLETADA_CON_GATE_BD`    | 13/13; 92+104+236; 120/120; SQL/RLS requiere BD efímera     |
+| D. Clasificación              | `COMPLETADA_TECNICA`        | level-model/2.0.0; 11/11 decisiones y límites               |
+| E. Programación por nivel     | `COMPLETADA_TECNICA`        | bloques 8/10/12; seis frecuencias; 12/12 tests              |
+| F. Composer/validadores       | `COMPLETADA_TECNICA`        | 30.000 planes + 30.000 regeneraciones; cero hard violation  |
+| G. Flujos de producto         | `EN_PROGRESO`               | feedback plan/single-day conectado; generación/E2E abiertos |
+| H. Resultados/autorregulación | `COMPLETADA_CON_GATE_BD`    | siete estados; 18/18 específicos; SQL/RLS requiere BD       |
+| I. Training load/nutrición    | `PENDIENTE_FLAG_OFF`        | shadow primero; activación requiere aprobación              |
+| J. QA integral                | `PENDIENTE`                 | unit/contract/integration/E2E/regresión                     |
+| K. Validaciones externas      | `GATE_PREPRODUCCION`        | entrenador, nutricionista, clínico si aplica y legal        |
 
 ## Baseline reproducible
 
@@ -55,6 +55,24 @@ Estado global: `EN_PROGRESO`
 - `CROSSFIT_EMITS_TRAINING_LOAD=false` hasta contracts, outbox y métricas verdes.
 - `CROSSFIT_NUTRITION_LOAD=false` hasta shadow, métricas y aprobación.
 - Migraciones nuevas: solo archivo + test aislado; no aplicar en producción.
+
+## Gate técnico H
+
+- Contrato `crossfit-result/v2` estricto también en score, escalas, dolor,
+  readiness y provenance; no admite campos internos enviados por cliente.
+- Máquina pura de siete estados con prioridad de seguridad, dos señales para
+  deload, tres exposiciones para progreso, histéresis y convergencia fuera de orden.
+- Resultado, evento y snapshot se persisten transaccionalmente e idempotentes;
+  resultados/eventos son append-only y el snapshot materializado es mutable.
+- `planAutoregService` delega solo sesiones marcadas `crossfit-session/v2`; el
+  flag apagado y las sesiones legacy conservan su ruta histórica.
+- CrossFit v2 nunca deriva RPE de RIR. El cierre automático espera feedback y
+  el modal recoge RPE, técnica, dolor/red flag, readiness, escala y score medido.
+- Outbox real queda bajo `CROSSFIT_V2_RESULTS`, `CROSSFIT_EMITS_TRAINING_LOAD`
+  y `BRIDGE_OUTBOX_EMIT_ENABLED`; su fallo revierte solo el savepoint.
+- Verificación: 18/18 focalizados, 307/307 backend y lint quiet. La migración
+  `20260722_crossfit_v2_results_autoreg.sql` está preparada, no aplicada; up,
+  re-run y RLS cross-user siguen pendientes de PostgreSQL efímero/CI.
 
 ## Gate estadístico F
 

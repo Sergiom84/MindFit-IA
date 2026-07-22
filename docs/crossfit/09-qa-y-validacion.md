@@ -20,6 +20,23 @@ Los ocho formatos de metcon soportados aparecen en cada nivel. El runner usa per
 
 Este gate valida invariantes algorítmicas, no eficacia deportiva ni los flujos persistentes de producto.
 
+## Resultado ejecutado de resultados/autorregulación
+
+El 2026-07-22 quedaron verdes 18 pruebas focalizadas de resultado y máquina de
+estados, integradas en una suite backend de 307/307:
+
+- contrato estricto y carga real con RPE, sin RIR;
+- prioridad red flag/dolor/técnica e histéresis de bloqueo;
+- deload con dos señales independientes y progreso con tres exposiciones;
+- separación capacidad/skill, retorno, readiness y cambio de equipo;
+- convergencia con eventos fuera de orden e idempotencia por sesión;
+- ownership plan/sesión, `day_id`, flag off y espera de feedback;
+- ledger/snapshot append-only y migración/RLS validados estáticamente;
+- outbox bajo tres gates y fallo aislado por savepoint.
+
+No se contabilizan como verdes `up`, reejecución de migración ni RLS cross-user:
+este worktree no dispone de PostgreSQL/Docker efímero y producción no se usa.
+
 ## Perfiles
 
 [`data/qa_synthetic_profiles.csv`](./data/qa_synthetic_profiles.csv) contiene 32 perfiles: niveles, capacidades asimetricas, 2-5 dias, equipos, objetivos, dolor, red flags, pausas, fatiga, embarazo/posparto, hipertension, alergias, dieta, horario y nutricion.
@@ -65,7 +82,7 @@ No se fija un porcentaje estetico de movimientos (p. ej. 3 %) sin considerar equ
 - embarazo/posparto sin contrato no produce WOD;
 - lesion textual legacy no desbloquea nada;
 - pausa aplica reduccion exacta;
-- dos eventos de cierre repetidos producen un resultado/outbox;
+- dos eventos de cierre repetidos producen un resultado/outbox; cubierto a nivel unit/contrato;
 - evento fuera de orden converge al mismo snapshot o va a dead-letter explicita.
 
 ## Playwright

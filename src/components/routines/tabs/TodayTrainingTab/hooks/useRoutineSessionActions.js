@@ -427,7 +427,8 @@ export function useRoutineSessionActions({
             decision: null,
             saving: false,
             scale: closingScale,
-            sessionId: sid
+            sessionId: sid,
+            wodSummary: options?.wodSummary || null
           });
         }
 
@@ -479,7 +480,7 @@ export function useRoutineSessionActions({
   }, [effortModal.method, effortModal.sessionId, methodologyPlanId]);
 
   const handleEffortClose = useCallback(() => {
-    setEffortModal({ method: null, show: false, decision: null, saving: false, scale: 'rx', sessionId: null });
+    setEffortModal({ method: null, show: false, decision: null, saving: false, scale: 'rx', sessionId: null, wodSummary: null });
   }, []);
 
   const handleExerciseUpdate = useCallback(async (exerciseIndex, progressData) => {
@@ -547,7 +548,7 @@ export function useRoutineSessionActions({
           if (finished && fsid && !effortClosureHandledRef.current.has(fsid)) {
             effortClosureHandledRef.current.add(fsid);
             updateLocalState({ showSessionModal: false, pendingSessionData: null });
-            setEffortModal({ method: activeMethodKey, show: true, decision: null, saving: false, scale: 'rx', sessionId: fsid });
+            setEffortModal({ method: activeMethodKey, show: true, decision: null, saving: false, scale: 'rx', sessionId: fsid, wodSummary: null });
           }
         }
       }

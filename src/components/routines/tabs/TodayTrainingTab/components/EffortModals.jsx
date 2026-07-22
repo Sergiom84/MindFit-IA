@@ -46,6 +46,7 @@ export default function EffortModals({ effortModal, onSubmit, onClose }) {
         isLoading={effortModal.saving}
         result={effortModal.decision}
         defaultScale={effortModal.scale || 'rx'}
+        wodSummary={effortModal.wodSummary}
         onSubmit={onSubmit}
         onSkip={onClose}
         onContinue={onClose}

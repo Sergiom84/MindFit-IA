@@ -15,11 +15,11 @@
 | Benchmarks separados                 | docs 04/14                                                                             | entidad futura                                   |
 | Generador determinista               | doc 15 + composer/validator + 30.000 regeneraciones idénticas                          | integración de producto pendiente                |
 | Reason codes huérfanos               | 18 códigos usados por invariantes/nutrición añadidos al catálogo                       | cerrado: 63 totales; test de paridad obligatorio |
-| Autorreg profesional                 | doc 16                                                                                 | reducer/eventos no existen                       |
+| Autorreg profesional                 | doc 16 + reducer/result service + SQL                                                  | lógica cerrada; migración/RLS/E2E pendientes     |
 | Seguridad por patron/sintoma         | doc 07 + safety CSV                                                                    | contrato clinico/RLS/human review                |
 | Embarazo/posparto                    | bloqueo funcional y contrato definido                                                  | BLOQUEADO_CLINICAL_PROFILE_CONTRACT              |
 | Nutricion por nivel/objetivo/carga   | doc 03 + nutrition/load CSV                                                            | desarrollo flag off + dietista + shadow          |
-| Todos los flujos                     | docs 05/17                                                                             | varios actuales parciales/faltan                 |
+| Todos los flujos                     | docs 05/17 + feedback plan/single-day                                                  | generación/persistencia/E2E aún parciales        |
 | QA/oraculos/perfiles                 | doc 09 + 32 perfiles + invariantes; gate puro 30.000 verde                             | BD/E2E/humanos pendientes                        |
 | Roadmap/DoR/DoD/rollback             | doc 08 + checkpoints                                                                   | implementación iniciada                          |
 | Etiquetas de gate                    | maestro, docs 08/10 y operaciones                                                      | Fase 0 desbloqueada; rollout aún bloqueado       |

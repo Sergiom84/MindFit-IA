@@ -186,11 +186,11 @@ test("CrossFit v2: resultado, autorregulación y nutrición validan sus versione
     user_id: 10,
     status: "completed",
     completion: 1,
-    score: { rounds: 7, reps: 5 },
+    score: { type: "rounds_reps", rounds: 7, reps: 5 },
     scales: [{ movement_id: "air-squat", scale_id: "scaled" }],
     rpe: 7.5,
     technique: 3,
-    pain: { score: 0, locations: [], red_flags: [] },
+    pain: { score: 0, locations: [], quality: null, delta: 0, red_flag: false, acute_injury: false },
     readiness: { sleep: 4, fatigue: 2, recovery: 4, stress: 2 },
     actual_training_load: plannedLoad("completed"),
     recorded_at: "2026-08-03T10:00:00.000Z",
@@ -200,6 +200,8 @@ test("CrossFit v2: resultado, autorregulación y nutrición validan sus versione
     provenance: { source: "wod_player", confidence: "high" }
   };
   assert.equal(validateCrossfitResult(result).valid, true);
+  assert.equal(validateCrossfitResult({ ...result, readiness: { ...result.readiness, unknown: 1 } }).valid, false);
+  assert.equal(validateCrossfitResult({ ...result, score: { type: "time" } }).valid, false);
 
   const autoreg = {
     schema_version: CROSSFIT_VERSIONS.autoreg,

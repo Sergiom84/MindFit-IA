@@ -177,7 +177,8 @@ export default function TodayTrainingTab({
     decision: null,
     saving: false,
     scale: 'rx',
-    sessionId: null
+    sessionId: null,
+    wodSummary: null
   });
 
   // 🎯 Metodología del plan activo (para elegir player y modal de cierre correctos).

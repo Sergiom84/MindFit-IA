@@ -46,6 +46,7 @@ export default function EffortModals({ localState, handlers }) {
         isLoading={localState.isSavingEffort}
         result={localState.crossfitDecision}
         defaultScale={localState.crossfitWodScale || 'rx'}
+        wodSummary={localState.crossfitWodSummary}
         onSubmit={handleCrossfitEffortSubmit}
         onSkip={finishCrossfitEffort}
         onContinue={finishCrossfitEffort}

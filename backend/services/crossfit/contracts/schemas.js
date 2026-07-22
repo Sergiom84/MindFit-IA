@@ -223,19 +223,80 @@ export function validateCrossfitResult(value) {
   for (const key of ["result_id", "session_id", "plan_id", "day_id", "user_id"]) requireId(value[key], `result.${key}`, errors);
   requireEnum(value.status, RESULT_STATUSES, "result.status", errors);
   requireFiniteNumber(value.completion, "result.completion", errors, { min: 0, max: 1 });
-  if (!isPlainObject(value.score)) errors.push("result.score debe ser objeto");
-  if (!Array.isArray(value.scales)) errors.push("result.scales debe ser array");
+  if (rejectUnknownKeys(
+    value.score,
+    ["type", "elapsed_seconds", "rounds", "reps", "calories", "load", "distance_m", "quality"],
+    "result.score",
+    errors
+  )) {
+    requireKeys(value.score, ["type"], "result.score", errors);
+    requireEnum(value.score.type, SCORE_TYPES, "result.score.type", errors);
+    for (const key of ["elapsed_seconds", "rounds", "reps", "calories", "load", "distance_m"]) {
+      if (value.score[key] !== undefined) requireFiniteNumber(value.score[key], `result.score.${key}`, errors, { min: 0 });
+    }
+    if (value.score.quality !== undefined) requireString(value.score.quality, "result.score.quality", errors);
+    const requiredMetric = {
+      time: "elapsed_seconds", reps: "reps", calories: "calories",
+      load: "load", distance: "distance_m", quality: "quality"
+    }[value.score.type];
+    if (requiredMetric && value.score[requiredMetric] === undefined) {
+      errors.push(`result.score.${requiredMetric} es requerido para ${value.score.type}`);
+    }
+    if (value.score.type === "rounds_reps" && (value.score.rounds === undefined || value.score.reps === undefined)) {
+      errors.push("result.score.rounds y result.score.reps son requeridos para rounds_reps");
+    }
+  }
+  if (requireArray(value.scales, "result.scales", errors)) {
+    value.scales.forEach((scale, index) => {
+      const path = `result.scales[${index}]`;
+      if (!rejectUnknownKeys(scale, ["movement_id", "scale_id"], path, errors)) return;
+      requireKeys(scale, ["movement_id", "scale_id"], path, errors);
+      requireString(scale.movement_id, `${path}.movement_id`, errors);
+      requireString(scale.scale_id, `${path}.scale_id`, errors);
+    });
+  }
   requireFiniteNumber(value.rpe, "result.rpe", errors, { min: 1, max: 10, nullable: true });
   requireInteger(value.technique, "result.technique", errors, { min: 0, max: 3 });
-  if (!isPlainObject(value.pain)) errors.push("result.pain debe ser objeto");
-  if (!isPlainObject(value.readiness)) errors.push("result.readiness debe ser objeto");
+  if (rejectUnknownKeys(
+    value.pain,
+    ["score", "locations", "quality", "delta", "red_flag", "acute_injury"],
+    "result.pain",
+    errors
+  )) {
+    requireKeys(value.pain, ["score", "locations", "delta", "red_flag", "acute_injury"], "result.pain", errors);
+    requireFiniteNumber(value.pain.score, "result.pain.score", errors, { min: 0, max: 10 });
+    requireFiniteNumber(value.pain.delta, "result.pain.delta", errors, { min: -10, max: 10 });
+    if (requireArray(value.pain.locations, "result.pain.locations", errors)) {
+      value.pain.locations.forEach((location, index) => requireString(location, `result.pain.locations[${index}]`, errors));
+    }
+    if (value.pain.quality !== null && value.pain.quality !== undefined) {
+      requireString(value.pain.quality, "result.pain.quality", errors);
+    }
+    for (const key of ["red_flag", "acute_injury"]) {
+      if (typeof value.pain[key] !== "boolean") errors.push(`result.pain.${key} debe ser boolean`);
+    }
+  }
+  if (rejectUnknownKeys(value.readiness, ["sleep", "fatigue", "recovery", "stress"], "result.readiness", errors)) {
+    requireKeys(value.readiness, ["sleep", "fatigue", "recovery", "stress"], "result.readiness", errors);
+    for (const key of ["sleep", "fatigue", "recovery", "stress"]) {
+      requireInteger(value.readiness[key], `result.readiness.${key}`, errors, { min: 1, max: 5 });
+    }
+  }
   const load = validateTrainingLoad(value.actual_training_load, { mode: "strict" });
   if (!load.valid) errors.push(...load.errors.map((error) => `result.actual_training_load: ${error}`));
   requireIsoTimestamp(value.recorded_at, "result.recorded_at", errors);
   requireString(value.idempotency_key, "result.idempotency_key", errors);
   validateReasonCodes(value.reason_codes, "result.reason_codes", errors);
   validateDecisionTrace(value.decision_trace, "result.decision_trace", errors);
-  if (!isPlainObject(value.provenance)) errors.push("result.provenance debe ser objeto");
+  if (rejectUnknownKeys(value.provenance, [
+    "source", "confidence", "adherence_rate", "domain", "performance_delta",
+    "skill_candidate", "skill_prerequisites_met", "skill_id", "dangerous_misses",
+    "capacity_progressed_microcycle", "skill_progressed_microcycle",
+    "equipment_signature_changed", "readiness_cut", "srpe_ratio_7_28", "is_test"
+  ], "result.provenance", errors)) {
+    requireKeys(value.provenance, ["source"], "result.provenance", errors);
+    requireString(value.provenance.source, "result.provenance.source", errors);
+  }
   return contractResult(value, errors);
 }
 

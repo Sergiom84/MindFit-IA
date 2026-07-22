@@ -44,6 +44,7 @@ export function useMethodologyEffortActions({ localState, updateLocalState, navi
   const planId = localState.pendingSessionData?.methodology_plan_id
     ?? localState.pendingSessionData?.planId
     ?? null;
+  const sessionId = localState.pendingSessionData?.sessionId ?? null;
 
   const submitEffort = useCallback(async (method, payload) => {
     const config = EFFORT_CONFIG[method];
@@ -51,7 +52,10 @@ export function useMethodologyEffortActions({ localState, updateLocalState, navi
 
     updateLocalState({ isSavingEffort: true });
     try {
-      const response = await apiClient.post(config.endpoint, {
+      const endpoint = method === 'crossfit' && sessionId
+        ? `/routines/sessions/${sessionId}/effort`
+        : config.endpoint;
+      const response = await apiClient.post(endpoint, {
         methodologyPlanId: planId,
         ...payload
       });
@@ -63,7 +67,7 @@ export function useMethodologyEffortActions({ localState, updateLocalState, navi
     } finally {
       updateLocalState({ isSavingEffort: false });
     }
-  }, [planId, updateLocalState]);
+  }, [planId, sessionId, updateLocalState]);
 
   const finishEffort = useCallback((method) => {
     const config = EFFORT_CONFIG[method];
@@ -73,7 +77,8 @@ export function useMethodologyEffortActions({ localState, updateLocalState, navi
       [config.modalKey]: false,
       [config.decisionKey]: null,
       pendingSessionData: null,
-      ...config.finishState
+      ...config.finishState,
+      crossfitWodSummary: null
     });
     navigate('/routines', { state: { activeTab: 'today' } });
   }, [navigate, updateLocalState]);
@@ -88,8 +93,7 @@ export function useMethodologyEffortActions({ localState, updateLocalState, navi
     handleCasaEffortSubmit: ({ avgRir, targetMet, feeling = null }) =>
       submitEffort('casa', { avgRir, targetMet, feeling }),
     finishCasaEffort: () => finishEffort('casa'),
-    handleCrossfitEffortSubmit: ({ rpe, completed, scale, feeling = null }) =>
-      submitEffort('crossfit', { rpe, completed, scale, feeling }),
+    handleCrossfitEffortSubmit: (payload) => submitEffort('crossfit', payload),
     finishCrossfitEffort: () => finishEffort('crossfit'),
     handleHalterofiliaEffortSubmit: ({ rpe, targetMet, goodTechnique, feeling = null }) =>
       submitEffort('halterofilia', { rpe, targetMet, goodTechnique, feeling }),

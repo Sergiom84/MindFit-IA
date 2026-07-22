@@ -21,6 +21,9 @@
  * apply_microcycle_progression.
  */
 
+import { getCrossfitFeatureFlags } from '../crossfit/featureFlags.js';
+import { registerCrossfitV2Result } from '../crossfit/results/resultService.js';
+
 // Clave normalizada de metodología a partir de methodology_type del plan
 // ('Calistenia', 'CrossFit', 'Heavy Duty', 'Entrenamiento en Casa', ...).
 export function normalizeMethodologyKey(raw) {
@@ -151,10 +154,36 @@ async function accumulateDecision(client, userId, planId, methodologyKey, decisi
  */
 export async function registerSessionAutoreg(client, {
   userId, planId, sessionId, methodologyType,
-  subjective = null, manual = {}
+  subjective = null, manual = {}, requestId = null, idempotencyKey = null
 }) {
   const key = normalizeMethodologyKey(methodologyType);
   if (!SUPPORTED_KEYS.has(key)) return null;
+
+  // CrossFit v2 no comparte la heurística RIR ni los offsets genéricos. El adaptador
+  // comprueba además que la sesión sea realmente crossfit-session/v2; una sesión legacy
+  // sigue exactamente por el camino histórico aunque el flag global esté encendido.
+  if (key === 'crossfit' && getCrossfitFeatureFlags().results) {
+    const v2 = await registerCrossfitV2Result(client, {
+      userId,
+      planId,
+      sessionId,
+      manual,
+      requestId,
+      idempotencyKey,
+      allowPendingFeedback: manual.rpe == null
+    });
+    if (v2) {
+      return {
+        ...v2,
+        registered_at: v2.result?.recorded_at ?? null,
+        schema_version: v2.result?.schema_version ?? 'crossfit-result/v2',
+        source: v2.pendingFeedback ? 'crossfit_v2_pending_feedback' : 'crossfit_v2_result',
+        rpe: v2.result?.rpe ?? null,
+        technique: v2.result?.technique ?? null,
+        pain_score: v2.result?.pain?.score ?? null
+      };
+    }
+  }
 
   // Idempotencia por sesión
   const sesQ = await client.query(

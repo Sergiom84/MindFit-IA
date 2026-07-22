@@ -563,7 +563,8 @@ export default function MethodologiesModalLayer({
               showRoutineSessionModal: false,
               showCrossfitEffort: true,
               crossfitDecision: null,
-              crossfitWodScale: summary?.escala || 'rx'
+              crossfitWodScale: summary?.escala || 'rx',
+              crossfitWodSummary: summary || null
             });
           }}
         />

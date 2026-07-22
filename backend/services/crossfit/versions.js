@@ -18,6 +18,8 @@ export const CROSSFIT_LEVELS = Object.freeze([
 ]);
 
 export const CROSSFIT_LEGACY_LEVEL_ALIASES = Object.freeze({
+  basico: "beginner",
+  basic: "beginner",
   principiante: "beginner",
   beginner: "beginner",
   intermedio: "intermediate",

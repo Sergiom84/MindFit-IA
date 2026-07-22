@@ -98,6 +98,16 @@ Cambiar Scaled -> Rx solo si la variante Rx cumple skill/equipo, dos exposicione
 
 Cada decision guarda estado anterior/nuevo, ventana, features calculadas, reglas activadas, acciones por capacity/skill/scale, reason codes, ruleset y source events. Reprocesar el mismo evento es idempotente. Correcciones crean evento compensatorio, no UPDATE opaco.
 
-## Integracion futura
+## Estado de implementación
 
-`IMPLEMENTACION_EN_RAMA`: sustituir la heurística CrossFit de `planAutoregService.js`, ampliar resultado del player/modal y persistir decision trace. El consumo de `training.session_completed` y actual load por outbox se desarrolla con `CROSSFIT_V2_RESULTS=false` hasta superar tabla de transiciones, prioridad de seguridad, histéresis, idempotencia, eventos fuera de orden y carga histórica degradada.
+`COMPLETADA_CON_GATE_BD`: `stateMachine.js` implementa estas transiciones y
+`resultService.js` persiste resultado append-only, evento y snapshot dentro de la
+transacción del endpoint de esfuerzo. `planAutoregService.js` delega por adaptador
+solo si el flag está activo y la sesión declara `crossfit-session/v2`; no consulta
+RIR ni escribe offsets legacy. El modal CrossFit captura los inputs obligatorios y
+conserva score/tiempo del player.
+
+`20260722_crossfit_v2_results_autoreg.sql` está preparada, no aplicada. Los tests
+puros, de contrato y mocks transaccionales están verdes; migración real, RLS
+cross-user y E2E permanecen como gate de PostgreSQL efímero/CI. Los flags siguen
+en `false` y no se ha activado outbox ni nutrición.

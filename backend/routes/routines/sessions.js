@@ -762,7 +762,8 @@ router.post('/sessions/:sessionId/finish', authenticateToken, async (req, res) =
 // registrada al completarse, aquí solo se matiza lo subjetivo (feeling) y se
 // devuelve la decisión ya tomada. Si aún no está registrada (p.ej. sin series
 // logueadas), se registra usando los valores manuales del modal como fallback.
-// Body: { subjective?, feeling?, avgRir?, rpe?, targetMet?, goodTechnique?, reachedFailure?, completed?, scale? }
+// Body legacy: { subjective?, feeling?, avgRir?, rpe?, targetMet?, goodTechnique?, reachedFailure?, completed?, scale? }
+// Body CrossFit v2: añade technique, pain, readiness, score, scales, status y completion.
 router.post('/sessions/:sessionId/effort', authenticateToken, async (req, res) => {
   const client = await pool.connect();
   try {
@@ -772,7 +773,8 @@ router.post('/sessions/:sessionId/effort', authenticateToken, async (req, res) =
     const { sessionId } = req.params;
     const {
       subjective = null, feeling = null,
-      avgRir, rpe, targetMet, goodTechnique, reachedFailure, completed, scale
+      avgRir, rpe, targetMet, goodTechnique, reachedFailure, completed, scale,
+      technique, pain, readiness, score, scales, status, completion
     } = req.body || {};
 
     const ses = await client.query(
@@ -804,7 +806,12 @@ router.post('/sessions/:sessionId/effort', authenticateToken, async (req, res) =
       sessionId,
       methodologyType: row.methodology_type,
       subjective: subjScore,
-      manual: { avgRir, rpe, targetMet, goodTechnique, reachedFailure, completed, scale }
+      requestId: req.id ?? req.headers['x-request-id'] ?? null,
+      idempotencyKey: req.headers['idempotency-key'] ?? null,
+      manual: {
+        avgRir, rpe, targetMet, goodTechnique, reachedFailure, completed, scale,
+        technique, pain, readiness, score, scales, status, completion
+      }
     });
 
     // Si ya estaba registrada objetivamente, guardar al menos el matiz subjetivo.
@@ -831,7 +838,12 @@ router.post('/sessions/:sessionId/effort', authenticateToken, async (req, res) =
   } catch (e) {
     await client.query('ROLLBACK');
     console.error('Error registrando esfuerzo de sesión:', e);
-    res.status(500).json({ success: false, error: 'Error interno' });
+    const status = Number.isInteger(e?.status) && e.status >= 400 && e.status < 500 ? e.status : 500;
+    res.status(status).json({
+      success: false,
+      error: status === 500 ? 'Error interno' : e.message,
+      code: e?.code ?? 'SESSION_EFFORT_FAILED'
+    });
   } finally {
     client.release();
   }

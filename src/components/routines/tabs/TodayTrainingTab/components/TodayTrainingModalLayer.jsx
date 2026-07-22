@@ -95,7 +95,7 @@ export default function TodayTrainingModalLayer({
               onClose={closeSession}
               onFinishExercise={handleExerciseUpdate}
               onCompleteSession={(summary) => {
-                handleCompleteSession({ scale: summary?.escala || "rx" });
+                handleCompleteSession({ scale: summary?.escala || "rx", wodSummary: summary || null });
               }}
             />
           ) : (
