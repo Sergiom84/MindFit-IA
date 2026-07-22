@@ -6,21 +6,21 @@
 | Fuentes cientificas correctas        | doc 01 corrige PMID, excluye retractado, describe diseno/limites                       | evidencia futura puede actualizar ruleset        |
 | Marca/licencia                       | doc 01 + default neutral                                                               | decision/legal review                            |
 | Niveles objetivos                    | doc 02 + niveles CSV                                                                   | umbrales requieren coach validation              |
-| Asimetrias/confianza/retorno         | doc 02                                                                                 | implementacion pendiente                         |
-| Programacion separada                | docs 11/12/13                                                                          | implementacion y muestra humana                  |
+| Asimetrias/confianza/retorno         | doc 02 + `classification/levelModel.js`                                                | validación humana de umbrales                    |
+| Programacion separada                | docs 11/12/13 + bloques 8/10/12 testeados                                              | muestra humana                                   |
 | WOD formal                           | doc 14 + WOD CSV                                                                       | calibrar p75 con datos propios                   |
-| Repeticion/interferencia             | doc 14 + invariantes CSV                                                               | property tests futuros                           |
+| Repeticion/interferencia             | doc 14 + invariantes + gate 30.000                                                     | E2E/persistencia futura                          |
 | Catalogo 120 fila a fila             | audit CSV 120/120                                                                      | BD no modificada                                 |
 | Canonico completo y altas            | canonical CSV + reference JSON + operations CSV                                        | editorial/media/human review                     |
 | Benchmarks separados                 | docs 04/14                                                                             | entidad futura                                   |
-| Generador determinista               | doc 15 + invariantes/reasons                                                           | codigo no existe                                 |
+| Generador determinista               | doc 15 + composer/validator + 30.000 regeneraciones idénticas                          | integración de producto pendiente                |
 | Reason codes huérfanos               | 18 códigos usados por invariantes/nutrición añadidos al catálogo                       | cerrado: 63 totales; test de paridad obligatorio |
 | Autorreg profesional                 | doc 16                                                                                 | reducer/eventos no existen                       |
 | Seguridad por patron/sintoma         | doc 07 + safety CSV                                                                    | contrato clinico/RLS/human review                |
 | Embarazo/posparto                    | bloqueo funcional y contrato definido                                                  | BLOQUEADO_CLINICAL_PROFILE_CONTRACT              |
 | Nutricion por nivel/objetivo/carga   | doc 03 + nutrition/load CSV                                                            | desarrollo flag off + dietista + shadow          |
 | Todos los flujos                     | docs 05/17                                                                             | varios actuales parciales/faltan                 |
-| QA/oraculos/perfiles                 | doc 09 + 32 perfiles + invariantes                                                     | ejecutar tras implementacion                     |
+| QA/oraculos/perfiles                 | doc 09 + 32 perfiles + invariantes; gate puro 30.000 verde                             | BD/E2E/humanos pendientes                        |
 | Roadmap/DoR/DoD/rollback             | doc 08 + checkpoints                                                                   | implementación iniciada                          |
 | Etiquetas de gate                    | maestro, docs 08/10 y operaciones                                                      | Fase 0 desbloqueada; rollout aún bloqueado       |
 | PDF maestro                          | PDF consolidado, extraccion y render de todas las paginas                              | verificacion visual repetida tras ultima edicion |

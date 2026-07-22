@@ -11,11 +11,11 @@ efímero y nunca debe sustituirse por producción.
 | Reason codes centralizados         | data/reason_codes.csv         | `backend/services/crossfit/reasonCodes.js`  | paridad 64/64; cero huérfanos              | COMPLETADO                 |
 | Catálogo canónico 92               | docs 04 + data                | repository + migración aditiva              | 92/92 + 104 variants + 236 edges; 120/120  | COMPLETADO_GATE_BD         |
 | Safety antes de composer           | docs 07                       | `backend/services/crossfit/safety/`         | prioridades stop/block/substitute          | COMPLETADO                 |
-| Level-model/2.0.0                  | docs 02/11-13                 | `backend/services/crossfit/classification/` | boundary/asimetría/retorno                 | PENDIENTE                  |
-| Bloques 8/10/12                    | docs 11/12/13                 | `backend/services/crossfit/programming/`    | cuotas/deload/reeval                       | PENDIENTE                  |
-| Composer determinista              | docs 14/15                    | `backend/services/crossfit/generator/`      | seed, score, fallback                      | PENDIENTE                  |
-| 44 invariantes                     | data/generator_invariants.csv | validators por ámbito                       | 44/44 + statistical                        | PENDIENTE                  |
-| 30.000 planes mínimos              | docs 09/15                    | suite estadística                           | cero hard violation                        | PENDIENTE                  |
+| Level-model/2.0.0                  | docs 02/11-13                 | `backend/services/crossfit/classification/` | 11/11 boundary/asimetría/retorno           | COMPLETADO_TECNICO         |
+| Bloques 8/10/12                    | docs 11/12/13                 | `backend/services/crossfit/programming/`    | 12/12 cuotas/deload/reeval                 | COMPLETADO_TECNICO         |
+| Composer determinista              | docs 14/15                    | `backend/services/crossfit/generator/`      | seed, score, fallback y 500 nodos          | COMPLETADO_TECNICO         |
+| 44 invariantes                     | data/generator_invariants.csv | validators por ámbito                       | paridad 44/44 + negativos                  | COMPLETADO_TECNICO         |
+| 30.000 planes mínimos              | docs 09/15                    | runner estadístico paralelo                 | 30k + 30k regen; cero hard violation       | COMPLETADO_TECNICO         |
 | Single-day y plan                  | docs 05/17                    | adaptadores existentes                      | contract/integration/E2E                   | PENDIENTE                  |
 | Resultado WOD v2                   | docs 16/17                    | route/service/migration                     | idempotencia/out-of-order                  | PENDIENTE                  |
 | Autorregulación 7 estados          | docs 16                       | reducer + snapshot                          | tabla de transición/prioridad              | PENDIENTE                  |

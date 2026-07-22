@@ -22,9 +22,9 @@ Estado global: `EN_PROGRESO`
 | A. Baseline y DoR             | `COMPLETADA_CON_LIMITACION` | 231/231 unit, lint, build; integración requiere BD efímera |
 | B. Contratos/versionado/flags | `COMPLETADA`                | 8/8 específicos; suite 239/239; lint; flags off            |
 | C. Catálogo/seguridad         | `COMPLETADA_CON_GATE_BD`    | 13/13; 92+104+236; 120/120; SQL/RLS requiere BD efímera    |
-| D. Clasificación              | `PENDIENTE`                 | level-model/2.0.0 y tabla de decisiones                    |
-| E. Programación por nivel     | `PENDIENTE`                 | bloques 8/10/12 y frecuencias 2-3/3-4/4-5                  |
-| F. Composer/validadores       | `PENDIENTE`                 | 10.000 planes por nivel, cero hard violations              |
+| D. Clasificación              | `COMPLETADA_TECNICA`        | level-model/2.0.0; 11/11 decisiones y límites              |
+| E. Programación por nivel     | `COMPLETADA_TECNICA`        | bloques 8/10/12; seis frecuencias; 12/12 tests             |
+| F. Composer/validadores       | `COMPLETADA_TECNICA`        | 30.000 planes + 30.000 regeneraciones; cero hard violation |
 | G. Flujos de producto         | `PENDIENTE`                 | contratos, persistencia y E2E por flujo                    |
 | H. Resultados/autorregulación | `PENDIENTE`                 | siete estados, eventos idempotentes                        |
 | I. Training load/nutrición    | `PENDIENTE_FLAG_OFF`        | shadow primero; activación requiere aprobación             |
@@ -55,6 +55,17 @@ Estado global: `EN_PROGRESO`
 - `CROSSFIT_EMITS_TRAINING_LOAD=false` hasta contracts, outbox y métricas verdes.
 - `CROSSFIT_NUTRITION_LOAD=false` hasta shadow, métricas y aprobación.
 - Migraciones nuevas: solo archivo + test aislado; no aplicar en producción.
+
+## Gate estadístico F
+
+- Runner: `backend/scripts/qa-crossfit-generator-statistical.mjs`.
+- Ejecución: `--per-level=10000 --workers=8` sobre catálogo canónico normalizado.
+- Resultado: `passed` en 527.253 ms; 10.000/10.000 por nivel y 5.000 por frecuencia soportada.
+- Reproducibilidad: 30.000 regeneraciones, `non_reproducible=0`.
+- Seguridad: `hard_violations=0`, `unavailable_equipment=0`, `contraindicated=0`, `invalid=0`.
+- Cobertura: AMRAP, EMOM, E2MOM, E3MOM, For Time, RFT, Chipper e Intervals presentes en los tres niveles.
+- SHA-256 del informe efímero verificado: `66246f862c058ce8496ffcd03c36472f4ca97e028ebfe1b4f718e16d30a19db6`.
+- El JSON bruto permanece fuera del entregable; este resumen y el runner reproducible son la evidencia versionada.
 
 ## Criterio de cierre técnico
 

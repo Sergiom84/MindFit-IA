@@ -1,6 +1,24 @@
 # QA, oraculos y validacion humana
 
-No se presenta la suite legacy como validacion de v2. El ultimo resultado historico documentado fue 74/78, con cuatro fallos de nutricion no CrossFit; solo demuestra el estado de aquella suite. La especificacion nueva aun no tiene codigo que ejecutar.
+No se presenta la suite legacy como validacion de v2. La implementación dispone ya de contratos, clasificación, programación, catálogo, seguridad y composer puros; integración BD/E2E y validación humana siguen abiertas.
+
+## Resultado ejecutado del gate estadístico
+
+El 2026-07-22 se ejecutó `backend/scripts/qa-crossfit-generator-statistical.mjs --per-level=10000 --workers=8`:
+
+| Métrica                     | Principiante  | Intermedio    | Avanzado      | Gate      |
+| --------------------------- | ------------- | ------------- | ------------- | --------- |
+| Planes completos            | 10.000        | 10.000        | 10.000        | cumplido  |
+| Regeneraciones misma seed   | 10.000        | 10.000        | 10.000        | idénticas |
+| Planes inválidos            | 0             | 0             | 0             | cumplido  |
+| Hard invariant violations   | 0             | 0             | 0             | cumplido  |
+| Equipo ausente seleccionado | 0             | 0             | 0             | cumplido  |
+| Movimiento contraindicado   | 0             | 0             | 0             | cumplido  |
+| Frecuencias por nivel       | 5.000 + 5.000 | 5.000 + 5.000 | 5.000 + 5.000 | cumplido  |
+
+Los ocho formatos de metcon soportados aparecen en cada nivel. El runner usa perfiles con equipo completo, sin equipo, equipo limitado y dolor de hombro; no consulta BD ni red. Duración: 527.253 ms. Hash SHA-256 del informe efímero: `66246f862c058ce8496ffcd03c36472f4ca97e028ebfe1b4f718e16d30a19db6`.
+
+Este gate valida invariantes algorítmicas, no eficacia deportiva ni los flujos persistentes de producto.
 
 ## Perfiles
 
@@ -64,6 +82,7 @@ No se crean usuarios ni datos reales ahora. La ejecucion futura usa fixtures tra
 - comprobacion de 120 IDs auditados y referencias documentales;
 - lectura de schema/origin/main;
 - tests legacy no destructivos si aportan contexto, sin atribuirlos a v2.
+- unit/contract de CrossFit y runner estadístico puro, sin BD.
 
 ### Desbloqueado para implementación, flag off
 
@@ -85,9 +104,9 @@ Antes de migracion: entrenador cualificado revisa umbrales, progresiones, 120 ma
 
 ## Checklist de salida
 
-- [ ] Fase 0 firmada y branch creada.
+- [x] Fase 0 compartida desbloqueada para desarrollo y branch aislada creada.
 - [ ] Catalogo versionado, validado, RLS y rollback.
-- [ ] > =30.000 planes total, cero hard invariant.
+- [x] > =30.000 planes total, cero hard invariant y 30.000 regeneraciones idénticas.
 - [ ] APIs, outbox y nutricion idempotentes.
 - [ ] E2E movil/escritorio/offline verde.
 - [ ] Regresion ajena verde sin modificar otras metodologias.
