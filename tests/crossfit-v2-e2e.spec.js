@@ -94,6 +94,19 @@ async function ensureUser(request, email, frequency) {
   return { token: registration.body.token, userId: registration.body.user.id };
 }
 
+async function loginThroughUi(page, email) {
+  await page.goto(`${QA_GATE.appBase}/login`, {
+    waitUntil: "domcontentloaded",
+  });
+  const loginForm = page.locator("form");
+  await loginForm.locator('input[name="email"]').fill(email);
+  await loginForm.locator('input[name="password"]').fill(PASSWORD);
+  const submit = loginForm.locator('button[type="submit"]');
+  await expect(submit).toBeEnabled();
+  await submit.click();
+  await page.waitForURL((url) => !url.pathname.includes("login"));
+}
+
 function assessment(score, { trusted = false } = {}) {
   if (score == null) return undefined;
   const dimensions = [
@@ -641,15 +654,7 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
     nextWednesday.setHours(10, 0, 0, 0);
     await page.clock.setFixedTime(nextWednesday);
 
-    await page.goto(`${QA_GATE.appBase}/login`, {
-      waitUntil: "domcontentloaded",
-    });
-    await page.locator('input[name="email"]').fill(email);
-    await page.locator('input[name="password"]').fill(PASSWORD);
-    await page
-      .getByRole("button", { name: "Iniciar Sesión", exact: true })
-      .click();
-    await page.waitForURL((url) => !url.pathname.includes("login"));
+    await loginThroughUi(page, email);
     await page.goto(`${QA_GATE.appBase}/methodologies`, {
       waitUntil: "domcontentloaded",
     });
@@ -701,15 +706,7 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
       LEVEL_CASES[0],
       "ui",
     );
-    await page.goto(`${QA_GATE.appBase}/login`, {
-      waitUntil: "domcontentloaded",
-    });
-    await page.locator('input[name="email"]').fill(provisioned.email);
-    await page.locator('input[name="password"]').fill(PASSWORD);
-    await page
-      .getByRole("button", { name: "Iniciar Sesión", exact: true })
-      .click();
-    await page.waitForURL((url) => !url.pathname.includes("login"));
+    await loginThroughUi(page, provisioned.email);
     await page.goto(`${QA_GATE.appBase}/routines`, {
       waitUntil: "domcontentloaded",
     });
