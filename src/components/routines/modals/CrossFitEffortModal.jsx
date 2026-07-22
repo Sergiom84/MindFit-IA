@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, Check, Flame, X } from 'lucide-react';
 
 import {
@@ -211,10 +212,15 @@ export default function CrossFitEffortModal({
 
   if (result) {
     const copy = RESULT_COPY[result] || RESULT_COPY.hold;
-    return (
-      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4">
+    return createPortal(
+      <div
+        className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="crossfit-effort-result-title"
+      >
         <div className="w-full max-w-md rounded-2xl border border-white/10 border-l-2 border-l-yellow-400/40 bg-neutral-900/95 p-6 text-center shadow-2xl backdrop-blur-xl">
-          <h2 className="font-urbanist text-xl font-semibold text-white">{copy.title}</h2>
+          <h2 id="crossfit-effort-result-title" className="font-urbanist text-xl font-semibold text-white">{copy.title}</h2>
           <p className="mt-2 text-sm text-gray-300">{copy.msg}</p>
           <button
             onClick={onContinue}
@@ -223,19 +229,25 @@ export default function CrossFitEffortModal({
             Continuar
           </button>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-3 sm:p-4">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-3 sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="crossfit-effort-title"
+    >
       <div className="flex max-h-[94vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-white/10 border-l-2 border-l-yellow-400/40 bg-neutral-900/95 shadow-2xl backdrop-blur-xl">
         <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4 sm:px-6">
           <div className="rounded-xl bg-yellow-500/10 p-3 text-yellow-300">
             <Flame className="h-6 w-6" />
           </div>
           <div>
-            <h2 className="font-urbanist text-lg font-semibold text-white">Cierre del WOD</h2>
+            <h2 id="crossfit-effort-title" className="font-urbanist text-lg font-semibold text-white">Cierre del WOD</h2>
             <p className="text-sm text-gray-400">Registra rendimiento, técnica y recuperación.</p>
           </div>
         </div>
@@ -590,6 +602,7 @@ export default function CrossFitEffortModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -763,20 +763,22 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
 
     await page.getByRole("button", { name: "Finalizar antes" }).click();
     await page.getByRole("button", { name: "Guardar parcial" }).click();
-    await expect(
-      page.getByRole("heading", { name: "Cierre del WOD" }),
-    ).toBeVisible();
-    await page.getByRole("button", { name: "8", exact: true }).click();
-    await expect(
-      page.getByRole("button", { name: "8", exact: true }),
-    ).toHaveAttribute("aria-pressed", "true");
+    const effortDialog = page.getByRole("dialog", { name: "Cierre del WOD" });
+    await expect(effortDialog).toBeVisible();
+    const rpeEight = effortDialog.getByRole("button", {
+      name: "8",
+      exact: true,
+    });
+    await rpeEight.click();
+    await expect(rpeEight).toHaveAttribute("aria-pressed", "true");
 
     await page.reload({ waitUntil: "domcontentloaded" });
+    const restoredEffortDialog = page.getByRole("dialog", {
+      name: "Cierre del WOD",
+    });
+    await expect(restoredEffortDialog).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Cierre del WOD" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "8", exact: true }),
+      restoredEffortDialog.getByRole("button", { name: "8", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
   });
 });

@@ -343,10 +343,10 @@ export default function CrossFitAssessmentCard({ onGenerate, isLoading, error, c
         <section aria-labelledby="crossfit-capabilities-title" className="mb-7">
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">Paso 1</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">Paso 1</p>
               <h3 id="crossfit-capabilities-title" className="text-xl font-bold">Valora las ocho capacidades</h3>
             </div>
-            <span className="text-xs text-zinc-500">0 desconocido · 3 avanzado</span>
+            <span className="text-xs text-zinc-400">0 desconocido · 3 avanzado</span>
           </div>
           <div className="grid gap-3 lg:grid-cols-2">
             {Object.keys(DIMENSION_COPY).map((dimension) => (
@@ -362,7 +362,7 @@ export default function CrossFitAssessmentCard({ onGenerate, isLoading, error, c
         </section>
 
         <section aria-labelledby="crossfit-context-title" className="mb-7 rounded-3xl border border-white/10 bg-zinc-950 p-5 sm:p-7">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">Paso 2</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">Paso 2</p>
           <h3 id="crossfit-context-title" className="mb-5 text-xl font-bold">Contexto y screening de hoy</h3>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             <label className="text-sm text-zinc-300">
@@ -486,8 +486,8 @@ export default function CrossFitAssessmentCard({ onGenerate, isLoading, error, c
               <h3 className="font-semibold">Datos ya conocidos</h3>
             </div>
             <dl className="grid grid-cols-2 gap-3 text-sm">
-              <div><dt className="text-zinc-500">Objetivo</dt><dd className="mt-1 text-zinc-200">{userData?.objetivo_principal || "Salud general"}</dd></div>
-              <div><dt className="text-zinc-500">Frecuencia perfil</dt><dd className="mt-1 text-zinc-200">{getProfileFrequency(userData)} dias</dd></div>
+              <div><dt className="text-zinc-400">Objetivo</dt><dd className="mt-1 text-zinc-200">{userData?.objetivo_principal || "Salud general"}</dd></div>
+              <div><dt className="text-zinc-400">Frecuencia perfil</dt><dd className="mt-1 text-zinc-200">{getProfileFrequency(userData)} dias</dd></div>
             </dl>
           </div>
         </section>
@@ -581,7 +581,7 @@ export default function CrossFitAssessmentCard({ onGenerate, isLoading, error, c
           </section>
         )}
 
-        <footer className="mt-7 flex items-start gap-3 border-t border-white/10 pt-5 text-xs leading-5 text-zinc-500">
+        <footer className="mt-7 flex items-start gap-3 border-t border-white/10 pt-5 text-xs leading-5 text-zinc-400">
           <Activity className="mt-0.5 h-4 w-4 shrink-0" />
           El producto principal cubre principiante, intermedio y avanzado no competitivo. Elite, dobles sesiones y preparacion competitiva quedan fuera de alcance.
         </footer>
