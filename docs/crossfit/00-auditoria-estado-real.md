@@ -1,5 +1,18 @@
 # Auditoria CrossFit: estado real y divergencias
 
+## Reauditoría de implementación 2026-07-22
+
+Transacción `READ ONLY` + `ROLLBACK` contra Supabase: 120 filas en
+`app."Ejercicios_CrossFit"`, 19 Elite, 0 CrossFit en `app.ejercicios`, 120/120
+sin `Consejos` y 120/120 sin `Errores_comunes`. RLS está desactivado y no hay
+políticas en `Ejercicios_CrossFit`, `ejercicios` ni `crossfit_autoreg_state`.
+Se confirmaron 29 calendarios y 1.414 `methodology_exercise_sessions` históricas
+sin `day_id`; se conservan mediante fallback y no se backfillean en producción.
+
+La migración aditiva `20260722_crossfit_v2_catalog.sql` queda preparada y no
+aplicada. Crea catálogo versionado separado y RLS de lectura de versión activa;
+no altera las tablas legacy ni las de sesiones.
+
 Fecha de corte: 2026-07-22. Fuentes de verdad: codigo de la copia local, `origin/main` leido sin cambiar de rama y proyecto Supabase `sbqcnlwpvjavmljzkmfy` consultado en transaccion `READ ONLY`.
 
 ## Alcance y cautelas

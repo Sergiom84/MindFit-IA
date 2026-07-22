@@ -159,6 +159,56 @@
       "syncope or presyncope",
       "dyspnoea at rest or mild effort",
       "unusual palpitations"
+    ],
+    "LUMBAR_SHOULDER": [
+      "acute back or shoulder injury",
+      "radiating symptoms or symptomatic overhead range",
+      "trunk or shoulder position cannot be maintained"
+    ],
+    "SHOULDER_LUMBAR": [
+      "acute shoulder or back injury",
+      "symptomatic overhead range or radiating symptoms",
+      "shoulder or trunk position cannot be maintained"
+    ],
+    "LUMBAR_HIP": [
+      "acute back or hip injury",
+      "radiating symptoms",
+      "pain increasing with trunk or hip motion"
+    ],
+    "LUMBAR_KNEE": [
+      "acute back or knee injury",
+      "radiating symptoms or inability to bear weight",
+      "pain increasing with hinge squat or landing"
+    ],
+    "LUMBAR_WRIST_SHOULDER": [
+      "acute back wrist or shoulder injury",
+      "radiating symptoms or symptomatic support",
+      "trunk rack or overhead control is lost"
+    ],
+    "LUMBAR_SHOULDER_WRIST": [
+      "acute back shoulder or wrist injury",
+      "radiating symptoms or symptomatic overhead range",
+      "trunk rack or receiving position is lost"
+    ],
+    "LUMBAR_KNEE_WRIST": [
+      "acute back knee or wrist injury",
+      "radiating symptoms or inability to bear weight",
+      "trunk squat or rack position is lost"
+    ],
+    "LUMBAR_KNEE_SHOULDER": [
+      "acute back knee or shoulder injury",
+      "radiating symptoms or symptomatic overhead range",
+      "trunk squat or receiving position is lost"
+    ],
+    "KNEE": [
+      "acute knee injury",
+      "inability to bear weight",
+      "pain increasing with squat lunge or landing"
+    ],
+    "HIP": [
+      "acute hip injury",
+      "pain increasing with hip flexion or support",
+      "range cannot be controlled"
     ]
   },
   "movement_overrides": {

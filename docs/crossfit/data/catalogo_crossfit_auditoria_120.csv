@@ -98,24 +98,24 @@ source_id,nombre_actual,nivel_actual,dominio_actual,accion_propuesta,canonical_i
 97,Ski 1000m,Avanzado,Monostructural,MERGE_DOSAGE,ski_erg,distance_not_identity
 98,Strict TTB,Avanzado,Gymnastic,RENAME_VARIANT,strict_toes_to_bar,high_skill_permission
 100,Weighted ring dips,Avanzado,Accessories,KEEP_VARIANT,weighted_ring_dip,domain_should_gym
-101,Freestanding HSPU,Elite,Gymnastic,EXCLUDE_ELITE_CORE,freestanding_handstand_push_up,legacy_competitive
-102,Legless rope climb,Elite,Gymnastic,EXCLUDE_ELITE_CORE,legless_rope_climb,legacy_competitive
-103,Ring HSPU,Elite,Gymnastic,EXCLUDE_ELITE_CORE,ring_handstand_push_up,legacy_competitive
-104,Pegboard,Elite,Gymnastic,EXCLUDE_ELITE_CORE,pegboard_climb,legacy_competitive
-105,Strict bar MU,Elite,Gymnastic,EXCLUDE_ELITE_CORE,strict_bar_muscle_up,legacy_competitive
+101,Freestanding HSPU,Elite,Gymnastic,EXCLUDE_ELITE_CORE,handstand_push_up,legacy_variant_inactive
+102,Legless rope climb,Elite,Gymnastic,EXCLUDE_ELITE_CORE,rope_climb,legacy_variant_inactive
+103,Ring HSPU,Elite,Gymnastic,EXCLUDE_ELITE_CORE,handstand_push_up,legacy_variant_inactive
+104,Pegboard,Elite,Gymnastic,EXCLUDE_ELITE_CORE,rope_climb,legacy_variant_inactive
+105,Strict bar MU,Elite,Gymnastic,EXCLUDE_ELITE_CORE,bar_muscle_up,legacy_variant_inactive
 106,50ft unbroken HSW,Elite,Gymnastic,EXCLUDE_ELITE_CORE,handstand_walk,dose_not_identity
-107,Bar MU to L-sit,Elite,Gymnastic,EXCLUDE_ELITE_CORE,bar_muscle_up_to_l_sit,legacy_competitive_composite
+107,Bar MU to L-sit,Elite,Gymnastic,EXCLUDE_ELITE_CORE,bar_muscle_up,legacy_composite_inactive
 108,Competition snatch 84/61,Elite,Weightlifting,EXCLUDE_ELITE_CORE,squat_snatch,load_not_identity
 109,Competition C&J 111/84,Elite,Weightlifting,EXCLUDE_ELITE_CORE,clean_and_jerk,load_not_identity
 110,Heavy OHS 84/61,Elite,Weightlifting,EXCLUDE_ELITE_CORE,overhead_squat,load_not_identity
 111,Competition thruster 84/61,Elite,Weightlifting,EXCLUDE_ELITE_CORE,barbell_thruster,load_not_identity
 112,Max DL 180+/136+,Elite,Weightlifting,EXCLUDE_ELITE_CORE,deadlift,test_dose_not_identity
-113,Heavy snatch balance,Elite,Weightlifting,EXCLUDE_ELITE_CORE,snatch_balance,legacy_competitive
-114,Squat clean + front squat + jerk complex,Elite,Weightlifting,EXCLUDE_ELITE_CORE,clean_complex,legacy_competitive_complex
-115,Touch-and-go power snatch 61/43,Elite,Weightlifting,EXCLUDE_ELITE_CORE,touch_and_go_power_snatch,legacy_competitive
+113,Heavy snatch balance,Elite,Weightlifting,EXCLUDE_ELITE_CORE,squat_snatch,legacy_drill_inactive
+114,Squat clean + front squat + jerk complex,Elite,Weightlifting,EXCLUDE_ELITE_CORE,clean_and_jerk,legacy_complex_inactive
+115,Touch-and-go power snatch 61/43,Elite,Weightlifting,EXCLUDE_ELITE_CORE,hang_power_snatch,legacy_dose_inactive
 116,Elite row 2k,Elite,Monostructural,EXCLUDE_ELITE_CORE,row_erg,distance_not_identity
 117,Run 5k,Elite,Monostructural,EXCLUDE_ELITE_CORE,run,distance_not_identity
 118,Assault Bike 100 cal,Elite,Monostructural,EXCLUDE_ELITE_CORE,air_bike,calories_not_identity
-120,Team worm flip,Elite,Weightlifting,EXCLUDE_ELITE_CORE,worm_flip,team_equipment_out_of_scope
+120,Team worm flip,Elite,Weightlifting,EXCLUDE_ELITE_CORE,sandbag_carry,team_equipment_out_of_scope_inactive
 121,Wall walk,Intermedio,Gymnastic,KEEP_VARIANT,wall_walk,skill_permission_required
 122,Sled push,Intermedio,Weightlifting,KEEP_VARIANT,sled_push,load_surface_metadata_missing

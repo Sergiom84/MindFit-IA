@@ -5,6 +5,7 @@ const DEFINITIONS = [
   ["SAFETY_TECHNIQUE_STOP", "safety", "high", "stop_movement"],
   ["SAFETY_CONTRAINDICATED", "safety", "critical", "reject"],
   ["SAFETY_CLEARANCE_REQUIRED", "safety", "critical", "block_vigorous"],
+  ["SAFETY_DISCOMFORT_MONITOR", "safety", "info", "monitor_or_reduce_dose"],
   ["LEVEL_CONFIDENCE_LOW", "classification", "medium", "cap_beginner"],
   ["LEVEL_ASYMMETRIC", "classification", "info", "use_skill_cap"],
   ["SKILL_LOCKED", "skill", "high", "reject_or_regress"],

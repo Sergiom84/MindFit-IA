@@ -21,7 +21,7 @@ Estado global: `EN_PROGRESO`
 | ----------------------------- | --------------------------- | ---------------------------------------------------------- |
 | A. Baseline y DoR             | `COMPLETADA_CON_LIMITACION` | 231/231 unit, lint, build; integración requiere BD efímera |
 | B. Contratos/versionado/flags | `COMPLETADA`                | 8/8 específicos; suite 239/239; lint; flags off            |
-| C. Catálogo/seguridad         | `PENDIENTE`                 | migración aditiva no aplicada, repositorio, RLS aislada    |
+| C. Catálogo/seguridad         | `COMPLETADA_CON_GATE_BD`    | 13/13; 92+104+236; 120/120; SQL/RLS requiere BD efímera    |
 | D. Clasificación              | `PENDIENTE`                 | level-model/2.0.0 y tabla de decisiones                    |
 | E. Programación por nivel     | `PENDIENTE`                 | bloques 8/10/12 y frecuencias 2-3/3-4/4-5                  |
 | F. Composer/validadores       | `PENDIENTE`                 | 10.000 planes por nivel, cero hard violations              |
@@ -33,19 +33,19 @@ Estado global: `EN_PROGRESO`
 
 ## Baseline reproducible
 
-| Comprobación              | Resultado 2026-07-22                                                |
-| ------------------------- | ------------------------------------------------------------------- |
-| `origin/main`             | `e7f5711`; sin commits posteriores al iniciar                       |
-| CI `main`                 | CI y Android verdes en el SHA de referencia                         |
-| `npm ci` raíz/backend     | correcto desde lockfiles                                            |
-| `npm run test:backend`    | 231/231                                                             |
-| `npm run lint -- --quiet` | correcto                                                            |
-| `npm run build`           | correcto; warnings preexistentes de chunks/browser data             |
-| Integración backend       | no ejecutada: no hay PostgreSQL/Docker local ni URL QA              |
-| Migración 20260721        | registrada en Supabase, checksum coincide; no reescribir            |
-| Deuda histórica           | 29 calendarios sin `day_id`; sesiones se auditan por relación real  |
-| Dossier baseline          | 120/120, 92, 44, 45, 32; PDF 43 páginas válido                      |
-| Corrección reason codes   | 63: 45 baseline + 18 referencias huérfanas de invariantes/nutrición |
+| Comprobación              | Resultado 2026-07-22                                               |
+| ------------------------- | ------------------------------------------------------------------ |
+| `origin/main`             | `e7f5711`; sin commits posteriores al iniciar                      |
+| CI `main`                 | CI y Android verdes en el SHA de referencia                        |
+| `npm ci` raíz/backend     | correcto desde lockfiles                                           |
+| `npm run test:backend`    | 231/231                                                            |
+| `npm run lint -- --quiet` | correcto                                                           |
+| `npm run build`           | correcto; warnings preexistentes de chunks/browser data            |
+| Integración backend       | no ejecutada: no hay PostgreSQL/Docker local ni URL QA             |
+| Migración 20260721        | registrada en Supabase, checksum coincide; no reescribir           |
+| Deuda histórica           | 29 calendarios sin `day_id`; sesiones se auditan por relación real |
+| Dossier baseline          | 120/120, 92, 44, 45, 32; PDF 43 páginas válido                     |
+| Corrección reason codes   | 64: 45 baseline + 18 huérfanos + monitor de molestia 1-2           |
 
 ## Semáforos de rollout
 

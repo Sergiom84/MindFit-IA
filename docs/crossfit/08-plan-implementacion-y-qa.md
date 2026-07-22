@@ -29,6 +29,11 @@ Flags separados, default off: `CROSSFIT_V2_GENERATION`, `CROSSFIT_V2_RESULTS`, `
 
 Estado: `REQUIERE_MIGRACION_AUTORIZADA`, `REQUIERE_VALIDACION_HUMANA`.
 
+Implementado en rama: schema SQL aditivo no aplicado, importador dry-run
+fail-closed, repositorio canónico/legacy, resolución de variantes/edges y safety
+evaluator previo al composer. QA disponible verde; migración/RLS real queda
+`PENDIENTE_QA_BD_EFIMERA`.
+
 Migraciones futuras: tablas de versiones/movimientos/variants/rules/media/benchmarks, mapeo legacy y RLS. Servicios: repositorio de snapshot y safety evaluator. No editar/ejecutar SQL antes de autorizacion.
 
 DoD: 120/120 mapeadas, altas revisadas, cero dangling/duplicate, RLS cross-user verde, rollback de puntero. Riesgo: romper IDs historicos; mitigacion = fuente/ID legacy inmutable y activacion atomica.

@@ -8,9 +8,9 @@ efímero y nunca debe sustituirse por producción.
 | ---------------------------------- | ----------------------------- | ------------------------------------------- | ------------------------------------------ | -------------------------- |
 | Flags independientes off           | docs 08/15                    | `backend/services/crossfit/featureFlags.js` | contract flags                             | COMPLETADO                 |
 | Plan/session/WOD/result/autoreg v2 | docs 15/16                    | `backend/services/crossfit/contracts/`      | strict + legacy fixtures                   | COMPLETADO                 |
-| Reason codes centralizados         | data/reason_codes.csv         | `backend/services/crossfit/reasonCodes.js`  | paridad 63/63; cero huérfanos              | COMPLETADO                 |
-| Catálogo canónico 92               | docs 04 + data                | repository + migración aditiva              | 92/92, alias, FK, RLS                      | PENDIENTE                  |
-| Safety antes de composer           | docs 07                       | `backend/services/crossfit/safety/`         | stop/block/substitute table                | PENDIENTE                  |
+| Reason codes centralizados         | data/reason_codes.csv         | `backend/services/crossfit/reasonCodes.js`  | paridad 64/64; cero huérfanos              | COMPLETADO                 |
+| Catálogo canónico 92               | docs 04 + data                | repository + migración aditiva              | 92/92 + 104 variants + 236 edges; 120/120  | COMPLETADO_GATE_BD         |
+| Safety antes de composer           | docs 07                       | `backend/services/crossfit/safety/`         | prioridades stop/block/substitute          | COMPLETADO                 |
 | Level-model/2.0.0                  | docs 02/11-13                 | `backend/services/crossfit/classification/` | boundary/asimetría/retorno                 | PENDIENTE                  |
 | Bloques 8/10/12                    | docs 11/12/13                 | `backend/services/crossfit/programming/`    | cuotas/deload/reeval                       | PENDIENTE                  |
 | Composer determinista              | docs 14/15                    | `backend/services/crossfit/generator/`      | seed, score, fallback                      | PENDIENTE                  |
@@ -22,6 +22,6 @@ efímero y nunca debe sustituirse por producción.
 | Planned/actual training-load       | docs 03/15                    | adaptador shared v1                         | contrato puro verde; integración pendiente | EN_PROGRESO_FLAG_OFF       |
 | Nutrición D0/D1/D2                 | docs 03 + mapping CSV         | motor canónico + adaptador                  | shadow/paridad/deriva                      | PENDIENTE_FLAG_OFF         |
 | Flujos completos                   | docs 05/17                    | front-back-BD                               | matriz E2E móvil/escritorio                | PENDIENTE                  |
-| Migración y RLS                    | docs 04/08                    | SQL aditivo idempotente                     | up/status/idempotencia/isolation           | PENDIENTE_QA_BD            |
+| Migración y RLS                    | docs 04/08                    | `20260722_crossfit_v2_catalog.sql`          | estático verde; up/status/RLS en CI        | PENDIENTE_QA_BD            |
 | Regresión ajena                    | guardas repositorio           | sin cambios en motores ajenos               | unit/E2E/golden                            | PENDIENTE                  |
 | Validación humana/legal            | docs 01/07/09/10              | gate preproducción                          | acta externa                               | REQUIERE_VALIDACION_HUMANA |

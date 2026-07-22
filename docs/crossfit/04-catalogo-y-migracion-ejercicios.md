@@ -1,6 +1,6 @@
 # Catalogo canonico y plan de migracion
 
-Estado: propuesta documental, no seed. Fuente viva: 120 filas de `app."Ejercicios_CrossFit"` consultadas read-only el 2026-07-22.
+Estado: implementación preparada, sin aplicar. Fuente viva: 120 filas de `app."Ejercicios_CrossFit"` reconsultadas read-only el 2026-07-22.
 
 ## Artefactos
 
@@ -55,8 +55,25 @@ Claves:
 
 ## Migracion futura
 
-`REQUIERE_MIGRACION_AUTORIZADA`: crear tablas nuevas, cargar version inactiva, mapear legacy, ejecutar validadores, revisar muestra humana y activar puntero atomico. El motor legacy sigue leyendo la tabla antigua hasta feature flag. Rollback = restaurar puntero/version previa; nunca borrar resultados historicos. La SQL se redactara en rama, no en `docs/data`.
+Preparada en `backend/migrations/20260722_crossfit_v2_catalog.sql`, sin ejecutar.
+Crea versiones, movimientos, variantes, edges, benchmarks, media y mapping legacy;
+activa RLS sobre las tablas nuevas, limita lectura autenticada a la versión activa
+y vuelve inmutable el catálogo activo. No modifica la tabla legacy, Elite ni
+históricos. `backend/scripts/import-crossfit-v2-catalog.mjs` valida en dry-run y
+solo admite `--apply` contra PostgreSQL local con `NODE_ENV=test` y acuse
+`EPHEMERAL_ONLY`; carga `draft` y nunca activa.
+
+Resultado reproducible: 92 canónicos, 104 variantes locales heredadas, 236 edges,
+120/120 mappings legacy y cero media verificada. Diez IDs Elite huérfanos del
+dossier se mapearon como variantes/dosis legacy inactivas al movimiento core más
+próximo; no entran en generación. Las variantes heredadas conservan
+`human_review_required:true`. `REQUIERE_MIGRACION_AUTORIZADA` para aplicar y
+`REQUIERE_VALIDACION_HUMANA` antes de activar. Rollback = conservar tablas y
+restaurar puntero; nunca borrar resultados históricos.
 
 ## Definition of Done de catalogo
 
-Version activable con validadores al 100 %, RLS aprobado, mapeo 120/120, altas revisadas, media honesta, contrato compatible y 10.000 generaciones por nivel sin dangling IDs. `REQUIERE_VALIDACION_HUMANA` para tecnica, sustituciones y material audiovisual.
+El artefacto queda estructuralmente válido y sin dangling IDs: 92 movimientos,
+104 variantes, 236 relaciones y mapping 120/120. Para declarar una versión
+activable faltan PostgreSQL efímero con migración/RLS/idempotencia, revisión
+humana de variantes/altas y el gate de 10.000 generaciones por nivel.

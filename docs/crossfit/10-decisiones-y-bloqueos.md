@@ -2,19 +2,21 @@
 
 ## Decisiones cerradas
 
-| ID         | Decision                                                 | Estado              |
-| ---------- | -------------------------------------------------------- | ------------------- |
-| DEC-CF-001 | Gate externo = Fase 0 compartida, no roadmap CrossFit    | cerrada             |
-| DEC-CF-002 | Tres niveles core; Elite/competicion fuera               | cerrada             |
-| DEC-CF-003 | Nivel, skill y escala separados                          | cerrada             |
-| DEC-CF-004 | Generador determinista; IA no rompe reglas               | cerrada             |
-| DEC-CF-005 | ACWR no es predictor ni hard gate                        | cerrada             |
-| DEC-CF-006 | Catalogo versionado; dosis separada de identidad         | cerrada             |
-| DEC-CF-007 | Benchmarks son WOD, no movimientos                       | cerrada             |
-| DEC-CF-008 | Nutricion usa motor canonico y training load             | cerrada             |
-| DEC-CF-009 | Dolor/seguridad precede a rendimiento                    | cerrada             |
-| DEC-CF-010 | Default publico neutral hasta revision legal             | cerrada por defecto |
-| DEC-CF-011 | No modificar frontend agnostico/redireccion/convergencia | cerrada             |
+| ID         | Decision                                                                                           | Estado              |
+| ---------- | -------------------------------------------------------------------------------------------------- | ------------------- |
+| DEC-CF-001 | Gate externo = Fase 0 compartida, no roadmap CrossFit                                              | cerrada             |
+| DEC-CF-002 | Tres niveles core; Elite/competicion fuera                                                         | cerrada             |
+| DEC-CF-003 | Nivel, skill y escala separados                                                                    | cerrada             |
+| DEC-CF-004 | Generador determinista; IA no rompe reglas                                                         | cerrada             |
+| DEC-CF-005 | ACWR no es predictor ni hard gate                                                                  | cerrada             |
+| DEC-CF-006 | Catalogo versionado; dosis separada de identidad                                                   | cerrada             |
+| DEC-CF-007 | Benchmarks son WOD, no movimientos                                                                 | cerrada             |
+| DEC-CF-008 | Nutricion usa motor canonico y training load                                                       | cerrada             |
+| DEC-CF-009 | Dolor/seguridad precede a rendimiento                                                              | cerrada             |
+| DEC-CF-010 | Default publico neutral hasta revision legal                                                       | cerrada por defecto |
+| DEC-CF-011 | No modificar frontend agnostico/redireccion/convergencia                                           | cerrada             |
+| DEC-CF-012 | Referencias no canónicas se modelan como variantes heredadas del padre, no como movimientos nuevos | cerrada             |
+| DEC-CF-013 | Catálogo activo inmutable; importación siempre draft y activación separada                         | cerrada             |
 
 ## Fase 0 desbloqueada para desarrollo, rollout pendiente
 
