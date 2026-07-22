@@ -11,9 +11,36 @@
  * lenient: un plan histórico inválido se degrada a D1 de baja confianza + auditoría; nunca
  *          se rompe el calendario del usuario → { valid:true, degraded:true }.
  */
-import { isKnownMethodology, normalizeMethodologyId } from '../routineGeneration/methodologies/methodologyRegistry.js';
+import {
+  isKnownMethodology,
+  normalizeMethodologyId,
+  getMethodologyDescriptor
+} from '../routineGeneration/methodologies/methodologyRegistry.js';
 
 export const TRAINING_LOAD_CONTRACT_VERSION = 'training-load/v1';
+
+/**
+ * Alias de nivel legacy DOCUMENTADO (COR-F0-03, acción 3 / aceptación `básico`).
+ * `básico`/`basico` es la variante castellana histórica de `principiante`: se acepta como
+ * alias explícito (no se cuela como valor arbitrario). Cualquier otro valor debe existir en
+ * `descriptor.levels`; si no, falla en strict o se degrada con reason code en lenient.
+ */
+const LEVEL_ALIASES = { basico: 'principiante' };
+
+/** Normaliza un nivel: sin acentos, minúsculas, sin espacios sobrantes. */
+function normalizeLevel(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+/** Nivel canónico aplicando los alias legacy documentados. */
+function canonicalLevel(value) {
+  const n = normalizeLevel(value);
+  return LEVEL_ALIASES[n] || n;
+}
 const DAY_TYPES = ['D0', 'D1', 'D2'];
 const LOAD_TIERS = ['rest', 'low', 'moderate', 'high', 'very_high'];
 const STATUSES = ['planned', 'completed'];
@@ -68,8 +95,23 @@ export function validateTrainingLoad(input, { mode = 'strict' } = {}) {
   if (!i.methodology_id || !isKnownMethodology(i.methodology_id)) {
     errors.push('methodology_id desconocido (no está en el registro canónico)');
   }
+  // §17.1 + COR-F0-03: el nivel debe existir en `descriptor.levels` de la metodología canónica,
+  // no basta con "string no vacío". Normaliza mayúsculas/acentos y aplica alias legacy antes de
+  // comparar. `elite` solo pasa donde el registro lo declare (p.ej. crossfit, no powerlifting).
   if (typeof i.methodology_level !== 'string' || i.methodology_level.trim() === '') {
     errors.push('methodology_level requerido');
+  } else {
+    const descriptor = getMethodologyDescriptor(i.methodology_id);
+    if (descriptor) {
+      const level = canonicalLevel(i.methodology_level);
+      if (!descriptor.levels.includes(level)) {
+        errors.push(
+          `methodology_level '${i.methodology_level}' no soportado por '${descriptor.id}' `
+          + `(permitidos: ${descriptor.levels.join(', ')})`
+        );
+      }
+    }
+    // Si el descriptor es null, methodology_id ya falla arriba; no se valida el nivel a ciegas.
   }
   if (typeof i.session_type !== 'string' || i.session_type.trim() === '') {
     errors.push('session_type requerido (string no vacío)');

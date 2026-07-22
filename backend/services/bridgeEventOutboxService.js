@@ -15,8 +15,117 @@
  *  - Recuperación de locks caducados: un worker muerto no deja eventos bloqueados para siempre.
  */
 
+import { normalizeMethodologyId } from './routineGeneration/methodologies/methodologyRegistry.js';
+
 export const OUTBOX_EVENT_TYPE_SESSION_COMPLETED = 'training.session_completed';
 export const SESSION_COMPLETED_CONTRACT_VERSION = 'training-session-event/v1';
+
+// ── COR-F0-06: emisión controlada por flag INDEPENDIENTE del worker ───────────────
+// El worker (BRIDGE_OUTBOX_WORKER_ENABLED) sigue apagado por defecto. Emitir SIEMPRE con el
+// consumidor apagado produciría backlog indefinido sin control (contradicción señalada por la
+// auditoría). Por eso la EMISIÓN tiene su propio flag, por defecto en estado SEGURO (off): con
+// ambos apagados no se encola nada y el comportamiento observable es el baseline. Para el E2E o
+// el arranque de la integración se enciende primero la emisión (el backlog con worker pausado es
+// ENTONCES esperado y acotado) y después el worker, que drena. Ver docs/NUTRICION-FASE0-ACTIVACION.md.
+export const OUTBOX_EMIT_ENABLED_ENV = 'BRIDGE_OUTBOX_EMIT_ENABLED';
+
+/** ¿Está habilitada la EMISIÓN de eventos de cierre al outbox? Por defecto NO (fail-closed). */
+export function isOutboxEmissionEnabled(env = process.env) {
+  return String(env?.[OUTBOX_EMIT_ENABLED_ENV] ?? 'false').toLowerCase() === 'true';
+}
+
+// ── COR-F0-02: resolución de metodología, nivel y duración de la sesión ────────────
+function stripDiacritics(value) {
+  return String(value ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+// Niveles canónicos soportados por el registro (§7). Un valor desconocido NO pasa como válido.
+const CANONICAL_LEVELS = new Set(['principiante', 'intermedio', 'avanzado', 'elite']);
+// Alias históricos explícitos. El default de columna es 'básico' → 'principiante' (nivel de entrada).
+const LEVEL_ALIASES = Object.freeze({
+  basico: 'principiante',
+  basica: 'principiante',
+  beginner: 'principiante',
+  principiante: 'principiante',
+  intermedio: 'intermedio',
+  intermediate: 'intermedio',
+  avanzado: 'avanzado',
+  advanced: 'avanzado',
+  elite: 'elite'
+});
+
+/**
+ * Normaliza un nivel histórico a su forma canónica en minúsculas y sin acentos.
+ * `básico`/`basico` → `principiante` (alias documentado). Desconocido/arbitrario → null
+ * (COR-F0-02 §6: no se hace pasar un valor arbitrario como nivel real).
+ * @param {*} value
+ * @returns {string|null}
+ */
+export function normalizeMethodologyLevel(value) {
+  if (typeof value !== 'string' && typeof value !== 'number') return null;
+  const key = stripDiacritics(value).toLowerCase().trim();
+  if (!key) return null;
+  if (LEVEL_ALIASES[key]) return LEVEL_ALIASES[key];
+  if (CANONICAL_LEVELS.has(key)) return key;
+  return null;
+}
+
+/**
+ * Resuelve el nivel de la sesión en orden (COR-F0-02 §5): carga planificada válida →
+ * `session.methodology_level` → metadata legacy normalizada → null (solo si de verdad no hay).
+ * @returns {string|null}
+ */
+export function resolveMethodologyLevel({ plannedLevel = null, sessionLevel = null, metadataLevel = null } = {}) {
+  for (const candidate of [plannedLevel, sessionLevel, metadataLevel]) {
+    const norm = normalizeMethodologyLevel(candidate);
+    if (norm) return norm;
+  }
+  return null;
+}
+
+/**
+ * Resuelve el ID canónico de la metodología del evento. `home` (Casa) mapea a `casa`
+ * (namespace legacy). Cualquier otra desconocida → null.
+ * @returns {string|null}
+ */
+export function resolveEventMethodologyId(methodologyType, { keyNamespace = null } = {}) {
+  return normalizeMethodologyId(methodologyType) || (keyNamespace === 'home' ? 'casa' : null);
+}
+
+/**
+ * COR-F0-02 §4/§7: Hipertrofia e Hipertrofia V2 (y cualquier metodología no registrada ni
+ * mapeada como namespace legacy) NO deben emitir un contrato con `methodology_id=null`. Solo se
+ * encola cuando hay un ID canónico resuelto.
+ * @param {string|null} methodologyId
+ * @returns {boolean}
+ */
+export function shouldEmitSessionCompleted(methodologyId) {
+  return typeof methodologyId === 'string' && methodologyId.length > 0;
+}
+
+/**
+ * Duración real de la sesión desde una fuente inequívoca (COR-F0-02 §2/§4):
+ *  - valor medido `total_duration_seconds` SOLO si es > 0 (el 0 inicial NO es una medición real);
+ *  - si no, `completed_at - started_at` (o `now - started_at` si aún no hay `completed_at`);
+ *  - si no hay ninguna fuente fiable → null (nunca se inventan minutos).
+ * @returns {number|null} segundos, o null.
+ */
+export function resolveSessionDurationSeconds({
+  totalDurationSeconds = null,
+  startedAt = null,
+  completedAt = null,
+  now = Date.now()
+} = {}) {
+  const measured = Number(totalDurationSeconds);
+  if (Number.isFinite(measured) && measured > 0) return Math.round(measured);
+
+  const startMs = startedAt ? new Date(startedAt).getTime() : NaN;
+  if (Number.isFinite(startMs)) {
+    const endMs = completedAt ? new Date(completedAt).getTime() : now;
+    if (Number.isFinite(endMs) && endMs >= startMs) return Math.round((endMs - startMs) / 1000);
+  }
+  return null;
+}
 
 // Namespace de `event_key`. La sesión de metodología usa el formato exacto de la spec §13.2;
 // la sesión de Casa se namespacea con `:home:` para que NUNCA colisione con un id de sesión de
@@ -211,6 +320,13 @@ export async function markFailed(client, id, {
 export default {
   OUTBOX_EVENT_TYPE_SESSION_COMPLETED,
   SESSION_COMPLETED_CONTRACT_VERSION,
+  OUTBOX_EMIT_ENABLED_ENV,
+  isOutboxEmissionEnabled,
+  normalizeMethodologyLevel,
+  resolveMethodologyLevel,
+  resolveEventMethodologyId,
+  shouldEmitSessionCompleted,
+  resolveSessionDurationSeconds,
   buildSessionCompletedEventKey,
   buildSessionCompletedEvent,
   computeBackoffSeconds,

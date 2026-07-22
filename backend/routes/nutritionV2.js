@@ -25,8 +25,10 @@ import {
   resolveDayNutritionTargets
 } from '../services/nutritionPeriodizationService.js';
 import { methodologyEmitsTrainingLoad } from '../services/routineGeneration/methodologies/methodologyRegistry.js';
+import { isTrainingDay } from '../services/trainingLoad/dayType.js';
 import {
-  SCHEDULE_WITH_LOAD_QUERY
+  SCHEDULE_WITH_LOAD_FALLBACK_QUERY,
+  countDateFallbacks
 } from '../services/trainingLoad/sessionLoadBuilder.js';
 import {
   ensureWorkoutScheduleV3
@@ -575,23 +577,25 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
         const periodEnd = new Date(periodStart);
         periodEnd.setDate(periodStart.getDate() + (duracion_dias - 1));
         try {
-          const enrichedResult = await pool.query(SCHEDULE_WITH_LOAD_QUERY, [
+          // COR-F0-04 §4: query con fallback histórico REAL por (plan_id + fecha) para las
+          // filas sin day_id; el fallback solo resuelve cuando la correspondencia es unívoca.
+          const enrichedResult = await pool.query(SCHEDULE_WITH_LOAD_FALLBACK_QUERY, [
             methodologyPlanId,
             userId,
             formatLocalDate(periodStart),
             formatLocalDate(periodEnd)
           ]);
-          let fallbackByDateCount = 0;
           for (const row of enrichedResult.rows) {
             const key = formatLocalDate(row.scheduled_date);
             if (!key) continue;
             loadByDate.set(key, { session_load: row.session_load || null, day_id: row.day_id });
-            // Métrica §12.1: fila histórica con carga pero sin day_id (fallback por fecha).
-            if (row.session_load && row.day_id == null) fallbackByDateCount += 1;
           }
+          // Observabilidad §12.1: nº de días que recuperaron carga por el fallback por fecha
+          // (day_id NULL + correspondencia unívoca). Retirar el fallback cuando llegue a 0.
+          const fallbackByDateCount = countDateFallbacks(enrichedResult.rows);
           if (fallbackByDateCount > 0) {
             console.warn(
-              `⚠️ periodización: ${fallbackByDateCount} día(s) con session_load sin day_id (fallback por fecha, §12.1)`
+              `⚠️ periodización: ${fallbackByDateCount} día(s) recuperados por fallback histórico por fecha (§12.1)`
             );
           }
         } catch (enrichErr) {
@@ -605,7 +609,7 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
         const dayDate = new Date(periodStart);
         dayDate.setDate(periodStart.getDate() + day.day_index);
         const dateKey = formatLocalDate(dayDate);
-        const isTraining = day.tipo_dia === 'entreno';
+        const isTraining = isTrainingDay(day.tipo_dia);
         const loadEntry = loadByDate.get(dateKey);
         const sessionLoad = loadEntry?.session_load || { is_training: isTraining };
         const source = loadEntry?.session_load ? 'planned_session_load' : 'boolean_fallback';
@@ -681,11 +685,18 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
         const periodization = periodizationByDayIndex ? periodizationByDayIndex.get(day.day_index) : null;
         if (periodization) {
           const { resolved, source } = periodization;
+          // COR-F0-01 (punto 4): SÓLO una metodología con emits_training_load=true puede servir
+          // entreno_normal/entreno_alto como resultado autoritativo. Si la metodología no está
+          // activada, aunque el modo global sea `active` se calcula/persiste el shadow pero la
+          // salida VISIBLE (tipo_dia/macros/comidas) sigue siendo legacy.
+          const servesAuthoritative = periodizationMode === 'active' && methodologyEmitsLoad === true;
           periodizationContextJson = JSON.stringify({
             ruleset: resolved.policy_version,
             source,
             day_type: resolved.day_type,
             load_confidence: resolved.audit.source_confidence,
+            // COR-F0-05: estado real del contrato (no derivado de `source`).
+            load_contract_status: resolved.load_contract_status,
             base_macros: {
               protein_g: planData.macros_objetivo.protein_g,
               carbs_g: planData.macros_objetivo.carbs_g,
@@ -698,10 +709,13 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
             },
             clamps: resolved.audit.clamps,
             reason_codes: resolved.audit.reason_codes,
-            mode: periodizationMode
+            mode: periodizationMode,
+            // Si el reparto nuevo se sirvió como autoritativo al usuario o quedó en shadow.
+            authoritative: servesAuthoritative,
+            methodology_emits_load: methodologyEmitsLoad
           });
 
-          if (periodizationMode === 'active') {
+          if (servesAuthoritative) {
             // §12.3: tipo_dia con nuevos valores (compatibilidad de lectura para 'entreno').
             tipoDia = resolved.day_type === 'D0'
               ? 'descanso'

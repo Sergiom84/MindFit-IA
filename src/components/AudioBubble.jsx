@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect, memo } from 'react';
 import { Pause, Music, Volume2, X, Minus, List } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { usePlaylistDB } from '../hooks/usePlaylistDB';
-import { BUBBLE_SIZE, BUBBLE_MARGIN, DRAG_THRESHOLD_PX } from './audioBubble/constants';
+import { BUBBLE_SIZE, BUBBLE_MARGIN, DRAG_THRESHOLD_PX, BOTTOM_NAV_OFFSET } from './audioBubble/constants';
 import { getExerciseBasedMusic } from './audioBubble/audioUtils';
 import MinimizedPlayer from './audioBubble/MinimizedPlayer';
 import CurrentTrackCard from './audioBubble/CurrentTrackCard';
@@ -37,8 +37,10 @@ const AudioBubble = ({ musicConfig = {}, currentExercise = null }) => {
   // navegación inferior, tapándolos por completo (burbuja arrastrable pero
   // sin memoria de posición, así que reaparece encima en cada carga).
   const [position, setPosition] = useState({
+    // Esquina inferior derecha, por encima de la barra de navegación, para
+    // no solaparse con botones ("Seleccionar") ni tabs ("Calendario").
     x: window.innerWidth - (BUBBLE_SIZE + BUBBLE_MARGIN),
-    y: Math.round(window.innerHeight / 2 - BUBBLE_SIZE / 2)
+    y: Math.max(BUBBLE_MARGIN, window.innerHeight - BUBBLE_SIZE - BUBBLE_MARGIN - BOTTOM_NAV_OFFSET)
   });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });

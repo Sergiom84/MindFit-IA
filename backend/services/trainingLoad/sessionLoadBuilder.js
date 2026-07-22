@@ -67,3 +67,60 @@ WHERE ws.methodology_plan_id = $1
   AND ws.user_id = $2
   AND ws.scheduled_date BETWEEN $3 AND $4
 ORDER BY ws.scheduled_date`;
+
+/**
+ * COR-F0-04 §4/§6: query §12.1 con FALLBACK HISTÓRICO REAL por (plan_id + fecha).
+ *
+ * El join canónico por `day_id` no recupera la carga de las 25 filas históricas de
+ * `workout_schedule` con `day_id=NULL` (no existían cuando se materializó su calendario).
+ * Este query añade un segundo enlace, LATERAL, que solo aplica cuando `ws.day_id IS NULL`
+ * y SOLO si la correspondencia (plan_id, fecha) es UNÍVOCA: exige `count(*) = 1` entre los
+ * `methodology_plan_days` no-descanso de esa fecha (HAVING). Si hay 0 o ≥2 candidatos, no
+ * se recupera nada (nunca se copia la carga equivocada de otro día con el mismo nombre).
+ *
+ * `load_source` etiqueta el origen de la carga para que el consumidor cuente el uso del
+ * fallback (`countDateFallbacks`) y pueda retirarlo cuando llegue a cero:
+ *   - 'day_id'        → resuelto por el enlace canónico.
+ *   - 'date_fallback' → recuperado por el fallback histórico unívoco.
+ *   - null            → sin carga (día de descanso o motor sin carga).
+ */
+export const SCHEDULE_WITH_LOAD_FALLBACK_QUERY = `
+SELECT
+  ws.scheduled_date,
+  ws.day_id,
+  ws.session_title,
+  COALESCE(mpd.metadata -> 'session_load', fb.session_load) AS session_load,
+  CASE
+    WHEN mpd.metadata -> 'session_load' IS NOT NULL THEN 'day_id'
+    WHEN fb.session_load IS NOT NULL THEN 'date_fallback'
+    ELSE NULL
+  END AS load_source
+FROM app.workout_schedule ws
+LEFT JOIN app.methodology_plan_days mpd
+  ON mpd.plan_id = ws.methodology_plan_id
+ AND mpd.day_id = ws.day_id
+LEFT JOIN LATERAL (
+  SELECT (array_agg(m.metadata -> 'session_load'))[1] AS session_load
+  FROM app.methodology_plan_days m
+  WHERE ws.day_id IS NULL
+    AND m.plan_id = ws.methodology_plan_id
+    AND m.date_local = ws.scheduled_date
+    AND m.is_rest = FALSE
+  HAVING count(*) = 1
+) fb ON TRUE
+WHERE ws.methodology_plan_id = $1
+  AND ws.user_id = $2
+  AND ws.scheduled_date BETWEEN $3 AND $4
+ORDER BY ws.scheduled_date`;
+
+/**
+ * Cuenta cuántas filas recuperaron su carga por el fallback histórico por fecha.
+ * Puro (sin efectos): útil para log/contador de observabilidad y para saber cuándo el
+ * fallback puede retirarse (cuenta = 0). Cuenta filas cuya carga vino por 'date_fallback'.
+ * @param {Array<{ load_source?: string|null }>} rows - filas de SCHEDULE_WITH_LOAD_FALLBACK_QUERY.
+ * @returns {number}
+ */
+export function countDateFallbacks(rows) {
+  if (!Array.isArray(rows)) return 0;
+  return rows.reduce((n, r) => (r && r.load_source === 'date_fallback' ? n + 1 : n), 0);
+}

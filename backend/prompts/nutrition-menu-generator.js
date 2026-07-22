@@ -3,6 +3,7 @@
  * Sistema determinista: Los macros están PRE-CALCULADOS
  * La IA solo genera los menús específicos usando el catálogo
  */
+import { isTrainingDay } from '../services/trainingLoad/dayType.js';
 
 export const nutritionMenuGeneratorPrompt = ({
   meal,
@@ -34,7 +35,7 @@ export const nutritionMenuGeneratorPrompt = ({
   * Carbohidratos: ${macros.carbs_g}g
   * Grasas: ${macros.fat_g}g
 ${timing_note ? `- Timing: ${timing_note}` : ''}
-${tipo_dia === 'entreno' ? '- Es un DÍA DE ENTRENAMIENTO (carb cycling aplicado)' : '- Es un DÍA DE DESCANSO'}
+${isTrainingDay(tipo_dia) ? '- Es un DÍA DE ENTRENAMIENTO (carb cycling aplicado)' : '- Es un DÍA DE DESCANSO'}
 
 ## RESTRICCIONES DEL USUARIO:
 ${preferencias.vegetariano ? '- VEGETARIANO (sin carne ni pescado)' : ''}

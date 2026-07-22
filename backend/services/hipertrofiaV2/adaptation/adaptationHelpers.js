@@ -32,6 +32,28 @@ export const resolveDayPatternForTag = (tag) => {
   return [1, 2, 3, 4, 5];
 };
 
+// Patrón de días bien espaciado (Lun..Sáb) para una frecuencia dada.
+// Coincide con los patrones por tag: 3→[1,3,5] (readaptacion_mayor),
+// 4→[1,2,4,5] (novato_total), 5→[1,2,3,4,5] (reacondicionamiento_prev).
+export const resolveDayPatternForFrequency = (count) => {
+  switch (count) {
+    case 2: return [1, 4];
+    case 3: return [1, 3, 5];
+    case 4: return [1, 2, 4, 5];
+    case 5: return [1, 2, 3, 4, 5];
+    case 6: return [1, 2, 3, 4, 5, 6];
+    default: return [1, 2, 4, 5];
+  }
+};
+
+// Frecuencia declarada por el usuario, acotada al rango válido del bloque.
+const resolveDeclaredFrequency = (user, min, max, fallback) => {
+  const raw = user?.frecuencia_semanal ?? user?.frecuenciaSemanal ?? null;
+  const numeric = Number(raw);
+  if (!Number.isFinite(numeric) || numeric <= 0) return fallback;
+  return Math.max(min, Math.min(max, Math.round(numeric)));
+};
+
 export const normalizeTrainingYears = (user) => {
   const raw =
     user?.anos_entrenando ??
@@ -66,47 +88,53 @@ export const resolveAdaptationProfile = (user, requestedBlockType = null) => {
   if (requestedBlockType === 'full_body') {
     if (isSenior) {
       const tag = 'readaptacion_mayor';
+      const days = resolveDeclaredFrequency(user, 2, 3, 3);
       return {
         blockType: 'full_body',
         aiTag: tag,
         durationWeeks: 3,
-        dayPattern: resolveDayPatternForTag(tag),
-        sessionsPerWeek: 3,
+        dayPattern: resolveDayPatternForFrequency(days),
+        sessionsPerWeek: days,
         age
       };
     }
 
     const tag = 'novato_total';
+    // A-03: respeta la frecuencia declarada (la tarjeta promete 3-4 días/sem).
+    const days = resolveDeclaredFrequency(user, 3, 4, 4);
     return {
       blockType: 'full_body',
       aiTag: tag,
       durationWeeks: 1,
-      dayPattern: resolveDayPatternForTag(tag),
-      sessionsPerWeek: 4,
+      dayPattern: resolveDayPatternForFrequency(days),
+      sessionsPerWeek: days,
       age
     };
   }
 
   if (isSenior) {
     const tag = 'readaptacion_mayor';
+    const days = resolveDeclaredFrequency(user, 2, 3, 3);
     return {
       blockType: 'full_body',
       aiTag: tag,
       durationWeeks: 3,
-      dayPattern: resolveDayPatternForTag(tag),
-      sessionsPerWeek: 3,
+      dayPattern: resolveDayPatternForFrequency(days),
+      sessionsPerWeek: days,
       age
     };
   }
 
   if (isNovato) {
     const tag = 'novato_total';
+    // A-03: respeta la frecuencia declarada (la tarjeta promete 3-4 días/sem).
+    const days = resolveDeclaredFrequency(user, 3, 4, 4);
     return {
       blockType: 'full_body',
       aiTag: tag,
       durationWeeks: 1,
-      dayPattern: resolveDayPatternForTag(tag),
-      sessionsPerWeek: 4,
+      dayPattern: resolveDayPatternForFrequency(days),
+      sessionsPerWeek: days,
       age
     };
   }

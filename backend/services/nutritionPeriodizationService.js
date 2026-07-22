@@ -31,6 +31,19 @@ export const NUTRITION_PERIODIZATION_VERSION = 'nutrition-periodization/v1';
 export const PERIODIZATION_MODES = Object.freeze(['legacy', 'shadow', 'active']);
 
 /**
+ * Estados reales del contrato de carga persistidos en periodization_context (COR-F0-05).
+ * Se calculan desde el resultado de la resolución, NO desde `source`: un contrato con
+ * fuente `planned_session_load` puede haberse degradado o ignorado por el gate y NO debe
+ * contarse como válido.
+ *  - `valid`: contrato training-load/v1 presente y validado sin degradación.
+ *  - `degraded`: contrato presente pero incoherente/histórico (lenient lo degradó a D1).
+ *  - `boolean_fallback`: sin contrato honrado (entreno derivado del booleano) o contrato
+ *    ignorado por el gate de metodología no emisora.
+ *  - `no_load`: día de descanso sin contrato que validar.
+ */
+export const LOAD_CONTRACT_STATUSES = Object.freeze(['valid', 'degraded', 'boolean_fallback', 'no_load']);
+
+/**
  * Multiplicadores de carbohidrato por tipo de día del reparto NUEVO (shadow/active).
  * D0 (descanso) baja carbohidrato; D1 (normal) lo sube igual que el legado (+10%); D2 (alto)
  * lo sube más. La grasa compensa para mantener las kcal del día ≈ base (isocalórico semanal).
@@ -132,10 +145,10 @@ export function resolvePerformanceCarbFloor({ weightKg, sessionLoad, objective, 
  */
 function resolveDayType(sessionLoad, { methodologyEmitsLoad = true } = {}) {
   if (!sessionLoad || typeof sessionLoad !== 'object') {
-    return { day_type: 'D0', confidence: 'low', reason_codes: ['LOAD_D0'] };
+    return { day_type: 'D0', confidence: 'low', reason_codes: ['LOAD_D0'], load_contract_status: 'no_load' };
   }
   if (sessionLoad.is_training === false) {
-    return { day_type: 'D0', confidence: 'low', reason_codes: ['LOAD_D0'] };
+    return { day_type: 'D0', confidence: 'low', reason_codes: ['LOAD_D0'], load_contract_status: 'no_load' };
   }
 
   const looksLikeContract =
@@ -148,11 +161,20 @@ function resolveDayType(sessionLoad, { methodologyEmitsLoad = true } = {}) {
   // validada, no se honra el day_type/tier explícito del contrato aunque exista en los
   // metadatos: cae a la política conservadora (descanso→D0, entreno→D1 baja confianza).
   // Esto evita declarar terminada una integración antes de que su fase específica pase.
+  // COR-F0-05: un contrato ignorado por el gate NO es válido → boolean_fallback.
   if (looksLikeContract && methodologyEmitsLoad === false) {
     if (sessionLoad.load_tier === 'rest') {
-      return { day_type: 'D0', confidence: 'low', reason_codes: ['LOAD_D0', 'NON_EMITTING_METHODOLOGY'] };
+      return {
+        day_type: 'D0', confidence: 'low',
+        reason_codes: ['LOAD_D0', 'NON_EMITTING_METHODOLOGY'],
+        load_contract_status: 'no_load'
+      };
     }
-    return { day_type: 'D1', confidence: 'low', reason_codes: ['LOAD_D1', 'NON_EMITTING_METHODOLOGY'] };
+    return {
+      day_type: 'D1', confidence: 'low',
+      reason_codes: ['LOAD_D1', 'NON_EMITTING_METHODOLOGY'],
+      load_contract_status: 'boolean_fallback'
+    };
   }
 
   if (looksLikeContract) {
@@ -163,11 +185,21 @@ function resolveDayType(sessionLoad, { methodologyEmitsLoad = true } = {}) {
     const confidence = load?.provenance?.confidence || (result.degraded ? 'low' : 'medium');
     const reasonCodes = [`LOAD_${dayType}`];
     if (result.degraded) reasonCodes.push('INVALID_LOAD_CONTRACT');
-    return { day_type: dayType, confidence, reason_codes: reasonCodes };
+    // COR-F0-05: honesto desde el resultado, no desde la fuente. Un contrato de descanso
+    // válido es no_load (no hay carga que enriquecer); un contrato degradado nunca es valid.
+    let loadContractStatus;
+    if (result.degraded) loadContractStatus = 'degraded';
+    else if (dayType === 'D0') loadContractStatus = 'no_load';
+    else loadContractStatus = 'valid';
+    return { day_type: dayType, confidence, reason_codes: reasonCodes, load_contract_status: loadContractStatus };
   }
 
-  // Entrenamiento sin metadatos: D1 baja confianza (§11.5.2).
-  return { day_type: 'D1', confidence: 'low', reason_codes: ['LOAD_D1', 'LOW_CONFIDENCE_FALLBACK'] };
+  // Entrenamiento sin metadatos: D1 baja confianza (§11.5.2). Booleano, sin contrato real.
+  return {
+    day_type: 'D1', confidence: 'low',
+    reason_codes: ['LOAD_D1', 'LOW_CONFIDENCE_FALLBACK'],
+    load_contract_status: 'boolean_fallback'
+  };
 }
 
 /**
@@ -258,7 +290,7 @@ export function resolveDayNutritionTargets({
   void objective; void metabolicProfile; void weeklyContext; void bridgeState; // reservados Fase 0
   const resolvedMode = normalizePeriodizationMode(mode);
   const base = normalizeBaseMacros(baseMacros);
-  const { day_type, confidence, reason_codes } = resolveDayType(sessionLoad, { methodologyEmitsLoad });
+  const { day_type, confidence, reason_codes, load_contract_status } = resolveDayType(sessionLoad, { methodologyEmitsLoad });
   const reasonCodes = [...reason_codes];
 
   let macros;
@@ -294,6 +326,9 @@ export function resolveDayNutritionTargets({
   return {
     macros,
     day_type,
+    // COR-F0-05: estado real del contrato de carga (valid/degraded/boolean_fallback/no_load),
+    // derivado del resultado de la resolución, no de la fuente del dato.
+    load_contract_status,
     policy_version: NUTRITION_PERIODIZATION_VERSION,
     changed,
     audit: {

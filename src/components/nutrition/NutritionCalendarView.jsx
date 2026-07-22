@@ -4,6 +4,7 @@ import MealDetailView from './MealDetailView';
 import tokenManager from '../../utils/tokenManager';
 import { getApiBaseUrl } from '../../config/api';
 import { getActiveNutritionPlan } from '../../services/nutritionV2ReadService';
+import { isTrainingDay } from '../../utils/dayType';
 
 // ARCH-001: base URL canónica desde el adapter de config (VITE_API_URL o same-origin).
 const API_URL = getApiBaseUrl();
@@ -460,7 +461,7 @@ const generateMenusForDay = async (day) => {
           const diaSemana = date
             ? DIAS_SEMANA_POR_INDICE[date.getDay()]
             : DIAS_SEMANA_LEGACY[index];
-          const isTraining = day?.tipo_dia === 'entreno';
+          const isTraining = isTrainingDay(day?.tipo_dia);
 
           return (
             <div

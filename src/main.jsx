@@ -17,6 +17,7 @@ import React, { StrictMode, Component } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import { initWebVitals } from './utils/webVitals';
+import { getApiBaseUrl } from './config/api';
 
 // =============================================================================
 // 🧭 ROUTING
@@ -96,6 +97,52 @@ function installDevApiHostRewrite() {
       if (nextUrl !== input.url) {
         const nextRequest = new Request(nextUrl, input);
         return originalFetch(nextRequest, init);
+      }
+    }
+
+    return originalFetch(input, init);
+  };
+}
+
+/**
+ * Normaliza las llamadas `fetch('/api/...')` root-relativas a URL absoluta contra
+ * la base de API canónica (getApiBaseUrl()).
+ *
+ * MOTIVO: en la app Capacitor el origen es `https://localhost`, así que un
+ * `/api/...` relativo resuelve al bundle local y devuelve el index.html de la
+ * SPA (JSON.parse peta). En web es inofensivo: getApiBaseUrl() es el mismo
+ * origen, así que la URL resultante es idéntica a la que ya se resolvía.
+ */
+function installRelativeApiRewrite() {
+  if (typeof window === 'undefined' || typeof window.fetch !== 'function') {
+    return;
+  }
+
+  const originalFetch = window.fetch.bind(window);
+  const toAbsolute = (rawUrl) => {
+    if (typeof rawUrl !== 'string' || !rawUrl.startsWith('/api/')) {
+      return rawUrl;
+    }
+    const base = getApiBaseUrl();
+    return `${base}${rawUrl}`;
+  };
+
+  window.fetch = (input, init) => {
+    if (typeof input === 'string') {
+      return originalFetch(toAbsolute(input), init);
+    }
+
+    if (input instanceof Request) {
+      // Request.url ya es absoluta (resuelta contra el origen). Si es
+      // <origen>/api/... la reescribimos a la base de API canónica.
+      try {
+        const parsed = new URL(input.url);
+        if (parsed.origin === window.location.origin && parsed.pathname.startsWith('/api/')) {
+          const nextUrl = `${getApiBaseUrl()}${parsed.pathname}${parsed.search}`;
+          return originalFetch(new Request(nextUrl, input), init);
+        }
+      } catch {
+        // URL no parseable: delegar sin tocar
       }
     }
 
@@ -236,6 +283,7 @@ function initializeApp() {
 // =============================================================================
 
 installDevApiHostRewrite();
+installRelativeApiRewrite();
 
 // Inicializar la aplicación
 initializeApp();

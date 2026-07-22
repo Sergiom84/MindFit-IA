@@ -10,6 +10,7 @@ import {
   resolveMacroTargets
 } from "./macroProfilePhaseResolver.js";
 import { resolveDayNutritionTargets } from "./nutritionPeriodizationService.js";
+import { isTrainingDay } from "./trainingLoad/dayType.js";
 
 /**
  * Ecuaciones de TMB
@@ -361,8 +362,8 @@ export function summarizeCarbCycling(days = [], kcalObjetivo = 0) {
   const weeklyDriftPct = kcalObjetivo > 0
     ? Number((((avgWeeklyKcal - kcalObjetivo) / kcalObjetivo) * 100).toFixed(2))
     : 0;
-  const trainingDays = safeDays.filter((day) => day?.tipo_dia === "entreno");
-  const restDays = safeDays.filter((day) => day?.tipo_dia !== "entreno");
+  const trainingDays = safeDays.filter((day) => isTrainingDay(day?.tipo_dia));
+  const restDays = safeDays.filter((day) => !isTrainingDay(day?.tipo_dia));
   const averageKcal = (items) => {
     if (!items.length) return null;
     return Math.round(items.reduce((sum, item) => sum + (Number(item?.kcal) || 0), 0) / items.length);

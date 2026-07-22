@@ -53,7 +53,7 @@ router.post('/start/methodology', authenticateToken, async (req, res) => {
     }
 
     // 🧹 LIMPIEZA PRE-SESIÓN: Cerrar sesiones viejas en limbo antes de iniciar nueva
-    const { preSessionCleanup } = await import('../utils/sessionCleanup.js');
+    const { preSessionCleanup } = await import('../../utils/sessionCleanup.js');
     const cleanupResult = await preSessionCleanup(userId, methodology_plan_id);
     if (cleanupResult.cleanedSessions > 0 || cleanupResult.fixedStates > 0) {
       console.log(`🧹 Pre-limpieza: ${cleanupResult.cleanedSessions} sesiones cerradas, ${cleanupResult.fixedStates} estados corregidos`);
@@ -131,13 +131,29 @@ router.post('/start/methodology', authenticateToken, async (req, res) => {
     // que no exista y esto sea un no-op. NO altera la creación bajo demanda ni la máquina de
     // estados; es aditivo y no bloqueante.
     try {
-      const loadQ = await client.query(
-        `SELECT metadata -> 'session_load' AS session_load
-           FROM app.methodology_plan_days
-          WHERE plan_id = $1 AND week_number = $2 AND day_name = $3 AND is_rest = FALSE
-          LIMIT 1`,
-        [methodology_plan_id, week_number, normalizedDay]
-      );
+      // COR-F0-04 §5: buscar la carga planificada por el ID canónico (plan_id + day_id),
+      // no por (day_name + LIMIT 1), que no garantiza la fila exacta en calendarios
+      // redistribuidos/regenerados. La sesión ya conserva su day_id canónico (copiado en
+      // la precreación / creación bajo demanda). Solo para sesiones históricas sin day_id
+      // se degrada al enlace previo por nombre de día.
+      let loadQ;
+      if (session?.day_id != null) {
+        loadQ = await client.query(
+          `SELECT metadata -> 'session_load' AS session_load
+             FROM app.methodology_plan_days
+            WHERE plan_id = $1 AND day_id = $2 AND is_rest = FALSE
+            LIMIT 1`,
+          [methodology_plan_id, session.day_id]
+        );
+      } else {
+        loadQ = await client.query(
+          `SELECT metadata -> 'session_load' AS session_load
+             FROM app.methodology_plan_days
+            WHERE plan_id = $1 AND week_number = $2 AND day_name = $3 AND is_rest = FALSE
+            LIMIT 1`,
+          [methodology_plan_id, week_number, normalizedDay]
+        );
+      }
       const plannedLoad = loadQ.rows?.[0]?.session_load ?? null;
       if (plannedLoad) {
         await client.query(

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import tokenManager from '../../utils/tokenManager';
 import { getApiBaseUrl } from '../../config/api';
+import { isTrainingDay } from '../../utils/dayType';
 import {
   X,
   Utensils,
@@ -281,7 +282,7 @@ export default function MealDetailView({
   }, [day]);
 
   const dayMeals = useMemo(() => dayState?.meals || [], [dayState?.meals]);
-  const isTraining = dayState?.tipo_dia === "entreno";
+  const isTraining = isTrainingDay(dayState?.tipo_dia);
   const totalKcal = parseNumeric(dayState?.kcal) ?? 0;
   const proteinGrams = Math.round(parseNumeric(dayState?.macros?.protein_g) ?? 0);
   const carbsGrams = Math.round(parseNumeric(dayState?.macros?.carbs_g) ?? 0);
