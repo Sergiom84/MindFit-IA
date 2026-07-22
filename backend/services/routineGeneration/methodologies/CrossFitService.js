@@ -18,6 +18,19 @@ import {
 import { getCrossfitFeatureFlags } from '../../crossfit/featureFlags.js';
 import { generateCrossfitProductPlan } from '../../crossfit/integration/productPlanService.js';
 import {
+  evaluatePublicCrossfitAssessment,
+  evaluateTrustedCrossfitAssessment,
+  getCrossfitAssessmentRequiredResponse,
+  getCrossfitAssessmentCapabilities,
+  normalizeCrossfitAssessmentRequest,
+  sanitizePublicCrossfitAssessment
+} from '../../crossfit/classification/assessmentService.js';
+import {
+  loadCrossfitSelfAssessment,
+  loadLatestVerifiedCrossfitAssessment,
+  recordCrossfitAssessment
+} from '../../crossfit/classification/assessmentRepository.js';
+import {
   buildExercisePicker,
   buildTemplates,
   buildSemanas,
@@ -39,7 +52,7 @@ import {
  * @param {string} userId - ID del usuario
  * @returns {Promise<object>} Evaluación con nivel recomendado
  */
-export async function evaluateCrossFitLevel(userId) {
+async function evaluateCrossFitLevelLegacy(userId) {
   try {
     logSeparator('CROSSFIT PROFILE EVALUATION');
     logAPICall('/specialist/crossfit/evaluate', 'POST', userId);
@@ -152,6 +165,57 @@ FORMATO EXACTO:
   }
 }
 
+export function getCrossFitV2Capabilities() {
+  return getCrossfitAssessmentCapabilities();
+}
+
+export async function evaluateCrossFitLevel(userId, evaluationData = {}) {
+  if (!getCrossfitFeatureFlags().generation) {
+    return evaluateCrossFitLevelLegacy(userId);
+  }
+
+  if (!evaluationData?.schema_version) {
+    return getCrossfitAssessmentRequiredResponse();
+  }
+
+  const userProfile = await getUserFullProfile(userId);
+  const normalizedRequest = normalizeCrossfitAssessmentRequest(evaluationData);
+  const publicResult = evaluatePublicCrossfitAssessment({
+    profile: userProfile,
+    body: evaluationData
+  });
+  const persisted = await recordCrossfitAssessment({
+    db: pool,
+    userId,
+    assessment: normalizedRequest.crossfitAssessment,
+    classification: publicResult.evaluation.classification,
+    safety: publicResult.evaluation.safety,
+    requestId: normalizedRequest.request_id,
+    requestPayload: normalizedRequest
+  });
+  const verified = await loadLatestVerifiedCrossfitAssessment(pool, userId);
+  if (!verified) {
+    return {
+      ...publicResult,
+      metadata: { ...publicResult.metadata, assessment_id: persisted.assessment_id }
+    };
+  }
+  const trustedResult = evaluateTrustedCrossfitAssessment({
+    profile: userProfile,
+    assessment: verified.assessment,
+    checkIn: normalizedRequest.check_in,
+    requestId: normalizedRequest.request_id
+  });
+  return {
+    ...trustedResult,
+    metadata: {
+      ...trustedResult.metadata,
+      assessment_id: persisted.assessment_id,
+      verified_assessment_id: verified.assessment_id
+    }
+  };
+}
+
 // Niveles de CrossFit (la tabla tiene Principiante/Intermedio/Avanzado/Elite).
 // VENTANA DESLIZANTE: cada nivel incluye el suyo y como mucho uno por debajo
 // (no arrastra desde principiante) para no meter WODs triviales en niveles altos.
@@ -259,9 +323,39 @@ export async function generateCrossFitPlan(userId, planData = {}) {
   logAPICall('/specialist/crossfit/generate', 'POST', userId);
 
   if (getCrossfitFeatureFlags().generation) {
+    const assessment = planData.crossfitAssessment ?? planData.crossfit_assessment;
+    const referencedAssessmentId = planData.crossfitAssessmentId ?? planData.crossfit_assessment_id;
+    const publicAssessment = assessment
+      ? sanitizePublicCrossfitAssessment(assessment)
+      : null;
+    const persistedSelfAssessment = referencedAssessmentId
+      ? await loadCrossfitSelfAssessment(pool, userId, referencedAssessmentId)
+      : null;
+    if (referencedAssessmentId && !persistedSelfAssessment) {
+      const error = new Error('La evaluación CrossFit indicada no pertenece al usuario o no existe');
+      error.code = 'CROSSFIT_ASSESSMENT_NOT_FOUND';
+      error.status = 422;
+      throw error;
+    }
+    const verified = await loadLatestVerifiedCrossfitAssessment(pool, userId);
+    const safePlanData = assessment || persistedSelfAssessment
+      ? {
+          ...planData,
+          crossfitAssessment: verified?.assessment ?? persistedSelfAssessment?.assessment ?? publicAssessment,
+          crossfitAssessmentId: verified?.assessment_id ?? persistedSelfAssessment?.assessment_id ?? null,
+          crossfit_assessment: undefined,
+          crossfit_assessment_id: undefined
+        }
+      : verified
+        ? {
+            ...planData,
+            crossfitAssessment: verified.assessment,
+            crossfitAssessmentId: verified.assessment_id
+          }
+        : planData;
     const generated = await generateCrossfitProductPlan({
       userId,
-      planData,
+      planData: safePlanData,
       db: pool,
       profileLoader: getUserFullProfile
     });

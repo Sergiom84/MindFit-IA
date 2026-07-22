@@ -23,12 +23,12 @@ Estado global: `EN_PROGRESO`
 | A. Baseline y DoR             | `COMPLETADA_CON_LIMITACION`   | 231/231 unit, lint, build; integración requiere BD efímera   |
 | B. Contratos/versionado/flags | `COMPLETADA`                  | 8/8 específicos; suite 239/239; lint; flags off              |
 | C. Catálogo/seguridad         | `COMPLETADA_CON_GATE_BD`      | 13/13; 92+104+236; 120/120; SQL/RLS requiere BD efímera      |
-| D. Clasificación              | `COMPLETADA_TECNICA`          | level-model/2.0.0; 11/11 decisiones y límites                |
+| D. Clasificación              | `COMPLETADA_CON_GATE_BD_E2E`  | level-model + UI 8D + ledger/revisión; 32 focalizados        |
 | E. Programación por nivel     | `COMPLETADA_TECNICA`          | bloques 8/10/12; seis frecuencias; 12/12 tests               |
 | F. Composer/validadores       | `COMPLETADA_TECNICA`          | 30.000 planes + 30.000 regeneraciones; cero hard violation   |
 | G. Flujos de producto         | `COMPLETADA_CON_GATE_E2E`     | 51/51 focalizados; generación, plan, single-day y player     |
 | H. Resultados/autorregulación | `COMPLETADA_CON_GATE_BD`      | siete estados; 18/18 específicos; SQL/RLS requiere BD        |
-| I. Training load/nutrición    | `COMPLETADA_TECNICA_FLAG_OFF` | 49/49; 341/341; shadow/BD/aprobación pendientes              |
+| I. Training load/nutrición    | `COMPLETADA_TECNICA_FLAG_OFF` | 49/49; 355/355; shadow/BD/aprobación pendientes              |
 | J. QA integral                | `PREPARADA_GATE_CI`           | unit/lint/build verdes; BD/RLS/E2E preparados, no ejecutados |
 | K. Validaciones externas      | `GATE_PREPRODUCCION`          | entrenador, nutricionista, clínico si aplica y legal         |
 
@@ -41,7 +41,7 @@ Estado global: `EN_PROGRESO`
 | CI `main`                  | CI y Android verdes en el SHA de referencia                        |
 | `npm ci` raíz/backend      | correcto desde lockfiles                                           |
 | `npm run test:backend`     | 231/231                                                            |
-| Regresión actual           | 341/341 tras sincronización y guardas QA                           |
+| Regresión actual           | 355/355 tras evaluación objetiva y guardas QA                      |
 | `npm run lint -- --quiet`  | correcto                                                           |
 | `npm run build`            | correcto; warnings preexistentes de chunks/browser data            |
 | Integración backend        | no ejecutada: no hay PostgreSQL/Docker local ni URL QA             |
@@ -98,7 +98,7 @@ Estado global: `EN_PROGRESO`
   diuréticos bloquea dosis de electrolitos. No se emite diagnóstico.
 - Endpoint admin read-only `/api/admin/crossfit-v2/metrics`: carga válida/degradada,
   contratos shadow/active, drift >1 %, outbox y duplicados, sin PII.
-- Verificación: 49/49 focalizados, 341/341 backend y lint quiet verdes. Flags y
+- Verificación: 49/49 focalizados, 355/355 backend y lint quiet verdes. Flags y
   `.env.example` siguen `false`; no se ejecutó shadow real, DB efímera, Render,
   Supabase ni activación. Gate operativo pendiente: valid load >=99 %, degradados
   <1 %, cero duplicados/drift en muestra QA y aprobación de nutricionista.
@@ -135,19 +135,40 @@ Estado global: `EN_PROGRESO`
 - El arnés `localQaGuard` queda desactivado sin acuse explícito y, aun con acuse,
   rechaza cualquier API, frontend o PostgreSQL que no sea local. La regresión E2E
   histórica deja de permitir Supabase/producción.
-- CI prepara PostgreSQL 17 efímero, restaura baseline, aplica dos veces las dos
+- CI prepara PostgreSQL 17 efímero, restaura baseline, aplica dos veces las tres
   migraciones CrossFit y ejecuta la integración registrada por el runner.
 - El job E2E importa el catálogo draft, lo activa solo en la BD desechable y
   verifica que un segundo import es un no-op con hash y conteos idénticos.
 - La integración comprueba tablas, RLS, catálogo visible solo activo, bloqueo de
   mutación del catálogo activo, aislamiento entre dos usuarios y resultados
   append-only dentro de una transacción con rollback.
-- Playwright descubre ocho casos en proyectos escritorio y móvil 375x812: tres
-  ciclos API por nivel y un recorrido UI por viewport. Generation/results están
+- Playwright descubre diez casos en proyectos escritorio y móvil 375x812: tres
+  ciclos API por nivel y dos recorridos UI por viewport. Generation/results están
   activos solo dentro del job; carga, nutrición y workers continúan apagados.
-- Verificación local segura: 341/341 unitarios, lint quiet, build y budget de
+- Verificación local segura: 355/355 unitarios, lint quiet, build y budget de
   bundle verdes. PostgreSQL/Docker no están disponibles y no hay servidores
   levantados; por tanto DB/RLS/E2E permanecen `PENDIENTE_EJECUCION_CI`, no verdes.
+
+## Gate técnico D y evaluación de producto
+
+- La UI consulta capabilities autenticadas: flag apagado o error conserva el
+  componente legacy; flag encendido usa la tarjeta v2 sin selección manual.
+- Ocho dimensiones 0-3, sesiones comparables, adherencia, pausa, dolor, zona,
+  lesion aguda y red flag forman un contrato estricto con `request_id`.
+- Objetivo, frecuencia y equipamiento se reutilizan del perfil; tras clasificar,
+  las respuestas se congelan hasta reevaluar para evitar screening obsoleto.
+- La autoevaluacion no puede enviar `technique_verified=true` ni permisos de
+  skills y queda limitada a confianza media. Elite permanece fuera.
+- Avanzado exige el ultimo evento profesional `verified` del ledger; un evento
+  posterior `revoked` lo anula. El endpoint de revision esta protegido por
+  `ADMIN_TOKEN`, pero la firma deportiva sigue siendo gate humano externo.
+- Persistencia append-only con RLS owner-read, secuencia monotonica, hash de
+  contenido e idempotencia fail-closed. La generacion resuelve el identificador
+  persistido por usuario y rechaza referencias ajenas. La migracion
+  `20260722_crossfit_v2_assessments.sql` esta preparada y no aplicada.
+- Metricas admin agregan self-report, revisiones, activos, revocados y caducados
+  sin exponer usuario ni contenido. Verificacion focalizada: 32/32; lint verde.
+  PostgreSQL/RLS y Playwright siguen pendientes de ejecucion CI.
 
 ## Gate estadístico F
 

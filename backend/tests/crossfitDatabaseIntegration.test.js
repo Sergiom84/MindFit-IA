@@ -5,6 +5,7 @@ import pg from "pg";
 
 const { Client } = pg;
 const TABLES = [
+  "crossfit_v2_assessments",
   "crossfit_catalog_versions",
   "crossfit_movements",
   "crossfit_movement_variants",
@@ -184,6 +185,47 @@ test("migraciones CrossFit crean objetos, RLS y políticas esperadas", async () 
         (row) => row.policyname === "crossfit_v2_results_owner_read",
       ),
     );
+    assert.ok(
+      policies.rows.some(
+        (row) => row.policyname === "crossfit_v2_assessments_owner_read",
+      ),
+    );
+  });
+});
+
+test("evaluaciones aíslan usuarios y no admiten update ni delete", async () => {
+  await withRollback(async (client) => {
+    await client.query(
+      `INSERT INTO app.users (id, email, password_hash, nombre, apellido) VALUES
+       (995001, 'crossfit-assessment-a@example.invalid', 'qa-only', 'A', 'QA'),
+       (995002, 'crossfit-assessment-b@example.invalid', 'qa-only', 'B', 'QA')`,
+    );
+    for (const [suffix, userId] of [["a", 995001], ["b", 995002]]) {
+      await client.query(
+        `INSERT INTO app.crossfit_v2_assessments
+           (assessment_id, user_id, schema_version, level_model_version, source,
+            verification_status, request_id, idempotency_key, assessment_payload,
+            content_hash, classification_payload, safety_payload, observed_at)
+         VALUES ($1, $2, 'crossfit-assessment/v2', 'level-model/2.0.0',
+           'self_report', 'self_report', $3, $4, '{}'::jsonb, $5, '{}'::jsonb, '{}'::jsonb, NOW())`,
+        [`cfx_${suffix.repeat(24)}`, userId, `req-${suffix}`, `idem-${suffix}`, suffix.repeat(64)],
+      );
+    }
+
+    await client.query("SET LOCAL ROLE authenticated");
+    await client.query("SELECT set_config('app.current_user_id', '995001', true)");
+    const visible = await client.query("SELECT user_id FROM app.crossfit_v2_assessments");
+    assert.deepEqual(visible.rows.map((row) => row.user_id), [995001]);
+    await client.query("RESET ROLE");
+
+    for (const [name, sql] of [
+      ["update", "UPDATE app.crossfit_v2_assessments SET request_id = 'mutated' WHERE user_id = 995001"],
+      ["delete", "DELETE FROM app.crossfit_v2_assessments WHERE user_id = 995001"],
+    ]) {
+      await client.query(`SAVEPOINT assessment_${name}`);
+      await assert.rejects(client.query(sql), (error) => error.code === "55000");
+      await client.query(`ROLLBACK TO SAVEPOINT assessment_${name}`);
+    }
   });
 });
 

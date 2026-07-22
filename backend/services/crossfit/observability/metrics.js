@@ -32,6 +32,22 @@ SELECT
   COALESCE((SELECT SUM(decision_count - 1) FROM decision_counts WHERE decision_count > 1), 0)::int
     AS duplicate_decisions`;
 
+export const CROSSFIT_ASSESSMENT_HEALTH_SQL = `
+WITH latest_professional AS (
+  SELECT DISTINCT ON (user_id) user_id, verification_status, observed_at
+  FROM app.crossfit_v2_assessments
+  WHERE source = 'professional_review'
+  ORDER BY user_id, event_sequence DESC
+)
+SELECT
+  (SELECT COUNT(*) FROM app.crossfit_v2_assessments)::int AS total,
+  (SELECT COUNT(*) FROM app.crossfit_v2_assessments WHERE source = 'self_report')::int AS self_report,
+  (SELECT COUNT(*) FROM app.crossfit_v2_assessments WHERE source = 'professional_review')::int AS professional_events,
+  (SELECT COUNT(*) FROM latest_professional WHERE verification_status = 'verified')::int AS active_verified,
+  (SELECT COUNT(*) FROM latest_professional WHERE verification_status = 'revoked')::int AS active_revoked,
+  (SELECT COUNT(*) FROM latest_professional
+    WHERE verification_status = 'verified' AND observed_at < NOW() - INTERVAL '28 days')::int AS verified_stale`;
+
 function percentage(numerator, denominator) {
   if (!Number.isFinite(denominator) || denominator <= 0) return null;
   return Math.round(numerator / denominator * 10000) / 100;
@@ -46,10 +62,11 @@ function macroEnergy(macros) {
 }
 
 export async function collectCrossfitV2Metrics(db) {
-  const [loadResult, nutritionResult, outboxResult] = await Promise.all([
+  const [loadResult, nutritionResult, outboxResult, assessmentResult] = await Promise.all([
     db.query(CROSSFIT_LOAD_SAMPLE_SQL),
     db.query(CROSSFIT_NUTRITION_SAMPLE_SQL),
-    db.query(CROSSFIT_OUTBOX_HEALTH_SQL)
+    db.query(CROSSFIT_OUTBOX_HEALTH_SQL),
+    db.query(CROSSFIT_ASSESSMENT_HEALTH_SQL)
   ]);
 
   let validLoads = 0;
@@ -82,6 +99,7 @@ export async function collectCrossfitV2Metrics(db) {
   }
 
   const outbox = outboxResult.rows[0] ?? {};
+  const assessments = assessmentResult.rows[0] ?? {};
   const totalLoads = loadResult.rows.length;
   const validLoadPct = percentage(validLoads, totalLoads);
   const degradedLoadPct = percentage(degradedLoads, totalLoads);
@@ -91,7 +109,8 @@ export async function collectCrossfitV2Metrics(db) {
     methodology: "crossfit",
     versions: {
       training_load: "training-load/v1",
-      nutrition: "crossfit-nutrition/2.0.0"
+      nutrition: "crossfit-nutrition/2.0.0",
+      level_model: "level-model/2.0.0"
     },
     training_load: {
       total: totalLoads,
@@ -115,13 +134,22 @@ export async function collectCrossfitV2Metrics(db) {
       failed_terminal: Number(outbox.failed_terminal ?? 0),
       duplicate_decisions: duplicateDecisions
     },
+    assessments: {
+      total: Number(assessments.total ?? 0),
+      self_report: Number(assessments.self_report ?? 0),
+      professional_events: Number(assessments.professional_events ?? 0),
+      active_verified: Number(assessments.active_verified ?? 0),
+      active_revoked: Number(assessments.active_revoked ?? 0),
+      verified_stale: Number(assessments.verified_stale ?? 0)
+    },
     gates: {
       sample_available: totalLoads > 0,
       valid_load_at_least_99pct: validLoadPct !== null && validLoadPct >= 99,
       degraded_load_below_1pct: degradedLoadPct !== null && degradedLoadPct < 1,
       zero_duplicate_decisions: duplicateDecisions === 0,
       zero_energy_drift_over_1pct: energyDriftOver1Pct === 0,
-      zero_invalid_nutrition_contracts: invalidNutrition === 0
+      zero_invalid_nutrition_contracts: invalidNutrition === 0,
+      zero_stale_verified_assessments: Number(assessments.verified_stale ?? 0) === 0
     }
   };
 }

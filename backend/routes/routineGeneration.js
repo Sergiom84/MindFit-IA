@@ -17,6 +17,7 @@ import {
   generateMethodologyPlan,
   getMethodologyLevels,
   getSupportedMethodologies,
+  CrossFitService,
 
   // Utilities
   cleanUserDrafts,
@@ -31,6 +32,10 @@ import { getUserFullProfile } from '../services/routineGeneration/database/userR
 import { buildProfileAwarePlanData } from '../services/userProfileContract.js';
 
 const router = express.Router();
+
+router.get('/specialist/crossfit/capabilities', authenticateToken, (req, res) => {
+  res.json(CrossFitService.getCrossFitV2Capabilities());
+});
 
 // =========================================
 // SPECIALIST ENDPOINTS - EVALUATION
@@ -49,14 +54,16 @@ router.post('/specialist/:methodology/evaluate', authenticateToken, async (req, 
   try {
     logger.info(`📊 Evaluando nivel de ${methodology} para usuario ${userId}`);
 
-    const evaluation = await evaluateUserLevel(methodology, userId);
+    const evaluation = await evaluateUserLevel(methodology, userId, req.body ?? {});
     res.json(evaluation);
 
   } catch (error) {
     logger.error(`❌ Error en evaluación ${methodology}:`, error.message);
-    res.status(500).json({
+    res.status(error.status || 500).json({
       success: false,
-      error: error.message
+      error: error.message,
+      code: error.code,
+      details: error.details
     });
   }
 });
@@ -87,9 +94,11 @@ router.post('/specialist/:methodology/generate', authenticateToken, async (req, 
 
   } catch (error) {
     logger.error(`❌ Error generando plan ${methodology}:`, error.message);
-    res.status(500).json({
+    res.status(error.status || 500).json({
       success: false,
-      error: error.message
+      error: error.message,
+      code: error.code,
+      details: error.details
     });
   }
 });

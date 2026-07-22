@@ -106,7 +106,8 @@ function classificationInput(profile, planData, safety, now) {
     years_training: profile.anos_entrenando ?? profile["años_entrenando"] ?? null,
     safety: {
       blocked: safety.blocked,
-      red_flag: safety.reason_codes.includes("SAFETY_RED_FLAG"),
+      red_flag: safety.reason_codes.includes("SAFETY_RED_FLAG") || planData.check_in?.red_flag === true,
+      acute_injury: planData.check_in?.acute_injury === true,
       pain_score: planData.check_in?.pain?.score ?? planData.check_in?.pain_score ?? 0
     },
     now
@@ -171,6 +172,7 @@ export async function generateCrossfitProductPlan({
   const generationBasis = {
     user_id: String(userId),
     classification_id: classification.classification_id,
+    assessment_id: planData.crossfitAssessmentId ?? null,
     level,
     frequency,
     start_date: startDate,
@@ -236,6 +238,7 @@ export async function generateCrossfitProductPlan({
   }
   const objective = planData.goals ?? profile.objetivo_principal ?? "Preparación física general";
   const presentation = presentCrossfitPlanV2(generated.plan, catalog, { objective });
+  presentation.crossfit_assessment_id = planData.crossfitAssessmentId ?? null;
   presentation.crossfit_classification = classification;
   presentation.crossfit_safety = {
     safety_version: safety.safety_version,

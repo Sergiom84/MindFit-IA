@@ -143,6 +143,7 @@ jobs:
           for pass in 1 2; do
             echo "CrossFit migration pass $pass"
             psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+              -f backend/migrations/20260722_crossfit_v2_assessments.sql \
               -f backend/migrations/20260722_crossfit_v2_catalog.sql \
               -f backend/migrations/20260722_crossfit_v2_results_autoreg.sql
           done
@@ -177,6 +178,7 @@ jobs:
       CROSSFIT_V2_RESULTS: "true"
       CROSSFIT_EMITS_TRAINING_LOAD: "false"
       CROSSFIT_NUTRITION_LOAD: "false"
+      ADMIN_TOKEN: crossfit-e2e-admin-ephemeral-only
       BRIDGE_OUTBOX_EMIT_ENABLED: "false"
       BRIDGE_OUTBOX_WORKER_ENABLED: "false"
     steps:
@@ -198,6 +200,7 @@ jobs:
             -c "CREATE SCHEMA IF NOT EXISTS auth;" \
             -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS 'SELECT NULL::uuid';" \
             -f backend/db/baseline/app_schema_baseline.sql \
+            -f backend/migrations/20260722_crossfit_v2_assessments.sql \
             -f backend/migrations/20260722_crossfit_v2_catalog.sql \
             -f backend/migrations/20260722_crossfit_v2_results_autoreg.sql
           CROSSFIT_CATALOG_DATABASE_URL="$DATABASE_URL" \

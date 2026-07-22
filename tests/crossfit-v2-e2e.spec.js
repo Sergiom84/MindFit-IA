@@ -16,7 +16,7 @@ const CATALOG = loadCrossfitCatalogFixture();
 const FULL_EQUIPMENT = allCrossfitEquipment(CATALOG);
 const SKILL_PERMISSIONS = allCrossfitSkillPermissions(CATALOG);
 const LEVEL_CASES = [
-  { level: "beginner", expected: "beginner", frequency: 3, score: null },
+  { level: "beginner", expected: "beginner", frequency: 3, score: 1 },
   { level: "intermediate", expected: "intermediate", frequency: 4, score: 2 },
   { level: "advanced", expected: "advanced", frequency: 5, score: 3 },
 ];
@@ -68,7 +68,7 @@ async function ensureUser(request, email, frequency) {
   const login = await api(request, "POST", "/api/auth/login", {
     data: { email, password: PASSWORD },
   });
-  if (login.body.token) return login.body.token;
+  if (login.body.token) return { token: login.body.token, userId: login.body.user.id };
 
   const registration = await api(request, "POST", "/api/auth/register", {
     data: {
@@ -96,10 +96,10 @@ async function ensureUser(request, email, frequency) {
     JSON.stringify(registration.body),
   ).toBeLessThan(300);
   expect(registration.body.token).toBeTruthy();
-  return registration.body.token;
+  return { token: registration.body.token, userId: registration.body.user.id };
 }
 
-function assessment(score) {
+function assessment(score, { trusted = false } = {}) {
   if (score == null) return undefined;
   const dimensions = [
     "technique",
@@ -111,10 +111,10 @@ function assessment(score) {
     "volume",
     "recovery",
   ];
-  const observedAt = "2026-07-22T10:00:00.000Z";
+  const observedAt = new Date().toISOString();
   return {
     dimension_scores: Object.fromEntries(dimensions.map((key) => [key, score])),
-    skill_permissions: SKILL_PERMISSIONS,
+    skill_permissions: trusted ? SKILL_PERMISSIONS : {},
     adherence_rate: 0.9,
     evidence: {
       dimensions: Object.fromEntries(
@@ -122,7 +122,8 @@ function assessment(score) {
       ),
       comparable_sessions: 6,
       comparable_exposures_per_dimension: 3,
-      technique_verified: true,
+      technique_verified: trusted,
+      verification_source: trusted ? "professional_review" : "self_report",
       weeks_in_level: 12,
     },
   };
@@ -130,9 +131,53 @@ function assessment(score) {
 
 async function provisionPlan(request, projectName, levelCase, tag) {
   const email = syntheticEmail(tag, projectName);
-  const token = await ensureUser(request, email, levelCase.frequency);
+  const account = await ensureUser(request, email, levelCase.frequency);
+  if (levelCase.level === "advanced") {
+    const reviewed = await api(
+      request,
+      "POST",
+      "/api/admin/crossfit-v2/assessments/review",
+      {
+        headers: {
+          "x-admin-token": "crossfit-e2e-admin-ephemeral-only",
+          "idempotency-key": `review-${tag}-${account.userId}`,
+        },
+        data: {
+          user_id: account.userId,
+          action: "verify",
+          request_id: `review-${tag}-${account.userId}`,
+          reviewer_reference: "qa-qualified-reviewer-fixture",
+          assessment: assessment(levelCase.score, { trusted: true }),
+        },
+      },
+    );
+    expect(reviewed.response.status(), JSON.stringify(reviewed.body)).toBe(201);
+    expect(reviewed.body.verification_status).toBe("verified");
+  }
+  const publicAssessment = assessment(levelCase.score);
+  const evaluated = await api(
+    request,
+    "POST",
+    "/api/crossfit-specialist/evaluate-profile",
+    {
+      token: account.token,
+      data: {
+        schema_version: "crossfit-assessment/v2",
+        request_id: `evaluation-${tag}-${account.userId}`,
+        crossfitAssessment: publicAssessment,
+        check_in: {
+          pain: { score: 0, locations: [] },
+          red_flag: false,
+          acute_injury: false,
+        },
+      },
+    },
+  );
+  expect(evaluated.response.status(), JSON.stringify(evaluated.body)).toBe(200);
+  expect(evaluated.body.evaluation.recommended_level).toBe(levelCase.expected);
+  expect(evaluated.body.metadata.assessment_id).toMatch(/^cfx_[a-f0-9]{24}$/);
   const generated = await api(request, "POST", "/api/methodology/generate", {
-    token,
+    token: account.token,
     headers: {
       "x-request-id": `e2e-${tag}-${levelCase.level}`,
       "idempotency-key": `e2e-${tag}-${levelCase.level}`,
@@ -144,7 +189,8 @@ async function provisionPlan(request, projectName, levelCase, tag) {
       frecuencia_semanal: levelCase.frequency,
       available_minutes: levelCase.level === "advanced" ? 90 : 60,
       available_equipment: FULL_EQUIPMENT,
-      crossfitAssessment: assessment(levelCase.score),
+      crossfit_assessment_id: evaluated.body.metadata.assessment_id,
+      crossfitAssessment: publicAssessment,
       startConfig: { startDate: "today" },
       source: "crossfit-v2-e2e",
     },
@@ -165,11 +211,11 @@ async function provisionPlan(request, projectName, levelCase, tag) {
   expect(canonical?.level).toBe(levelCase.expected);
 
   const confirmed = await api(request, "POST", "/api/routines/confirm-plan", {
-    token,
+    token: account.token,
     data: { methodology_plan_id: planId },
   });
   expect(confirmed.response.status(), JSON.stringify(confirmed.body)).toBe(200);
-  return { email, token, planId, canonical };
+  return { email, token: account.token, planId, canonical };
 }
 
 async function firstScheduledSession(request, token, planId) {
@@ -339,6 +385,57 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
       expect(history.response.status(), JSON.stringify(history.body)).toBe(200);
     });
   }
+
+  test("UI evaluacion: ocho dimensiones, clasificacion conservadora y a11y", async ({
+    page,
+    request,
+  }, testInfo) => {
+    const email = syntheticEmail("assessment-ui", testInfo.project.name);
+    await ensureUser(request, email, 3);
+    const now = new Date();
+    const nextWednesday = new Date(now);
+    nextWednesday.setDate(now.getDate() + ((3 - now.getDay() + 7) % 7));
+    nextWednesday.setHours(10, 0, 0, 0);
+    await page.clock.setFixedTime(nextWednesday);
+
+    await page.goto(`${QA_GATE.appBase}/login`, { waitUntil: "domcontentloaded" });
+    await page.locator('input[name="email"]').fill(email);
+    await page.locator('input[name="password"]').fill(PASSWORD);
+    await page.getByRole("button", { name: "Iniciar Sesión", exact: true }).click();
+    await page.waitForURL((url) => !url.pathname.includes("login"));
+    await page.goto(`${QA_GATE.appBase}/methodologies`, { waitUntil: "domcontentloaded" });
+    await page
+      .getByRole("button", { name: "Seleccionar metodología CrossFit" })
+      .click();
+
+    const assessmentCard = page.getByTestId("crossfit-v2-assessment");
+    await expect(assessmentCard).toBeVisible();
+    const dimensions = assessmentCard.locator("fieldset");
+    await expect(dimensions).toHaveCount(8);
+    for (let index = 0; index < 8; index += 1) {
+      await dimensions.nth(index).locator("label").nth(1).click();
+    }
+    await assessmentCard
+      .getByRole("button", { name: "Evaluar nivel y seguridad" })
+      .click();
+    await expect(
+      assessmentCard.getByRole("heading", { name: "Principiante", exact: true }),
+    ).toBeVisible();
+    await expect(assessmentCard.getByText(/confianza media/i)).toBeVisible();
+    await expect(
+      assessmentCard.getByRole("button", { name: "Generar bloque principiante" }),
+    ).toBeVisible();
+
+    const blocking = (
+      await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa"])
+        .include('[data-testid="crossfit-v2-assessment"]')
+        .analyze()
+    ).violations.filter((violation) =>
+      ["critical", "serious"].includes(violation.impact),
+    );
+    expect(blocking).toEqual([]);
+  });
 
   test("UI WOD: warm-up, escala, timer, a11y y viewport", async ({
     page,

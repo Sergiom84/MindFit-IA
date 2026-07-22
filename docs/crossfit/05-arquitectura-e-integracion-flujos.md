@@ -7,6 +7,7 @@ Objetivo: incorporar `crossfit-plan/v2` mediante adaptadores de metodologia, sin
 | Componente                    | Estado en rama                      | Prohibicion                  |
 | ----------------------------- | ----------------------------------- | ---------------------------- |
 | CrossFitClassificationService | implementado y testeado             | no usar IA como juez final   |
+| CrossFitAssessmentLedger      | SQL/RLS preparado; no aplicado      | no confiar en autoafirmacion |
 | CrossFitCatalogRepository     | implementado; migración no aplicada | no leer filas Elite core     |
 | CrossFitProgramBuilder        | implementado 8/10/12 semanas        | no persistir directamente    |
 | CrossFitWodComposer           | implementado; gate 30.000 verde     | no relajar hard filters      |
@@ -23,17 +24,19 @@ condiciones CrossFit dispersas en el frontend agnóstico.
 
 ## Contratos API propuestos
 
-| Operacion           | Request esencial                                              | Response                                      | Idempotencia                           |
-| ------------------- | ------------------------------------------------------------- | --------------------------------------------- | -------------------------------------- |
-| evaluar             | user auth + test results + screening version                  | classification, confidence, skill permissions | `user+assessment_version+submitted_at` |
-| generar plan        | start, frequency, time, equipment snapshot, classification id | `crossfit-plan/v2`                            | plan idempotency key                   |
-| single-day          | date/day_id, time, equipment, readiness                       | session v2                                    | user+date+purpose+revision             |
-| regenerar           | plan/day, reason, expected revision                           | new revision + diff                           | request key                            |
-| sustituir           | session, movement, symptom/equipment reason                   | validated scale/substitution                  | session+movement+revision              |
-| iniciar             | plan_id+day_id+session revision                               | start event                                   | unique active start                    |
-| pausar/reanudar     | session instance + monotonic sequence                         | timer state                                   | sequence/event id                      |
-| finalizar/abandonar | structured result + feedback                                  | actual load + autoreg pending/applied         | completion event id                    |
-| estado              | plan/day                                                      | session, sync, nutrition, autoreg status      | read only                              |
+| Operacion           | Request esencial                                            | Response                                  | Idempotencia                   |
+| ------------------- | ----------------------------------------------------------- | ----------------------------------------- | ------------------------------ |
+| capacidades         | user auth                                                   | flags, dimensiones, niveles/frecuencias   | read only                      |
+| evaluar             | `crossfit-assessment/v2` + `request_id` + screening         | classification, safety, confidence, trace | `user+request_id+content_hash` |
+| revisar evidencia   | admin fail-closed + assessment + reviewer reference         | verified/revoked event                    | `user+idempotency_key`         |
+| generar plan        | start, frequency, time, equipment snapshot, `assessment_id` | `crossfit-plan/v2`                        | plan idempotency key           |
+| single-day          | date/day_id, time, equipment, readiness                     | session v2                                | user+date+purpose+revision     |
+| regenerar           | plan/day, reason, expected revision                         | new revision + diff                       | request key                    |
+| sustituir           | session, movement, symptom/equipment reason                 | validated scale/substitution              | session+movement+revision      |
+| iniciar             | plan_id+day_id+session revision                             | start event                               | unique active start            |
+| pausar/reanudar     | session instance + monotonic sequence                       | timer state                               | sequence/event id              |
+| finalizar/abandonar | structured result + feedback                                | actual load + autoreg pending/applied     | completion event id            |
+| estado              | plan/day                                                    | session, sync, nutrition, autoreg status  | read only                      |
 
 Todos responden `schema_version`, `ruleset_version`, `catalog_version`, `request_id` y errores con `reason_code`, `retryable`, `safe_fallback`.
 
@@ -42,6 +45,10 @@ Todos responden `schema_version`, `ruleset_version`, `catalog_version`, `request
 - Plan/sesion: tablas de metodologia existentes con JSON v2 o nuevas tablas normalizadas segun diseño de rama.
 - Identidad: `plan_id + day_id`; date es atributo, no clave primaria de enlace.
 - Resultado: entidad append-only con version y event id.
+- Evaluacion: `crossfit_v2_assessments` append-only; owner-read, escritura
+  backend, secuencia monotona y hash de idempotencia. La autoevaluacion nunca
+  guarda `technique_verified=true`; solo el ultimo evento profesional
+  `verified` puede habilitar confianza alta y uno `revoked` la invalida.
 - Autoreg: reducer por eventos y snapshot derivado.
 - Training load: metadata canonica de Fase 0 y outbox.
 - Nutricion: solo override/periodizacion del motor existente, enlazado por `day_id`.
@@ -92,7 +99,33 @@ Autorizacion backend por `user_id`; RLS como segunda barrera; service role solo 
 
 ## Observabilidad
 
-Metricas sin PII: generaciones/latencia, fallback por stage, invariant failures, bloqueos por family reason, completion/cap/abandon, outbox lag/retry/dead-letter, carga valid/degraded, nutrition sync, drift de distribucion de movimientos y catalog media coverage. Alertas: cualquier hard invariant persistido, duplicado de cierre, CrossFit load degradado >1 % tras rollout o acceso cruzado.
+Metricas sin PII: generaciones/latencia, fallback por stage, invariant failures,
+bloqueos por family reason, autoevaluaciones, eventos profesionales activos,
+revocaciones/evidencia caducada, completion/cap/abandon, outbox
+lag/retry/dead-letter, carga valid/degraded, nutrition sync, drift de movimientos
+y media de catalogo. Alertas: evidencia verificada >28 dias, cualquier hard
+invariant persistido, duplicado de cierre, load degradado >1 % o acceso cruzado.
+
+## Evaluacion objetiva implementada
+
+- `GET /api/routine-generation/specialist/crossfit/capabilities` decide si la
+  UI usa v2; error o flag apagado conserva el componente legacy sin cambiarlo.
+- `POST /api/crossfit-specialist/evaluate-profile` acepta el contrato estricto
+  v2. Un cliente legacy sin version recibe principiante provisional y
+  `assessment_required`, nunca Elite ni una evaluacion IA inventada.
+- La tarjeta v2 recoge las ocho dimensiones 0-3, sesiones comparables,
+  adherencia, pausa y screening. Reutiliza objetivo, frecuencia y equipamiento
+  del perfil y no ofrece seleccion manual de nivel/Rx.
+- La autoevaluacion alcanza como maximo confianza media. Avanzado requiere el
+  ledger server-side y el endpoint admin fail-closed
+  `POST /api/admin/crossfit-v2/assessments/review`; `ADMIN_TOKEN` no sustituye
+  la firma humana, solo protege la escritura tecnica del evento revisado.
+- La generacion vuelve a sanear el payload cliente, resuelve la autoevaluacion
+  por `user_id + assessment_id` y carga la ultima evidencia profesional por
+  `user_id`; un cliente no puede referenciar evaluaciones ajenas ni elevar
+  tecnica o skills.
+- `20260722_crossfit_v2_assessments.sql` esta preparada, no aplicada. CI la
+  reejecuta dos veces y prueba RLS/append-only en PostgreSQL efimero.
 
 ## Fase 0 compartida
 

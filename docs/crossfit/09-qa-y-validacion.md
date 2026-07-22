@@ -58,7 +58,7 @@ equivale a E2E: no se han levantado servidores, creado usuarios ni usado una BD.
 ## Resultado ejecutado de training load y nutrición
 
 La Fase I ejecuta 49/49 pruebas focalizadas y la regresión actual posterior a
-sincronizar `origin/main@3e09559` deja 341/341 backend. Quedan cubiertos:
+sincronizar `origin/main@3e09559` y añadir evaluación v2 deja 355/355 backend. Quedan cubiertos:
 
 - rollout `legacy -> shadow -> active` con ambos flags y default `false`;
 - matriz estricta de 36 combinaciones: tres niveles, cuatro objetivos y D0/D1/D2;
@@ -81,16 +81,19 @@ PostgreSQL. La suite histórica de regresión también usa esta guarda; se elimi
 posibilidad documentada de apuntarla a producción.
 
 - `integration-tests` restaura el baseline en PostgreSQL 17, aplica dos veces las
-  migraciones CrossFit y ejecuta el grupo de integración registrado.
+  tres migraciones CrossFit y ejecuta el grupo de integración registrado.
 - `crossfit-v2-e2e` importa el catálogo en draft, lo activa solo en la BD efímera,
   verifica el re-run activo por hash/conteos y levanta API/preview locales dentro
   del job.
 - `crossfitDatabaseIntegration.test.js` comprueba tablas, RLS, políticas,
   visibilidad de versión activa, inmutabilidad, aislamiento cross-user y
-  append-only con rollback.
-- Playwright descubre ocho casos: tres ciclos API por nivel y un recorrido UI en
-  escritorio, repetidos en el proyecto móvil 375x812 cuando aplica.
-- La regresión local ejecutada queda en 341/341, lint quiet, build y budget de
+  append-only con rollback, incluido el ledger de evaluaciones.
+- La matriz API de nivel avanzado registra primero evidencia profesional por la
+  ruta admin fail-closed. Se prohíbe usar en QA un payload cliente con
+  `technique_verified=true`; principiante/intermedio ejercitan self-report.
+- Playwright descubre diez casos: tres ciclos API por nivel, tarjeta de
+  evaluacion 8D con Axe y recorrido WOD, repetidos en escritorio y movil 375x812.
+- La regresión local ejecutada queda en 355/355, lint quiet, build y budget de
   bundle verdes.
 
 No se atribuyen resultados de DB/RLS/E2E todavía: este equipo no dispone de

@@ -581,6 +581,58 @@ app.get('/api/admin/crossfit-v2/metrics', requireAdmin, async (req, res) => {
   }
 });
 
+// Evidencia profesional CrossFit v2. ADMIN_TOKEN es fail-closed y la operación
+// solo añade un evento al ledger; nunca muta una evaluación histórica.
+app.post('/api/admin/crossfit-v2/assessments/review', requireAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.body?.user_id);
+    const action = req.body?.action ?? 'verify';
+    const reviewerReference = String(req.body?.reviewer_reference ?? '').trim();
+    const requestId = String(req.body?.request_id ?? '').trim();
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(422).json({ error: 'user_id no válido', code: 'CROSSFIT_ASSESSMENT_INVALID' });
+    }
+    if (!['verify', 'revoke'].includes(action) || reviewerReference.length < 3 || requestId.length < 8) {
+      return res.status(422).json({ error: 'Revisión profesional incompleta', code: 'CROSSFIT_ASSESSMENT_INVALID' });
+    }
+    const [{ evaluateTrustedCrossfitAssessment, sanitizeTrustedCrossfitAssessment }, { recordCrossfitAssessment }] = await Promise.all([
+      import('./services/crossfit/classification/assessmentService.js'),
+      import('./services/crossfit/classification/assessmentRepository.js')
+    ]);
+    const assessment = sanitizeTrustedCrossfitAssessment(req.body?.assessment);
+    const evaluated = evaluateTrustedCrossfitAssessment({
+      assessment,
+      requestId
+    });
+    const persisted = await recordCrossfitAssessment({
+      db: pool,
+      userId,
+      assessment,
+      classification: evaluated.evaluation.classification,
+      safety: evaluated.evaluation.safety,
+      requestId,
+      idempotencyKey: req.headers['idempotency-key'] || requestId,
+      requestPayload: { action, assessment, reviewer_reference: reviewerReference },
+      source: 'professional_review',
+      verificationStatus: action === 'verify' ? 'verified' : 'revoked',
+      reviewerReference
+    });
+    res.status(persisted.idempotent_replay ? 200 : 201).json({
+      success: true,
+      assessment_id: persisted.assessment_id,
+      idempotent_replay: persisted.idempotent_replay,
+      verification_status: action === 'verify' ? 'verified' : 'revoked',
+      global_level: evaluated.evaluation.classification.global_level,
+      confidence: evaluated.evaluation.classification.confidence
+    });
+  } catch (error) {
+    res.status(error.status || 500).json({
+      error: error.message,
+      code: error.code
+    });
+  }
+});
+
 // === SERVIR FRONTEND ESTÁTICO (después de las rutas /api/*) ===
 app.use(express.static(FRONTEND_DIST));
 

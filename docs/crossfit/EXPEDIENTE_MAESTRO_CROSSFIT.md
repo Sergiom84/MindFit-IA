@@ -15,7 +15,7 @@ El nombre publico recomendado es **Acondicionamiento funcional de alta intensida
 
 | Area                             | Estado documental                                                | Estado real de producto                                                   |
 | -------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Modelo por niveles               | Cerrado con criterios multidimensionales, confianza y asimetrias | Implementado y testeado; UI de evaluación específica pendiente            |
+| Modelo por niveles               | Cerrado con criterios multidimensionales, confianza y asimetrias | UI 8D, ledger y revisión profesional implementados; BD/E2E pendientes     |
 | Programacion 2/3, 3/4 y 4/5 dias | Cerrada por nivel y bloque                                       | Bloques 8/10/12 implementados y validados                                 |
 | Biblioteca WOD                   | Formatos, dosis, caps, interferencias y escalado definidos       | Composer y player v2 implementados; E2E pendiente                         |
 | Catalogo                         | 120 filas auditadas y modelo canonico propuesto                  | Repositorio/importador/SQL preparados; migración no aplicada              |
@@ -23,8 +23,8 @@ El nombre publico recomendado es **Acondicionamiento funcional de alta intensida
 | Autorregulacion                  | Maquina de estados y prioridades definidas                       | Siete estados persistentes; migración/RLS no aplicados                    |
 | Seguridad                        | Stop rules y matriz por patron/sintoma definidas                 | Evaluador previo al composer; contratos clínicos externos pendientes      |
 | Nutricion                        | Algoritmo por objetivo, carga y nivel definido                   | Adapter canónico implementado; rollout bloqueado por BD/shadow/aprobación |
-| Flujos                           | Contratos front-back-BD y errores trazados                       | Plan/single-day/calendario/player/cierre integrados; E2E/RLS pendientes   |
-| QA                               | Oraculos, perfiles y gates cuantificados                         | 341/341 backend y 30.000 gate; CI DB/RLS/E2E preparado, no ejecutado      |
+| Flujos                           | Contratos front-back-BD y errores trazados                       | Evaluación/plan/single-day/player/cierre integrados; E2E/RLS pendientes   |
+| QA                               | Oraculos, perfiles y gates cuantificados                         | 355/355 backend y 30.000 gate; CI DB/RLS/E2E preparado, no ejecutado      |
 
 ## Decisiones no negociables
 
@@ -38,6 +38,8 @@ El nombre publico recomendado es **Acondicionamiento funcional de alta intensida
 8. Cada sesion futura debe enlazarse por `plan_id + day_id`, producir `training-load/v1` planificado y real, y emitir cierre por outbox.
 9. No se modifica el frontend agnostico, el sistema de redireccion ni `WorkoutContext.generatePlan()`.
 10. No se borra historia ni Elite; se conserva como legacy excluido del producto principal.
+11. La autoevaluacion no desbloquea tecnica verificada ni avanzado. Solo el
+    ultimo evento profesional server-side vigente puede elevar la confianza a alta.
 
 ## Estado de Fase 0 compartida
 
@@ -78,8 +80,8 @@ CrossFit permanece inactiva hasta completar shadow, métricas y aprobación.
 
 ## Secuencia de implementacion vigente
 
-1. `COMPLETADO_TECNICO`: contratos, flags, clasificación, programación, composer y gate estadístico.
-2. `COMPLETADO_CON_GATE_BD`: catálogo, seguridad, resultados y autorregulación; migraciones no aplicadas.
+1. `COMPLETADO_TECNICO`: contratos, flags, clasificacion, programacion, composer y gate estadistico.
+2. `COMPLETADO_CON_GATE_BD`: evaluacion/ledger, catalogo, seguridad, resultados y autorregulacion; migraciones no aplicadas.
 3. `COMPLETADO_CON_GATE_E2E`: generación, plan, single-day, calendario, player, feedback y cierre por adaptadores.
 4. `COMPLETADO_TECNICO_FLAG_OFF`: training load, outbox, nutrición por nivel/carga y métricas; validar en BD/shadow QA.
 5. `PENDIENTE_INFRAESTRUCTURA`: migraciones, RLS, E2E, accesibilidad y regresión con PostgreSQL aislado.

@@ -40,9 +40,20 @@ DoD: 120/120 mapeadas, altas revisadas, cero dangling/duplicate, RLS cross-user 
 
 ### 3. Clasificacion y programacion
 
-Archivos previstos: `CrossFitClassificationService`, `CrossFitProgramBuilder`, cuotas por nivel y fixtures. Integrar por `CrossFitService`/orquestador existente, no por `WorkoutContext.generatePlan()`.
+Estado: `COMPLETADA_TECNICA_GATE_BD_E2E`, `REQUIERE_VALIDACION_HUMANA`.
 
-DoD: reglas de level-model exactas, asimetrias/retorno/confianza, 2/3-3/4-4/5 dias, bloques y deloads. Tests: tabla de decisiones, boundary values, stale evidence. Rollback: flag generation off.
+Implementados `level-model/2.0.0`, evaluacion publica estricta, tarjeta de ocho
+dimensiones con fallback por capabilities, ledger append-only y revision
+profesional admin fail-closed. La autoevaluacion no puede autoverificar tecnica
+ni skills; avanzado se resuelve unicamente desde evidencia server-side vigente.
+La migracion `20260722_crossfit_v2_assessments.sql` esta preparada y no aplicada.
+Integracion por `CrossFitService`/orquestador; `WorkoutContext.generatePlan()` no
+se modifica.
+
+DoD residual: PostgreSQL/RLS y Playwright en CI efimero; entrenador cualificado
+revisa umbrales, evidencia y muestra. Tests puros: contrato, unknown/version,
+asimetria, retorno, seguridad, confianza publica/profesional, revocacion e
+idempotencia. Rollback: flag generation off; el ledger no se borra.
 
 ### 4. Composer determinista y validadores
 
@@ -68,7 +79,7 @@ sin PII. Activar en orden: generation/results -> shadow training load -> validar
 métricas -> `emits_training_load` -> shadow nutrition -> active nutrition con aprobación expresa.
 
 Verificación local: 49/49 focalizados, matriz 3 niveles x 4 objetivos x D0/D1/D2,
-341/341 backend y lint. DoD operativo aún pendiente: valid load >=99 %, degraded
+355/355 backend y lint. DoD operativo aún pendiente: valid load >=99 %, degraded
 <1 % justificado, cero duplicado outbox, menú idempotente en BD aislada y shadow.
 Rollback: flags nutrition/load off, conservar eventos.
 

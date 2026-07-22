@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   collectCrossfitV2Metrics,
+  CROSSFIT_ASSESSMENT_HEALTH_SQL,
   CROSSFIT_LOAD_SAMPLE_SQL,
   CROSSFIT_NUTRITION_SAMPLE_SQL,
   CROSSFIT_OUTBOX_HEALTH_SQL
@@ -53,6 +54,16 @@ test("métricas CrossFit exponen gates >=99%, <1%, duplicados y drift sin PII", 
           }
         }] };
       }
+      if (sql === CROSSFIT_ASSESSMENT_HEALTH_SQL) {
+        return { rows: [{
+          total: 3,
+          self_report: 2,
+          professional_events: 1,
+          active_verified: 1,
+          active_revoked: 0,
+          verified_stale: 0
+        }] };
+      }
       assert.equal(sql, CROSSFIT_OUTBOX_HEALTH_SQL);
       return { rows: [{ events_total: 1, pending_over_10min: 0, failed_terminal: 0, duplicate_decisions: 0 }] };
     }
@@ -61,9 +72,11 @@ test("métricas CrossFit exponen gates >=99%, <1%, duplicados y drift sin PII", 
   assert.equal(metrics.training_load.valid_pct, 100);
   assert.equal(metrics.training_load.degraded_pct, 0);
   assert.equal(metrics.nutrition.valid_contracts, 1);
+  assert.equal(metrics.assessments.active_verified, 1);
   assert.equal(metrics.gates.valid_load_at_least_99pct, true);
   assert.equal(metrics.gates.degraded_load_below_1pct, true);
   assert.equal(metrics.gates.zero_duplicate_decisions, true);
   assert.equal(metrics.gates.zero_energy_drift_over_1pct, true);
+  assert.equal(metrics.gates.zero_stale_verified_assessments, true);
   assert.equal(JSON.stringify(metrics).includes("user_id"), false);
 });
