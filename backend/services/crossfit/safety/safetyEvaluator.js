@@ -76,7 +76,11 @@ export function evaluateCrossfitSafety({ profile = {}, movement = null, checkIn 
     ...asList(profile?.safety_screening?.red_flags),
     ...asList(profile?.safety_screening?.exertional_symptoms)
   ].join(" "));
-  if (RED_FLAG_TERMS.some((term) => redFlagText.includes(normalized(term)))) {
+  if (
+    checkIn.red_flag === true
+    || checkIn.acute_injury === true
+    || RED_FLAG_TERMS.some((term) => redFlagText.includes(normalized(term)))
+  ) {
     add("SAFE-RED-FLAG", "block", "SAFETY_RED_FLAG", "stop_session_and_refer");
   }
 

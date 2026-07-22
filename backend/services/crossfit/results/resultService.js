@@ -47,6 +47,12 @@ WHERE user_id = $1 AND methodology_plan_id = $2
   AND recorded_at >= $3::timestamptz - interval '42 days'
 ORDER BY recorded_at, result_id`;
 
+export const LOAD_CROSSFIT_RUNTIME_EVENTS_SQL = `
+SELECT event_type, payload
+FROM app.crossfit_v2_runtime_events
+WHERE user_id = $1 AND session_id = $2
+ORDER BY event_sequence`;
+
 export const LOAD_CROSSFIT_SNAPSHOT_SQL = `
 SELECT payload
 FROM app.crossfit_v2_autoreg_snapshots
@@ -75,6 +81,32 @@ function sessionMetadata(session) {
   return session?.session_metadata && typeof session.session_metadata === "object"
     ? session.session_metadata
     : {};
+}
+
+export function deriveCrossfitResultScales(session, runtimeEvents = []) {
+  const metadata = sessionMetadata(session);
+  const canonical = metadata.crossfit_v2_session ?? metadata.crossfit_v2?.session ?? null;
+  const movementIds = (canonical?.wod?.movements ?? [])
+    .map((movement) => movement.canonical_movement_id)
+    .filter(Boolean);
+  if (movementIds.length === 0) {
+    throw serviceError("CROSSFIT_RUNTIME_TRACE_REQUIRED", "La sesión v2 no contiene movimientos canónicos");
+  }
+  const scales = new Map(movementIds.map((movementId) => [String(movementId), "base"]));
+  for (const row of runtimeEvents) {
+    const payload = row?.payload?.payload ?? {};
+    if (row.event_type === "scale_selected" && scales.has(String(payload.movement_id))) {
+      if (["base", "scaled"].includes(payload.scale_id)) scales.set(String(payload.movement_id), payload.scale_id);
+    }
+    if (row.event_type === "movement_substituted") {
+      const originalId = String(payload.original_movement_id ?? "");
+      const replacementId = payload.replacement?.canonical_movement_id;
+      if (scales.has(originalId) && replacementId) {
+        scales.set(originalId, `substitution:${replacementId}`);
+      }
+    }
+  }
+  return [...scales].map(([movement_id, scale_id]) => ({ movement_id, scale_id }));
 }
 
 export function isCrossfitV2Session(session) {
@@ -244,6 +276,8 @@ export async function registerCrossfitV2Result(client, {
   }
 
   const normalized = normalizeResultInput(session, manual, now);
+  const runtimeEvents = await client.query(LOAD_CROSSFIT_RUNTIME_EVENTS_SQL, [userId, sessionId]);
+  normalized.scales = deriveCrossfitResultScales(session, runtimeEvents.rows);
   const exerciseSql = session.session_type === "weekend-extra"
     ? LOAD_CROSSFIT_SINGLE_DAY_EXERCISE_ROWS_SQL
     : LOAD_CROSSFIT_EXERCISE_ROWS_SQL;

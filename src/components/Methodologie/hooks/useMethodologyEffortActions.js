@@ -21,7 +21,7 @@ const EFFORT_CONFIG = {
     endpoint: '/methodology-session/crossfit/wod-result',
     decisionKey: 'crossfitDecision',
     modalKey: 'showCrossfitEffort',
-    finishState: { crossfitWodScale: 'rx' }
+    finishState: { crossfitWodScale: 'rx', crossfitResultV2: false }
   },
   halterofilia: {
     endpoint: '/methodology-session/halterofilia/session-result',
@@ -51,6 +51,7 @@ export function useMethodologyEffortActions({ localState, updateLocalState, navi
     if (!config) return;
 
     updateLocalState({ isSavingEffort: true });
+    if (method === 'crossfit') updateLocalState({ crossfitEffortError: null });
     try {
       const endpoint = method === 'crossfit' && sessionId
         ? `/routines/sessions/${sessionId}/effort`
@@ -60,10 +61,17 @@ export function useMethodologyEffortActions({ localState, updateLocalState, navi
         ...payload
       });
       const data = response?.data || response;
-      updateLocalState({ [config.decisionKey]: data?.decision || 'hold' });
+      updateLocalState({
+        [config.decisionKey]: data?.decision || 'hold',
+        ...(method === 'crossfit' ? { crossfitEffortError: null } : {})
+      });
     } catch (error) {
       console.warn(`⚠️ No se pudo registrar la autorregulación ${method}:`, error?.message);
-      updateLocalState({ [config.decisionKey]: 'hold' });
+      if (method === 'crossfit') {
+        updateLocalState({ crossfitEffortError: error?.message || 'No se pudo guardar el resultado. Reintenta.' });
+      } else {
+        updateLocalState({ [config.decisionKey]: 'hold' });
+      }
     } finally {
       updateLocalState({ isSavingEffort: false });
     }
@@ -78,7 +86,8 @@ export function useMethodologyEffortActions({ localState, updateLocalState, navi
       [config.decisionKey]: null,
       pendingSessionData: null,
       ...config.finishState,
-      crossfitWodSummary: null
+      crossfitWodSummary: null,
+      crossfitEffortError: null
     });
     navigate('/routines', { state: { activeTab: 'today' } });
   }, [navigate, updateLocalState]);

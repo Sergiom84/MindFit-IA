@@ -64,6 +64,8 @@ export function useSingleDayMethodologyActions({
           planId: data.methodologyPlanId ?? null,
           nivel: level,
           discipline,
+          schema_version: workout.schema_version ?? null,
+          crossfit_v2_session: workout.crossfit_v2_session ?? null,
           wod: workout.wod || null
         },
         showWarmupModal: true,

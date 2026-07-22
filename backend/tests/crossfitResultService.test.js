@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { registerSessionAutoreg } from "../services/progression/planAutoregService.js";
 import {
+  deriveCrossfitResultScales,
   isCrossfitV2Session,
   registerCrossfitV2Result
 } from "../services/crossfit/results/resultService.js";
@@ -41,6 +42,12 @@ function session(overrides = {}) {
       crossfit_v2_session: {
         schema_version: CROSSFIT_VERSIONS.session,
         level: "intermediate",
+        wod: {
+          movements: [
+            { canonical_movement_id: "air_squat" },
+            { canonical_movement_id: "run" }
+          ]
+        },
         provenance: { domain: "mixed" }
       }
     },
@@ -62,10 +69,11 @@ function manual(overrides = {}) {
 }
 
 class ResultClient {
-  constructor({ sessionRow = session(), existing = null, failOutbox = false } = {}) {
+  constructor({ sessionRow = session(), existing = null, failOutbox = false, runtimeEvents = [] } = {}) {
     this.sessionRow = sessionRow;
     this.existing = existing;
     this.failOutbox = failOutbox;
+    this.runtimeEvents = runtimeEvents;
     this.calls = [];
   }
 
@@ -77,6 +85,9 @@ class ResultClient {
     }
     if (text.includes("FROM app.crossfit_v2_results") && text.includes("session_id = $2")) {
       return this.existing ? { rowCount: 1, rows: [{ payload: this.existing }] } : { rowCount: 0, rows: [] };
+    }
+    if (text.includes("FROM app.crossfit_v2_runtime_events")) {
+      return { rowCount: this.runtimeEvents.length, rows: this.runtimeEvents };
     }
     if (text.includes("FROM app.methodology_exercise_progress")) {
       return { rowCount: 1, rows: [{ exercise_name: "Air Squat", status: "completed", series_completed: 3 }] };
@@ -132,12 +143,57 @@ test("resultado v2 persiste ledger, snapshot y actual load sin consultar RIR", a
   assert.equal(output.decision, "hold");
   assert.equal(output.result.day_id, 4);
   assert.equal(output.result.actual_training_load.effort.rpe_actual, 7);
+  assert.deepEqual(output.result.scales, [
+    { movement_id: "air_squat", scale_id: "base" },
+    { movement_id: "run", scale_id: "base" }
+  ]);
   assert.equal(output.outbox.reason, "CROSSFIT_EMITS_TRAINING_LOAD_DISABLED");
   const sql = client.calls.map((call) => call.sql).join("\n");
   assert.match(sql, /INSERT INTO app\.crossfit_v2_results/);
   assert.match(sql, /INSERT INTO app\.crossfit_v2_autoreg_events/);
   assert.match(sql, /INSERT INTO app\.crossfit_v2_autoreg_snapshots/);
   assert.doesNotMatch(sql, /hypertrophy_set_logs|avg_rir|rir_reported/i);
+});
+
+test("escalas de resultado proceden del ledger y no del payload cliente", async () => {
+  const runtimeEvents = [{
+    event_type: "movement_substituted",
+    payload: {
+      payload: {
+        original_movement_id: "run",
+        replacement: { canonical_movement_id: "air_bike" }
+      }
+    }
+  }];
+  const client = new ResultClient({ runtimeEvents });
+  const output = await registerCrossfitV2Result(client, {
+    userId: 7,
+    planId: 22,
+    sessionId: 101,
+    manual: manual({
+      scale: "rxplus",
+      scales: [{ movement_id: "air_squat", scale_id: "rxplus" }]
+    }),
+    now: NOW,
+    env: { CROSSFIT_V2_RESULTS: "true" }
+  });
+
+  assert.deepEqual(output.result.scales, [
+    { movement_id: "air_squat", scale_id: "base" },
+    { movement_id: "run", scale_id: "substitution:air_bike" }
+  ]);
+});
+
+test("derivación de escalas falla cerrada sin WOD canónico", () => {
+  assert.throws(
+    () => deriveCrossfitResultScales(session({
+      session_metadata: {
+        planned_session_load: plannedLoad(),
+        crossfit_v2_session: { schema_version: CROSSFIT_VERSIONS.session, level: "intermediate" }
+      }
+    }), []),
+    (error) => error.code === "CROSSFIT_RUNTIME_TRACE_REQUIRED"
+  );
 });
 
 test("resultado single-day obtiene la carga real del tracking de fin de semana", async () => {

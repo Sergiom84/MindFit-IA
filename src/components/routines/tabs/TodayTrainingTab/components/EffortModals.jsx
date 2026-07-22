@@ -47,6 +47,8 @@ export default function EffortModals({ effortModal, onSubmit, onClose }) {
         result={effortModal.decision}
         defaultScale={effortModal.scale || 'rx'}
         wodSummary={effortModal.wodSummary}
+        submitError={effortModal.error}
+        isV2Result={effortModal.crossfitV2 === true}
         onSubmit={onSubmit}
         onSkip={onClose}
         onContinue={onClose}

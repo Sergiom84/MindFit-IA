@@ -575,7 +575,9 @@ export default function MethodologiesModalLayer({
               showRoutineSessionModal: false,
               showCrossfitEffort: true,
               crossfitDecision: null,
-              crossfitWodScale: summary?.escala || 'rx',
+              crossfitEffortError: null,
+              crossfitResultV2: summary?.runtimeVersion === 'crossfit-runtime-event/v2',
+              crossfitWodScale: summary?.escala || (summary?.runtimeVersion ? 'base' : 'rx'),
               crossfitWodSummary: summary || null
             });
           }}

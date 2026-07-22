@@ -23,8 +23,8 @@ efímero y nunca debe sustituirse por producción.
 | Planned/actual training-load       | docs 03/15                    | adapter + plan/result/outbox                | strict, plan/day y flags 49/49              | COMPLETADO_FLAG_OFF        |
 | Nutrición D0/D1/D2                 | docs 03 + mapping CSV         | motor canónico + adapter CrossFit           | matriz 3x4x3, seguridad, energía y métricas | COMPLETADO_GATE_SHADOW_BD  |
 | Calendario y metadata canónica     | docs 05/17                    | schedule adapter + metadata hydrator        | bloque 8/10/12, day_id, fail-closed         | COMPLETADO_GATE_BD_E2E     |
-| WOD player y feedback              | docs 14/16/17                 | player + effort modal + result adapter      | formatos, cap, escalas, score y error       | COMPLETADO_GATE_E2E        |
-| Runtime y sustitucion validada     | docs 07/14/17                 | runtime service + ledger + API aislada      | 12/12; secuencia/safety/idempotencia        | BACKEND_OK_GATE_UI_BD_E2E  |
+| WOD player y feedback              | docs 14/16/17                 | player + effort modal + result adapter      | timer persistente, escala autoritativa      | COMPLETADO_GATE_E2E        |
+| Runtime y sustitucion validada     | docs 07/14/17                 | runtime service + ledger + API aislada      | 13/13 backend + 5/5 estado frontend         | UI_BACKEND_OK_GATE_BD_E2E  |
 | Flujos completos                   | docs 05/17                    | front-back-BD                               | unit/contract verdes; matriz E2E pendiente  | EN_PROGRESO_GATE_E2E       |
 | Migración y RLS                    | docs 02/04/08/16/17           | assessment/catalog/result/runtime ledgers   | estático verde; CI efímero preparado        | PENDIENTE_EJECUCION_CI     |
 | Regresión ajena                    | guardas repositorio           | sin cambios en motores ajenos               | 365/365 unit; E2E/golden UI pendiente       | PARCIAL_GATE_E2E           |

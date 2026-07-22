@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import apiClient from '@/lib/apiClient';
 import { computeDayId } from '@/utils/training/dateHelpers';
+import { isCrossfitV2Presentation } from '../../../crossfit/runtimeState.js';
 import { EFFORT_ENDPOINTS, resolveEffortMethodKey } from '../effortConfig.js';
 
 export function useRoutineSessionActions({
@@ -426,9 +427,14 @@ export function useRoutineSessionActions({
             show: true,
             decision: null,
             saving: false,
+            error: null,
             scale: closingScale,
             sessionId: sid,
-            wodSummary: options?.wodSummary || null
+            wodSummary: options?.wodSummary || null,
+            crossfitV2: methodKey === 'crossfit' && (
+              options?.wodSummary?.runtimeVersion === 'crossfit-runtime-event/v2'
+              || isCrossfitV2Presentation(todaySessionData)
+            )
           });
         }
 
@@ -445,7 +451,7 @@ export function useRoutineSessionActions({
       console.error('Error completando sesión:', error);
       setError(`Error finalizando sesión: ${error.message}`);
     }
-  }, [hasActiveSession, completeSession, session.sessionId, sessionStartTime, exerciseProgress, track, onProgressUpdate, showSuccess, setError, localState.pendingSessionData?.sessionId, fetchTodayStatus, evaluateAdaptationWeek]);
+  }, [hasActiveSession, completeSession, session.sessionId, sessionStartTime, exerciseProgress, track, onProgressUpdate, showSuccess, setError, localState.pendingSessionData?.sessionId, fetchTodayStatus, evaluateAdaptationWeek, todaySessionData]);
 
   // 🎯 Autorregulación común: registra el resultado en el endpoint de la metodología activa.
   // El payload llega tal cual del modal (avgRir/rpe/targetMet/goodTechnique/reachedFailure/
@@ -472,15 +478,17 @@ export function useRoutineSessionActions({
         });
         data = resp?.data || resp;
       }
-      setEffortModal(prev => ({ ...prev, decision: data?.decision || 'hold', saving: false }));
+      setEffortModal(prev => ({ ...prev, decision: data?.decision || 'hold', saving: false, error: null }));
     } catch (e) {
       console.warn(`⚠️ Autorregulación ${method} falló:`, e?.message);
-      setEffortModal(prev => ({ ...prev, decision: 'hold', saving: false }));
+      setEffortModal(prev => method === 'crossfit'
+        ? { ...prev, decision: null, saving: false, error: e?.message || 'No se pudo guardar el resultado. Reintenta.' }
+        : { ...prev, decision: 'hold', saving: false });
     }
   }, [effortModal.method, effortModal.sessionId, methodologyPlanId]);
 
   const handleEffortClose = useCallback(() => {
-    setEffortModal({ method: null, show: false, decision: null, saving: false, scale: 'rx', sessionId: null, wodSummary: null });
+    setEffortModal({ method: null, show: false, decision: null, saving: false, error: null, scale: 'rx', sessionId: null, wodSummary: null, crossfitV2: false });
   }, []);
 
   const handleExerciseUpdate = useCallback(async (exerciseIndex, progressData) => {
@@ -548,7 +556,17 @@ export function useRoutineSessionActions({
           if (finished && fsid && !effortClosureHandledRef.current.has(fsid)) {
             effortClosureHandledRef.current.add(fsid);
             updateLocalState({ showSessionModal: false, pendingSessionData: null });
-            setEffortModal({ method: activeMethodKey, show: true, decision: null, saving: false, scale: 'rx', sessionId: fsid, wodSummary: null });
+            setEffortModal({
+              method: activeMethodKey,
+              show: true,
+              decision: null,
+              saving: false,
+              error: null,
+              scale: 'rx',
+              sessionId: fsid,
+              wodSummary: null,
+              crossfitV2: false
+            });
           }
         }
       }

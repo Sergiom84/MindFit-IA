@@ -239,6 +239,43 @@ async function firstScheduledSession(request, token, planId) {
   return sessions[0];
 }
 
+function canonicalSessionFor(canonical, scheduled) {
+  const sessions = (canonical?.weeks ?? []).flatMap((week) => week.sessions ?? []);
+  expect(sessions.length).toBeGreaterThan(0);
+  return sessions.find((session) => session.date === scheduled.date) ?? sessions[0];
+}
+
+async function recordRuntimeEvent(request, token, sessionId, {
+  streamId,
+  sequence: clientSequence,
+  eventType,
+  elapsedSeconds,
+  timeCapSeconds,
+}) {
+  const identity = `${streamId}-${clientSequence}`;
+  return api(
+    request,
+    "POST",
+    `/api/crossfit-v2/runtime/sessions/${sessionId}/events`,
+    {
+      token,
+      data: {
+        schema_version: "crossfit-runtime-event/v2",
+        request_id: `runtime-request-${identity}`,
+        idempotency_key: `runtime-idempotency-${identity}`,
+        stream_id: streamId,
+        client_sequence: clientSequence,
+        event_type: eventType,
+        occurred_at: new Date().toISOString(),
+        payload: {
+          elapsed_seconds: elapsedSeconds,
+          time_cap_seconds: timeCapSeconds,
+        },
+      },
+    },
+  );
+}
+
 test.describe("CrossFit profesional v2 · stack efímero", () => {
   test.skip(!QA_GATE.enabled, QA_GATE.reason);
 
@@ -284,6 +321,83 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
       ).toBeLessThan(300);
       const sessionId = started.body.session_id ?? started.body.sessionId;
       expect(sessionId).toBeTruthy();
+
+      const canonicalSession = canonicalSessionFor(
+        provisioned.canonical,
+        scheduled,
+      );
+      const timeCapSeconds = canonicalSession.wod.time_cap_seconds;
+      const streamId = `e2e_runtime_${levelCase.level}_${sessionId}`;
+      const runtimeStarted = await recordRuntimeEvent(
+        request,
+        provisioned.token,
+        sessionId,
+        {
+          streamId,
+          sequence: 0,
+          eventType: "timer_started",
+          elapsedSeconds: 0,
+          timeCapSeconds,
+        },
+      );
+      expect(
+        runtimeStarted.response.status(),
+        JSON.stringify(runtimeStarted.body),
+      ).toBe(201);
+      const runtimePaused = await recordRuntimeEvent(
+        request,
+        provisioned.token,
+        sessionId,
+        {
+          streamId,
+          sequence: 1,
+          eventType: "timer_paused",
+          elapsedSeconds: Math.min(60, timeCapSeconds),
+          timeCapSeconds,
+        },
+      );
+      expect(
+        runtimePaused.response.status(),
+        JSON.stringify(runtimePaused.body),
+      ).toBe(201);
+
+      const replayedStart = await recordRuntimeEvent(
+        request,
+        provisioned.token,
+        sessionId,
+        {
+          streamId,
+          sequence: 0,
+          eventType: "timer_started",
+          elapsedSeconds: 0,
+          timeCapSeconds,
+        },
+      );
+      expect(replayedStart.response.status()).toBe(200);
+      expect(replayedStart.body.idempotent_replay).toBe(true);
+
+      const injectedSubstitution = await api(
+        request,
+        "POST",
+        `/api/crossfit-v2/runtime/sessions/${sessionId}/events`,
+        {
+          token: provisioned.token,
+          data: {
+            schema_version: "crossfit-runtime-event/v2",
+            request_id: `runtime-request-injected-${sessionId}`,
+            idempotency_key: `runtime-idempotency-injected-${sessionId}`,
+            stream_id: streamId,
+            client_sequence: 2,
+            event_type: "movement_substituted",
+            occurred_at: new Date().toISOString(),
+            payload: {},
+          },
+        },
+      );
+      expect(injectedSubstitution.response.status()).toBe(422);
+      expect(injectedSubstitution.body.code).toBe(
+        "CROSSFIT_RUNTIME_EVENT_INVALID",
+      );
 
       const progress = await api(
         request,
@@ -332,7 +446,11 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
       const effortPayload = {
         rpe: 7,
         completed: true,
-        scale: "scaled",
+        scale: "rxplus",
+        scales: canonicalSession.wod.movements.map((movement) => ({
+          movement_id: movement.canonical_movement_id,
+          scale_id: "rxplus",
+        })),
         technique: 3,
         pain: { score: 0, locations: [], delta: 0 },
         readiness: { sleep: 4, fatigue: 2, recovery: 4, stress: 2 },
@@ -351,6 +469,12 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
       );
       expect(effort.response.status(), JSON.stringify(effort.body)).toBe(200);
       expect(effort.body.registered).toBe(true);
+      expect(effort.body.result.scales).toEqual(
+        canonicalSession.wod.movements.map((movement) => ({
+          movement_id: movement.canonical_movement_id,
+          scale_id: "base",
+        })),
+      );
       expect([
         "baseline",
         "hold",
@@ -437,7 +561,7 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
     expect(blocking).toEqual([]);
   });
 
-  test("UI WOD: warm-up, escala, timer, a11y y viewport", async ({
+  test("UI WOD v2: warm-up, escalado seguro, timer, a11y y viewport", async ({
     page,
     request,
   }, testInfo) => {
@@ -476,9 +600,12 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
     await expect(
       page.getByRole("button", { name: "Terminar WOD" }),
     ).toBeVisible();
+    await expect(page.getByText("Escalado por movimiento")).toBeVisible();
+    await expect(page.getByText(/No se puede elegir RX\+ manualmente/)).toBeVisible();
     const movementScales = page.getByRole("combobox", { name: /Escala para/i });
-    expect(await movementScales.count()).toBeGreaterThan(0);
-    await movementScales.first().selectOption("scaled");
+    await expect(movementScales).toHaveCount(0);
+    await expect(page.getByText("RX+", { exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Sustituir" }).first()).toBeVisible();
 
     await page.getByRole("button", { name: "Iniciar", exact: true }).click();
     await expect(

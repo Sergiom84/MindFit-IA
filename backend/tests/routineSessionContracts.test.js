@@ -83,9 +83,13 @@ test("TodayTrainingTab mantiene cierre 7/7 y CrossFit usa WOD player desde plan"
 
   assert.match(modalLayerSource, /activeMethodKey === "crossfit"/);
   assert.match(modalLayerSource, /<WodSessionModal/);
+  assert.match(modalLayerSource, /onStartSession=\{async \(\) =>/);
+  assert.match(modalLayerSource, /routines\/sessions\/\$\{effectiveSessionId\}\/mark-started/);
   assert.match(effortModalsSource, /defaultScale=\{effortModal\.scale \|\| 'rx'\}/);
+  assert.match(effortModalsSource, /isV2Result=\{effortModal\.crossfitV2 === true\}/);
   assert.match(sessionActionsSource, /methodologyPlanId: methodologyPlanId \|\| null/);
   assert.match(sessionActionsSource, /\.\.\.payload/);
+  assert.match(sessionActionsSource, /isCrossfitV2Presentation\(todaySessionData\)/);
 });
 
 test("TodayTrainingTab prioriza today-status.summary como fuente de verdad del gate", () => {
@@ -108,4 +112,3 @@ test("TodayTrainingTab prioriza today-status.summary como fuente de verdad del g
   assert.match(source, /computeGateLogic/);
   assert.match(source, /dataSource: hasBackendSummary \? 'backend \(today-status\.summary\)'/);
 });
-

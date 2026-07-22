@@ -176,9 +176,11 @@ export default function TodayTrainingTab({
     show: false,
     decision: null,
     saving: false,
+    error: null,
     scale: 'rx',
     sessionId: null,
-    wodSummary: null
+    wodSummary: null,
+    crossfitV2: false
   });
 
   // 🎯 Metodología del plan activo (para elegir player y modal de cierre correctos).

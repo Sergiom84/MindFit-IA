@@ -147,11 +147,41 @@ Estado global: `EN_PROGRESO`
 - Preparada, no aplicada, `20260722_crossfit_v2_runtime_events.sql`: ledger
   append-only, FK `plan_id + day_id`, owner-read RLS e índices de idempotencia y
   orden de stream. CI la reaplica dos veces y la incluye en integración/E2E.
-- Evidencia local: 12/12 runtime y 53/53 regresión focalizada, 365/365 backend
-  y lint quiet. Las
+- Evidencia local del backend: 13/13 runtime y 365/365 backend en el commit de
+  esta subfase. Las
   5 pruebas BD no se ejecutan localmente por ausencia de PostgreSQL/Docker;
-  migración, RLS y aislamiento quedan `PENDIENTE_EJECUCION_CI`. Aún faltan la
-  cola/reanudación frontend y Playwright, por lo que el flujo no está cerrado.
+  migración, RLS y aislamiento quedan `PENDIENTE_EJECUCION_CI`.
+
+## Gate técnico G.2: player persistente y escala autoritativa
+
+- El player V2 persiste en `localStorage` stream, secuencia, timer, ancla,
+  escalas, sustituciones confirmadas y cola pendiente. El tiempo se deriva de
+  una ancla monotónica y sobrevive a background/cierre/reapertura sin depender
+  de ticks perdidos.
+- Inicio, pausa, reanudación y reset encolan eventos versionados y se envían en
+  orden. Offline o error reintentable conserva la cola; una sustitución
+  rechazada elimina solo esa petición y renumera los eventos locales aún no
+  enviados para no dejar huecos de secuencia.
+- CrossFit V2 ya no expone escala global ni RX+. Toda sustitución se solicita por
+  movimiento y solo aparece tras respuesta del resolver servidor; red flags
+  detienen el timer y nunca aplican una alternativa local.
+- El resultado ignora escalas aportadas por el cliente y reconstruye `base`,
+  `scaled` o `substitution:<id>` desde el WOD canónico y el ledger servidor. El
+  modal V2 las muestra en solo lectura, exige feedback y mantiene ese bloqueo si
+  el resumen local se pierde.
+- El inicio real se marca con el endpoint idempotente existente al arrancar el
+  timer, incluido el camino que salta el calentamiento. El cierre no continúa
+  mientras queden eventos sin sincronizar ni si falla un movimiento.
+- Playwright efímero queda ampliado para registrar/reintentar eventos de timer,
+  rechazar una sustitución inyectada, enviar RX+ adulterado y comprobar que el
+  resultado autoritativo sigue en `base`; la UI comprueba que V2 no tiene
+  selectores globales/RX+.
+- Evidencia local: 5/5 estado frontend, 41/41 regresión focalizada, 375/375
+  backend, lint quiet y build productivo verdes. Playwright y las 5 pruebas de
+  PostgreSQL/RLS siguen `PENDIENTE_EJECUCION_CI`; no se levantaron servicios.
+- No se considera cerrado aún el flujo G completo: faltan terminación explícita
+  `partial/abandoned/cancelled`, recuperación durable de feedback tras una
+  recarga completa y regeneración versionada.
 
 ## Gate técnico J
 
@@ -168,7 +198,7 @@ Estado global: `EN_PROGRESO`
 - Playwright descubre diez casos en proyectos escritorio y móvil 375x812: tres
   ciclos API por nivel y dos recorridos UI por viewport. Generation/results están
   activos solo dentro del job; carga, nutrición y workers continúan apagados.
-- Verificación local segura: 365/365 unitarios, lint quiet, build y budget de
+- Verificación local segura: 375/375 unitarios, lint quiet, build y budget de
   bundle verdes. PostgreSQL/Docker no están disponibles y no hay servidores
   levantados; por tanto DB/RLS/E2E permanecen `PENDIENTE_EJECUCION_CI`, no verdes.
 

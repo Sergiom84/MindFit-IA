@@ -176,6 +176,7 @@ export async function generateCrossfitSingleDayV2({
       nivel: presentedPlan.nivel,
       discipline: 'crossfit',
       schema_version: CROSSFIT_VERSIONS.session,
+      crossfit_v2_session: standalone,
       wod: session.wod,
       exercises_count: session.ejercicios.length,
       exercises: session.ejercicios,

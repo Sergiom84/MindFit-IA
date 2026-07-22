@@ -70,11 +70,18 @@ export default function CrossFitEffortModal({
   result = null,
   defaultScale = 'rx',
   wodSummary = null,
-  isLoading = false
+  isLoading = false,
+  submitError = null,
+  isV2Result = false
 }) {
+  const structuredScales = Array.isArray(wodSummary?.scales) ? wodSummary.scales : [];
+  const lockedScales = isV2Result || wodSummary?.runtimeVersion === 'crossfit-runtime-event/v2';
+  const recordedScale = lockedScales && structuredScales.some((item) => item.scale_id !== 'base')
+    ? 'scaled'
+    : lockedScales ? 'base' : defaultScale;
   const [completed, setCompleted] = useState(null);
   const [rpe, setRpe] = useState(null);
-  const [scale, setScale] = useState(defaultScale);
+  const [scale, setScale] = useState(recordedScale);
   const [technique, setTechnique] = useState(null);
   const [painScore, setPainScore] = useState(null);
   const [painLocation, setPainLocation] = useState('');
@@ -87,7 +94,7 @@ export default function CrossFitEffortModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    setScale(defaultScale);
+    setScale(recordedScale);
     setCompleted(null);
     setRpe(null);
     setTechnique(null);
@@ -99,7 +106,7 @@ export default function CrossFitEffortModal({
     setFeeling(null);
     setScoreRounds('');
     setScoreMetric('');
-  }, [defaultScale, isOpen]);
+  }, [isOpen, recordedScale]);
 
   if (!isOpen) return null;
 
@@ -341,26 +348,45 @@ export default function CrossFitEffortModal({
             </div>
           </section>
 
-          <section>
-            <p className="mb-2 text-sm font-semibold text-gray-200">Escala global usada</p>
-            <div className="grid grid-cols-3 gap-2">
-              {SCALE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setScale(option.value)}
-                  aria-pressed={scale === option.value}
-                  className={`rounded-xl border px-2 py-2.5 text-sm transition ${
-                    scale === option.value
-                      ? 'border-yellow-400/60 bg-yellow-400/15 text-yellow-200'
-                      : 'border-white/10 bg-white/5 text-gray-200 hover:border-yellow-400/30'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </section>
+          {lockedScales ? (
+            <section>
+              <p className="mb-2 text-sm font-semibold text-gray-200">Escalado registrado en el WOD</p>
+              <div className="space-y-2 rounded-xl border border-emerald-400/20 bg-emerald-500/5 p-3">
+                {structuredScales.length > 0 ? structuredScales.map((item) => (
+                  <div key={item.movement_id} className="flex items-center justify-between gap-3 text-xs">
+                    <span className="font-mono text-gray-300">{item.movement_id}</span>
+                    <span className="text-emerald-200">
+                      {item.scale_id === 'base' ? 'Prescripción base' : 'Adaptación validada'}
+                    </span>
+                  </div>
+                )) : (
+                  <p className="text-xs text-emerald-100">El servidor reconstruirá cada escala desde el registro de ejecución.</p>
+                )}
+              </div>
+              <p className="mt-2 text-xs text-gray-500">El resultado no puede reclasificar la escala después de terminar.</p>
+            </section>
+          ) : (
+            <section>
+              <p className="mb-2 text-sm font-semibold text-gray-200">Escala global usada</p>
+              <div className="grid grid-cols-3 gap-2">
+                {SCALE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setScale(option.value)}
+                    aria-pressed={scale === option.value}
+                    className={`rounded-xl border px-2 py-2.5 text-sm transition ${
+                      scale === option.value
+                        ? 'border-yellow-400/60 bg-yellow-400/15 text-yellow-200'
+                        : 'border-white/10 bg-white/5 text-gray-200 hover:border-yellow-400/30'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section>
             <p className="mb-2 text-sm font-semibold text-gray-200">Percepción global <span className="font-normal text-gray-500">(opcional)</span></p>
@@ -385,19 +411,24 @@ export default function CrossFitEffortModal({
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-white/10 px-5 py-4 sm:px-6">
-          <button
-            type="button"
-            onClick={onSkip}
-            className="flex items-center gap-1 rounded-xl px-3 py-2 text-sm text-gray-400 transition hover:text-gray-200"
-          >
-            <X className="h-4 w-4" /> Ahora no
-          </button>
+          {lockedScales ? (
+            <p className="text-xs text-gray-500">Feedback obligatorio para cerrar el resultado v2.</p>
+          ) : (
+            <button
+              type="button"
+              onClick={onSkip}
+              className="flex items-center gap-1 rounded-xl px-3 py-2 text-sm text-gray-400 transition hover:text-gray-200"
+            >
+              <X className="h-4 w-4" /> Ahora no
+            </button>
+          )}
+          {submitError && <p className="max-w-52 text-right text-xs text-red-300" role="alert">{submitError}</p>}
           <button
             type="button"
             onClick={() => canSubmit && onSubmit({
               rpe,
               completed,
-              scale,
+              scale: lockedScales ? recordedScale : scale,
               technique,
               pain: {
                 score: painScore,
@@ -409,7 +440,6 @@ export default function CrossFitEffortModal({
               },
               readiness,
               score: scoreFromSummary(wodSummary, { rounds: scoreRounds, metric: scoreMetric }, technique),
-              scales: Array.isArray(wodSummary?.scales) ? wodSummary.scales : undefined,
               status: completed ? (wodSummary?.status || 'completed') : 'capped',
               completion: completed ? 1 : 0.9,
               feeling

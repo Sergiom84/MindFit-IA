@@ -179,6 +179,27 @@ test("una red flag bloquea la sesion antes de buscar candidato", () => {
   );
 });
 
+test("el booleano de red flag bloquea aunque no incluya texto libre", () => {
+  const request = normalizeCrossfitSubstitutionRequest(substitutionBody({
+    check_in: {
+      pain: { score: 3, locations: ["tobillo"] },
+      red_flag: true,
+      acute_injury: true
+    }
+  }), { now: NOW });
+  assert.throws(
+    () => resolveCrossfitSubstitution({
+      context: context(),
+      request,
+      catalog: CATALOG,
+      edges: edges("run"),
+      profile: {},
+      equipment: EQUIPMENT
+    }),
+    (error) => error.code === "SAFETY_RED_FLAG" && error.details.safe_fallback === "stop_session_and_refer"
+  );
+});
+
 test("persiste eventos con identidad estable e idempotencia", async () => {
   const calls = [];
   const db = {

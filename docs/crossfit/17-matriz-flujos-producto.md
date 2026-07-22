@@ -18,9 +18,9 @@ unit/contract verdes en rama, pero no recorrido Playwright ni BD real.
 | Regeneracion         | FALTA                 | revision/supersedes/reason                                  | immutable revisions                    | no tocar completadas                 |
 | Calendario/Hoy       | IMPLEMENTADO_GATE_E2E | plan_id+day_id + sync states                                | plan days + workout schedule           | timezone/date fallback legacy        |
 | Warm-up              | IMPLEMENTADO_GATE_E2E | especifico a patrones y flags                               | session blocks                         | QA visual/cobertura principal        |
-| WOD player           | IMPLEMENTADO_GATE_E2E | score_type/dose/scale/stop rules v2                         | tracking + result events               | background/offline                   |
-| Pausa/reanuda        | BACKEND_GATE_UI_E2E   | monotonic event sequence                                    | runtime event ledger                   | cola/reload/device pendientes        |
-| Sustitucion          | BACKEND_GATE_UI_E2E   | same-stimulus validated edge                                | server-created substitution event      | UI/BD/E2E pendientes                 |
+| WOD player           | IMPLEMENTADO_GATE_E2E | score_type/dose/scale/stop rules v2                         | tracking + result events               | E2E real pendiente                   |
+| Pausa/reanuda        | IMPLEMENTADO_GATE_E2E | monotonic event sequence + local durable queue              | runtime event ledger                   | multi-device fuera de alcance        |
+| Sustitucion          | IMPLEMENTADO_GATE_E2E | same-stimulus validated edge                                | server-created substitution event      | BD/RLS/E2E pendientes                |
 | Finalizacion         | IMPLEMENTADO_GATE_E2E | atomic close + actual load + outbox                         | result/outbox                          | idempotent duplicate/BD              |
 | Abandono             | PARCIAL               | reason taxonomy + partial actual load                       | result                                 | pain vs agenda semantics             |
 | Resultado            | IMPLEMENTADO_GATE_E2E | structured score, scale, technique, pain                    | append-only result                     | invalid score/cap/RLS                |
