@@ -15,6 +15,7 @@
  * que ya es `todo`). Al resolverse cada defecto en 00b se retira su flag `todo`.
  */
 
+import "./helpers/muteConsole.js"; // PRIMERO: silencia logs (evita flake IPC del runner)
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

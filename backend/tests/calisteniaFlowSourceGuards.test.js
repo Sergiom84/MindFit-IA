@@ -6,6 +6,7 @@
  * Ver docs/ROADMAP_CALISTENIA_ARQUITECTO.md §3 PR-CAL-00a y límites §0.
  */
 
+import "./helpers/muteConsole.js"; // PRIMERO: silencia logs (evita flake IPC del runner)
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
