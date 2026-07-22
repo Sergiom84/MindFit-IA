@@ -293,14 +293,14 @@ async function finalizeCrossfitV2Session(client, session, normalized) {
   };
   const updated = await client.query(
     `UPDATE app.methodology_exercise_sessions
-        SET session_status = $2,
+        SET session_status = $2::varchar,
             exercises_completed = $3,
             exercises_cancelled = $4,
             total_exercises = $5,
             completion_rate = $6,
             completed_at = COALESCE(completed_at, $7::timestamptz),
             cancelled_at = CASE
-              WHEN $2 = 'cancelled' THEN COALESCE(cancelled_at, $7::timestamptz)
+              WHEN $2::varchar = 'cancelled' THEN COALESCE(cancelled_at, $7::timestamptz)
               ELSE cancelled_at
             END,
             total_duration_seconds = CASE

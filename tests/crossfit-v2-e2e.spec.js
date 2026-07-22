@@ -65,12 +65,6 @@ async function api(
 }
 
 async function ensureUser(request, email, frequency) {
-  const login = await api(request, "POST", "/api/auth/login", {
-    data: { email, password: PASSWORD },
-  });
-  if (login.body.token)
-    return { token: login.body.token, userId: login.body.user.id };
-
   const registration = await api(request, "POST", "/api/auth/register", {
     data: {
       email,
@@ -470,6 +464,9 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
         pain: { score: 0, locations: [], delta: 0 },
         readiness: { sleep: 4, fatigue: 2, recovery: 4, stress: 2 },
         score: { type: "time", elapsed_seconds: 900 },
+        status: "completed",
+        completion: 1,
+        termination_reason: "objective_completed",
       };
       const idempotencyKey = `e2e-result-${levelCase.level}-${sessionId}`;
       const effort = await api(

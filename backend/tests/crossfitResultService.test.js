@@ -205,6 +205,8 @@ test("feedback parcial cierra sesión, conserva porcentaje y traza el motivo", a
   assert.equal(closure.params[1], "partial");
   assert.equal(closure.params[5], 45);
   assert.doesNotMatch(closure.sql, /abandoned_at/);
+  assert.match(closure.sql, /session_status = \$2::varchar/);
+  assert.match(closure.sql, /WHEN \$2::varchar = 'cancelled'/);
 });
 
 test("cancelación sin exposición no inventa métricas y emite carga real D0", async () => {
