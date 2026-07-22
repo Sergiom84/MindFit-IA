@@ -31,6 +31,10 @@ import {
   adjustPrescriptionsForStart,
   updateSubjective
 } from '../../services/progression/planAutoregService.js';
+import {
+  hydrateSessionPlanMetadata,
+  isCrossfitV2PlanData
+} from '../../services/trainingLoad/sessionPlanMetadataService.js';
 
 const router = express.Router();
 
@@ -193,6 +197,22 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
     }
 
     const session = ses.rows[0];
+    const crossfitV2 = isCrossfitV2PlanData(planData);
+
+    try {
+      await hydrateSessionPlanMetadata(client, {
+        session,
+        planId: methodology_plan_id,
+        weekNumber: week_number,
+        dayName: normalizedDay,
+        methodologyType: planQ.rows[0].methodology_type,
+        methodologyLevel: planData?.nivel ?? null,
+        required: crossfitV2
+      });
+    } catch (metadataError) {
+      if (metadataError?.code === 'CROSSFIT_SESSION_METADATA_REQUIRED') throw metadataError;
+      console.warn('No se pudo hidratar metadata del día del plan:', metadataError?.message);
+    }
 
     // Precrear progreso por ejercicio (si no existe)
     // 1) Preferir ejercicios de la programación (workout_schedule) para este día
@@ -245,6 +265,13 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
 
     // 🛟 Fallback: si no hay ejercicios definidos para este día, tomar aleatorios por nivel desde BD
     if (!Array.isArray(ejercicios) || ejercicios.length === 0) {
+      if (crossfitV2) {
+        const error = new Error('La sesión CrossFit v2 no contiene movimientos materializados');
+        error.code = 'CROSSFIT_SESSION_MOVEMENTS_REQUIRED';
+        error.reasonCode = 'WOD_STIMULUS_MISS';
+        error.status = 409;
+        throw error;
+      }
       try {
         const levelNorm = deriveLevelFromPlan(planData);
         const rnd = await getRandomByLevel(client, { disciplina: 'calistenia', level: levelNorm, limit: 6 });
@@ -274,7 +301,9 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
       const adj = await adjustPrescriptionsForStart(client, {
         userId,
         planId: methodology_plan_id,
+        sessionId: session.id,
         methodologyType: planQ.rows[0].methodology_type || planData?.metodologia,
+        planSchemaVersion: planData?.schema_version,
         ejercicios
       });
       ejercicios = adj.ejercicios;
@@ -283,6 +312,7 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
         console.log('📈 [start] Progresión aplicada a prescripciones', progressionMeta);
       }
     } catch (pe) {
+      if (pe?.code === 'CROSSFIT_SESSION_BLOCKED') throw pe;
       console.warn('⚠️ [start] No se pudo aplicar progresión (se usan prescripciones base):', pe?.message);
     }
 
@@ -291,7 +321,11 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
       const order = i; // 0-based
 
       // 🎯 Extraer exercise_id si está disponible
-      const exerciseId = ej.exercise_id || ej.id || null;
+      const rawExerciseId = ej.exercise_id ?? ej.legacy_exercise_id ?? null;
+      const parsedExerciseId = Number(rawExerciseId);
+      const exerciseId = Number.isInteger(parsedExerciseId) && parsedExerciseId > 0
+        ? parsedExerciseId
+        : null;
       const repsTarget =
         ej.repeticiones ||
         ej.reps_objetivo ||
@@ -337,7 +371,11 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
   } catch (e) {
     await client.query('ROLLBACK');
     console.error('Error starting routine session:', e);
-    res.status(500).json({ success: false, error: 'Error interno' });
+    res.status(e?.status || 500).json({
+      success: false,
+      error: e?.status ? e.message : 'Error interno',
+      reason_code: e?.reasonCode || e?.code || null
+    });
   } finally {
     client.release();
   }

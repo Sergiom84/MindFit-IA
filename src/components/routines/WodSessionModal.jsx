@@ -19,8 +19,14 @@ import { Timer, Play, Pause, RotateCcw, Flag, X, Dumbbell, ChevronDown } from 'l
 const FORMAT_LABELS = {
   amrap: 'AMRAP',
   emom: 'EMOM',
+  e2mom: 'E2MOM',
+  e3mom: 'E3MOM',
   for_time: 'For Time',
-  chipper: 'Chipper'
+  rft: 'Rondas por tiempo',
+  chipper: 'Chipper',
+  intervals: 'Intervalos',
+  strength_only: 'Fuerza',
+  skill_only: 'Técnica'
 };
 
 const SCALES = [
@@ -41,6 +47,7 @@ export default function WodSessionModal({
   session,
   sessionId,
   onClose,
+  onStartSession,
   onFinishExercise,
   onCompleteSession
 }) {
@@ -61,22 +68,35 @@ export default function WodSessionModal({
     return { formato: 'for_time', time_cap_min: 15, rounds: null, label: 'WOD del Día', dominio_principal: 'Mixto', movimientos };
   }, [session]);
 
-  const timeCapSeconds = (wod.time_cap_min || 15) * 60;
+  const timeCapSeconds = Number(wod.time_cap_seconds)
+    || Number(wod.time_cap_min || 15) * 60;
 
   const [scale, setScale] = useState('rx');
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
   const [finished, setFinished] = useState(false);
   const [expanded, setExpanded] = useState(null);
+  const [startError, setStartError] = useState(null);
+  const [movementScales, setMovementScales] = useState({});
   const intervalRef = useRef(null);
+  const startPersistedRef = useRef(false);
+
+  useEffect(() => {
+    const initial = Object.fromEntries((wod.movimientos || []).map((movement, index) => [
+      movement.canonical_movement_id ?? movement.exercise_id ?? String(index),
+      movement.scale_id ?? 'rx'
+    ]));
+    setMovementScales(initial);
+    setStartError(null);
+    startPersistedRef.current = false;
+  }, [sessionId, wod.movimientos]);
 
   useEffect(() => {
     if (!running) return undefined;
     intervalRef.current = setInterval(() => {
       setElapsed((prev) => {
         const next = prev + 1;
-        // En AMRAP/EMOM el tope de tiempo detiene el cronómetro automáticamente.
-        if ((wod.formato === 'amrap' || wod.formato === 'emom') && next >= timeCapSeconds) {
+        if (next >= timeCapSeconds) {
           setRunning(false);
           return timeCapSeconds;
         }
@@ -92,30 +112,64 @@ export default function WodSessionModal({
 
   const movimientos = wod.movimientos || [];
   const formatLabel = FORMAT_LABELS[wod.formato] || wod.label || 'WOD';
-  const atCap = (wod.formato === 'amrap' || wod.formato === 'emom') && elapsed >= timeCapSeconds;
+  const atCap = elapsed >= timeCapSeconds;
 
-  const scalingTextFor = (m) => {
-    if (scale === 'scaled') return m.escala_scaled;
-    if (scale === 'rxplus') return `${m.escala_rx} · sube intensidad`;
+  const scalingTextFor = (m, movementScale) => {
+    if (movementScale === 'scaled') return m.escala_scaled;
+    if (movementScale === 'rxplus') return `${m.escala_rx} · sube intensidad`;
     return m.escala_rx;
+  };
+
+  const setGlobalScale = (nextScale) => {
+    setScale(nextScale);
+    setMovementScales(Object.fromEntries(movimientos.map((movement, index) => [
+      movement.canonical_movement_id ?? movement.exercise_id ?? String(index),
+      nextScale
+    ])));
+  };
+
+  const handleTimerToggle = async () => {
+    if (running) {
+      setRunning(false);
+      return;
+    }
+    if (!startPersistedRef.current && typeof onStartSession === 'function') {
+      try {
+        await onStartSession();
+        startPersistedRef.current = true;
+      } catch (error) {
+        setStartError(error?.message || 'No se pudo registrar el inicio. Reintenta.');
+        return;
+      }
+    }
+    setStartError(null);
+    setRunning(true);
   };
 
   const handleFinish = async () => {
     setRunning(false);
     setFinished(true);
+    let persistenceFailures = 0;
     // Marcar cada movimiento como completado para mantener el tracking coherente.
     if (typeof onFinishExercise === 'function') {
       for (let i = 0; i < movimientos.length; i += 1) {
         try {
-          await onFinishExercise(i, {
+          const persisted = await onFinishExercise(i, {
             status: 'completed',
             series_completed: 1,
             time_spent_seconds: Math.round(elapsed / Math.max(1, movimientos.length))
           });
+          if (persisted?.success === false) persistenceFailures += 1;
         } catch (err) {
           console.error('❌ [WOD] Error registrando movimiento', i, err);
+          persistenceFailures += 1;
         }
       }
+    }
+    if (persistenceFailures > 0) {
+      setFinished(false);
+      setStartError('No se guardó todo el WOD. Revisa la conexión y reintenta el cierre.');
+      return;
     }
     if (typeof onCompleteSession === 'function') {
       onCompleteSession({
@@ -123,6 +177,12 @@ export default function WodSessionModal({
         elapsedSeconds: elapsed,
         timeCapSeconds,
         formato: wod.formato,
+        scoreType: wod.score_type || 'none',
+        status: atCap ? 'capped' : 'completed',
+        scales: movimientos.map((movement, index) => ({
+          movement_id: movement.canonical_movement_id ?? movement.exercise_id ?? String(index),
+          scale_id: movementScales[movement.canonical_movement_id ?? movement.exercise_id ?? String(index)] ?? scale
+        })),
         sessionId: sessionId ?? session?.sessionId ?? null
       });
     }
@@ -163,7 +223,7 @@ export default function WodSessionModal({
               {SCALES.map((s) => (
                 <button
                   key={s.id}
-                  onClick={() => setScale(s.id)}
+                  onClick={() => setGlobalScale(s.id)}
                   className={`rounded-xl border px-2 py-2 text-center transition ${
                     scale === s.id
                       ? 'border-yellow-400/60 bg-yellow-400/15 text-yellow-200'
@@ -188,7 +248,7 @@ export default function WodSessionModal({
             </div>
             <div className="mt-3 flex items-center justify-center gap-2">
               <button
-                onClick={() => setRunning((r) => !r)}
+                onClick={handleTimerToggle}
                 disabled={atCap}
                 className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 px-5 py-2.5 text-sm font-semibold text-black transition hover:from-yellow-200 disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -202,6 +262,7 @@ export default function WodSessionModal({
                 <RotateCcw className="h-4 w-4" /> Reiniciar
               </button>
             </div>
+            {startError && <p className="mt-2 text-xs text-red-300" role="alert">{startError}</p>}
           </div>
 
           {/* Movimientos */}
@@ -212,13 +273,24 @@ export default function WodSessionModal({
                 <div className="flex items-center justify-between gap-3 px-4 py-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-white">{m.reps ? `${m.reps} · ` : ''}{m.nombre}</span>
+                      <span className="text-sm font-semibold text-white">{(m.reps || m.repeticiones || m.reps_objetivo) ? `${m.reps || m.repeticiones || m.reps_objetivo} · ` : ''}{m.nombre}</span>
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       {m.dominio && (
                         <span className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] text-gray-300">{m.dominio}</span>
                       )}
-                      <span className="text-xs text-yellow-200/90">{scalingTextFor(m)}</span>
+                      <span className="text-xs text-yellow-200/90">{scalingTextFor(m, movementScales[m.canonical_movement_id ?? m.exercise_id ?? String(i)] ?? scale)}</span>
+                      <select
+                        aria-label={`Escala para ${m.nombre}`}
+                        value={movementScales[m.canonical_movement_id ?? m.exercise_id ?? String(i)] ?? scale}
+                        onChange={(event) => setMovementScales((current) => ({
+                          ...current,
+                          [m.canonical_movement_id ?? m.exercise_id ?? String(i)]: event.target.value
+                        }))}
+                        className="rounded border border-white/10 bg-neutral-800 px-1.5 py-1 text-[11px] text-gray-200"
+                      >
+                        {SCALES.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+                      </select>
                     </div>
                   </div>
                   {m.como_hacerlo && (

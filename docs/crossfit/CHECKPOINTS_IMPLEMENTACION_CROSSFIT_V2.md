@@ -17,19 +17,19 @@ Estado global: `EN_PROGRESO`
 
 ## Estado de fases
 
-| Fase                          | Estado                      | Evidencia / gate                                            |
-| ----------------------------- | --------------------------- | ----------------------------------------------------------- |
-| A. Baseline y DoR             | `COMPLETADA_CON_LIMITACION` | 231/231 unit, lint, build; integración requiere BD efímera  |
-| B. Contratos/versionado/flags | `COMPLETADA`                | 8/8 específicos; suite 239/239; lint; flags off             |
-| C. Catálogo/seguridad         | `COMPLETADA_CON_GATE_BD`    | 13/13; 92+104+236; 120/120; SQL/RLS requiere BD efímera     |
-| D. Clasificación              | `COMPLETADA_TECNICA`        | level-model/2.0.0; 11/11 decisiones y límites               |
-| E. Programación por nivel     | `COMPLETADA_TECNICA`        | bloques 8/10/12; seis frecuencias; 12/12 tests              |
-| F. Composer/validadores       | `COMPLETADA_TECNICA`        | 30.000 planes + 30.000 regeneraciones; cero hard violation  |
-| G. Flujos de producto         | `EN_PROGRESO`               | feedback plan/single-day conectado; generación/E2E abiertos |
-| H. Resultados/autorregulación | `COMPLETADA_CON_GATE_BD`    | siete estados; 18/18 específicos; SQL/RLS requiere BD       |
-| I. Training load/nutrición    | `PENDIENTE_FLAG_OFF`        | shadow primero; activación requiere aprobación              |
-| J. QA integral                | `PENDIENTE`                 | unit/contract/integration/E2E/regresión                     |
-| K. Validaciones externas      | `GATE_PREPRODUCCION`        | entrenador, nutricionista, clínico si aplica y legal        |
+| Fase                          | Estado                      | Evidencia / gate                                           |
+| ----------------------------- | --------------------------- | ---------------------------------------------------------- |
+| A. Baseline y DoR             | `COMPLETADA_CON_LIMITACION` | 231/231 unit, lint, build; integración requiere BD efímera |
+| B. Contratos/versionado/flags | `COMPLETADA`                | 8/8 específicos; suite 239/239; lint; flags off            |
+| C. Catálogo/seguridad         | `COMPLETADA_CON_GATE_BD`    | 13/13; 92+104+236; 120/120; SQL/RLS requiere BD efímera    |
+| D. Clasificación              | `COMPLETADA_TECNICA`        | level-model/2.0.0; 11/11 decisiones y límites              |
+| E. Programación por nivel     | `COMPLETADA_TECNICA`        | bloques 8/10/12; seis frecuencias; 12/12 tests             |
+| F. Composer/validadores       | `COMPLETADA_TECNICA`        | 30.000 planes + 30.000 regeneraciones; cero hard violation |
+| G. Flujos de producto         | `COMPLETADA_CON_GATE_E2E`   | 51/51 focalizados; generación, plan, single-day y player   |
+| H. Resultados/autorregulación | `COMPLETADA_CON_GATE_BD`    | siete estados; 18/18 específicos; SQL/RLS requiere BD      |
+| I. Training load/nutrición    | `PENDIENTE_FLAG_OFF`        | shadow primero; activación requiere aprobación             |
+| J. QA integral                | `PENDIENTE`                 | unit/contract/integration/E2E/regresión                    |
+| K. Validaciones externas      | `GATE_PREPRODUCCION`        | entrenador, nutricionista, clínico si aplica y legal       |
 
 ## Baseline reproducible
 
@@ -73,6 +73,33 @@ Estado global: `EN_PROGRESO`
 - Verificación: 18/18 focalizados, 307/307 backend y lint quiet. La migración
   `20260722_crossfit_v2_results_autoreg.sql` está preparada, no aplicada; up,
   re-run y RLS cross-user siguen pendientes de PostgreSQL efímero/CI.
+
+## Gate técnico G
+
+- `CrossFitService` delega en v2 solo con `CROSSFIT_V2_GENERATION=true`; con el
+  flag apagado conserva byte a byte la ruta legacy y ningún desconocido cae en
+  CrossFit.
+- El plan presentado conserva el snapshot canónico completo y transporta
+  `crossfit-session/v2` más `training-load/v1` hasta `methodology_plan_days` y
+  la sesión real por `plan_id + day_id`.
+- El adaptador de calendario materializa el bloque rodante completo de 8/10/12
+  semanas sin recortar, clonar o recomponer WODs; valida antes de borrar y usa
+  transacción/savepoint.
+- Single-day usa el mismo composer determinista y safety evaluator, persiste
+  `day_id`, sesión, carga y metadata canónica, y no confía en el nivel textual
+  del frontend para promocionar.
+- Inicio y autorregulación v2 no consultan offsets RIR legacy. Un snapshot
+  `blocked` impide iniciar; las demás acciones cambian una sola dimensión y
+  quedan trazadas en la sesión.
+- El player soporta los ocho formatos de metcon más `strength_only` y
+  `skill_only`, time cap, escala por movimiento y cierre fail-closed si falla
+  cualquier persistencia. El feedback emite score tipado, RPE, técnica, dolor,
+  readiness y escalas.
+- Resultados de plan completo leen `methodology_exercise_progress`; single-day
+  lee `exercise_session_tracking`, ambos normalizados al mismo actual load.
+- Verificación: 51/51 focalizados, 327/327 backend, lint quiet y build verdes.
+  Quedan pendientes Playwright real, offline/background timer, sustitución
+  interactiva, PostgreSQL efímero y RLS cross-user.
 
 ## Gate estadístico F
 

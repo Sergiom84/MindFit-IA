@@ -30,6 +30,8 @@
 
 import { persistSingleDaySession } from './persistSingleDaySession.js';
 import { logger } from '../hipertrofiaV2/logger.js';
+import { getCrossfitFeatureFlags } from '../crossfit/featureFlags.js';
+import { generateCrossfitSingleDayV2 } from '../crossfit/integration/singleDayService.js';
 
 // Dominios reales en "Ejercicios_CrossFit".
 const DOMAINS = ['Weightlifting', 'Gymnastic', 'Monostructural', 'Accesorios'];
@@ -202,6 +204,13 @@ function toWodMovement(row, orden, formato) {
  * @returns {Promise<{sessionId:number, workout:object}>}
  */
 export async function generateCrossFitSingleDay(dbClient, userId, rawNivel, isWeekendExtra = true, options = {}) {
+  if (getCrossfitFeatureFlags().generation) {
+    return generateCrossfitSingleDayV2({
+      db: dbClient,
+      userId,
+      options: { ...options, isWeekendExtra }
+    });
+  }
   const { selectionMode = 'full_body', focusGroup = null } = options || {};
   const nivel = normalizeLevel(rawNivel);
   const niveles = getAccumulativeLevels(nivel);

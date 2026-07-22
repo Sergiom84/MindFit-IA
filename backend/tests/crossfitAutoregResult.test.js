@@ -6,6 +6,7 @@ import { reduceCrossfitAutoreg } from "../services/crossfit/autoreg/stateMachine
 import { validateCrossfitAutoreg, validateCrossfitResult } from "../services/crossfit/contracts/schemas.js";
 import { buildCrossfitResultV2 } from "../services/crossfit/results/resultBuilder.js";
 import { buildCrossfitPlannedTrainingLoad } from "../services/crossfit/trainingLoadAdapter.js";
+import { adjustPrescriptionsForStart } from "../services/progression/planAutoregService.js";
 
 const NOW = "2026-07-22T12:00:00.000Z";
 
@@ -167,6 +168,72 @@ test("eventos fuera de orden convergen al mismo snapshot material", () => {
   assert.equal(ordered.state, unordered.state);
   assert.deepEqual(ordered.features, unordered.features);
   assert.equal(ordered.snapshot_id, unordered.snapshot_id);
+});
+
+test("inicio CrossFit v2 usa snapshot y no offsets RIR legacy", async () => {
+  const calls = [];
+  const client = {
+    async query(sql, params) {
+      calls.push({ sql, params });
+      if (/crossfit_v2_autoreg_snapshots/.test(sql)) {
+        return {
+          rowCount: 1,
+          rows: [{
+            snapshot_id: "cfa_progress",
+            state: "progress_capacity",
+            payload: {
+              state: "progress_capacity",
+              reason_codes: ["AUTOREG_BUILD"],
+              actions: { capacity: { variable: "load", increment: 0.025 }, skill: null, scale: "hold" }
+            }
+          }]
+        };
+      }
+      if (/UPDATE app\.methodology_exercise_sessions/.test(sql)) return { rowCount: 1, rows: [] };
+      throw new Error(`SQL inesperado: ${sql}`);
+    }
+  };
+  const adjusted = await adjustPrescriptionsForStart(client, {
+    userId: "user_1",
+    planId: 7,
+    sessionId: 11,
+    methodologyType: "CrossFit",
+    planSchemaVersion: "crossfit-plan/v2",
+    ejercicios: [{ nombre: "Front Squat", repeticiones: "5" }]
+  });
+
+  assert.equal(adjusted.meta.state, "progress_capacity");
+  assert.match(adjusted.ejercicios[0].notas, /solo load \+3%/);
+  assert.equal(calls.some((call) => /plan_progression_offsets/.test(call.sql)), false);
+  assert.equal(calls.some((call) => /crossfit_v2_start_adjustment/.test(call.sql)), true);
+});
+
+test("snapshot blocked impide iniciar antes de consultar progresión legacy", async () => {
+  const client = {
+    async query(sql) {
+      assert.match(sql, /crossfit_v2_autoreg_snapshots/);
+      return {
+        rowCount: 1,
+        rows: [{
+          snapshot_id: "cfa_blocked",
+          state: "blocked",
+          payload: { state: "blocked", reason_codes: ["SAFETY_PAIN_BLOCK"], actions: {} }
+        }]
+      };
+    }
+  };
+  await assert.rejects(
+    adjustPrescriptionsForStart(client, {
+      userId: "user_1",
+      planId: 7,
+      methodologyType: "CrossFit",
+      planSchemaVersion: "crossfit-plan/v2",
+      ejercicios: [{ nombre: "Burpee" }]
+    }),
+    (error) => error.code === "CROSSFIT_SESSION_BLOCKED"
+      && error.reasonCode === "SAFETY_PAIN_BLOCK"
+      && error.status === 423
+  );
 });
 
 test("migración de resultados es aditiva, append-only, idempotente y con RLS", () => {

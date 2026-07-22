@@ -60,6 +60,8 @@ export function useSingleDayMethodologyActions({
           ejercicios: workout.exercises || [],
           isWeekendExtra: true,
           sessionId: data.sessionId,
+          methodology_plan_id: data.methodologyPlanId ?? null,
+          planId: data.methodologyPlanId ?? null,
           nivel: level,
           discipline,
           wod: workout.wod || null

@@ -2,19 +2,24 @@
 
 Objetivo: incorporar `crossfit-plan/v2` mediante adaptadores de metodologia, sin tocar el frontend agnostico, el redireccionador ni `WorkoutContext.generatePlan()`.
 
-## Componentes futuros
+## Componentes v2 y estado
 
-| Componente                    | Responsabilidad                   | Prohibicion                  |
-| ----------------------------- | --------------------------------- | ---------------------------- |
-| CrossFitClassificationService | evaluar dimensiones y permisos    | no usar IA como juez final   |
-| CrossFitCatalogRepository     | snapshot canonico versionado      | no leer filas Elite core     |
-| CrossFitProgramBuilder        | bloque/semana/cuotas              | no persistir directamente    |
-| CrossFitWodComposer           | formato, dosis, stimulus y escala | no relajar hard filters      |
-| CrossFitPlanValidator         | invariantes por capas             | no autocorregir sin trace    |
-| CrossFitAutoregReducer        | estado por eventos                | no mutar historia            |
-| CrossFitTrainingLoadAdapter   | planned/actual `training-load/v1` | no activar antes de Fase 0   |
-| CrossFitNutritionMapper       | D0/D1/D2 a motor canonico         | no calcular menu paralelo    |
-| CrossFitDecisionTrace         | reglas y reasons sin PII          | no guardar prompts sensibles |
+| Componente                    | Estado en rama                      | Prohibicion                  |
+| ----------------------------- | ----------------------------------- | ---------------------------- |
+| CrossFitClassificationService | implementado y testeado             | no usar IA como juez final   |
+| CrossFitCatalogRepository     | implementado; migración no aplicada | no leer filas Elite core     |
+| CrossFitProgramBuilder        | implementado 8/10/12 semanas        | no persistir directamente    |
+| CrossFitWodComposer           | implementado; gate 30.000 verde     | no relajar hard filters      |
+| CrossFitPlanValidator         | 44 invariantes implementadas        | no autocorregir sin trace    |
+| CrossFitAutoregReducer        | implementado; SQL no aplicado       | no mutar historia            |
+| CrossFitTrainingLoadAdapter   | planned/actual implementado         | flag emisión sigue apagado   |
+| CrossFitNutritionMapper       | contrato/matriz; Fase I en curso    | no calcular menu paralelo    |
+| CrossFitDecisionTrace         | incluido en contratos/snapshots     | no guardar prompts sensibles |
+
+La integración de producto usa `productPlanService`, `scheduleMaterializer`,
+`singleDayService` y `sessionPlanMetadataService`. Son adaptadores registrados;
+no modifican la convergencia de `WorkoutContext.generatePlan()` ni introducen
+condiciones CrossFit dispersas en el frontend agnóstico.
 
 ## Contratos API propuestos
 

@@ -86,7 +86,9 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
       isWeekendExtra = false,
       selectionMode = 'full_body',
       focusGroup = null,
-      equipment = null
+      equipment = null,
+      checkIn = null,
+      check_in = null
     } = req.body;
 
     const method = normalizeMethodology(methodology);
@@ -112,7 +114,9 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
     } else if (method === 'crossfit') {
       result = await generateCrossFitSingleDay(dbClient, userId, nivel, isWeekendExtra, {
         selectionMode,
-        focusGroup
+        focusGroup,
+        equipment,
+        check_in: check_in ?? checkIn ?? {}
       });
     } else if (method === 'casa') {
       result = await generateCasaSingleDay(dbClient, userId, nivel, isWeekendExtra, {
@@ -159,6 +163,7 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
       success: true,
       message: 'Entrenamiento del día generado exitosamente',
       sessionId: result.sessionId,
+      methodologyPlanId: result.planId ?? null,
       workout: result.workout,
       notes: [
         'Este entrenamiento es independiente y no afecta tu plan semanal',
@@ -169,10 +174,12 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
     await dbClient.query('ROLLBACK');
     logger.error('❌ [METHODOLOGY-SINGLE-DAY] Error:', error);
     // Faltan valoraciones para el modo por preferencias: error de usuario, no del servidor
-    const status = error?.code === 'INSUFFICIENT_PREFERENCES' ? 400 : 500;
+    const status = error?.code === 'INSUFFICIENT_PREFERENCES' ? 400 : (error?.status || 500);
     res.status(status).json({
       success: false,
-      error: status === 400 ? error.message : 'Error al generar entrenamiento',
+      error: status < 500 ? error.message : 'Error al generar entrenamiento',
+      reason_code: error?.reasonCode || null,
+      reason_codes: error?.reasonCodes || [],
       details: error.message
     });
   } finally {

@@ -429,7 +429,11 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
                 const exercise = exercises[i];
 
                 // 🎯 Guardar también el exercise_id para tracking RIR
-                const exerciseId = exercise.exercise_id || exercise.id || null;
+                const rawExerciseId = exercise.exercise_id ?? exercise.legacy_exercise_id ?? null;
+                const parsedExerciseId = Number(rawExerciseId);
+                const exerciseId = Number.isInteger(parsedExerciseId) && parsedExerciseId > 0
+                  ? parsedExerciseId
+                  : null;
 
                 await client.query(
                   `INSERT INTO app.methodology_exercise_progress (

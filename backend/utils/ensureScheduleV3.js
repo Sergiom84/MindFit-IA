@@ -63,6 +63,7 @@ import { adjustWorkoutIntensity, shouldAdjustIntensity } from './adjustWorkoutIn
 // Nutrición Fase 0 (doc04 PR3, spec §9): persistir day_id y metadata.session_load al
 // materializar el calendario. Helper puro (sin efectos) para poder testearlo aislado.
 import { buildPlanDayMetadata } from '../services/trainingLoad/sessionLoadBuilder.js';
+import { getMethodologyScheduleAdapter } from '../services/methodologyScheduleAdapters.js';
 
 /**
  * Genera workout_schedule y methodology_plan_days respetando preferencias del usuario.
@@ -98,6 +99,18 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
     if (!planData || !Array.isArray(planData.semanas) || planData.semanas.length === 0) {
       console.warn('[ensureWorkoutScheduleV3] Plan vacio o sin semanas', { planId: methodologyPlanId });
       return;
+    }
+
+    const scheduleAdapter = getMethodologyScheduleAdapter(planData);
+    if (scheduleAdapter) {
+      return scheduleAdapter.materialize({
+        client,
+        userId,
+        methodologyPlanId,
+        planData,
+        startDate,
+        startConfig
+      });
     }
 
     const normalizedPlan = normalizePlanDays(planData);

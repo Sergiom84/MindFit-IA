@@ -552,9 +552,11 @@ export function useRoutineSessionActions({
           }
         }
       }
+      return { success: ok };
     } catch (error) {
       console.error('❌ Error actualizando ejercicio:', error);
       setError(`Error actualizando ejercicio: ${error.message}`);
+      return { success: false, error: error.message };
     }
   }, [updateExercise, setError, onProgressUpdate, session.sessionId, localState.pendingSessionData?.sessionId, activeMethodKey, fetchTodayStatus]);
 

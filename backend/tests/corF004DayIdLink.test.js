@@ -21,6 +21,7 @@ const ensureSrc = read("../utils/ensureScheduleV3.js");
 const plansSrc = read("../routes/routines/plans.js");
 const helpersSrc = read("../routes/trainingSession/_helpers.js");
 const startSrc = read("../routes/trainingSession/start.js");
+const metadataServiceSrc = read("../services/trainingLoad/sessionPlanMetadataService.js");
 const migrationSrc = read("../migrations/20260721_backfill_mes_day_id.sql");
 
 // ── §2/§3: day_id canónico en ensureScheduleV3 (RETURNING + recuperación en conflicto) ──
@@ -78,15 +79,16 @@ test("_helpers.js: createMissingDaySession traslada day_id y fecha exacta del ca
 });
 
 // ── §5: iniciar sesión busca la carga por plan_id + day_id (no day_name + LIMIT 1) ──
-test("start.js: busca planned_session_load por plan_id + day_id cuando existe", () => {
-  assert.match(startSrc, /if \(session\?\.day_id != null\)/);
+test("start.js: delega y el adaptador busca carga por plan_id + day_id cuando existe", () => {
+  assert.match(startSrc, /hydrateSessionPlanMetadata\(client/);
+  assert.match(metadataServiceSrc, /session\.day_id != null/);
   assert.match(
-    startSrc,
+    metadataServiceSrc,
     /WHERE plan_id = \$1 AND day_id = \$2 AND is_rest = FALSE/
   );
   // Mantiene el enlace previo por nombre de día SOLO como degradación para históricos.
   assert.match(
-    startSrc,
+    metadataServiceSrc,
     /WHERE plan_id = \$1 AND week_number = \$2 AND day_name = \$3 AND is_rest = FALSE/
   );
 });

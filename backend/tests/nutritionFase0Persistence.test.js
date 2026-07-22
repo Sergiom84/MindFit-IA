@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   extractPlannedSessionLoad,
+  extractPersistedSessionMetadata,
   buildPlanDayMetadata,
   SCHEDULE_WITH_LOAD_QUERY
 } from "../services/trainingLoad/sessionLoadBuilder.js";
@@ -133,6 +134,22 @@ test("extractPlannedSessionLoad: acepta ubicaciones alternativas, ignora basura"
   assert.equal(extractPlannedSessionLoad(undefined), null);
 });
 
+test("buildPlanDayMetadata: transporta metadata validada sin inventar carga", () => {
+  const persisted = {
+    crossfit_v2_session: { schema_version: "crossfit-session/v2" },
+    crossfit_v2: { level: "beginner" }
+  };
+  assert.deepEqual(extractPersistedSessionMetadata({
+    metadata: { persisted_session_metadata: persisted }
+  }), persisted);
+  assert.deepEqual(buildPlanDayMetadata({
+    metadata: { persisted_session_metadata: persisted }
+  }), { session_metadata: persisted });
+  assert.equal(extractPersistedSessionMetadata({
+    metadata: { persisted_session_metadata: [] }
+  }), null);
+});
+
 // ── Canal de datos: day_id en calendarios nuevos + join §12.1 ─────────────────────
 test("ensureScheduleV3 persiste day_id en workout_schedule y metadata en plan_days", () => {
   const src = fs.readFileSync(path.join(__dirname, "../utils/ensureScheduleV3.js"), "utf8");
@@ -161,8 +178,13 @@ test("§12.1: join del calendario enriquecido es LEFT JOIN por day_id (no por fe
 
 test("start.js copia planned_session_load a session_metadata al iniciar", () => {
   const src = fs.readFileSync(path.join(__dirname, "../routes/trainingSession/start.js"), "utf8");
-  assert.match(src, /metadata -> 'session_load' AS session_load/);
-  assert.match(src, /jsonb_build_object\('planned_session_load'/);
+  const service = fs.readFileSync(
+    path.join(__dirname, "../services/trainingLoad/sessionPlanMetadataService.js"),
+    "utf8"
+  );
+  assert.match(src, /hydrateSessionPlanMetadata/);
+  assert.match(service, /plan_id = \$1 AND day_id = \$2/);
+  assert.match(service, /planned_session_load/);
   // No debe tocar la creación bajo demanda: sigue existiendo createMissingDaySession.
   assert.match(src, /createMissingDaySession/);
 });

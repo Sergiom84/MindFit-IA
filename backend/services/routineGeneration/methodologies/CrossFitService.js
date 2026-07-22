@@ -15,6 +15,8 @@ import {
   getProfileTrainingGoal,
   resolveTrainingFrequency
 } from '../../userProfileContract.js';
+import { getCrossfitFeatureFlags } from '../../crossfit/featureFlags.js';
+import { generateCrossfitProductPlan } from '../../crossfit/integration/productPlanService.js';
 import {
   buildExercisePicker,
   buildTemplates,
@@ -255,6 +257,29 @@ export async function generateCrossFitPlan(userId, planData = {}) {
   const startedAt = Date.now();
   logSeparator('CROSSFIT PLAN GENERATION');
   logAPICall('/specialist/crossfit/generate', 'POST', userId);
+
+  if (getCrossfitFeatureFlags().generation) {
+    const generated = await generateCrossfitProductPlan({
+      userId,
+      planData,
+      db: pool,
+      profileLoader: getUserFullProfile
+    });
+    return buildPlanResult({
+      plan: generated.plan,
+      planId: generated.planId,
+      methodology: 'crossfit',
+      startedAt,
+      extraMeta: {
+        level: generated.classification.global_level,
+        classification_confidence: generated.classification.confidence,
+        idempotent_replay: generated.idempotentReplay,
+        schema_version: generated.plan.schema_version,
+        ruleset_version: generated.plan.ruleset_version,
+        catalog_version: generated.plan.catalog_version
+      }
+    });
+  }
 
   let userProfile = null;
   try {

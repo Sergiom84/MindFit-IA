@@ -37,6 +37,24 @@ estados, integradas en una suite backend de 307/307:
 No se contabilizan como verdes `up`, reejecución de migración ni RLS cross-user:
 este worktree no dispone de PostgreSQL/Docker efímero y producción no se usa.
 
+## Resultado ejecutado de integración de flujos
+
+El corte técnico de Fase G ejecuta 51/51 pruebas focalizadas y la regresión
+backend completa queda en 327/327. Los oráculos cubren:
+
+- clasificación conservadora y seguridad antes de cualquier escritura;
+- idempotencia de draft y presentación sin perder el plan canónico;
+- calendario completo de 8 semanas y validación previa a reemplazo;
+- hidratación exacta por `plan_id + day_id`, con fallback solo para deuda legacy;
+- single-day determinista con sesión, carga y metadata canónicas;
+- cierre plan/single-day sobre sus tablas de progreso correctas;
+- prioridad de snapshot bloqueado, ausencia de offsets RIR y outbox gobernado;
+- flags apagados sin cambio de comportamiento y gate COR-F0-04 conservado.
+
+`npm run lint -- --quiet` y `npm run build` están verdes. El build mantiene los
+avisos preexistentes de chunks circulares y browser data desactualizada. Esto no
+equivale a E2E: no se han levantado servidores, creado usuarios ni usado una BD.
+
 ## Perfiles
 
 [`data/qa_synthetic_profiles.csv`](./data/qa_synthetic_profiles.csv) contiene 32 perfiles: niveles, capacidades asimetricas, 2-5 dias, equipos, objetivos, dolor, red flags, pausas, fatiga, embarazo/posparto, hipertension, alergias, dieta, horario y nutricion.
@@ -124,7 +142,8 @@ Antes de migracion: entrenador cualificado revisa umbrales, progresiones, 120 ma
 - [x] Fase 0 compartida desbloqueada para desarrollo y branch aislada creada.
 - [ ] Catalogo versionado, validado, RLS y rollback.
 - [x] > =30.000 planes total, cero hard invariant y 30.000 regeneraciones idénticas.
-- [ ] APIs, outbox y nutricion idempotentes.
+- [x] APIs de generación/resultado y outbox CrossFit idempotentes a nivel unit/contrato.
+- [ ] Nutrición CrossFit idempotente en shadow/BD aislada.
 - [ ] E2E movil/escritorio/offline verde.
 - [ ] Regresion ajena verde sin modificar otras metodologias.
 - [ ] Observabilidad y alertas probadas.

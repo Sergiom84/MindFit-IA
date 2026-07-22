@@ -13,7 +13,7 @@ import { buildCrossfitResultV2 } from "./resultBuilder.js";
 
 export const LOCK_CROSSFIT_SESSION_SQL = `
 SELECT id, user_id, methodology_plan_id, methodology_type, methodology_level,
-       day_id, session_status, completion_rate, total_duration_seconds,
+       day_id, session_type, session_status, completion_rate, total_duration_seconds,
        started_at, completed_at, session_metadata
 FROM app.methodology_exercise_sessions
 WHERE id = $1 AND user_id = $2
@@ -28,6 +28,15 @@ LIMIT 1`;
 export const LOAD_CROSSFIT_EXERCISE_ROWS_SQL = `
 SELECT exercise_name, status, series_completed, series_total, time_spent_seconds
 FROM app.methodology_exercise_progress
+WHERE methodology_session_id = $1
+ORDER BY exercise_order`;
+
+export const LOAD_CROSSFIT_SINGLE_DAY_EXERCISE_ROWS_SQL = `
+SELECT exercise_name, status,
+       actual_sets AS series_completed,
+       planned_sets AS series_total,
+       actual_duration_seconds AS time_spent_seconds
+FROM app.exercise_session_tracking
 WHERE methodology_session_id = $1
 ORDER BY exercise_order`;
 
@@ -234,7 +243,10 @@ export async function registerCrossfitV2Result(client, {
   }
 
   const normalized = normalizeResultInput(session, manual, now);
-  const exerciseQuery = await client.query(LOAD_CROSSFIT_EXERCISE_ROWS_SQL, [sessionId]);
+  const exerciseSql = session.session_type === "weekend-extra"
+    ? LOAD_CROSSFIT_SINGLE_DAY_EXERCISE_ROWS_SQL
+    : LOAD_CROSSFIT_EXERCISE_ROWS_SQL;
+  const exerciseQuery = await client.query(exerciseSql, [sessionId]);
   const durationSeconds = resolveSessionDurationSeconds({
     totalDurationSeconds: session.total_duration_seconds,
     startedAt: session.started_at,
@@ -245,6 +257,7 @@ export async function registerCrossfitV2Result(client, {
   const sessionProvenance = normalized.metadata.crossfit_v2?.provenance
     ?? normalized.metadata.crossfit_v2_session?.provenance
     ?? {};
+  const startAdjustment = normalized.metadata.crossfit_v2_start_adjustment ?? {};
   const result = buildCrossfitResultV2({
     request_id: resolvedRequestId,
     session_id: session.id,
@@ -273,8 +286,10 @@ export async function registerCrossfitV2Result(client, {
       skill_prerequisites_met: sessionProvenance.skill_prerequisites_met === true,
       skill_id: sessionProvenance.skill_id ?? null,
       dangerous_misses: sessionProvenance.dangerous_misses === true,
-      capacity_progressed_microcycle: sessionProvenance.capacity_progressed_microcycle === true,
-      skill_progressed_microcycle: sessionProvenance.skill_progressed_microcycle === true,
+      capacity_progressed_microcycle: sessionProvenance.capacity_progressed_microcycle === true
+        || startAdjustment.state === 'progress_capacity',
+      skill_progressed_microcycle: sessionProvenance.skill_progressed_microcycle === true
+        || startAdjustment.state === 'progress_skill',
       equipment_signature_changed: sessionProvenance.equipment_signature_changed === true,
       readiness_cut: sessionProvenance.readiness_cut === true,
       srpe_ratio_7_28: sessionProvenance.srpe_ratio_7_28 ?? null,

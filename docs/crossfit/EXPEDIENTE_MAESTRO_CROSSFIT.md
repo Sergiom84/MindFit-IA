@@ -15,16 +15,16 @@ El nombre publico recomendado es **Acondicionamiento funcional de alta intensida
 
 | Area                             | Estado documental                                                | Estado real de producto                                                   |
 | -------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Modelo por niveles               | Cerrado con criterios multidimensionales, confianza y asimetrias | Implementación en curso                                                   |
-| Programacion 2/3, 3/4 y 4/5 dias | Cerrada por nivel y bloque                                       | No implementada                                                           |
-| Biblioteca WOD                   | Formatos, dosis, caps, interferencias y escalado definidos       | Motor actual solo cubre una parte                                         |
-| Catalogo                         | 120 filas auditadas y modelo canonico propuesto                  | BD viva sin normalizar; no escrita                                        |
-| Generador                        | Contrato, semilla, scoring, fallback e invariantes definidos     | `crossfit_v1` actual no los aplica todos                                  |
-| Autorregulacion                  | Maquina de estados y prioridades definidas                       | Regla actual es simplificada                                              |
-| Seguridad                        | Stop rules y matriz por patron/sintoma definidas                 | Perfil clinico estructurado inexistente                                   |
+| Modelo por niveles               | Cerrado con criterios multidimensionales, confianza y asimetrias | Implementado y testeado; UI de evaluación específica pendiente            |
+| Programacion 2/3, 3/4 y 4/5 dias | Cerrada por nivel y bloque                                       | Bloques 8/10/12 implementados y validados                                 |
+| Biblioteca WOD                   | Formatos, dosis, caps, interferencias y escalado definidos       | Composer y player v2 implementados; E2E pendiente                         |
+| Catalogo                         | 120 filas auditadas y modelo canonico propuesto                  | Repositorio/importador/SQL preparados; migración no aplicada              |
+| Generador                        | Contrato, semilla, scoring, fallback e invariantes definidos     | Integrado bajo flag; 30.000 planes y regeneraciones verdes                |
+| Autorregulacion                  | Maquina de estados y prioridades definidas                       | Siete estados persistentes; migración/RLS no aplicados                    |
+| Seguridad                        | Stop rules y matriz por patron/sintoma definidas                 | Evaluador previo al composer; contratos clínicos externos pendientes      |
 | Nutricion                        | Algoritmo por objetivo, carga y nivel definido                   | Desarrollo permitido; rollout bloqueado por shadow, métricas y aprobación |
-| Flujos                           | Contratos front-back-BD y errores trazados                       | Cobertura parcial, RLS desactivado                                        |
-| QA                               | Oraculos, perfiles y gates cuantificados                         | QA de la especificacion no ejecutable aun                                 |
+| Flujos                           | Contratos front-back-BD y errores trazados                       | Plan/single-day/calendario/player/cierre integrados; E2E/RLS pendientes   |
+| QA                               | Oraculos, perfiles y gates cuantificados                         | 327/327 backend y 30.000 gate; BD/E2E/humanos pendientes                  |
 
 ## Decisiones no negociables
 
@@ -78,11 +78,11 @@ CrossFit permanece inactiva hasta completar shadow, métricas y aprobación.
 
 ## Secuencia de implementacion vigente
 
-1. `EN_PROGRESO`: contratos, flags, catálogo, seguridad y migración preparada.
-2. Implementar clasificación, programación, composer, validadores y gate estadístico.
-3. Integrar resultados, autorregulación y flujos mediante adaptadores existentes.
-4. Desarrollar training load y nutrición con flags apagados; validar en shadow/QA.
-5. Ejecutar integración, RLS, E2E, accesibilidad y regresión en entorno aislado.
+1. `COMPLETADO_TECNICO`: contratos, flags, clasificación, programación, composer y gate estadístico.
+2. `COMPLETADO_CON_GATE_BD`: catálogo, seguridad, resultados y autorregulación; migraciones no aplicadas.
+3. `COMPLETADO_CON_GATE_E2E`: generación, plan, single-day, calendario, player, feedback y cierre por adaptadores.
+4. `EN_PROGRESO`: training load y nutrición con flags apagados; validar en shadow/QA.
+5. `PENDIENTE_INFRAESTRUCTURA`: migraciones, RLS, E2E, accesibilidad y regresión con PostgreSQL aislado.
 6. `REQUIERE_VALIDACION_HUMANA`: entrenador y nutricionista revisan reglas y muestra; legal decide el nombre.
 7. Solicitar a Pablo autorización de push; PR revisable y revisión Sergio/Pablo. Nunca push directo a `main`.
 

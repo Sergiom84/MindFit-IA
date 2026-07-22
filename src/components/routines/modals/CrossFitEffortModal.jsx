@@ -39,11 +39,26 @@ const RESULT_COPY = {
   progress: { title: 'Progresión registrada', msg: 'Ajustaremos una variable en la próxima exposición.' }
 };
 
-function scoreFromSummary(summary) {
+function scoreTypeFromSummary(summary) {
+  if (summary?.scoreType) return summary.scoreType;
+  if (['for_time', 'rft', 'chipper'].includes(summary?.formato)) return 'time';
+  if (summary?.formato === 'amrap') return 'rounds_reps';
+  if (['emom', 'e2mom', 'e3mom', 'intervals'].includes(summary?.formato)) return 'reps';
+  if (summary?.formato === 'strength_only') return 'load';
+  if (summary?.formato === 'skill_only') return 'quality';
+  return 'none';
+}
+
+function scoreFromSummary(summary, { rounds, metric }, technique) {
   if (!summary || typeof summary !== 'object') return { type: 'none' };
-  if (['for_time', 'rft', 'chipper'].includes(summary.formato) && Number.isFinite(summary.elapsedSeconds)) {
+  const type = scoreTypeFromSummary(summary);
+  if (type === 'time' && Number.isFinite(summary.elapsedSeconds)) {
     return { type: 'time', elapsed_seconds: Math.max(0, Number(summary.elapsedSeconds)) };
   }
+  if (type === 'rounds_reps') return { type, rounds: Number(rounds), reps: Number(metric) };
+  if (type === 'quality') return { type, quality: `technique_${technique}` };
+  const key = { reps: 'reps', calories: 'calories', load: 'load', distance: 'distance_m' }[type];
+  if (key) return { type, [key]: Number(metric) };
   return { type: 'none' };
 }
 
@@ -67,6 +82,8 @@ export default function CrossFitEffortModal({
   const [redFlag, setRedFlag] = useState(false);
   const [readiness, setReadiness] = useState({ sleep: null, fatigue: null, recovery: null, stress: null });
   const [feeling, setFeeling] = useState(null);
+  const [scoreRounds, setScoreRounds] = useState('');
+  const [scoreMetric, setScoreMetric] = useState('');
 
   useEffect(() => {
     if (!isOpen) return;
@@ -80,18 +97,27 @@ export default function CrossFitEffortModal({
     setRedFlag(false);
     setReadiness({ sleep: null, fatigue: null, recovery: null, stress: null });
     setFeeling(null);
+    setScoreRounds('');
+    setScoreMetric('');
   }, [defaultScale, isOpen]);
 
   if (!isOpen) return null;
 
   const readinessComplete = Object.values(readiness).every((value) => Number.isInteger(value));
   const painContextComplete = painScore === 0 || Boolean(painLocation);
+  const scoreType = scoreTypeFromSummary(wodSummary);
+  const scoreComplete = scoreType === 'rounds_reps'
+    ? scoreRounds !== '' && scoreMetric !== ''
+    : ['reps', 'calories', 'load', 'distance'].includes(scoreType)
+      ? scoreMetric !== ''
+      : true;
   const canSubmit = completed !== null
     && rpe !== null
     && technique !== null
     && painScore !== null
     && painContextComplete
     && readinessComplete
+    && scoreComplete
     && !isLoading;
   const safetyStop = redFlag || painScore >= 5 || technique === 0;
 
@@ -150,6 +176,41 @@ export default function CrossFitEffortModal({
               ))}
             </div>
           </section>
+
+          {scoreType !== 'none' && scoreType !== 'time' && scoreType !== 'quality' && (
+            <section>
+              <p className="mb-2 text-sm font-semibold text-gray-200">Resultado del WOD</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {scoreType === 'rounds_reps' && (
+                  <label className="text-xs text-gray-400">
+                    Rondas completas
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={scoreRounds}
+                      onChange={(event) => setScoreRounds(event.target.value)}
+                      className="mt-1 w-full rounded-lg border border-white/10 bg-neutral-800 px-3 py-2 text-sm text-white"
+                    />
+                  </label>
+                )}
+                <label className="text-xs text-gray-400">
+                  {scoreType === 'rounds_reps' || scoreType === 'reps' ? 'Repeticiones adicionales/totales'
+                    : scoreType === 'calories' ? 'Calorías'
+                    : scoreType === 'load' ? 'Carga (kg)'
+                    : 'Distancia (m)'}
+                  <input
+                    type="number"
+                    min="0"
+                    step={scoreType === 'load' ? '0.5' : '1'}
+                    value={scoreMetric}
+                    onChange={(event) => setScoreMetric(event.target.value)}
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-neutral-800 px-3 py-2 text-sm text-white"
+                  />
+                </label>
+              </div>
+            </section>
+          )}
 
           <section>
             <p className="mb-2 text-sm font-semibold text-gray-200">Esfuerzo percibido (RPE 1-10)</p>
@@ -347,7 +408,10 @@ export default function CrossFitEffortModal({
                 acute_injury: redFlag
               },
               readiness,
-              score: scoreFromSummary(wodSummary),
+              score: scoreFromSummary(wodSummary, { rounds: scoreRounds, metric: scoreMetric }, technique),
+              scales: Array.isArray(wodSummary?.scales) ? wodSummary.scales : undefined,
+              status: completed ? (wodSummary?.status || 'completed') : 'capped',
+              completion: completed ? 1 : 0.9,
               feeling
             })}
             disabled={!canSubmit}

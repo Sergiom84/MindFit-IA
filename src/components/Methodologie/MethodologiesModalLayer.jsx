@@ -535,12 +535,21 @@ export default function MethodologiesModalLayer({
           session={localState.pendingSessionData}
           sessionId={localState.pendingSessionData.sessionId}
           onClose={() => updateLocalState({ showRoutineSessionModal: false, pendingSessionData: null })}
+          onStartSession={async () => {
+            const sid = localState.pendingSessionData?.sessionId;
+            if (!sid) throw new Error('Sesión CrossFit no disponible');
+            const response = await fetch(`${API_URL}/api/routines/sessions/${sid}/mark-started`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${tokenManager.getToken()}` }
+            });
+            if (!response.ok) throw new Error('No se pudo registrar el inicio del WOD');
+          }}
           onFinishExercise={async (exerciseIndex, progressData) => {
             const sid = localState.pendingSessionData?.sessionId;
             if (!sid) return;
             const exerciseOrder = exerciseIndex + 1;
             try {
-              await fetch(`${API_URL}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
+              const response = await fetch(`${API_URL}/api/training-session/progress/methodology/${sid}/${exerciseOrder}`, {
                 method: 'PUT',
                 headers: {
                   'Authorization': `Bearer ${tokenManager.getToken()}`,
@@ -552,8 +561,11 @@ export default function MethodologiesModalLayer({
                   time_spent_seconds: progressData.time_spent_seconds || 0
                 })
               });
+              if (!response.ok) throw new Error(`No se pudo guardar el movimiento ${exerciseOrder}`);
+              return { success: true };
             } catch (error) {
               console.error('❌ Error guardando movimiento WOD:', error);
+              throw error;
             }
           }}
           onCompleteSession={(summary) => {

@@ -35,6 +35,7 @@ function session(overrides = {}) {
     total_duration_seconds: 3600,
     started_at: "2026-07-22T11:00:00.000Z",
     completed_at: "2026-07-22T12:00:00.000Z",
+    session_type: "mixed",
     session_metadata: {
       planned_session_load: plannedLoad(),
       crossfit_v2_session: {
@@ -79,6 +80,9 @@ class ResultClient {
     }
     if (text.includes("FROM app.methodology_exercise_progress")) {
       return { rowCount: 1, rows: [{ exercise_name: "Air Squat", status: "completed", series_completed: 3 }] };
+    }
+    if (text.includes("FROM app.exercise_session_tracking")) {
+      return { rowCount: 1, rows: [{ exercise_name: "Air Squat", status: "completed", series_completed: 4 }] };
     }
     if (text.includes("FROM app.crossfit_v2_results") && text.includes("recorded_at >=")) {
       return { rowCount: 0, rows: [] };
@@ -134,6 +138,22 @@ test("resultado v2 persiste ledger, snapshot y actual load sin consultar RIR", a
   assert.match(sql, /INSERT INTO app\.crossfit_v2_autoreg_events/);
   assert.match(sql, /INSERT INTO app\.crossfit_v2_autoreg_snapshots/);
   assert.doesNotMatch(sql, /hypertrophy_set_logs|avg_rir|rir_reported/i);
+});
+
+test("resultado single-day obtiene la carga real del tracking de fin de semana", async () => {
+  const client = new ResultClient({ sessionRow: session({ session_type: "weekend-extra" }) });
+  const output = await registerCrossfitV2Result(client, {
+    userId: 7,
+    planId: 22,
+    sessionId: 101,
+    manual: manual(),
+    now: NOW,
+    env: { CROSSFIT_V2_RESULTS: "true" }
+  });
+
+  assert.equal(output.result.actual_training_load.work.sets_total, 4);
+  assert.equal(client.calls.some((call) => call.sql.includes("FROM app.exercise_session_tracking")), true);
+  assert.equal(client.calls.some((call) => call.sql.includes("FROM app.methodology_exercise_progress")), false);
 });
 
 test("cierre automático v2 espera feedback y no cae al motor legacy", async () => {
