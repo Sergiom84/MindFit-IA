@@ -7,7 +7,7 @@ export const CROSSFIT_VERSIONS = Object.freeze({
   nutrition: "crossfit-nutrition/2.0.0",
   ruleset: "crossfit-rules/2.0.0",
   catalog: "crossfit-catalog/2.0.0",
-  levelModel: "crossfit-level/2.0.0",
+  levelModel: "level-model/2.0.0",
   trainingLoad: "training-load/v1"
 });
 
