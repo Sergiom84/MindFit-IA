@@ -53,7 +53,7 @@ router.post('/start/methodology', authenticateToken, async (req, res) => {
     }
 
     // 🧹 LIMPIEZA PRE-SESIÓN: Cerrar sesiones viejas en limbo antes de iniciar nueva
-    const { preSessionCleanup } = await import('../utils/sessionCleanup.js');
+    const { preSessionCleanup } = await import('../../utils/sessionCleanup.js');
     const cleanupResult = await preSessionCleanup(userId, methodology_plan_id);
     if (cleanupResult.cleanedSessions > 0 || cleanupResult.fixedStates > 0) {
       console.log(`🧹 Pre-limpieza: ${cleanupResult.cleanedSessions} sesiones cerradas, ${cleanupResult.fixedStates} estados corregidos`);
