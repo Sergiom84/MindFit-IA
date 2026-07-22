@@ -115,11 +115,15 @@ test(
   "S2: el start NO inyecta calistenia hardcodeada para planes sin ejercicios",
   { todo: "PR-CAL-03a: sustituir el fallback por 422 SESSION_EXERCISES_UNAVAILABLE" },
   () => {
+    // Se computa un BOOLEANO y se asere `assert.ok`: nunca pasar el contenido del
+    // fichero (~60 KB) como sujeto de la aserción. Un AssertionError con S2 en `todo`
+    // (rojo por diseño) serializaría esos 60 KB por el canal IPC del runner y corrompía
+    // intermitentemente el framing de node:test (flake "Unable to deserialize cloned data").
     const source = readRepoFile("backend/routes/routines/sessions.js");
-    assert.doesNotMatch(
-      source,
-      /disciplina:\s*['"]calistenia['"]/,
-      "el fallback aleatorio hardcodea disciplina:'calistenia' para cualquier plan"
+    const hardcodeaCalistenia = /disciplina:\s*['"]calistenia['"]/.test(source);
+    assert.ok(
+      !hardcodeaCalistenia,
+      "S2: el fallback aleatorio hardcodea disciplina:'calistenia' (lo resuelve PR-CAL-03a con 422 SESSION_EXERCISES_UNAVAILABLE)"
     );
   }
 );
