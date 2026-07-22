@@ -386,11 +386,14 @@ app.post('/api/methodology/generate', authenticateToken, (req, res, next) => {
     if (methodology === 'heavy-duty' || methodology === 'heavy duty') {
       console.log('💪 Heavy Duty manual detectada - specialist/heavy-duty/generate');
       req.url = '/api/routine-generation/specialist/heavy-duty/generate';
-    } else if (methodology === 'hipertrofia' || methodology === 'hipertrofiav2') {
+    } else if (methodology === 'hipertrofiav2') {
       // El router de Hipertrofia NO expone '/generate' (solo generate-d1d5,
       // generate-fullbody, generate-single-day). Redirigimos al motor D1-D5 con
       // el body PLANO que espera (nivel, totalWeeks, startConfig, includeWeek0).
-      // Acepta el id canónico ('hipertrofia') y el histórico ('hipertrofiav2').
+      // El cliente envía el id histórico 'hipertrofiav2'; el destino usa la ruta
+      // CANÓNICA '/api/hipertrofia' (alias legacy montado en paralelo). No se añade
+      // una rama 'hipertrofia' aquí: el contrato B-02 reserva ese literal para impedir
+      // el retorno del genérico legacy (los clientes ya envían 'hipertrofiav2').
       console.log('🏋️‍♂️ Hipertrofia manual detectada - hipertrofia/generate-d1d5');
       req.url = '/api/hipertrofia/generate-d1d5';
       const src = req.body?.planData || req.body || {};
