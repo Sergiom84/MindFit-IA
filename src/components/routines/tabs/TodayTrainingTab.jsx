@@ -862,7 +862,7 @@ export default function TodayTrainingTab({
   // 🎯 FIX: isRestDay solo es true cuando el backend confirma que no hay entrenamiento programado
   const isRestDay = hasActivePlan && !todaySessionData && !loadingTodayStatus && !isPlanStartInFuture;
   const noActivePlan = !hasActivePlan;
-  
+
   // 🎯 FIX: Detectar sesión programada pero no iniciada
   const sessionNotStarted = todayStatus?.sessionNotStarted || false;
   const sessionMatchesToday = hasActiveSession && !!session?.dayName && !!todaySessionData?.dia && (
