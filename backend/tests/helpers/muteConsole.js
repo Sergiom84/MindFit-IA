@@ -14,6 +14,5 @@
  * canal (no por console), así que los asertos siguen siendo visibles.
  */
 for (const method of ["log", "info", "warn", "error", "debug"]) {
-  // eslint-disable-next-line no-console
   console[method] = () => {};
 }
