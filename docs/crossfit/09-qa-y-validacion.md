@@ -19,7 +19,7 @@ El run de GitHub Actions `30050111128`, sobre
 | Perfiles sintéticos     | 32/32 con clasificación, seguridad, autorregulación y nutrición    |
 | Lint/build              | 0 errores; build productivo verde                                  |
 | Dependencias producción | 0 vulnerabilidades raíz y backend con `--omit=dev`                 |
-| Accesibilidad           | 2/2 proyectos Axe verdes                                           |
+| Accesibilidad           | 2/2 pruebas Axe + 1/1 auditoría UI móvil                           |
 
 La integración restauró el baseline en PostgreSQL 17 desechable, importó y
 activó el catálogo solo allí, validó 92 movimientos, 104 variantes, 236 edges y

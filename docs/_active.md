@@ -7,7 +7,8 @@
 - base_sha: e7f57116363d9283a27c1d5d375da674414ddf1f
 - synced_main_sha: 649360080325ea4f72182db54bafc8f12799ccba
 - pr: Sergiom84/MindFit-IA#63
-- last_green_ci: 30050111128
+- code_evidence_ci: 30050111128
+- documentation_evidence_ci: 30052016347
 - started_at: 2026-07-22 Europe/Madrid
 - status: technical_ci_green_security_incident_blocks_merge
 
