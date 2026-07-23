@@ -23,6 +23,10 @@ function load() {
 }
 
 test("métricas CrossFit exponen gates >=99%, <1%, duplicados y drift sin PII", async () => {
+  assert.match(
+    CROSSFIT_NUTRITION_SAMPLE_SQL,
+    /crossfit_nutrition' <> 'null'::jsonb/
+  );
   const trainingLoad = load();
   const nutrition = resolveCrossfitNutritionDay({
     userId: 1,

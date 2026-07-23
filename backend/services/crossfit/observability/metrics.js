@@ -17,7 +17,8 @@ WHERE o.payload->>'methodology_id' = 'crossfit'
 export const CROSSFIT_NUTRITION_SAMPLE_SQL = `
 SELECT periodization_context
 FROM app.nutrition_plan_days
-WHERE periodization_context ? 'crossfit_nutrition'`;
+WHERE periodization_context ? 'crossfit_nutrition'
+  AND periodization_context->'crossfit_nutrition' <> 'null'::jsonb`;
 
 export const CROSSFIT_OUTBOX_HEALTH_SQL = `
 WITH crossfit_events AS (

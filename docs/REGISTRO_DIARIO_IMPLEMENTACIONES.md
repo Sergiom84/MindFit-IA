@@ -535,3 +535,4 @@
 ## 2026-07-24
 
 - CrossFit v2: la confirmación materializa el calendario desde la fecha canónica ya resuelta por el generador antes de cualquier fallback horario del proceso, evitando el desfase de un día observado en CI alrededor de medianoche `Europe/Madrid`.
+- CrossFit v2/Nutrición: los días sin decisión CrossFit ya no persisten `crossfit_nutrition: null`, y observabilidad excluye marcadores nulos históricos del muestreo de contratos sin ocultar payloads malformados reales.

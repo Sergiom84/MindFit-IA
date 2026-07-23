@@ -763,7 +763,7 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
           // salida VISIBLE (tipo_dia/macros/comidas) sigue siendo legacy.
           const servesAuthoritative = periodizationMode === 'active' && methodologyEmitsLoad === true
             && periodization.authoritativeAllowed !== false;
-          periodizationContextJson = JSON.stringify({
+          const periodizationContext = {
             ruleset: resolved.policy_version,
             source,
             day_type: resolved.day_type,
@@ -786,9 +786,12 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
             requested_mode: requestedPeriodizationMode,
             // Si el reparto nuevo se sirvió como autoritativo al usuario o quedó en shadow.
             authoritative: servesAuthoritative,
-            methodology_emits_load: methodologyEmitsLoad,
-            crossfit_nutrition: periodization.crossfitNutrition ?? null
-          });
+            methodology_emits_load: methodologyEmitsLoad
+          };
+          if (periodization.crossfitNutrition) {
+            periodizationContext.crossfit_nutrition = periodization.crossfitNutrition;
+          }
+          periodizationContextJson = JSON.stringify(periodizationContext);
 
           if (servesAuthoritative) {
             // §12.3: tipo_dia con nuevos valores (compatibilidad de lectura para 'entreno').
