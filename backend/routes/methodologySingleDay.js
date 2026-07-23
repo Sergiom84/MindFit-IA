@@ -178,6 +178,7 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
     const status = error?.code === 'INSUFFICIENT_PREFERENCES' ? 400 : (error?.status || 500);
     res.status(status).json({
       success: false,
+      code: error?.code || 'METHODOLOGY_SINGLE_DAY_ERROR',
       error: status < 500 ? error.message : 'Error al generar entrenamiento',
       reason_code: error?.reasonCode || null,
       reason_codes: error?.reasonCodes || [],

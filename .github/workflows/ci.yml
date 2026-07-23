@@ -187,10 +187,11 @@ jobs:
       E2E_BASE_URL: http://localhost:4173
       CROSSFIT_V2_GENERATION: "true"
       CROSSFIT_V2_RESULTS: "true"
-      CROSSFIT_EMITS_TRAINING_LOAD: "false"
+      CROSSFIT_EMITS_TRAINING_LOAD: "true"
       CROSSFIT_NUTRITION_LOAD: "false"
+      NUTRITION_LOAD_PERIODIZATION_MODE: "active"
       ADMIN_TOKEN: crossfit-e2e-admin-ephemeral-only
-      BRIDGE_OUTBOX_EMIT_ENABLED: "false"
+      BRIDGE_OUTBOX_EMIT_ENABLED: "true"
       BRIDGE_OUTBOX_WORKER_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4

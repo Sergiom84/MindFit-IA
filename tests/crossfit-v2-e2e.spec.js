@@ -223,6 +223,19 @@ async function provisionPlan(request, projectName, levelCase, tag) {
     data: { methodology_plan_id: planId },
   });
   expect(confirmed.response.status(), JSON.stringify(confirmed.body)).toBe(200);
+  const reconfirmed = await api(
+    request,
+    "POST",
+    "/api/routines/confirm-plan",
+    {
+      token: account.token,
+      data: { methodology_plan_id: planId },
+    },
+  );
+  expect(reconfirmed.response.status(), JSON.stringify(reconfirmed.body)).toBe(
+    200,
+  );
+  expect(reconfirmed.body.idempotent_replay).toBe(true);
   return { email, token: account.token, planId, canonical };
 }
 
@@ -336,6 +349,30 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
       ).toBeLessThan(300);
       const sessionId = started.body.session_id ?? started.body.sessionId;
       expect(sessionId).toBeTruthy();
+      const replayedSessionStart = await api(
+        request,
+        "POST",
+        "/api/routines/sessions/start",
+        {
+          token: provisioned.token,
+          data: {
+            methodology_plan_id: provisioned.planId,
+            session_date: scheduled.date,
+            week_number: scheduled.week,
+            day_name: scheduled.day,
+            day_id: scheduled.dayId,
+          },
+        },
+      );
+      expect(
+        replayedSessionStart.response.status(),
+        JSON.stringify(replayedSessionStart.body),
+      ).toBe(200);
+      expect(replayedSessionStart.body.idempotent_replay).toBe(true);
+      expect(
+        replayedSessionStart.body.session_id ??
+          replayedSessionStart.body.sessionId,
+      ).toBe(sessionId);
 
       const canonicalSession = canonicalSessionFor(
         provisioned.canonical,
@@ -416,6 +453,66 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
       expect(injectedSubstitution.body.code).toBe(
         "CROSSFIT_RUNTIME_EVENT_INVALID",
       );
+
+      let validSubstitution = null;
+      let validSubstitutionRequest = null;
+      for (const movement of canonicalSession.wod.movements) {
+        const movementId = movement.canonical_movement_id;
+        const substitutionRequest = {
+          schema_version: "crossfit-substitution/v2",
+          request_id: `substitution-request-${sessionId}-${movementId}`,
+          idempotency_key: `substitution-idempotency-${sessionId}-${movementId}`,
+          stream_id: streamId,
+          client_sequence: 2,
+          occurred_at: new Date().toISOString(),
+          movement_id: movementId,
+          requested_target_id: null,
+          reason: "preference",
+          check_in: {
+            pain: { score: 0, locations: [], delta: 0 },
+            red_flag: false,
+            acute_injury: false,
+          },
+          temporarily_unavailable_equipment: [],
+        };
+        const candidate = await api(
+          request,
+          "POST",
+          `/api/crossfit-v2/runtime/sessions/${sessionId}/substitutions`,
+          {
+            token: provisioned.token,
+            data: substitutionRequest,
+          },
+        );
+        if (candidate.response.status() < 300) {
+          validSubstitution = candidate;
+          validSubstitutionRequest = substitutionRequest;
+          break;
+        }
+        expect(
+          ["WOD_SCALE_STIMULUS_LOSS", "SAFETY_CONTRAINDICATED"],
+          JSON.stringify(candidate.body),
+        ).toContain(candidate.body.code);
+      }
+      expect(validSubstitution, "El WOD debe ofrecer una sustitución segura").toBeTruthy();
+      expect(validSubstitution.body.idempotent_replay).toBe(false);
+      expect(
+        validSubstitution.body.substitution.replacement.canonical_movement_id,
+      ).not.toBe(validSubstitution.body.substitution.original_movement_id);
+      expect(validSubstitution.body.substitution.stimulus_delta).toBeLessThanOrEqual(
+        0.15,
+      );
+      const replayedSubstitution = await api(
+        request,
+        "POST",
+        `/api/crossfit-v2/runtime/sessions/${sessionId}/substitutions`,
+        {
+          token: provisioned.token,
+          data: validSubstitutionRequest,
+        },
+      );
+      expect(replayedSubstitution.response.status()).toBe(200);
+      expect(replayedSubstitution.body.idempotent_replay).toBe(true);
 
       const progress = await api(
         request,
@@ -528,8 +625,111 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
         },
       );
       expect(history.response.status(), JSON.stringify(history.body)).toBe(200);
+      expect(JSON.stringify(history.body)).toContain(String(sessionId));
     });
   }
+
+  test("API single-day: replay estable, colisión y red flag bloqueante", async ({
+    request,
+  }, testInfo) => {
+    const provisioned = await provisionPlan(
+      request,
+      testInfo.project.name,
+      LEVEL_CASES[0],
+      "single-day",
+    );
+    const requestBody = {
+      methodology: "crossfit",
+      nivel: "Principiante",
+      isWeekendExtra: true,
+      selectionMode: "full_body",
+      focusGroup: null,
+      equipment: FULL_EQUIPMENT,
+      check_in: {
+        pain: { score: 0, locations: [] },
+        red_flag: false,
+        acute_injury: false,
+      },
+    };
+    const generated = await api(
+      request,
+      "POST",
+      "/api/methodology-session/generate-single-day",
+      {
+        token: provisioned.token,
+        data: requestBody,
+      },
+    );
+    expect(generated.response.status(), JSON.stringify(generated.body)).toBe(
+      200,
+    );
+    expect(generated.body.sessionId).toBeTruthy();
+    expect(generated.body.methodologyPlanId).toBeTruthy();
+    expect(generated.body.workout.schema_version).toBe("crossfit-session/v2");
+    expect(generated.body.workout.safety.decision).not.toBe("block");
+
+    const replay = await api(
+      request,
+      "POST",
+      "/api/methodology-session/generate-single-day",
+      {
+        token: provisioned.token,
+        data: requestBody,
+      },
+    );
+    expect(replay.response.status(), JSON.stringify(replay.body)).toBe(200);
+    expect(replay.body.sessionId).toBe(generated.body.sessionId);
+    expect(replay.body.methodologyPlanId).toBe(
+      generated.body.methodologyPlanId,
+    );
+
+    const collision = await api(
+      request,
+      "POST",
+      "/api/methodology-session/generate-single-day",
+      {
+        token: provisioned.token,
+        data: {
+          ...requestBody,
+          selectionMode: "focus",
+          focusGroup: "monostructural",
+        },
+      },
+    );
+    expect(collision.response.status(), JSON.stringify(collision.body)).toBe(
+      409,
+    );
+    expect(collision.body.code).toBe("IDEMPOTENCY_BROKEN");
+
+    const blockedAccount = await ensureUser(
+      request,
+      syntheticEmail("single-day-blocked", testInfo.project.name),
+      2,
+    );
+    const blocked = await api(
+      request,
+      "POST",
+      "/api/methodology-session/generate-single-day",
+      {
+        token: blockedAccount.token,
+        data: {
+          ...requestBody,
+          check_in: {
+            pain: {
+              score: 8,
+              locations: ["chest"],
+              quality: "sharp",
+            },
+            red_flag: true,
+            acute_injury: true,
+          },
+        },
+      },
+    );
+    expect(blocked.response.status(), JSON.stringify(blocked.body)).toBe(422);
+    expect(blocked.body.code).toBe("CROSSFIT_SINGLE_DAY_BLOCKED");
+    expect(blocked.body.reason_codes).toContain("SAFETY_RED_FLAG");
+  });
 
   test("API cierre parcial: feedback transaccional, replay y colision", async ({
     request,
@@ -634,6 +834,106 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
     expect(collision.body.code).toBe("IDEMPOTENCY_BROKEN");
   });
 
+  test("API nutrición y training load: contratos CrossFit en shadow y métricas sanas", async ({
+    request,
+  }, testInfo) => {
+    const provisioned = await provisionPlan(
+      request,
+      testInfo.project.name,
+      LEVEL_CASES[1],
+      "nutrition-shadow",
+    );
+    const profile = await api(
+      request,
+      "POST",
+      "/api/nutrition-v2/profile",
+      {
+        token: provisioned.token,
+        data: {
+          sexo: "masculino",
+          edad: 30,
+          altura_cm: 178,
+          peso_kg: 78,
+          objetivo: "mant",
+          actividad: "moderado",
+          comidas_dia: 4,
+          training_days: 4,
+          level: "intermedio",
+          nutrition_overrides_profile: true,
+          alergias: [],
+          preferencias: {},
+        },
+      },
+    );
+    expect(profile.response.status(), JSON.stringify(profile.body)).toBe(200);
+
+    const generatedNutrition = await api(
+      request,
+      "POST",
+      "/api/nutrition-v2/generate-plan",
+      {
+        token: provisioned.token,
+        data: {
+          duracion_dias: 7,
+          training_type: "crossfit",
+          training_schedule: [],
+        },
+      },
+    );
+    expect(
+      generatedNutrition.response.status(),
+      JSON.stringify(generatedNutrition.body),
+    ).toBe(200);
+    expect(generatedNutrition.body.plan_id).toBeTruthy();
+
+    const activeNutrition = await api(
+      request,
+      "GET",
+      "/api/nutrition-v2/active-plan",
+      { token: provisioned.token },
+    );
+    expect(
+      activeNutrition.response.status(),
+      JSON.stringify(activeNutrition.body),
+    ).toBe(200);
+    const crossfitDays = (activeNutrition.body.days ?? []).filter(
+      (day) => day.periodization_context?.crossfit_nutrition,
+    );
+    expect(crossfitDays.length).toBeGreaterThan(0);
+    for (const day of crossfitDays) {
+      const context = day.periodization_context;
+      const contract = context.crossfit_nutrition;
+      expect(contract.schema_version).toBe("crossfit-nutrition/2.0.0");
+      expect(contract.level).toBe("intermediate");
+      expect(["D1", "D2"]).toContain(contract.day_type);
+      expect(contract.mode).toBe("shadow");
+      expect(context.authoritative).toBe(false);
+      expect(context.methodology_emits_load).toBe(true);
+    }
+
+    const metrics = await api(
+      request,
+      "GET",
+      "/api/admin/crossfit-v2/metrics",
+      {
+        headers: {
+          "x-admin-token": "crossfit-e2e-admin-ephemeral-only",
+        },
+      },
+    );
+    expect(metrics.response.status(), JSON.stringify(metrics.body)).toBe(200);
+    expect(metrics.body.training_load.total).toBeGreaterThan(0);
+    expect(metrics.body.training_load.valid_pct).toBe(100);
+    expect(metrics.body.training_load.degraded).toBe(0);
+    expect(metrics.body.nutrition.valid_contracts).toBeGreaterThan(0);
+    expect(metrics.body.nutrition.invalid_contracts).toBe(0);
+    expect(metrics.body.nutrition.shadow_days).toBeGreaterThan(0);
+    expect(metrics.body.nutrition.authoritative_days).toBe(0);
+    expect(metrics.body.outbox.duplicate_decisions).toBe(0);
+    expect(metrics.body.gates.valid_load_at_least_99pct).toBe(true);
+    expect(metrics.body.gates.zero_invalid_nutrition_contracts).toBe(true);
+  });
+
   test("UI evaluacion: ocho dimensiones, clasificacion conservadora y a11y", async ({
     page,
     request,
@@ -730,10 +1030,23 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
       page.getByRole("button", { name: "Sustituir" }).first(),
     ).toBeVisible();
 
+    const runtimeEvents = "**/api/crossfit-v2/runtime/sessions/*/events";
+    await page.route(runtimeEvents, (route) => route.abort("internetdisconnected"));
     await page.getByRole("button", { name: "Iniciar", exact: true }).click();
     await expect(
       page.getByRole("button", { name: "Pausar", exact: true }),
     ).toBeVisible();
+    await expect(
+      page.getByText(/evento\(s\) pendiente\(s\) de sincronizar/),
+    ).toBeVisible();
+    await expect(page.getByRole("alert")).toContainText(/conexión|fetch|red/i);
+    await page.unroute(runtimeEvents);
+    await page.evaluate(() =>
+      globalThis.dispatchEvent(new globalThis.Event("online")),
+    );
+    await expect(
+      page.getByText(/evento\(s\) pendiente\(s\) de sincronizar/),
+    ).toHaveCount(0);
     await page.getByRole("button", { name: "Pausar", exact: true }).click();
 
     const blocking = (
