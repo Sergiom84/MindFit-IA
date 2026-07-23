@@ -1,3 +1,4 @@
+import "./helpers/muteConsole.js"; // PRIMERO: silencia logs (evita flake IPC del runner)
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -110,4 +111,3 @@ test("migration: defaults se aplican al insertar (day_type='normal', noise_flags
 test.after(async () => {
   await pool.end();
 });
-

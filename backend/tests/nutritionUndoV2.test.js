@@ -1,3 +1,4 @@
+import "./helpers/muteConsole.js"; // PRIMERO: silencia logs (evita flake IPC del runner)
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -149,4 +150,3 @@ test("undo v2: fuera de ventana 24h falla con mensaje claro", async () => {
 test.after(async () => {
   await pool.end();
 });
-
