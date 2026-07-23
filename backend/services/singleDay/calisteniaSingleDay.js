@@ -20,6 +20,7 @@ import {
   assessCalistenia,
   isCalisthenicsAssessmentEnabled
 } from '../routineGeneration/methodologies/calisteniaAssessment.js';
+import { normalizeMethodologyLevel } from '../routineGeneration/methodologies/methodologyRegistry.js';
 
 // Categorías reales en app.ejercicios para disciplina='calistenia'.
 const FULLBODY_CATEGORIES = ['Empuje', 'Tracción', 'Piernas', 'Core'];
@@ -77,8 +78,11 @@ const LEVEL_DISPLAY = { principiante: 'Principiante', intermedio: 'Intermedio', 
  * (paridad exacta con el comportamiento previo). Con el flag ON:
  *  - 'refer' → 422 tipado (derivar, no prescribir), igual que el flujo multi-semana;
  *  - 'insufficient_data' → solo admite fallback provisional si `rawNivel` es un nivel explícito
- *    del selector manual o el frontend confirmó continuar (`assessmentInput.acceptProvisionalLevel`);
- *    si no, 422 `CALISTHENICS_LEVEL_REQUIRED` (nunca 'Principiante' en silencio);
+ *    VÁLIDO del selector manual (reconocido por `normalizeMethodologyLevel`) o el frontend confirmó
+ *    continuar (`assessmentInput.acceptProvisionalLevel`); si no hay nivel ni confirmación, 422
+ *    `CALISTHENICS_LEVEL_REQUIRED`; si `rawNivel` viene con un valor explícito pero NO reconocido
+ *    (typo, nivel no soportado), 422 `CALISTHENICS_LEVEL_INVALID` (nunca cae a 'Principiante' en
+ *    silencio vía el normalizador fuzzy);
  *  - 'ok' → autoridad del assessment.
  * Recibe `userProfile` ya cargado (una sola lectura de perfil, compartida con el filtro de
  * lesiones de más abajo — evita duplicar la llamada a `profileLoader`).
@@ -113,9 +117,20 @@ function resolveEffectiveLevel(rawNivel, assessmentInput = {}, userProfile = nul
   }
 
   if (assessment.decision === 'insufficient_data') {
-    const explicitSelected = rawNivel != null && String(rawNivel).trim() !== '';
+    const rawProvided = rawNivel != null && String(rawNivel).trim() !== '';
+    // Nivel explícito → validar contra el registry canónico. Un valor presente pero no reconocido
+    // NO debe caer en silencio a 'Principiante' vía el normalizador fuzzy: es un error del cliente.
+    const canonicalLevel = rawProvided ? normalizeMethodologyLevel('calistenia', rawNivel) : null;
+    const explicitValidSelected = canonicalLevel != null;
     const confirmedProvisional = assessmentInput.acceptProvisionalLevel === true;
-    if (!explicitSelected && !confirmedProvisional) {
+
+    if (rawProvided && !explicitValidSelected) {
+      const err = new Error('El nivel indicado no es un nivel válido de calistenia.');
+      err.statusCode = 422;
+      err.code = 'CALISTHENICS_LEVEL_INVALID';
+      throw err;
+    }
+    if (!rawProvided && !confirmedProvisional) {
       const err = new Error(
         'Selecciona un nivel o confirma continuar con un nivel provisional antes de generar el entrenamiento.'
       );
@@ -124,9 +139,9 @@ function resolveEffectiveLevel(rawNivel, assessmentInput = {}, userProfile = nul
       throw err;
     }
     return {
-      levelDisplay: explicitSelected ? normalizeLevel(rawNivel) : 'Principiante',
+      levelDisplay: explicitValidSelected ? LEVEL_DISPLAY[canonicalLevel] : 'Principiante',
       assessment,
-      levelSource: explicitSelected ? 'user_selected' : 'provisional_safe_fallback'
+      levelSource: explicitValidSelected ? 'user_selected' : 'provisional_safe_fallback'
     };
   }
 

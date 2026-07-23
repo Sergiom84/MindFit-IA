@@ -62,16 +62,34 @@ test("single-day: rawNivel reconocible ('Intermedio') se acepta como self-report
   assert.ok(workout.exercises.length > 0);
 });
 
-test("single-day: rawNivel NO reconocible por el registry pero explícito -> insufficient_data + user_selected (fallback fuzzy, nunca 422)", async () => {
+test("single-day: rawNivel explícito pero NO reconocible por el registry -> 422 CALISTHENICS_LEVEL_INVALID (nunca 'Principiante' silencioso)", async () => {
   const db = makeSingleDayDbMock(buildCalisteniaExercisePool());
-  const { workout } = await generateCalisteniaSingleDay(db, 900097, "nivel-raro-del-selector-legacy", true, {
+  await assert.rejects(
+    () => generateCalisteniaSingleDay(db, 900097, "nivel-raro-del-selector-legacy", true, {
+      selectionMode: "full_body",
+      profileLoader: async () => { throw new Error("perfil no disponible"); },
+      assessmentInput: {}
+    }),
+    (err) => {
+      assert.equal(err.statusCode, 422);
+      assert.equal(err.code, "CALISTHENICS_LEVEL_INVALID");
+      return true;
+    }
+  );
+});
+
+test("single-day: rawNivel explícito VÁLIDO no reconocido por el assessment (self-report distinto) -> user_selected, nivel canónico", async () => {
+  // El assessment recibe un selfReportedLevel inválido -> insufficient_data, pero rawNivel es un
+  // nivel válido del selector -> se acepta como fallback user_selected (nunca 422).
+  const db = makeSingleDayDbMock(buildCalisteniaExercisePool());
+  const { workout } = await generateCalisteniaSingleDay(db, 900097, "avanzado", true, {
     selectionMode: "full_body",
     profileLoader: async () => { throw new Error("perfil no disponible"); },
-    assessmentInput: {}
+    assessmentInput: { selfReportedLevel: "nivel-invalido" }
   });
   assert.equal(workout.level_source, "user_selected");
   assert.equal(workout.assessment.decision, "insufficient_data");
-  assert.equal(workout.nivel, "Principiante");
+  assert.equal(workout.nivel, "Avanzado");
   assert.ok(workout.exercises.length > 0);
 });
 

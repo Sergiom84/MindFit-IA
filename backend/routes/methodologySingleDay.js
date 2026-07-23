@@ -28,7 +28,8 @@ const router = express.Router();
 // corrección de Sergio: nunca exponer `error.message` crudo aunque el error traiga `statusCode`).
 const PUBLIC_ERROR_MESSAGES = {
   CALISTHENICS_ASSESSMENT_REFER: 'Necesitas una valoración profesional antes de generar el entrenamiento.',
-  CALISTHENICS_LEVEL_REQUIRED: 'Selecciona un nivel o confirma continuar con un nivel provisional antes de generar el entrenamiento.'
+  CALISTHENICS_LEVEL_REQUIRED: 'Selecciona un nivel o confirma continuar con un nivel provisional antes de generar el entrenamiento.',
+  CALISTHENICS_LEVEL_INVALID: 'El nivel indicado no es un nivel válido de calistenia. Selecciona un nivel válido.'
 };
 
 // Normaliza el nombre de metodología recibido del frontend.

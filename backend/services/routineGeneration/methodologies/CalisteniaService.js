@@ -31,6 +31,20 @@ import {
 } from '../../../utils/aiLogger.js';
 
 /**
+ * Normaliza un campo de la respuesta de la IA que el frontend consume como array de strings
+ * (`.map()`/`.join()`). Blinda la tarjeta contra respuestas con shape incorrecto (P1): si la IA
+ * devuelve JSON válido pero un string/objeto/número en vez de array, se degrada a `[]`; si es
+ * array, se conservan solo los elementos string (descartando objetos/números que romperían el
+ * render). Siempre devuelve un array de strings.
+ * @param {*} value
+ * @returns {string[]}
+ */
+export function normalizeStringArray(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item) => typeof item === 'string');
+}
+
+/**
  * Unifica el input de evaluación/generación entre el contrato nuevo (`{ assessmentInput }`) y el
  * legacy plano (`planData.selectedLevel/demonstratedLevel/painStatus/context`), para que
  * evaluación, generación multi-semana y single-day compartan una única fuente de verdad
@@ -124,7 +138,6 @@ export async function evaluateCalisteniaLevel(userId, assessmentInput = {}) {
   let suggested_focus_areas = [];
   let safety_considerations = [];
   let contraindicated_movements = [];
-  let progression_timeline = 'No especificado';
   const config = AI_MODULES.CALISTENIA_SPECIALIST;
 
   try {
@@ -169,8 +182,7 @@ FORMATO DE RESPUESTA:
   "key_indicators": ["Factor 1", "Factor 2"],
   "suggested_focus_areas": ["Área 1", "Área 2"],
   "safety_considerations": ["Advertencia por lesión/limitación 1"],
-  "contraindicated_movements": ["Movimiento a evitar/escalar por lesión"],
-  "progression_timeline": "Tiempo estimado"
+  "contraindicated_movements": ["Movimiento a evitar/escalar por lesión"]
 }`
         },
         {
@@ -188,11 +200,12 @@ FORMATO DE RESPUESTA:
 
     const evaluation = JSON.parse(parseAIResponse(aiResponse));
     reasoning = evaluation.reasoning || null;
-    key_indicators = evaluation.key_indicators || [];
-    suggested_focus_areas = evaluation.suggested_focus_areas || [];
-    safety_considerations = evaluation.safety_considerations || [];
-    contraindicated_movements = evaluation.contraindicated_movements || [];
-    progression_timeline = evaluation.progression_timeline || 'No especificado';
+    // La IA no es fiable: normalizamos cada campo-array antes de que salga del servicio para que
+    // el frontend (que hace .map()/.join()) nunca reciba un string/objeto y crashee (P1).
+    key_indicators = normalizeStringArray(evaluation.key_indicators);
+    suggested_focus_areas = normalizeStringArray(evaluation.suggested_focus_areas);
+    safety_considerations = normalizeStringArray(evaluation.safety_considerations);
+    contraindicated_movements = normalizeStringArray(evaluation.contraindicated_movements);
   } catch (aiError) {
     // La IA solo explica; si falla, se devuelve el assessment cerrado sin prosa (nunca 500).
     logger.warn(`⚠️ [CALISTENIA] IA no disponible para explicar el nivel, se devuelve sin prosa: ${aiError.message}`);
@@ -211,8 +224,7 @@ FORMATO DE RESPUESTA:
       key_indicators,
       suggested_focus_areas,
       safety_considerations,
-      contraindicated_movements,
-      progression_timeline
+      contraindicated_movements
     },
     metadata: {
       model_used: config.model,
