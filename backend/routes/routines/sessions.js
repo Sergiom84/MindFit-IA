@@ -128,27 +128,7 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
       }
     }
 
-    // Verificar si ya existe una sesión activa para este día
-    const existingActiveSession = await client.query(
-      `SELECT id, session_status FROM app.methodology_exercise_sessions
-       WHERE user_id = $1 AND methodology_plan_id = $2
-       AND week_number = $3 AND day_name = $4
-       AND session_status = 'in_progress'
-       LIMIT 1`,
-      [userId, methodology_plan_id, week_number || 1, normalizeDayAbbrev(day_name || 'lunes')]
-    );
-
-    if (existingActiveSession.rowCount > 0) {
-      console.log(`⚠️ Sesión ya activa para el usuario ${userId}, plan ${methodology_plan_id}, semana ${week_number}, día ${day_name}`);
-      await client.query('ROLLBACK');
-      return res.status(400).json({
-        success: false,
-        error: 'Ya existe una sesión activa para este día',
-        session_id: existingActiveSession.rows[0].id
-      });
-    }
-
-    // Verificar plan y obtener plan_data
+    // Verificar plan y obtener plan_data antes del lock/idempotencia de CrossFit.
     const planQ = await client.query(
       'SELECT plan_data, methodology_type FROM app.methodology_plans WHERE id = $1 AND user_id = $2',
       [methodology_plan_id, userId]
@@ -158,11 +138,50 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Plan no encontrado' });
     }
     const planData = planQ.rows[0].plan_data;
+    const crossfitV2 = isCrossfitV2PlanData(planData);
+    const normalizedDay = normalizeDayAbbrev(day_name || 'lunes');
+
+    if (crossfitV2) {
+      await client.query(
+        'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+        [`crossfit-session-start:${userId}:${methodology_plan_id}:${day_id ?? `${week_number}:${normalizedDay}`}`]
+      );
+    }
+
+    // Tras el lock, un reintento CrossFit devuelve la misma sesión en vez de crear otra.
+    const existingActiveSession = await client.query(
+      `SELECT id, session_status FROM app.methodology_exercise_sessions
+       WHERE user_id = $1 AND methodology_plan_id = $2
+         AND (
+           ($3::int IS NOT NULL AND day_id = $3)
+           OR ($3::int IS NULL AND week_number = $4 AND day_name = $5)
+         )
+         AND session_status = 'in_progress'
+       ORDER BY id DESC
+       LIMIT 1`,
+      [userId, methodology_plan_id, day_id, week_number || 1, normalizedDay]
+    );
+
+    if (existingActiveSession.rowCount > 0) {
+      console.log(`⚠️ Sesión ya activa para el usuario ${userId}, plan ${methodology_plan_id}, semana ${week_number}, día ${day_name}`);
+      await client.query('ROLLBACK');
+      if (crossfitV2) {
+        return res.json({
+          success: true,
+          session_id: existingActiveSession.rows[0].id,
+          session_status: 'in_progress',
+          idempotent_replay: true
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        error: 'Ya existe una sesión activa para este día',
+        session_id: existingActiveSession.rows[0].id
+      });
+    }
 
     // Asegurar sesiones creadas
     await ensureMethodologySessions(client, userId, methodology_plan_id, planData);
-
-    const normalizedDay = normalizeDayAbbrev(day_name);
 
     // Buscar la sesión específica
     let ses = await client.query(
@@ -201,7 +220,13 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
     }
 
     const session = ses.rows[0];
-    const crossfitV2 = isCrossfitV2PlanData(planData);
+    if (crossfitV2 && ['completed', 'partial', 'cancelled', 'skipped', 'missed'].includes(session.session_status)) {
+      const error = new Error('Una sesión CrossFit histórica no puede reabrirse');
+      error.code = 'HISTORY_IMMUTABLE';
+      error.reasonCode = 'HISTORY_IMMUTABLE';
+      error.status = 409;
+      throw error;
+    }
 
     try {
       await hydrateSessionPlanMetadata(client, {

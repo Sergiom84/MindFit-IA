@@ -181,7 +181,7 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
       error: status < 500 ? error.message : 'Error al generar entrenamiento',
       reason_code: error?.reasonCode || null,
       reason_codes: error?.reasonCodes || [],
-      details: error.message
+      details: status < 500 ? error.message : undefined
     });
   } finally {
     dbClient.release();
@@ -221,7 +221,7 @@ router.post('/calistenia/session-result', authenticateToken, async (req, res) =>
     res.status(500).json({
       success: false,
       error: 'Error registrando el resultado de la sesión',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -259,7 +259,7 @@ router.post('/funcional/session-result', authenticateToken, async (req, res) => 
     res.status(500).json({
       success: false,
       error: 'Error registrando el resultado de la sesión',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -298,7 +298,7 @@ router.post('/casa/session-result', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Error registrando el resultado de la sesión',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -336,7 +336,7 @@ router.post('/crossfit/wod-result', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Error registrando el resultado del WOD',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -375,7 +375,7 @@ router.post('/halterofilia/session-result', authenticateToken, async (req, res) 
     res.status(500).json({
       success: false,
       error: 'Error registrando el resultado de la sesión',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -414,7 +414,7 @@ router.post('/powerlifting/session-result', authenticateToken, async (req, res) 
     res.status(500).json({
       success: false,
       error: 'Error registrando el resultado de la sesión',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -453,7 +453,7 @@ router.post('/heavy-duty/session-result', authenticateToken, async (req, res) =>
     res.status(500).json({
       success: false,
       error: 'Error registrando el resultado de la sesión',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });

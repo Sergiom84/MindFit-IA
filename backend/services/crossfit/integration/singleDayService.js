@@ -99,6 +99,9 @@ export async function generateCrossfitSingleDayV2({
     equipment,
     ruleset_version: CROSSFIT_VERSIONS.ruleset
   };
+  const requestHash = crossfitHash(generationKey);
+  const purpose = options.isWeekendExtra === false ? 'single_day' : 'weekend_extra';
+  const persistenceIdempotencyKey = stableCrossfitId('cfsd', [userId, date, purpose]);
   const generated = generateCrossfitPlanV2({
     request_id: stableCrossfitId('req', generationKey),
     idempotency_key: stableCrossfitId('idem', generationKey),
@@ -138,6 +141,8 @@ export async function generateCrossfitSingleDayV2({
     nivel: presentedPlan.nivel,
     crossfit_v2_session: standalone,
     generated_from_plan_id: generated.plan.plan_id,
+    generation_request_hash: requestHash,
+    idempotency_key: persistenceIdempotencyKey,
     decision_trace: generated.plan.decision_trace
   };
   const persistenceResult = await persistence(db, {
@@ -161,6 +166,8 @@ export async function generateCrossfitSingleDayV2({
     planData: singleDayPlan,
     dayId: 1,
     planDayMetadata: buildPlanDayMetadata(session),
+    idempotencyKey: persistenceIdempotencyKey,
+    requestHash,
     versionType: 'crossfit-session/v2',
     startedAt: null,
     currentDate: now

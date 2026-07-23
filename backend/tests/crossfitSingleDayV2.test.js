@@ -43,6 +43,8 @@ test('single-day v2 usa composer validado y persiste day_id, load y sesión can�
   assert.equal(persisted.extraSessionMetadata.crossfit_v2_session.schema_version, 'crossfit-session/v2');
   assert.equal(persisted.extraSessionMetadata.planned_session_load.contract_version, 'training-load/v1');
   assert.equal(persisted.planData.schema_version, 'crossfit-single-day/v2');
+  assert.match(persisted.idempotencyKey, /^cfsd_/);
+  assert.equal(persisted.requestHash, persisted.planData.generation_request_hash);
 });
 
 test('single-day v2 bloquea red flags antes de catálogo o persistencia', async () => {
@@ -106,4 +108,43 @@ test('persistidor single-day conserva defaults legacy y permite extensión canó
   assert.equal(sessionInsert.params[7], date);
   assert.equal(sessionInsert.params[11], null);
   assert.equal(calls.some((call) => /INSERT INTO app\.methodology_plan_days/.test(call.sql)), true);
+});
+
+test('single-day serializa reintentos y rechaza una colisión material', async () => {
+  const calls = [];
+  const client = {
+    async query(sql, params = []) {
+      calls.push({ sql, params });
+      if (/pg_advisory_xact_lock/.test(sql)) return { rowCount: 1, rows: [{}] };
+      if (/SELECT s\.id AS session_id/.test(sql)) {
+        return {
+          rowCount: 1,
+          rows: [{
+            session_id: 44,
+            plan_id: 33,
+            plan_data: { generation_request_hash: 'stored-hash' }
+          }]
+        };
+      }
+      throw new Error('No debe escribir tras detectar la colisión');
+    }
+  };
+
+  await assert.rejects(
+    persistSingleDaySession(client, {
+      userId: 7,
+      nivel: 'Principiante',
+      nivelNormalized: 'basico',
+      methodologyType: 'crossfit',
+      exercises: [{ nombre: 'Air Squat', orden: 1, series: 1 }],
+      sessionLabel: 'WOD',
+      planLabel: 'WOD hoy',
+      currentDate: now,
+      idempotencyKey: 'slot-2026-07-25',
+      requestHash: 'different-hash'
+    }),
+    (error) => error.code === 'IDEMPOTENCY_BROKEN' && error.status === 409
+  );
+  assert.match(calls[0].sql, /pg_advisory_xact_lock/);
+  assert.equal(calls.length, 2);
 });

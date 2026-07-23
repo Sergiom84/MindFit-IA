@@ -304,12 +304,19 @@ export async function generateCrossfitProductPlan({
 
   const level = classification.global_level;
   const rules = getCrossfitProgramRules(level);
-  const requestedFrequency = Number(
-    planData.frecuencia_semanal ?? regeneration?.frequency ?? profile.frecuencia_semanal
-  );
-  const frequency = rules.frequencies.includes(requestedFrequency)
-    ? requestedFrequency
-    : rules.recommended_frequency;
+  const frequencyInput = planData.frecuencia_semanal ?? regeneration?.frequency ?? profile.frecuencia_semanal;
+  const requestedFrequency = frequencyInput == null || frequencyInput === ""
+    ? rules.recommended_frequency
+    : Number(frequencyInput);
+  if (!Number.isInteger(requestedFrequency) || !rules.frequencies.includes(requestedFrequency)) {
+    throw serviceError(
+      "FREQUENCY_UNSUPPORTED",
+      `La frecuencia ${frequencyInput} no es compatible con el nivel ${level}`,
+      422,
+      { level, supported_frequencies: [...rules.frequencies] }
+    );
+  }
+  const frequency = requestedFrequency;
   const startDate = regeneration?.start_date ?? resolveCrossfitStartDate(planData, now);
   const revision = regeneration?.next_revision ?? (Number.isInteger(planData.revision) ? planData.revision : 0);
   const assessmentId = planData.crossfitAssessmentId ?? planData.crossfit_assessment_id ?? null;

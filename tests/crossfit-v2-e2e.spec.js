@@ -302,10 +302,6 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
     test(`API completa ${levelCase.level}: generar → calendario → cerrar → autorregular`, async ({
       request,
     }, testInfo) => {
-      test.skip(
-        testInfo.project.name !== "crossfit-v2-desktop",
-        "La matriz API se ejecuta una sola vez",
-      );
       expect(PROFILE_COUNT).toBe(32);
       const provisioned = await provisionPlan(
         request,
@@ -538,10 +534,6 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
   test("API cierre parcial: feedback transaccional, replay y colision", async ({
     request,
   }, testInfo) => {
-    test.skip(
-      testInfo.project.name !== "crossfit-v2-desktop",
-      "El cierre transaccional se ejecuta una sola vez",
-    );
     const provisioned = await provisionPlan(
       request,
       testInfo.project.name,

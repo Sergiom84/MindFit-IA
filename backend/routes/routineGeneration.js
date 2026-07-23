@@ -36,6 +36,16 @@ import { generateAndPersistD1D5Plan } from '../services/hipertrofia/d1d5Orchestr
 
 const router = express.Router();
 
+function sendRoutineGenerationError(res, error, fallbackMessage) {
+  const status = Number(error?.status) || 500;
+  return res.status(status).json({
+    success: false,
+    error: status >= 500 ? fallbackMessage : error.message,
+    code: error?.code ?? null,
+    details: status < 500 ? error?.details : undefined
+  });
+}
+
 router.get('/specialist/crossfit/capabilities', authenticateToken, (req, res) => {
   res.json(CrossFitService.getCrossFitV2Capabilities());
 });
@@ -62,12 +72,7 @@ router.post('/specialist/:methodology/evaluate', authenticateToken, async (req, 
 
   } catch (error) {
     logger.error(`❌ Error en evaluación ${methodology}:`, error.message);
-    res.status(error.status || 500).json({
-      success: false,
-      error: error.message,
-      code: error.code,
-      details: error.details
-    });
+    return sendRoutineGenerationError(res, error, 'No se pudo evaluar la metodología');
   }
 });
 
@@ -98,12 +103,7 @@ router.post('/specialist/:methodology/generate', authenticateToken, async (req, 
 
   } catch (error) {
     logger.error(`❌ Error generando plan ${methodology}:`, error.message);
-    res.status(error.status || 500).json({
-      success: false,
-      error: error.message,
-      code: error.code,
-      details: error.details
-    });
+    return sendRoutineGenerationError(res, error, 'No se pudo generar el plan');
   }
 });
 
@@ -171,10 +171,7 @@ router.post('/ai/methodology', authenticateToken, async (req, res) => {
 
   } catch (error) {
     logger.error(`❌ Error en generación IA:`, error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return sendRoutineGenerationError(res, error, 'No se pudo generar el plan');
   }
 });
 
@@ -229,10 +226,7 @@ router.post('/manual/methodology', authenticateToken, async (req, res) => {
 
   } catch (error) {
     logger.error(`❌ Error en creación manual:`, error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return sendRoutineGenerationError(res, error, 'No se pudo generar el plan');
   }
 });
 
@@ -351,7 +345,7 @@ router.delete('/draft/:planId', authenticateToken, async (req, res) => {
   try {
     logger.info(`🗑️ Eliminando draft ${planId} para usuario ${userId}`);
 
-    const deleted = await updatePlanStatus(planId, 'cancelled');
+    const deleted = await updatePlanStatus(planId, 'cancelled', userId);
 
     if (deleted) {
       res.json({

@@ -162,6 +162,26 @@ test('sin evaluación dimensional clasifica principiante provisional aunque se s
   assert.equal(result.planId, 73);
 });
 
+test('la frecuencia incompatible no se sustituye silenciosamente', async () => {
+  const db = fakeDb();
+  await assert.rejects(
+    generateCrossfitProductPlan({
+      userId: 'usr_frequency',
+      planData: { frecuencia_semanal: 5, start_date: '2026-07-27' },
+      db,
+      profileLoader: async () => ({ frecuencia_semanal: 5 }),
+      catalogLoader: async () => catalog,
+      equipmentLoader: async () => equipment,
+      now
+    }),
+    (error) => error.code === 'FREQUENCY_UNSUPPORTED'
+      && error.status === 422
+      && error.details.level === 'beginner'
+      && error.details.supported_frequencies.join(',') === '2,3'
+  );
+  assert.equal(db.calls.some((call) => /INSERT INTO/.test(call.sql)), false);
+});
+
 test('evidencia objetiva completa permite avanzado y persiste un contrato válido', async () => {
   const db = fakeDb();
   const result = await generateCrossfitProductPlan({

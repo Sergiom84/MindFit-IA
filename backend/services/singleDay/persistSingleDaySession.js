@@ -30,6 +30,8 @@ import { DAY_NAMES, MONTH_NAMES } from '../hipertrofia/constants.js';
  * @param {object|null} [params.planData=null] - Snapshot opcional del plan single-day.
  * @param {number|null} [params.dayId=null] - Enlace canónico opcional del día.
  * @param {object|null} [params.planDayMetadata=null] - Metadata para methodology_plan_days.
+ * @param {string|null} [params.idempotencyKey=null] - Identidad estable del single-day.
+ * @param {string|null} [params.requestHash=null] - Hash material para detectar colisiones.
  * @param {Date}   [params.currentDate=new Date()]
  * @returns {Promise<{sessionId:number, planId:number}>}
  */
@@ -48,16 +50,26 @@ export async function persistSingleDaySession(dbClient, {
   planData = null,
   dayId = null,
   planDayMetadata = null,
+  idempotencyKey = null,
+  requestHash = null,
   versionType = 'weekend-extra',
   currentDate = new Date(),
   startedAt = currentDate
 }) {
+  if (idempotencyKey) {
+    await dbClient.query(
+      'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+      [`single-day:${userId}:${idempotencyKey}`]
+    );
+  }
+
   // Dedupe: si ya hay una sesión single-day sin terminar para este usuario, fecha y
   // metodología, reutilizarla en lugar de crear plan+sesión nuevos. (Cada re-clic en
   // "aceptar entrenamiento de hoy" creaba un plan 'completed' y una sesión duplicados.)
   const existing = await dbClient.query(`
-    SELECT s.id AS session_id, s.methodology_plan_id AS plan_id
+    SELECT s.id AS session_id, s.methodology_plan_id AS plan_id, p.plan_data
     FROM app.methodology_exercise_sessions s
+    JOIN app.methodology_plans p ON p.id = s.methodology_plan_id AND p.user_id = s.user_id
     WHERE s.user_id = $1
       AND s.methodology_type = $2
       AND s.session_type = 'weekend-extra'
@@ -68,6 +80,14 @@ export async function persistSingleDaySession(dbClient, {
   `, [userId, methodologyType, currentDate]);
 
   if (existing.rows.length > 0) {
+    const storedHash = existing.rows[0].plan_data?.generation_request_hash ?? null;
+    if (idempotencyKey && storedHash && requestHash && storedHash !== requestHash) {
+      const error = new Error('Ya existe un single-day pendiente para esta fecha con otra configuración');
+      error.code = 'IDEMPOTENCY_BROKEN';
+      error.reasonCode = 'IDEMPOTENCY_BROKEN';
+      error.status = 409;
+      throw error;
+    }
     return {
       sessionId: existing.rows[0].session_id,
       planId: existing.rows[0].plan_id,

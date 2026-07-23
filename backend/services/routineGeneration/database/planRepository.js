@@ -84,16 +84,19 @@ export async function getActivePlan(userId) {
  * Actualizar estado de un plan
  * @param {string} planId - ID del plan
  * @param {string} newStatus - Nuevo estado
+ * @param {string} userId - Propietario del plan
+ * @param {object} [runner=pool] - Pool/cliente inyectable
  * @returns {Promise<boolean>} True si se actualizó
  */
-export async function updatePlanStatus(planId, newStatus) {
+export async function updatePlanStatus(planId, newStatus, userId, runner = pool) {
+  if (!userId) throw new TypeError('updatePlanStatus requiere userId');
   try {
-    const result = await pool.query(`
+    const result = await runner.query(`
       UPDATE app.methodology_plans
       SET status = $1, updated_at = NOW()
-      WHERE id = $2
+      WHERE id = $2 AND user_id = $3
       RETURNING id
-    `, [newStatus, planId]);
+    `, [newStatus, planId, userId]);
 
     if (result.rowCount > 0) {
       logger.info(`✅ Plan ${planId} actualizado a estado: ${newStatus}`);
