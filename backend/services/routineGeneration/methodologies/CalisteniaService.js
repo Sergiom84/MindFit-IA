@@ -16,6 +16,7 @@ import {
   getProfileTrainingGoal,
   resolveTrainingFrequency
 } from '../../userProfileContract.js';
+import { normalizeMethodologyLevel } from './methodologyRegistry.js';
 import {
   logSeparator,
   logAPICall,
@@ -135,10 +136,15 @@ FORMATO DE RESPUESTA:
       throw new Error('Respuesta de IA inválida');
     }
 
-    // Validar respuesta
-    const normalizedLevel = evaluation.recommended_level.toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
+    // Validar el nivel recomendado por la IA contra el registry can\u00f3nico (PR-CAL-01): la IA
+    // EXPLICA/sugiere, NO impone un nivel arbitrario. Valor inv\u00e1lido/ausente \u2192 error controlado
+    // (lo captura el catch inferior). Tambi\u00e9n evita el crash si `recommended_level` no es string.
+    const normalizedLevel = normalizeMethodologyLevel('calistenia', evaluation.recommended_level);
+    if (normalizedLevel === null) {
+      throw new Error(
+        `Nivel recomendado por la IA no reconocido para calistenia: '${evaluation.recommended_level}'`
+      );
+    }
 
     return {
       success: true,
@@ -217,17 +223,31 @@ const SESSION_TEMPLATES = {
 };
 
 /**
- * Normaliza el nivel recibido del frontend a las claves de getCalisteniaLevels().
- * El frontend puede enviar 'basico' (default), 'principiante', 'intermedio', 'avanzado'.
+ * Resuelve la clave de nivel de calistenia (PR-CAL-01, defecto G1/G2). Fuente ÚNICA: el
+ * normalizador canónico del registry. Sustituye al fuzzy legacy que hacía pasar cualquier
+ * valor por 'principiante' (default silencioso).
+ *
+ * Precedencia: `selectedLevel` (frontend) → `aiLevel` (evaluación IA) → `profileLevel`.
+ *  - nivel AUSENTE (ninguno de los tres) → 'principiante' (default seguro, el más conservador);
+ *  - nivel PROVISTO pero no reconocido por el registry (incl. 'elite', que es de crossfit) →
+ *    error 422 tipado (`code: CALISTHENICS_LEVEL_UNRECOGNIZED`), NUNCA principiante silencioso.
+ *
+ * Función pura (sin BD): testeable directamente.
+ * @param {{selectedLevel?:*, aiLevel?:*, profileLevel?:*}} sources
+ * @returns {'principiante'|'intermedio'|'avanzado'}
  */
-function normalizeCalisteniaLevel(rawLevel) {
-  const lvl = String(rawLevel || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '');
-  if (lvl.includes('avanz')) return 'avanzado';
-  if (lvl.includes('inter')) return 'intermedio';
-  return 'principiante';
+export function resolveCalisteniaLevelKey({ selectedLevel = null, aiLevel = null, profileLevel = null } = {}) {
+  const rawLevel = [selectedLevel, aiLevel, profileLevel]
+    .find((v) => v != null && String(v).trim() !== '');
+  if (rawLevel == null) return 'principiante';
+  const level = normalizeMethodologyLevel('calistenia', rawLevel);
+  if (level === null) {
+    const err = new Error(`Nivel de calistenia no reconocido: '${rawLevel}'`);
+    err.statusCode = 422;
+    err.code = 'CALISTHENICS_LEVEL_UNRECOGNIZED';
+    throw err;
+  }
+  return level;
 }
 
 /**
@@ -424,13 +444,13 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
     logger.warn(`⚠️ [CALISTENIA] No se pudo leer el perfil completo: ${profileError.message}`);
   }
 
-  // 1) Nivel: prioriza selectedLevel; fallback a la evaluación IA y al perfil.
-  const rawLevel =
-    planData.selectedLevel ||
-    planData.aiEvaluation?.recommended_level ||
-    userProfile?.nivel_entrenamiento ||
-    'principiante';
-  const levelKey = normalizeCalisteniaLevel(rawLevel);
+  // 1) Nivel: prioriza selectedLevel → evaluación IA → perfil. Nivel provisto no reconocido
+  //    → 422 (no principiante silencioso); ausente → default seguro 'principiante' (PR-CAL-01).
+  const levelKey = resolveCalisteniaLevelKey({
+    selectedLevel: planData.selectedLevel,
+    aiLevel: planData.aiEvaluation?.recommended_level,
+    profileLevel: userProfile?.nivel_entrenamiento
+  });
 
   const levels = getCalisteniaLevels();
   const levelConfig = levels[levelKey] || levels.principiante;

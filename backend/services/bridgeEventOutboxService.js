@@ -15,7 +15,10 @@
  *  - Recuperación de locks caducados: un worker muerto no deja eventos bloqueados para siempre.
  */
 
-import { normalizeMethodologyId } from './routineGeneration/methodologies/methodologyRegistry.js';
+import {
+  normalizeMethodologyId,
+  normalizeMethodologyLevel as registryNormalizeLevel
+} from './routineGeneration/methodologies/methodologyRegistry.js';
 
 export const OUTBOX_EVENT_TYPE_SESSION_COMPLETED = 'training.session_completed';
 export const SESSION_COMPLETED_CONTRACT_VERSION = 'training-session-event/v1';
@@ -73,11 +76,23 @@ export function normalizeMethodologyLevel(value) {
 /**
  * Resuelve el nivel de la sesión en orden (COR-F0-02 §5): carga planificada válida →
  * `session.methodology_level` → metadata legacy normalizada → null (solo si de verdad no hay).
+ *
+ * Si se pasa `methodologyId`, el nivel se valida PER-METODOLOGÍA con el normalizador canónico del
+ * registry (PR-CAL-01): un candidato que no exista en `descriptor.levels` de esa metodología se
+ * descarta (p.ej. `elite` en una sesión de calistenia) y se prueba el siguiente. Sin `methodologyId`
+ * se conserva el comportamiento agnóstico histórico (niveles globales) por retrocompatibilidad.
  * @returns {string|null}
  */
-export function resolveMethodologyLevel({ plannedLevel = null, sessionLevel = null, metadataLevel = null } = {}) {
+export function resolveMethodologyLevel({
+  plannedLevel = null,
+  sessionLevel = null,
+  metadataLevel = null,
+  methodologyId = null
+} = {}) {
   for (const candidate of [plannedLevel, sessionLevel, metadataLevel]) {
-    const norm = normalizeMethodologyLevel(candidate);
+    const norm = methodologyId
+      ? registryNormalizeLevel(methodologyId, candidate)
+      : normalizeMethodologyLevel(candidate);
     if (norm) return norm;
   }
   return null;

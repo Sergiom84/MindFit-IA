@@ -73,7 +73,8 @@ async function safeEnqueueSessionCompleted(client, params) {
     const methodologyLevel = resolveMethodologyLevel({
       plannedLevel: plannedLoad?.methodology_level,
       sessionLevel: session?.methodology_level,
-      metadataLevel: meta.methodology_level
+      metadataLevel: meta.methodology_level,
+      methodologyId
     });
 
     // COR-F0-02 §2/§4: duración real de fuente inequívoca (valor actualizado por el UPDATE, o

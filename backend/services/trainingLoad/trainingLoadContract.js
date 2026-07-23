@@ -14,33 +14,15 @@
 import {
   isKnownMethodology,
   normalizeMethodologyId,
-  getMethodologyDescriptor
+  getMethodologyDescriptor,
+  normalizeMethodologyLevel
 } from '../routineGeneration/methodologies/methodologyRegistry.js';
 
 export const TRAINING_LOAD_CONTRACT_VERSION = 'training-load/v1';
 
-/**
- * Alias de nivel legacy DOCUMENTADO (COR-F0-03, acción 3 / aceptación `básico`).
- * `básico`/`basico` es la variante castellana histórica de `principiante`: se acepta como
- * alias explícito (no se cuela como valor arbitrario). Cualquier otro valor debe existir en
- * `descriptor.levels`; si no, falla en strict o se degrada con reason code en lenient.
- */
-const LEVEL_ALIASES = { basico: 'principiante' };
+// La normalización/validación de nivel (incl. alias legacy `básico`→`principiante`) vive ahora
+// en el registry canónico (`normalizeMethodologyLevel`), fuente única compartida (PR-CAL-01).
 
-/** Normaliza un nivel: sin acentos, minúsculas, sin espacios sobrantes. */
-function normalizeLevel(value) {
-  return String(value ?? '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .trim();
-}
-
-/** Nivel canónico aplicando los alias legacy documentados. */
-function canonicalLevel(value) {
-  const n = normalizeLevel(value);
-  return LEVEL_ALIASES[n] || n;
-}
 const DAY_TYPES = ['D0', 'D1', 'D2'];
 const LOAD_TIERS = ['rest', 'low', 'moderate', 'high', 'very_high'];
 const STATUSES = ['planned', 'completed'];
@@ -103,8 +85,8 @@ export function validateTrainingLoad(input, { mode = 'strict' } = {}) {
   } else {
     const descriptor = getMethodologyDescriptor(i.methodology_id);
     if (descriptor) {
-      const level = canonicalLevel(i.methodology_level);
-      if (!descriptor.levels.includes(level)) {
+      const level = normalizeMethodologyLevel(descriptor.id, i.methodology_level);
+      if (level === null) {
         errors.push(
           `methodology_level '${i.methodology_level}' no soportado por '${descriptor.id}' `
           + `(permitidos: ${descriptor.levels.join(', ')})`

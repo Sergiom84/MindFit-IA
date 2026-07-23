@@ -64,6 +64,23 @@ test('nivel: se resuelve en orden planned → session → metadata → null', ()
   assert.equal(resolveMethodologyLevel({}), null);
 });
 
+// PR-CAL-01: al pasar methodologyId, el nivel se valida per-metodología con el registry canónico.
+test('nivel: con methodologyId valida per-metodología (elite solo en crossfit)', () => {
+  // crossfit sí declara 'elite'.
+  assert.equal(resolveMethodologyLevel({ plannedLevel: 'elite', methodologyId: 'crossfit' }), 'elite');
+  // 'elite' NO es nivel de calistenia → se descarta y cae al siguiente candidato válido.
+  assert.equal(resolveMethodologyLevel({
+    plannedLevel: 'elite', sessionLevel: 'avanzado', methodologyId: 'calistenia'
+  }), 'avanzado');
+  // Sin candidato válido para esa metodología → null (no se cuela un nivel de otra).
+  assert.equal(resolveMethodologyLevel({ plannedLevel: 'elite', methodologyId: 'calistenia' }), null);
+});
+
+test('nivel: sin methodologyId conserva el comportamiento agnóstico (retrocompat)', () => {
+  assert.equal(resolveMethodologyLevel({ plannedLevel: 'elite' }), 'elite');
+  assert.equal(resolveMethodologyLevel({ plannedLevel: 'basico' }), 'principiante');
+});
+
 // ── COR-F0-02 §2/§4: duración real, el 0 inicial no es medición ────────────────────
 test('duración: sesión iniciada hace 91 min → ~91 min (started/completed, no el 0 inicial)', () => {
   const now = Date.now();

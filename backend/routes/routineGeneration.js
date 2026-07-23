@@ -86,10 +86,14 @@ router.post('/specialist/:methodology/generate', authenticateToken, async (req, 
     res.json(result);
 
   } catch (error) {
-    logger.error(`❌ Error generando plan ${methodology}:`, error.message);
-    res.status(500).json({
+    // PR-CAL-01: errores de dominio tipados (p.ej. nivel no reconocido) responden su propio
+    // statusCode (422) en vez de un 500 genérico; el resto se mantiene en 500.
+    const status = Number.isInteger(error?.statusCode) ? error.statusCode : 500;
+    logger.error(`❌ Error generando plan ${methodology} (${status}):`, error.message);
+    res.status(status).json({
       success: false,
-      error: error.message
+      error: error.message,
+      ...(error?.code ? { code: error.code } : {})
     });
   }
 });
