@@ -36,7 +36,7 @@ const LevelReevaluationModal = ({
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/hipertrofiav2/check-reevaluation/${userId}`, {
+      const response = await fetch(`/api/hipertrofia/check-reevaluation/${userId}`, {
         headers: {
           'Authorization': `Bearer ${tokenManager.getToken()}`
         }
@@ -95,7 +95,7 @@ const LevelReevaluationModal = ({
 
     setProcessing(true);
     try {
-      const response = await fetch('/api/hipertrofiav2/accept-reevaluation', {
+      const response = await fetch('/api/hipertrofia/accept-reevaluation', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -148,7 +148,7 @@ const LevelReevaluationModal = ({
   const isUpgrade = evalData.suggested_level &&
     ['Intermedio', 'Avanzado'].includes(evalData.suggested_level) &&
     evalData.current_level === 'Principiante';
-  
+
   const isDowngrade = evalData.suggested_level &&
     evalData.suggested_level === 'Principiante' &&
     evalData.current_level !== 'Principiante';
@@ -206,7 +206,7 @@ const LevelReevaluationModal = ({
                 <p className="font-semibold text-lg">{evalData.suggested_level}</p>
               </div>
             </div>
-            
+
             {/* Confidence */}
             <div className="flex items-center justify-center space-x-2">
               <span className="text-sm text-gray-500">Confianza:</span>
@@ -251,7 +251,7 @@ const LevelReevaluationModal = ({
                   {metrics?.microcycles_completed || 0}
                 </p>
               </div>
-              
+
               {/* RIR promedio */}
               <div className="bg-gray-50 rounded-lg p-3">
                 <p className="text-xs text-gray-500">RIR promedio</p>
@@ -259,7 +259,7 @@ const LevelReevaluationModal = ({
                   {metrics?.avg_rir ? metrics.avg_rir.toFixed(1) : 'N/A'}
                 </p>
               </div>
-              
+
               {/* Adherencia */}
               <div className="bg-gray-50 rounded-lg p-3">
                 <p className="text-xs text-gray-500">Adherencia</p>
@@ -267,7 +267,7 @@ const LevelReevaluationModal = ({
                   {metrics?.adherence ? `${Math.round(metrics.adherence)}%` : 'N/A'}
                 </p>
               </div>
-              
+
               {/* Fatiga */}
               <div className="bg-gray-50 rounded-lg p-3">
                 <p className="text-xs text-gray-500">Flags fatiga</p>
@@ -372,7 +372,7 @@ const LevelReevaluationModal = ({
               {processing ? 'Procesando...' : `Cambiar a ${evalData.suggested_level}`}
             </button>
           </div>
-          
+
           {/* Nota adicional */}
           <p className="text-xs text-gray-500 text-center mt-4">
             Esta sugerencia se basa en tu rendimiento de las últimas semanas.

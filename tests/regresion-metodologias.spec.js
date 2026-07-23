@@ -134,6 +134,39 @@ async function deletePlan(id) {
 
 const DAY_FULL = { Lun: 'Lunes', Mar: 'Martes', Mie: 'Miercoles', 'Mié': 'Miercoles', Jue: 'Jueves', Vie: 'Viernes', Sab: 'Sabado', 'Sáb': 'Sabado', Dom: 'Domingo' };
 
+test('hipertrofia manual: el proxy acepta canónico y aliases sin caer al generador genérico', async () => {
+  test.setTimeout(180_000);
+  const token = await ensureUser('sano');
+  const createdPlans = [];
+  try {
+    for (const methodology of ['hipertrofia', 'hipertrofiav2', 'HipertrofiaV2_MindFeed']) {
+      const gen = await api('POST', '/api/methodology/generate', token, {
+        mode: 'manual',
+        methodology,
+        selectedLevel: 'principiante',
+        nivel: 'principiante',
+        goals: '',
+        selectedMuscleGroups: [],
+        source: 'manual_selection',
+        version: '5.0',
+      });
+
+      const planId = gen.j.methodology_plan_id || gen.j.planId || gen.j.plan?.methodology_plan_id;
+      expect(gen.status, `${methodology} responde 200`).toBe(200);
+      expect(gen.j.success, `${methodology} success`).toBeTruthy();
+      expect(gen.j.message, `${methodology} usa el motor dedicado`).toBe('Plan MindFeed D1-D5 generado exitosamente');
+      expect(gen.j.system_info?.ciclo, `${methodology} ciclo dedicado`).toBe('D1-D5');
+      expect(gen.j.system_info?.motor, `${methodology} motor MindFeed`).toContain('MindFeed');
+      expect(planId, `${methodology} plan persistido`).toBeTruthy();
+      createdPlans.push(planId);
+    }
+  } finally {
+    for (const planId of createdPlans) {
+      await deletePlan(planId);
+    }
+  }
+});
+
 // Tests independientes ejecutados en serie por `workers: 1` (no 'serial' mode:
 // así un combo que falle no aborta el resto y el informe cubre toda la matriz).
 test.afterAll(async () => { await pool.end().catch(() => {}); });

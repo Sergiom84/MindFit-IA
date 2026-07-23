@@ -4,6 +4,7 @@ import { useTrace } from '@/contexts/TraceContext.jsx';
 import FatigueReportModal from '../../Methodologie/methodologies/Hipertrofia/components/FatigueReportModal';
 import WeeklyReviewModal from '../../Methodologie/methodologies/Hipertrofia/components/WeeklyReviewModal';
 import { extractSessionPatterns } from '@/utils/exerciseUtils.js';
+import { isHipertrofiaMethodology } from '@/utils/hipertrofiaIdentity';
 import tokenManager from '../../../utils/tokenManager';
 import { getApiBaseUrl } from '../../../config/api';
 
@@ -70,7 +71,7 @@ export const SessionSummaryModal = ({
         console.log('✅ onEndSession completado, estado actualizado');
       }
 
-      const isMindfeedSession = session?.metodologia === 'HipertrofiaV2_MindFeed' || session?.metodologia === 'HipertrofiaV2';
+      const isMindfeedSession = isHipertrofiaMethodology(session?.metodologia);
 
       // 🎯 PASO 1.25: Detectar fatiga automáticamente (si aplica)
       if (isMindfeedSession && sessionId) {
@@ -78,7 +79,7 @@ export const SessionSummaryModal = ({
           console.log('🤖 [FATIGUE] Detectando fatiga automática para sesión', sessionId);
           const token = tokenManager.getToken();
           const fatigueResponse = await fetch(
-            `${API_URL}/api/hipertrofiav2/detect-auto-fatigue`,
+            `${API_URL}/api/hipertrofia/detect-auto-fatigue`,
             {
               method: 'POST',
               headers: {
@@ -117,7 +118,7 @@ export const SessionSummaryModal = ({
           try {
             const token = tokenManager.getToken();
             const response = await fetch(
-              `${API_URL}/api/hipertrofiav2/advance-cycle`,
+              `${API_URL}/api/hipertrofia/advance-cycle`,
               {
                 method: 'POST',
                 headers: {
@@ -304,7 +305,7 @@ export const SessionSummaryModal = ({
           </button>
 
           {/* 🩺 FASE 2: Botón de Reporte de Fatiga (opcional) */}
-          {(session?.metodologia === 'HipertrofiaV2_MindFeed' || session?.metodologia === 'HipertrofiaV2') && (
+          {isHipertrofiaMethodology(session?.metodologia) && (
           <button
             onClick={() => {
               track('BUTTON_CLICK', { id: 'fatigue_report' }, { component: 'SessionSummaryModal' });
@@ -318,7 +319,7 @@ export const SessionSummaryModal = ({
           )}
 
           {/* 🧮 Revisión semanal (adaptación) */}
-          {(session?.metodologia === 'HipertrofiaV2_MindFeed' || session?.metodologia === 'HipertrofiaV2') && (() => {
+          {isHipertrofiaMethodology(session?.metodologia) && (() => {
             // Detectar si la sesión actual es D5 (cierre de microciclo/semana)
             const sessionName = session?.session_name || session?.sessionName || '';
             const cycleMatch = sessionName.match(/^D(\d)/);

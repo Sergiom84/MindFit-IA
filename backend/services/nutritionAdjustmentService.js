@@ -3,6 +3,7 @@ import { ensureWorkoutScheduleV3 } from "../utils/ensureScheduleV3.js";
 import { logNutritionChange } from "./nutritionAuditLogger.js";
 import { generateNutritionPlanWithKcalOverride } from "./nutritionCalculator.js";
 import { isIsoDate, formatLocalDate } from './nutritionUtils.js';
+import { isHipertrofiaMethodology } from './hipertrofia/identity.js';
 
 const MODES = new Set(["quincenal", "seguridad"]);
 const SOURCES = new Set(["auto", "manual"]);
@@ -13,8 +14,8 @@ const SOURCES = new Set(["auto", "manual"]);
 
 function mapMethodologyToTrainingType(value) {
   if (!value) return null;
+  if (isHipertrofiaMethodology(value)) return "hipertrofia";
   const normalized = String(value).toLowerCase();
-  if (normalized.includes("hipertrofia")) return "hipertrofia";
   if (normalized.includes("fuerza") || normalized.includes("power") || normalized.includes("heavy")) return "fuerza";
   if (normalized.includes("resistencia") || normalized.includes("cardio") || normalized.includes("oposicion")) {
     return "resistencia";
@@ -414,4 +415,3 @@ export async function undoLastNutritionKcalAdjustment(userId, options = {}) {
     client.release();
   }
 }
-

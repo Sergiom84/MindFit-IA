@@ -29,6 +29,9 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      - name: Install libvips for sharp
+        run: sudo apt-get update && sudo apt-get install -y libvips-dev
+
       - run: npm ci
       - name: Build web (modo móvil) + sync Capacitor
         env:

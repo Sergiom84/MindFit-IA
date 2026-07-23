@@ -42,8 +42,15 @@ const METHODOLOGY_ALIASES = {
   gimnasio: "gimnasio",
   gym: "gimnasio",
   bodybuilding: "gimnasio",
-  hipertrofia: "gimnasio",
-  hipertrofiav2: "gimnasio",
+  // 🧬 Hipertrofia tiene MOTOR DEDICADO (D1-D5 MindFeed, ruta /api/hipertrofia[v2]/*).
+  // Una preferencia EXPLÍCITA de Hipertrofia NO debe colapsar al generador genérico de
+  // gimnasio: se resuelve a la identidad canónica 'hipertrofia' y el consumidor la
+  // reencamina al flujo dedicado (ver routineGeneration.js /ai/methodology). Los alias
+  // históricos y el literal persistido apuntan al MISMO flujo dedicado.
+  // gimnasio/gym/bodybuilding siguen siendo el generador genérico de gimnasio.
+  hipertrofia: "hipertrofia",
+  hipertrofiav2: "hipertrofia",
+  hipertrofiav2_mindfeed: "hipertrofia",
   funcional: "funcional",
   entrenamiento_funcional: "funcional",
   casa: "casa",

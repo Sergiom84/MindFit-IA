@@ -1,3 +1,4 @@
+import "./helpers/muteConsole.js"; // PRIMERO: silencia logs (evita flake IPC del runner)
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -136,4 +137,3 @@ test("adjustments v2: apply crea nuevo plan activo, archiva anterior y guarda ac
 test.after(async () => {
   await pool.end();
 });
-

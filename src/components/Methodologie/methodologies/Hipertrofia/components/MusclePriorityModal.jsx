@@ -63,7 +63,7 @@ export default function MusclePriorityModal({ show, onClose, currentPriority = n
     try {
       const token = tokenManager.getToken();
       const response = await fetch(
-        `${API_URL}/api/hipertrofiav2/activate-priority`,
+        `${API_URL}/api/hipertrofia/activate-priority`,
         {
           method: 'POST',
           headers: {
@@ -104,7 +104,7 @@ export default function MusclePriorityModal({ show, onClose, currentPriority = n
     try {
       const token = tokenManager.getToken();
       const response = await fetch(
-        `${API_URL}/api/hipertrofiav2/deactivate-priority`,
+        `${API_URL}/api/hipertrofia/deactivate-priority`,
         {
           method: 'POST',
           headers: {

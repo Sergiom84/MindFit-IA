@@ -1,4 +1,5 @@
 import { DEFAULT_PROFILE, METABOLIC_PROFILE_META } from './nutritionPlanConfig';
+import { isHipertrofiaMethodology } from '../../utils/hipertrofiaIdentity';
 
 // Helpers puros del generador de plan nutricional (fechas, schedules, mapeos de perfil).
 // Extraído de NutritionPlanGenerator.jsx (ARCH-002) sin cambios de comportamiento.
@@ -99,8 +100,8 @@ export const buildWeeklyPreviewFromDates = (dateStrings) => {
 
 export const mapMethodologyToTrainingType = (value) => {
   if (!value) return null;
+  if (isHipertrofiaMethodology(value)) return 'hipertrofia';
   const normalized = String(value).toLowerCase();
-  if (normalized.includes('hipertrofia')) return 'hipertrofia';
   if (normalized.includes('fuerza') || normalized.includes('power') || normalized.includes('heavy')) return 'fuerza';
   if (normalized.includes('resistencia') || normalized.includes('cardio') || normalized.includes('oposicion')) {
     return 'resistencia';

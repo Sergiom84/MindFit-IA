@@ -8,7 +8,7 @@ import pool from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 // Importar servicios
-import { buildD1D5Plan, persistD1D5Plan } from '../services/hipertrofia/planGenerationService.js';
+import { generateAndPersistD1D5Plan } from '../services/hipertrofia/d1d5Orchestrator.js';
 import { evaluateHipertrofiaLevel } from '../services/hipertrofia/levelEvaluator.js';
 import { buildFullBodyWorkout, persistFullBodyWorkout, buildSingleDayWorkout, persistSingleDayWorkout } from '../services/hipertrofia/extraWorkoutService.js';
 import { selectExercises } from '../services/hipertrofia/exerciseSelector.js';
@@ -94,37 +94,14 @@ router.post('/generate-d1d5', authenticateToken, async (req, res) => {
   try {
     logger.always('🏋️ [MINDFEED] Generando plan D1-D5 para usuario:', userId);
 
-    // 🧹 LIMPIEZA PRE-GENERACIÓN: Cerrar sesiones huérfanas antes de generar nuevo plan
-    const cleanupResult = await cleanupUserStaleSessions(userId);
-    if (cleanupResult.cleaned > 0) {
-      logger.info(`🧹 [MINDFEED] Pre-limpieza: ${cleanupResult.cleaned} sesiones/drafts limpiados`);
-    }
-
-    // A1 · Fase 1: construcción (solo lecturas). Se hace sobre el pool para NO
-    // retener una conexión de transacción durante todo el montaje del plan
-    // (agravaba el agotamiento del pooler, pool_size=15).
-    const built = await buildD1D5Plan(pool, {
-      userId,
+    // Flujo dedicado (build + persistencia atómica) centralizado en el orquestador,
+    // reutilizado también por el generador automático (delegación interna).
+    const result = await generateAndPersistD1D5Plan(userId, {
       nivel,
       totalWeeks,
       startConfig,
       includeWeek0
     });
-
-    // A1 · Fase 2: persistencia atómica en una transacción CORTA (3 escrituras).
-    const dbClient = await pool.connect();
-    let result;
-    try {
-      await dbClient.query('BEGIN');
-      await cleanUserDrafts(userId, dbClient);
-      result = await persistD1D5Plan(dbClient, built);
-      await dbClient.query('COMMIT');
-    } catch (txError) {
-      await dbClient.query('ROLLBACK');
-      throw txError;
-    } finally {
-      dbClient.release();
-    }
 
     logger.always(`✅ [MINDFEED] Plan generado: ID ${result.methodologyPlanId}`);
 

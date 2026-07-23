@@ -19,7 +19,7 @@ export default function TodayTrainingModalLayer({
   session,
   routinePlan,
   plan,
-  isHipertrofiaV2,
+  isHipertrofia,
   todayStatus,
   effectiveSessionId,
   methodologyPlanId,
@@ -70,7 +70,7 @@ export default function TodayTrainingModalLayer({
         )}
 
       {(localState.showSessionModal || ui.showRoutineSession) && (
-        isHipertrofiaV2 ? (
+        isHipertrofia ? (
           todayStatus?.exercises?.length > 0 && (
             <HipertrofiaSessionModal
               todayStatus={todayStatus}

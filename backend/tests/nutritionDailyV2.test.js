@@ -1,3 +1,4 @@
+import "./helpers/muteConsole.js"; // PRIMERO: silencia logs (evita flake IPC del runner)
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -112,4 +113,3 @@ test("daily v2: day_type inválido falla", async () => {
 test.after(async () => {
   await pool.end();
 });
-

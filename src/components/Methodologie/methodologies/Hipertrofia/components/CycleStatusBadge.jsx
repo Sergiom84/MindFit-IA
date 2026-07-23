@@ -37,7 +37,7 @@ export default function CycleStatusBadge({ userId, methodologyPlanId, className 
 
         // Fetch cycle status
         const cycleResponse = await fetch(
-          `${API_URL}/api/hipertrofiav2/cycle-status/${userId}`,
+          `${API_URL}/api/hipertrofia/cycle-status/${userId}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -61,7 +61,7 @@ export default function CycleStatusBadge({ userId, methodologyPlanId, className 
         // 🎯 FASE 2: Fetch priority status
         try {
           const priorityResponse = await fetch(
-            `${API_URL}/api/hipertrofiav2/priority-status/${userId}`,
+            `${API_URL}/api/hipertrofia/priority-status/${userId}`,
             {
               headers: {
                 'Authorization': `Bearer ${token}`

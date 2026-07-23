@@ -5,6 +5,7 @@ import {
   SENTIMENT_COLORS,
   SENTIMENT_TYPES
 } from '../constants/workoutConstants';
+import { isHipertrofiaMethodology, HIPERTROFIA_DISPLAY_NAME } from './hipertrofiaIdentity';
 
 /**
  * Obtiene la descripción de una metodología
@@ -31,8 +32,8 @@ export const getMethodologyName = (plan, session) => {
          session?.methodology_type ||
          'Entrenamiento de Hoy';
   // Display: el identificador interno 'HipertrofiaV2' (y su variante MindFeed)
-  // se muestra al usuario simplemente como "Hipertrofia".
-  if (raw === 'HipertrofiaV2' || raw === 'HipertrofiaV2_MindFeed') return 'Hipertrofia';
+  // se muestra al usuario simplemente como "Hipertrofia" (helper de identidad canónica).
+  if (isHipertrofiaMethodology(raw)) return HIPERTROFIA_DISPLAY_NAME;
   return raw;
 };
 

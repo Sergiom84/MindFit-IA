@@ -1,3 +1,4 @@
+import "./helpers/muteConsole.js"; // PRIMERO: silencia logs (evita flake IPC del runner)
 import test from "node:test";
 import assert from "node:assert/strict";
 

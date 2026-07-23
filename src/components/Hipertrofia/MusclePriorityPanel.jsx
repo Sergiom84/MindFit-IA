@@ -45,7 +45,7 @@ const MusclePriorityPanel = ({
 
   const fetchPriorityStatus = useCallback(async () => {
     try {
-      const response = await fetch(`/api/hipertrofiav2/priority-status/${userId}`, {
+      const response = await fetch(`/api/hipertrofia/priority-status/${userId}`, {
         headers: {
           'Authorization': `Bearer ${tokenManager.getToken()}`
         }
@@ -72,11 +72,11 @@ const MusclePriorityPanel = ({
       const startDate = new Date(priorityStatus.priority_started_at);
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 21); // 3 semanas máximo
-      
+
       const timer = setInterval(() => {
         const now = new Date();
         const remaining = endDate - now;
-        
+
         if (remaining > 0) {
           const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
           const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -86,7 +86,7 @@ const MusclePriorityPanel = ({
           clearInterval(timer);
         }
       }, 60000); // Actualizar cada minuto
-      
+
       return () => clearInterval(timer);
     }
   }, [priorityStatus]);
@@ -111,7 +111,7 @@ const MusclePriorityPanel = ({
 
     setLoading(true);
     try {
-      const response = await fetch('/api/hipertrofiav2/activate-priority', {
+      const response = await fetch('/api/hipertrofia/activate-priority', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -189,7 +189,7 @@ const MusclePriorityPanel = ({
 
     setLoading(true);
     try {
-      const response = await fetch('/api/hipertrofiav2/deactivate-priority', {
+      const response = await fetch('/api/hipertrofia/deactivate-priority', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${tokenManager.getToken()}`
@@ -232,7 +232,7 @@ const MusclePriorityPanel = ({
   // Panel principal cuando hay prioridad activa
   if (priorityStatus?.priority_muscle && !isModalOpen) {
     const activeMuscle = muscleGroups.find(m => m.id === priorityStatus.priority_muscle);
-    
+
     return (
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
         <div className="flex items-start justify-between mb-3">

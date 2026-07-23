@@ -61,6 +61,7 @@ import bodyMeasurementsRoutes from './routes/bodyMeasurements.js';
 import carbTimingRoutes from './routes/carbTiming.js';
 import performanceConfirmationRoutes from './routes/performanceConfirmation.js';
 import nutritionSupplementsRoutes from './routes/nutritionSupplements.js';
+import { isHipertrofiaMethodology } from './services/hipertrofia/identity.js';
 
 // ===============================================
 // 🗄️ RUTAS LEGACY (MANTENER TEMPORALMENTE)
@@ -386,12 +387,14 @@ app.post('/api/methodology/generate', authenticateToken, (req, res, next) => {
     if (methodology === 'heavy-duty' || methodology === 'heavy duty') {
       console.log('💪 Heavy Duty manual detectada - specialist/heavy-duty/generate');
       req.url = '/api/routine-generation/specialist/heavy-duty/generate';
-    } else if (methodology === 'hipertrofiav2') {
-      // El router de hipertrofiav2 NO expone '/generate' (solo generate-d1d5,
+    } else if (isHipertrofiaMethodology(methodology)) {
+      // El router de Hipertrofia NO expone '/generate' (solo generate-d1d5,
       // generate-fullbody, generate-single-day). Redirigimos al motor D1-D5 con
       // el body PLANO que espera (nivel, totalWeeks, startConfig, includeWeek0).
-      console.log('🏋️‍♂️ HipertrofiaV2 manual detectada - hipertrofiav2/generate-d1d5');
-      req.url = '/api/hipertrofiav2/generate-d1d5';
+      // El helper canónico acepta la identidad pública `hipertrofia` y los alias
+      // históricos, pero nunca cae al generador genérico legacy.
+      console.log('🏋️‍♂️ Hipertrofia manual detectada - hipertrofia/generate-d1d5');
+      req.url = '/api/hipertrofia/generate-d1d5';
       const src = req.body?.planData || req.body || {};
       req.body = {
         nivel: src.nivel || src.selectedLevel || 'Principiante',
@@ -457,6 +460,10 @@ app.post('/api/methodology/generate', authenticateToken, (req, res, next) => {
 app.use('/api/ai', aiLimiter);
 app.use('/api/ai-photo-correction', aiLimiter);
 app.use('/api/routine-generation', aiLimiter);
+// Ruta CANÓNICA y alias LEGACY: MISMA protección aiLimiter en ambos prefijos.
+app.use('/api/hipertrofia/generate-d1d5', aiLimiter);
+app.use('/api/hipertrofia/generate-fullbody', aiLimiter);
+app.use('/api/hipertrofia/generate-single-day', aiLimiter);
 app.use('/api/hipertrofiav2/generate-d1d5', aiLimiter);
 app.use('/api/hipertrofiav2/generate-fullbody', aiLimiter);
 app.use('/api/hipertrofiav2/generate-single-day', aiLimiter);
@@ -505,7 +512,13 @@ app.use('/api/performance-confirmation', performanceConfirmationRoutes); // Trac
 app.use('/api/nutrition/supplements', nutritionSupplementsRoutes); // Complementos de control nutricional (ritmo, pliegues, perimetros)
 app.use('/api/music', musicRoutes);
 app.use('/api/analytics', analyticsRoutes);
-app.use('/api/hipertrofiav2', hipertrofiaRoutes); // Sistema de tracking RIR
+// 🧬 Router de Hipertrofia (tracking RIR / D1-D5 MindFeed). Se monta bajo la ruta
+// CANÓNICA '/api/hipertrofia' y, como ALIAS de compatibilidad, bajo la histórica
+// '/api/hipertrofiav2'. MISMA instancia de router: mismo comportamiento, sin duplicar
+// lógica. El alias legacy no se retira hasta que no queden clientes antiguos (decisión
+// de Pablo). El frontend puede migrar a la ruta canónica de forma incremental.
+app.use('/api/hipertrofia', hipertrofiaRoutes);   // Canónico
+app.use('/api/hipertrofiav2', hipertrofiaRoutes); // Alias legacy (compatibilidad)
 app.use('/api/methodology-session', methodologySingleDayRoutes); // Single-day genérico por metodología
 app.use('/api/adaptation', adaptationBlockRoutes); // Bloque de Adaptación Inicial
 app.use('/api/menstrual-cycle', menstrualCycleRoutes);
