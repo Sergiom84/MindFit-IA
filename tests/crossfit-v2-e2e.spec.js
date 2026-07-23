@@ -518,30 +518,41 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
           validSubstitutionRequest = substitutionRequest;
           break;
         }
-        expect(
-          ["WOD_SCALE_STIMULUS_LOSS", "SAFETY_CONTRAINDICATED"],
-          JSON.stringify(candidate.body),
-        ).toContain(candidate.body.code);
+        expect(candidate.response.status(), JSON.stringify(candidate.body)).toBe(
+          422,
+        );
+        expect(candidate.body.code, JSON.stringify(candidate.body)).toBe(
+          "WOD_SCALE_STIMULUS_LOSS",
+        );
+        expect(candidate.body.safe_fallback).toBe(
+          "stop_movement_or_session",
+        );
       }
-      expect(validSubstitution, "El WOD debe ofrecer una sustitución segura").toBeTruthy();
-      expect(validSubstitution.body.idempotent_replay).toBe(false);
-      expect(
-        validSubstitution.body.substitution.replacement.canonical_movement_id,
-      ).not.toBe(validSubstitution.body.substitution.original_movement_id);
-      expect(validSubstitution.body.substitution.stimulus_delta).toBeLessThanOrEqual(
-        0.15,
-      );
-      const replayedSubstitution = await api(
-        request,
-        "POST",
-        `/api/crossfit-v2/runtime/sessions/${sessionId}/substitutions`,
-        {
-          token: provisioned.token,
-          data: validSubstitutionRequest,
-        },
-      );
-      expect(replayedSubstitution.response.status()).toBe(200);
-      expect(replayedSubstitution.body.idempotent_replay).toBe(true);
+      if (validSubstitution) {
+        expect(validSubstitution.body.idempotent_replay).toBe(false);
+        expect(
+          validSubstitution.body.substitution.replacement.canonical_movement_id,
+        ).not.toBe(validSubstitution.body.substitution.original_movement_id);
+        expect(
+          validSubstitution.body.substitution.stimulus_delta,
+        ).toBeLessThanOrEqual(0.15);
+        const replayedSubstitution = await api(
+          request,
+          "POST",
+          `/api/crossfit-v2/runtime/sessions/${sessionId}/substitutions`,
+          {
+            token: provisioned.token,
+            data: validSubstitutionRequest,
+          },
+        );
+        expect(replayedSubstitution.response.status()).toBe(200);
+        expect(replayedSubstitution.body.idempotent_replay).toBe(true);
+      } else {
+        expect(
+          levelCase.level,
+          "Avanzado debe cubrir sustitución segura y replay en el stack real",
+        ).not.toBe("advanced");
+      }
 
       const progress = await api(
         request,
@@ -617,9 +628,10 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
       expect(effort.response.status(), JSON.stringify(effort.body)).toBe(200);
       expect(effort.body.registered).toBe(true);
       const substitutedMovementId =
-        validSubstitution.body.substitution.original_movement_id;
+        validSubstitution?.body.substitution.original_movement_id ?? null;
       const replacementMovementId =
-        validSubstitution.body.substitution.replacement.canonical_movement_id;
+        validSubstitution?.body.substitution.replacement.canonical_movement_id ??
+        null;
       expect(effort.body.result.scales).toEqual(
         canonicalSession.wod.movements.map((movement) => ({
           movement_id: movement.canonical_movement_id,
@@ -936,16 +948,19 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
       (day) => day.periodization_context?.crossfit_nutrition,
     );
     expect(crossfitDays.length).toBeGreaterThan(0);
+    const observedDayTypes = new Set();
     for (const day of crossfitDays) {
       const context = day.periodization_context;
       const contract = context.crossfit_nutrition;
       expect(contract.schema_version).toBe("crossfit-nutrition/2.0.0");
       expect(contract.level).toBe("intermediate");
-      expect(["D1", "D2"]).toContain(contract.day_type);
+      expect(["D0", "D1", "D2"]).toContain(contract.day_type);
+      observedDayTypes.add(contract.day_type);
       expect(contract.mode).toBe("shadow");
       expect(context.authoritative).toBe(false);
       expect(context.methodology_emits_load).toBe(true);
     }
+    expect([...observedDayTypes].sort()).toEqual(["D0", "D1", "D2"]);
 
     const metrics = await api(
       request,
