@@ -17,6 +17,7 @@ import {
   resolveTrainingFrequency
 } from '../../userProfileContract.js';
 import { normalizeMethodologyLevel } from './methodologyRegistry.js';
+import { assessCalistenia, isCalisthenicsAssessmentEnabled } from './calisteniaAssessment.js';
 import {
   logSeparator,
   logAPICall,
@@ -444,13 +445,42 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
     logger.warn(`⚠️ [CALISTENIA] No se pudo leer el perfil completo: ${profileError.message}`);
   }
 
-  // 1) Nivel: prioriza selectedLevel → evaluación IA → perfil. Nivel provisto no reconocido
-  //    → 422 (no principiante silencioso); ausente → default seguro 'principiante' (PR-CAL-01).
-  const levelKey = resolveCalisteniaLevelKey({
-    selectedLevel: planData.selectedLevel,
-    aiLevel: planData.aiEvaluation?.recommended_level,
-    profileLevel: userProfile?.nivel_entrenamiento
-  });
+  // 1) Nivel. Con el flag OFF (default) = LECTURA LEGACY: prioriza selectedLevel → evaluación IA
+  //    → perfil (nivel provisto no reconocido → 422; ausente → default seguro 'principiante').
+  //    Con el flag ON, el assessment determinista es la AUTORIDAD (PR-CAL-01 Subfase C): la IA
+  //    solo explica. 'refer' → 422 (derivar, no prescribir); 'insufficient_data' → default legacy.
+  let assessment = null;
+  let levelKey;
+  if (isCalisthenicsAssessmentEnabled()) {
+    assessment = assessCalistenia({
+      selfReportedLevel: planData.selectedLevel ?? userProfile?.nivel_entrenamiento,
+      demonstratedLevel: planData.demonstratedLevel, // evidencia de skill (frontend, Subfase D)
+      experienceYears: userProfile?.anos_experiencia,
+      injuryText: extractInjuryText(userProfile || {}),
+      painStatus: planData.painStatus // (frontend, Subfase D)
+    });
+    if (assessment.decision === 'refer') {
+      const err = new Error(
+        'Assessment de calistenia: derivar a valoración profesional antes de entrenar ' +
+          `(${assessment.safety_gate.reasons.join(', ') || 'contraindicación'}).`
+      );
+      err.statusCode = 422;
+      err.code = 'CALISTHENICS_ASSESSMENT_REFER';
+      throw err;
+    }
+    // 'ok' → autoridad del assessment; 'insufficient_data' (level null) → default seguro legacy.
+    levelKey = assessment.level ?? resolveCalisteniaLevelKey({
+      selectedLevel: planData.selectedLevel,
+      aiLevel: planData.aiEvaluation?.recommended_level,
+      profileLevel: userProfile?.nivel_entrenamiento
+    });
+  } else {
+    levelKey = resolveCalisteniaLevelKey({
+      selectedLevel: planData.selectedLevel,
+      aiLevel: planData.aiEvaluation?.recommended_level,
+      profileLevel: userProfile?.nivel_entrenamiento
+    });
+  }
 
   const levels = getCalisteniaLevels();
   const levelConfig = levels[levelKey] || levels.principiante;
@@ -620,6 +650,8 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
       ruleset_scope: 'calistenia_v2',
       source: 'calistenia_v2_progressive'
     },
+    // G7: persiste el assessment determinista cuando el flag está activo (null en modo legacy).
+    assessment: assessment || null,
     semanas
   };
 
