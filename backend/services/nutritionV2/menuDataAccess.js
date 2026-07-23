@@ -19,6 +19,7 @@ import {
 } from './mealSelectionHelpers.js';
 import { parseJsonObject, normalizeFoodName } from '../nutritionUtils.js';
 import { isTrainingDay } from '../trainingLoad/dayType.js';
+import { isHipertrofiaMethodology } from '../hipertrofia/identity.js';
 
 export function extractMenuItemsForPersistence(menuData) {
   if (!menuData || !Array.isArray(menuData.items)) {
@@ -244,8 +245,8 @@ export async function persistGeneratedMenuItemsForMeal({ mealId, menuData, avail
 
 export function mapMethodologyToTrainingType(value) {
   if (!value) return null;
+  if (isHipertrofiaMethodology(value)) return 'hipertrofia';
   const normalized = String(value).toLowerCase();
-  if (normalized.includes('hipertrofia')) return 'hipertrofia';
   if (normalized.includes('fuerza') || normalized.includes('power') || normalized.includes('heavy')) return 'fuerza';
   if (normalized.includes('resistencia') || normalized.includes('cardio') || normalized.includes('oposicion')) {
     return 'resistencia';

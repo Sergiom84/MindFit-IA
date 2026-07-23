@@ -12,6 +12,7 @@ Este documento resume el estado funcional actual de la funcionalidad “Entrenam
 ## Novedades clave de esta iteración
 
 ### 1) Tarjeta “Mi equipamiento” (centrada y con poder de selección)
+
 - Componente: `UserEquipmentSummaryCard.jsx`
 - Estado: centrada, muestra un resumen (curated + custom) y dos acciones:
   - “Gestionar mi equipamiento” → navega a Perfil > Mi equipamiento.
@@ -19,9 +20,13 @@ Este documento resume el estado funcional actual de la funcionalidad “Entrenam
 - Integración en HomeTraining: el botón llama a un handler (`onUsePersonalized`) que establece `selectedEquipment = 'usar_este_equipamiento'`.
 
 ### 2) Nuevo modo de equipamiento “usar_este_equipamiento”
+
 - Frontend: `HomeTrainingSection.jsx` envía en el body de la generación:
   ```json
-  { "equipment_type": "usar_este_equipamiento", "training_type": "hiit|fuerza|funcional" }
+  {
+    "equipment_type": "usar_este_equipamiento",
+    "training_type": "hiit|fuerza|funcional"
+  }
   ```
 - Backend: `IAHomeTraining.js`
   - Acepta `equipment_type` en {`minimo`,`basico`,`avanzado`,`personalizado`,`usar_este_equipamiento`}.
@@ -30,6 +35,7 @@ Este documento resume el estado funcional actual de la funcionalidad “Entrenam
     - Custom (texto libre) de `app.user_custom_equipment` (normalizados a tokens simples).
 
 ### 3) Perfil > Mi equipamiento — UX
+
 - Componente: `EquipmentTab.jsx`
 - Columnas rápidas por nivel (chips):
   - Mínimo: Toallas, Silla/Sofá
@@ -39,6 +45,7 @@ Este documento resume el estado funcional actual de la funcionalidad “Entrenam
 - Texto libre: permite añadir elementos personalizados (persisten y se listan).
 
 ### 4) Ajustes backend relacionados
+
 - `routes/IAHomeTraining.js`:
   - Carga perfil desde `app.v_user_profile_normalized`.
   - Carga equipamiento curado y personalizado del usuario.
@@ -50,14 +57,14 @@ Este documento resume el estado funcional actual de la funcionalidad “Entrenam
 
 ## Flujo de uso
 
-1) El usuario gestiona su inventario en Perfil > Mi equipamiento:
+1. El usuario gestiona su inventario en Perfil > Mi equipamiento:
    - Marca chips (curated) y/o añade texto libre (custom).
    - Puede desplegar el catálogo completo por niveles.
-2) En Entrenamiento en Casa:
+2. En Entrenamiento en Casa:
    - Puede elegir una de las tarjetas de nivel (Mínimo/Básico/Avanzado), o bien pulsar “Usar este equipamiento” en la tarjeta grande.
    - Selecciona tipo (Funcional/HIIT/Fuerza).
    - Pulsa “Generar mi entrenamiento”.
-3) El backend genera un plan con IA y se muestra en un modal; desde ahí puede iniciar entrenamiento y se registra el progreso/estado de cada ejercicio.
+3. El backend genera un plan con IA y se muestra en un modal; desde ahí puede iniciar entrenamiento y se registra el progreso/estado de cada ejercicio.
 
 ## Componentes principales
 
@@ -100,7 +107,7 @@ Content-Type: application/json
 ```
 
 ## Próximos pasos propuestos (opcionales)
+
 - Migración a sólo `equipment_key` para simplificar altas de nuevos implementos.
 - Toggle opcional para volver a mostrar permanentemente el catálogo completo en Perfil.
 - Vista/endpoint admin para ver mapeo `code -> id` del catálogo y detectar faltantes.
-

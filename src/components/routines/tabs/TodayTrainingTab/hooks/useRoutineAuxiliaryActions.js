@@ -95,7 +95,7 @@ export function useRoutineAuxiliaryActions({
 
       console.log('🏋️ Generando entrenamiento de fin de semana. Nivel:', nivel);
 
-      const response = await apiClient.post('/hipertrofiav2/generate-single-day', {
+      const response = await apiClient.post('/hipertrofia/generate-single-day', {
         nivel: nivel,
         objetivos: user?.objetivos || [],
         isWeekendExtra: true

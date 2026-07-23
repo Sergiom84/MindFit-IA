@@ -31,6 +31,8 @@ import {
 } from '../services/routineGeneration/index.js';
 import { getUserFullProfile } from '../services/routineGeneration/database/userRepository.js';
 import { buildProfileAwarePlanData } from '../services/userProfileContract.js';
+import { isHipertrofiaMethodology } from '../services/hipertrofia/identity.js';
+import { generateAndPersistD1D5Plan } from '../services/hipertrofia/d1d5Orchestrator.js';
 
 const router = express.Router();
 
@@ -86,8 +88,6 @@ router.post('/specialist/:methodology/generate', authenticateToken, async (req, 
   try {
     logger.info(`🏗️ Generando plan de ${methodology} para usuario ${userId}`);
 
-    // Los motores legacy mantienen su limpieza histórica. CrossFit v2 conserva
-    // revisiones y las supersede de forma transaccional dentro de su adaptador.
     if (!methodologyUsesImmutableDraftRevisions(methodology)) {
       await cleanUserDrafts(userId);
     }
@@ -126,11 +126,41 @@ router.post('/ai/methodology', authenticateToken, async (req, res) => {
     // Validate request
     validateRoutineRequest(planData);
 
-    // Clean drafts
-    await cleanUserDrafts(userId);
-
     const userProfile = await getUserFullProfile(userId);
     const personalizedPlanData = buildProfileAwarePlanData(planData, userProfile);
+
+    // 🧬 Hipertrofia tiene motor DEDICADO (D1-D5 MindFeed) fuera del orquestador genérico.
+    // Si la preferencia explícita (o un alias histórico) resuelve a Hipertrofia, se DELEGA
+    // internamente en el mismo flujo que /api/hipertrofia/generate-d1d5, produciendo un plan
+    // REAL. Nunca se genera una rutina genérica de gimnasio ni se devuelve un error al
+    // usuario (Fase 4 + cierre de Pablo). NO se toca WorkoutContext.generatePlan().
+    if (isHipertrofiaMethodology(personalizedPlanData.methodology)) {
+      logger.info(`🧬 Delegación interna al flujo dedicado de Hipertrofia (user ${userId})`);
+      const nivel = personalizedPlanData.selectedLevel
+        || planData.selectedLevel || planData.nivel || planData.level || 'Principiante';
+      const dedicated = await generateAndPersistD1D5Plan(userId, {
+        nivel,
+        totalWeeks: planData.totalWeeks,
+        startConfig: planData.startConfig,
+        includeWeek0: planData.includeWeek0 !== undefined ? planData.includeWeek0 : true
+      });
+      return res.json({
+        success: true,
+        methodology: 'hipertrofia',
+        plan: dedicated.plan,
+        methodologyPlanId: dedicated.methodologyPlanId,
+        planId: dedicated.planId,
+        message: 'Plan MindFeed D1-D5 generado exitosamente',
+        system_info: { motor: 'MindFeed v1.0', ciclo: 'D1-D5' }
+      });
+    }
+
+    // Hipertrofia limpia dentro de su orquestador. CrossFit v2 conserva el draft
+    // anterior hasta crear la revisión inmutable que lo sustituye.
+    if (!methodologyUsesImmutableDraftRevisions(personalizedPlanData.methodology)) {
+      await cleanUserDrafts(userId);
+    }
+
     const result = await generateMethodologyPlan(
       personalizedPlanData.methodology,
       userId,
@@ -188,10 +218,11 @@ router.post('/manual/methodology', authenticateToken, async (req, res) => {
   try {
     logger.info(`✋ Creación manual de plan para usuario ${userId}`);
 
-    validateRoutineRequest(planData);
-    await cleanUserDrafts(userId);
-
     const methodology = planData.methodology || 'gimnasio';
+    validateRoutineRequest(planData);
+    if (!methodologyUsesImmutableDraftRevisions(methodology)) {
+      await cleanUserDrafts(userId);
+    }
     const result = await generateMethodologyPlan(methodology, userId, planData);
 
     res.json(result);

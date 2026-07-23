@@ -21,6 +21,7 @@ import { generateHeavyDutySingleDay } from '../services/singleDay/heavyDutySingl
 import { generatePreferenceSingleDay } from '../services/singleDay/preferenceSingleDay.js';
 import { logger } from '../services/hipertrofia/logger.js';
 import { cleanupUserStaleSessions } from '../services/sessionCleanupService.js';
+import { isHipertrofiaMethodology } from '../services/hipertrofia/identity.js';
 
 const router = express.Router();
 
@@ -34,7 +35,7 @@ function normalizeMethodology(raw) {
   if (m.includes('halterofilia') || m.includes('halterofília') || m.includes('weightlifting')) return 'halterofilia';
   if (m.includes('powerlifting') || m.includes('power-lifting')) return 'powerlifting';
   if (m.includes('heavy') || m.includes('heavy_duty') || m.includes('heavy-duty')) return 'heavy_duty';
-  if (m.includes('hipertrofia')) return 'hipertrofia';
+  if (isHipertrofiaMethodology(m)) return 'hipertrofia';
   return m;
 }
 

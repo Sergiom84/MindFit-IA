@@ -64,6 +64,7 @@ import { adjustWorkoutIntensity, shouldAdjustIntensity } from './adjustWorkoutIn
 // materializar el calendario. Helper puro (sin efectos) para poder testearlo aislado.
 import { buildPlanDayMetadata } from '../services/trainingLoad/sessionLoadBuilder.js';
 import { getMethodologyScheduleAdapter } from '../services/methodologyScheduleAdapters.js';
+import { HIPERTROFIA_PERSISTED_TYPE } from '../services/hipertrofia/identity.js';
 
 /**
  * Genera workout_schedule y methodology_plan_days respetando preferencias del usuario.
@@ -436,7 +437,7 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
       // salvo que el usuario haya elegido explícitamente un inicio distinto a lunes.
       const startDowOverride = startConfig?.start_day_of_week;
       const hasExplicitNonMondayStart = Number.isFinite(Number(startDowOverride)) && Number(startDowOverride) !== 1;
-      const isD1D5NonRedist = (planData.metodologia === 'HipertrofiaV2_MindFeed' ||
+      const isD1D5NonRedist = (planData.metodologia === HIPERTROFIA_PERSISTED_TYPE ||
                                (firstWeekPattern && firstWeekPattern.includes('Lun-Mar-Mie-Jue-Vie'))) &&
                                !hasExplicitNonMondayStart;
 
@@ -553,7 +554,7 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
       if (isFirstWeek && startConfig && firstWeekPattern) {
         // 🎯 EXCEPCIÓN: No recortar planes D1-D5 (HipertrofiaV2, Oposiciones, etc.)
         const isD1D5Plan = sessionsToSchedule.length >= 5 &&
-                           (planData.metodologia === 'HipertrofiaV2_MindFeed' ||
+                           (planData.metodologia === HIPERTROFIA_PERSISTED_TYPE ||
                             planData.metodologia === 'Oposiciones' ||
                             firstWeekPattern.includes('Lun-Mar-Mie-Jue-Vie'));
 
@@ -711,7 +712,7 @@ export async function ensureWorkoutScheduleV3(client, userId, methodologyPlanId,
       // startDayOfWeek ya fue declarado arriba (línea 141)
 
       // 🎯 FIX: Para planes D1-D5 que empiezan en lunes, ESE lunes es el inicio
-      const isD1D5Plan = planData.metodologia === 'HipertrofiaV2_MindFeed' ||
+      const isD1D5Plan = planData.metodologia === HIPERTROFIA_PERSISTED_TYPE ||
                          (firstWeekPattern && firstWeekPattern.includes('Lun-Mar-Mie-Jue-Vie'));
 
       let daysToMonday;

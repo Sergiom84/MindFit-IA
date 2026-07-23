@@ -18,6 +18,7 @@ import { Target } from 'lucide-react';
 import { Card } from '@/components/ui/card.jsx';
 
 import { getTodayName } from '@/utils/training/dateHelpers';
+import { isHipertrofiaMethodology } from '@/utils/hipertrofiaIdentity';
 import { SummaryHeader } from '../../../summary/SummaryHeader.jsx';
 import { UserProfileDisplay } from '../../../summary/UserProfileDisplay.jsx';
 import { ProgressBar } from '../../../summary/ProgressBar.jsx';
@@ -115,8 +116,7 @@ export default function TodayTrainingHeader({
       {/* 🎯 FIX: Agregar validación de userId y mejor logging */}
       {(() => {
         const shouldRenderAdaptation = adaptationState.hasBlock &&
-          plan?.metodologia !== 'HipertrofiaV2_MindFeed' &&
-          plan?.metodologia !== 'HipertrofiaV2' &&
+          !isHipertrofiaMethodology(plan?.metodologia) &&
           userId;
 
         if (adaptationState.hasBlock) {
@@ -149,8 +149,8 @@ export default function TodayTrainingHeader({
         </div>
       )}
 
-      {/* 🔄 Badge de estado del ciclo MindFeed (solo para HipertrofiaV2) */}
-      {(plan?.metodologia === 'HipertrofiaV2_MindFeed' || plan?.metodologia === 'HipertrofiaV2') && (
+      {/* 🔄 Badge de estado del ciclo MindFeed (solo para Hipertrofia) */}
+      {isHipertrofiaMethodology(plan?.metodologia) && (
         <div className="mt-4 space-y-3">
           <CycleStatusBadge
             userId={userId}

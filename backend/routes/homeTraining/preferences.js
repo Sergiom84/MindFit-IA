@@ -12,6 +12,7 @@ import {
   normalizeTrainingType,
   toExerciseKey
 } from './_helpers.js';
+import { isHipertrofiaMethodology } from '../../services/hipertrofia/identity.js';
 
 const router = express.Router();
 
@@ -76,7 +77,7 @@ router.post('/rejections', authenticateToken, async (req, res) => {
         let methodology_type = 'home_training'; // Por defecto
         if (training_type?.toLowerCase().includes('calistenia')) {
           methodology_type = 'calistenia';
-        } else if (training_type?.toLowerCase().includes('hipertrofia')) {
+        } else if (isHipertrofiaMethodology(training_type)) {
           methodology_type = 'hipertrofia';
         }
 

@@ -9,6 +9,7 @@ import { loadSessionsConfig, generateSessionExercises, resolveCycleSessions } fr
 import { loadMindfeedRuleset } from './rulesetService.js';
 import { resolveUserInjuryRules } from './injuryFilter.js';
 import { logger } from './logger.js';
+import { HIPERTROFIA_PERSISTED_TYPE } from './identity.js';
 
 function isDeloadWeek(weekNumber, ruleset) {
   const deloadWeeks = ruleset?.deloadRules?.deloadWeeks || [6];
@@ -293,7 +294,7 @@ export async function buildD1D5Plan(readClient, config) {
 
   // Crear estructura del plan
   const planData = {
-    metodologia: 'HipertrofiaV2_MindFeed',
+    metodologia: HIPERTROFIA_PERSISTED_TYPE,
     version: 'MindFeed_v2.0',
     nivel,
     ciclo_type: 'D1-D5',
@@ -352,7 +353,7 @@ export async function persistD1D5Plan(writeClient, built) {
     )
     VALUES ($1, $2, $3, $4, $5, NOW())
     RETURNING id
-  `, [userId, 'HipertrofiaV2_MindFeed', JSON.stringify(planData), 'manual', 'draft']);
+  `, [userId, HIPERTROFIA_PERSISTED_TYPE, JSON.stringify(planData), 'manual', 'draft']);
 
   const methodologyPlanId = planResult.rows[0].id;
 

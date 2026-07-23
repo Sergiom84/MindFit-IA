@@ -23,6 +23,9 @@ import {
   deriveLevelFromPlan
 } from '../../utils/shared/planHelpers.js';
 import {
+  validateEffortInput
+} from '../../services/routines/effortValidation.js';
+import {
   ensureMethodologySessions,
   createMissingDaySession
 } from './_helpers.js';
@@ -826,6 +829,16 @@ router.post('/sessions/:sessionId/effort', authenticateToken, async (req, res) =
       await client.query('ROLLBACK');
       return res.status(404).json({ success: false, error: 'Sesión no encontrada' });
     }
+
+    // S6: validar rangos de avgRir/rpe antes de entrar a la autorregulación. Un
+    // valor fuera de rango (p.ej. avgRir=99, rpe=99) contaminaba la decisión. 422
+    // con ROLLBACK de la tx abierta (igual que el 404). El caso de éxito no cambia.
+    const effortRanges = validateEffortInput({ avgRir, rpe });
+    if (!effortRanges.valid) {
+      await client.query('ROLLBACK');
+      return res.status(422).json({ success: false, error: effortRanges.error });
+    }
+
     const row = ses.rows[0];
 
     // feeling → score subjetivo acotado [-1, 1] (mismo mapa que single-day)

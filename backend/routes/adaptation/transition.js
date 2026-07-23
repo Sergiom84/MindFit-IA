@@ -60,7 +60,7 @@ router.post('/transition', authenticateToken, async (req, res) => {
       readyForD1D5: true,
       evaluation: transitionResult.evaluation,
       nextSteps: [
-        'Genera tu plan D1-D5 de HipertrofiaV2',
+        'Genera tu plan D1-D5 de Hipertrofia',
         'El sistema usará los datos de tu adaptación para ajustar las cargas iniciales',
         'Comenzarás con intensidades apropiadas basadas en tu progreso'
       ]

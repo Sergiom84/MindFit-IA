@@ -26,7 +26,7 @@ export function WeekendWarningModal({
     setIsGeneratingFullBody(true);
     try {
       // Endpoint para generar solo entrenamiento del día (sin plan completo)
-      const response = await apiClient.post('/hipertrofiav2/generate-single-day', {
+      const response = await apiClient.post('/hipertrofia/generate-single-day', {
         nivel: nivel,
         objetivos: [],
         isWeekendExtra: true  // Flag para indicar que es entrenamiento extra de fin de semana

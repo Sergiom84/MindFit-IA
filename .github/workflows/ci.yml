@@ -16,6 +16,9 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Install libvips for sharp
+        run: sudo apt-get update && sudo apt-get install -y libvips-dev
+
       # Dependencias de raíz (frontend) y de backend (los tests unit las necesitan)
       - run: npm ci
       - run: npm ci --prefix backend
@@ -59,6 +62,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+      - name: Install libvips for sharp
+        run: sudo apt-get update && sudo apt-get install -y libvips-dev
       - run: npm ci --prefix backend
 
       - name: Preparar roles Supabase (stubs) y extensiones
@@ -268,6 +273,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+      - name: Install libvips for sharp
+        run: sudo apt-get update && sudo apt-get install -y libvips-dev
       - run: npm ci
       - run: npm ci --prefix backend
 
@@ -306,6 +313,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+      - name: Install libvips for sharp
+        run: sudo apt-get update && sudo apt-get install -y libvips-dev
       - run: npm ci
       - run: npm run build
       - run: npx playwright install --with-deps chromium

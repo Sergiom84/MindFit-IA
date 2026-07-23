@@ -7,7 +7,7 @@ Este directorio contiene los subcomponentes especializados que resultaron de la 
 ```
 components/
 ├── CameraControls.jsx      # 🎥 Controles de cámara en vivo
-├── VideoUpload.jsx         # 📤 Subida y preview de videos  
+├── VideoUpload.jsx         # 📤 Subida y preview de videos
 ├── AnalysisEngine.jsx      # 🧠 Motor de análisis IA
 ├── ResultsDisplay.jsx      # 📊 Visualización de resultados
 └── README.md              # 📚 Documentación
@@ -16,7 +16,9 @@ components/
 ## 🧩 Descripción de Componentes
 
 ### 🎥 CameraControls.jsx
+
 **Responsabilidades:**
+
 - Activar/desactivar cámara web
 - Controles de grabación (iniciar/detener)
 - Captura de frames para análisis en vivo
@@ -24,12 +26,15 @@ components/
 - Estados visuales de la cámara
 
 **Estados gestionados:**
+
 - `isCameraOn` - Estado de la cámara
 - `isRecording` - Estado de grabación
 - `mediaStreamRef` - Referencia al stream
 
-### 📤 VideoUpload.jsx  
+### 📤 VideoUpload.jsx
+
 **Responsabilidades:**
+
 - Selección de archivos de video
 - Validación de formato y tamaño
 - Preview del video seleccionado
@@ -37,11 +42,14 @@ components/
 - Gestión de URL.createObjectURL()
 
 **Estados gestionados:**
+
 - `selectedVideo` - Video seleccionado
 - `fileInputRef` - Referencia al input file
 
 ### 🧠 AnalysisEngine.jsx
+
 **Responsabilidades:**
+
 - Procesamiento de análisis de videos subidos
 - Análisis en tiempo real con cámara
 - Comunicación con API `/api/ai/advanced-correction`
@@ -50,11 +58,14 @@ components/
 - Manejo de errores de análisis
 
 **Estados gestionados:**
+
 - `isAnalyzing` - Estado de análisis de video
 - `isLiveAnalyzing` - Estado de análisis en vivo
 
 ### 📊 ResultsDisplay.jsx
+
 **Responsabilidades:**
+
 - Visualización de resultados de análisis
 - Controles para resetear/replay
 - Información de metadata (tiempo, modelo, etc.)
@@ -62,6 +73,7 @@ components/
 - Integración con el componente `AnalysisResult` existente
 
 **Estados gestionados:**
+
 - `analysisResult` - Resultado del análisis
 - `showResults` - Control de visualización
 
@@ -70,29 +82,37 @@ components/
 Todos los subcomponentes comparten estado a través del context `VideoAnalysisContext.jsx` ubicado en `../contexts/VideoAnalysisContext.jsx`.
 
 **Estado compartido:**
+
 ```javascript
 {
   // Referencias DOM
-  fileInputRef, videoPreviewRef, liveVideoRef,
-  mediaStreamRef, mediaRecorderRef, recordedBlobsRef, canvasRef,
-  
-  // Estados principales  
-  selectedExerciseId, selectedVideo, analysisResult, showResults,
-  
-  // Estados de análisis
-  isAnalyzing, isLiveAnalyzing,
-  
-  // Estados de cámara
-  isCameraOn, isRecording,
-  
-  // Utilidades
-  normalizeVideoAnalysis
+  (fileInputRef,
+    videoPreviewRef,
+    liveVideoRef,
+    mediaStreamRef,
+    mediaRecorderRef,
+    recordedBlobsRef,
+    canvasRef,
+    // Estados principales
+    selectedExerciseId,
+    selectedVideo,
+    analysisResult,
+    showResults,
+    // Estados de análisis
+    isAnalyzing,
+    isLiveAnalyzing,
+    // Estados de cámara
+    isCameraOn,
+    isRecording,
+    // Utilidades
+    normalizeVideoAnalysis);
 }
 ```
 
 ## 🎯 Beneficios de la Refactorización
 
 ### ✅ Antes (Monolítico)
+
 - **752 líneas** en un solo archivo
 - Múltiples responsabilidades mezcladas
 - Difícil de mantener y testear
@@ -100,6 +120,7 @@ Todos los subcomponentes comparten estado a través del context `VideoAnalysisCo
 - Estados acoplados
 
 ### ✅ Después (Modular)
+
 - **102 líneas** en componente principal
 - **~150 líneas** promedio por subcomponente
 - Responsabilidades bien separadas
@@ -110,7 +131,7 @@ Todos los subcomponentes comparten estado a través del context `VideoAnalysisCo
 ## 🔧 Uso
 
 ```jsx
-import VideoAnalysis from './VideoAnalysis';
+import VideoAnalysis from "./VideoAnalysis";
 
 // El componente principal ya incluye el Provider y todos los subcomponentes
 function MyApp() {
@@ -123,19 +144,19 @@ function MyApp() {
 Cada subcomponente puede ser testeado de forma independiente:
 
 ```jsx
-import { VideoAnalysisProvider } from '../contexts/VideoAnalysisContext';
-import CameraControls from './CameraControls';
+import { VideoAnalysisProvider } from "../contexts/VideoAnalysisContext";
+import CameraControls from "./CameraControls";
 
 // Test aislado
 const TestWrapper = ({ children }) => (
   <VideoAnalysisProvider>{children}</VideoAnalysisProvider>
 );
 
-test('CameraControls renders correctly', () => {
+test("CameraControls renders correctly", () => {
   render(
     <TestWrapper>
       <CameraControls />
-    </TestWrapper>
+    </TestWrapper>,
   );
 });
 ```
@@ -150,10 +171,10 @@ test('CameraControls renders correctly', () => {
 
 ## 📈 Métricas de Refactorización
 
-| Métrica | Antes | Después | Mejora |
-|---------|-------|---------|--------|
-| Líneas por archivo | 752 | ~150 | ⬇️ 80% |
-| Responsabilidades | 6+ | 1-2 | ⬇️ 70% |
-| Testabilidad | ❌ Difícil | ✅ Fácil | ⬆️ 100% |
-| Mantenibilidad | ❌ Compleja | ✅ Simple | ⬆️ 90% |
-| Reutilización | ❌ Nula | ✅ Alta | ⬆️ 100% |
+| Métrica            | Antes       | Después   | Mejora  |
+| ------------------ | ----------- | --------- | ------- |
+| Líneas por archivo | 752         | ~150      | ⬇️ 80%  |
+| Responsabilidades  | 6+          | 1-2       | ⬇️ 70%  |
+| Testabilidad       | ❌ Difícil  | ✅ Fácil  | ⬆️ 100% |
+| Mantenibilidad     | ❌ Compleja | ✅ Simple | ⬆️ 90%  |
+| Reutilización      | ❌ Nula     | ✅ Alta   | ⬆️ 100% |

@@ -23,6 +23,7 @@
 
 import { getCrossfitFeatureFlags } from '../crossfit/featureFlags.js';
 import { registerCrossfitV2Result } from '../crossfit/results/resultService.js';
+import { isHipertrofiaMethodology } from '../hipertrofia/identity.js';
 
 // Clave normalizada de metodología a partir de methodology_type del plan
 // ('Calistenia', 'CrossFit', 'Heavy Duty', 'Entrenamiento en Casa', ...).
@@ -35,7 +36,7 @@ export function normalizeMethodologyKey(raw) {
   if (m.includes('halterofilia') || m.includes('weightlifting')) return 'halterofilia';
   if (m.includes('powerlifting') || m.includes('power-lifting')) return 'powerlifting';
   if (m.includes('heavy')) return 'heavy_duty';
-  if (m.includes('hipertrofia')) return 'hipertrofia';
+  if (isHipertrofiaMethodology(m)) return 'hipertrofia';
   // Oposiciones: el plan guarda el cuerpo concreto como methodology_type
   if (m.includes('oposicion') || m.includes('policia') || m.includes('policía')
     || m.includes('bombero') || m.includes('guardia')) return 'oposiciones';

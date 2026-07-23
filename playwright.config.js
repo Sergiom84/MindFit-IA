@@ -79,24 +79,31 @@ export default defineConfig({
       testMatch: /hpv2-doc03-regression\.spec\.js/,
       use: { ...devices["Desktop Chrome"] },
     },
+    /* E2E real de identidad canónica Hipertrofia; protegido por la guarda local. */
+    {
+      name: "hipertrofia-e2e",
+      testMatch: /hipertrofia-identidad-canonica\.e2e\.spec\.js/,
+      fullyParallel: false,
+      use: { ...devices["Desktop Chrome"] },
+    },
     {
       name: "chromium",
       testIgnore:
-        /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js|onboarding-perfil-e2e\.spec\.js|crossfit-v2-e2e\.spec\.js|hpv2-doc03-regression\.spec\.js/,
+        /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js|onboarding-perfil-e2e\.spec\.js|crossfit-v2-e2e\.spec\.js|hpv2-doc03-regression\.spec\.js|hipertrofia-identidad-canonica\.e2e\.spec\.js/,
       use: { ...devices["Desktop Chrome"] },
     },
 
     {
       name: "firefox",
       testIgnore:
-        /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js|onboarding-perfil-e2e\.spec\.js|crossfit-v2-e2e\.spec\.js|hpv2-doc03-regression\.spec\.js/,
+        /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js|onboarding-perfil-e2e\.spec\.js|crossfit-v2-e2e\.spec\.js|hpv2-doc03-regression\.spec\.js|hipertrofia-identidad-canonica\.e2e\.spec\.js/,
       use: { ...devices["Desktop Firefox"] },
     },
 
     {
       name: "webkit",
       testIgnore:
-        /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js|onboarding-perfil-e2e\.spec\.js|crossfit-v2-e2e\.spec\.js|hpv2-doc03-regression\.spec\.js/,
+        /regresion-.*\.spec\.js|a11y\.spec\.js|auditoria-hipertrofia-nutricion\.spec\.js|onboarding-perfil-e2e\.spec\.js|crossfit-v2-e2e\.spec\.js|hpv2-doc03-regression\.spec\.js|hipertrofia-identidad-canonica\.e2e\.spec\.js/,
       use: { ...devices["Desktop Safari"] },
     },
 

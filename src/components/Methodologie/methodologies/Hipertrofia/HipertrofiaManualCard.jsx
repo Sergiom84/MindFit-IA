@@ -106,7 +106,7 @@ export default function HipertrofiaManualCard({ onGenerate, isLoading, error, st
     setEvaluating(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/hipertrofiav2/evaluate-level`, {
+      const response = await fetch(`${API_URL}/api/hipertrofia/evaluate-level`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -206,7 +206,7 @@ export default function HipertrofiaManualCard({ onGenerate, isLoading, error, st
 
       // Llamar al nuevo endpoint de generación D1-D5
       const response = await fetch(
-        `${API_URL}/api/hipertrofiav2/generate-d1d5`,
+        `${API_URL}/api/hipertrofia/generate-d1d5`,
         {
           method: 'POST',
           headers: {

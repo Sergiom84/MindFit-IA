@@ -22,6 +22,7 @@ VideoCorrection/
 ## Métodos Disponibles
 
 ### 1. 📸 Análisis por Imagen (`ImageCorrection`)
+
 - **Propósito**: Análisis postural estático usando fotografías
 - **Casos de uso**: Evaluación de postura, alineación corporal, análisis de posiciones específicas
 - **Ventajas**: No requiere movimiento, perfecto para análisis detallado de posición
@@ -33,11 +34,12 @@ VideoCorrection/
   - Eliminación individual de fotos
 
 ### 2. 🎥 Análisis por Video + 👁️ Corrección en Vivo (`VideoAnalysis`)
+
 - **Propósito**: Análisis completo de movimiento usando archivos de video **Y** corrección en tiempo real
-- **Casos de uso**: 
+- **Casos de uso**:
   - **Video**: Evaluación de rango de movimiento, tempo, técnica durante el ejercicio
   - **En Vivo**: Entrenamiento supervisado, correcciones inmediatas, coaching virtual
-- **Ventajas**: 
+- **Ventajas**:
   - **Video**: Análisis completo del movimiento, detección de patrones temporales
   - **En Vivo**: Feedback instantáneo, ideal para aprendizaje activo
 - **Archivos soportados**: MP4, MOV, AVI, WEBM (máx 50MB)
@@ -58,17 +60,20 @@ VideoCorrection/
 ## Componentes Compartidos
 
 ### `ExerciseSelector.jsx`
+
 - Biblioteca de ejercicios con fallback local
 - Información de errores comunes y puntos clave
 - Integración con API de ejercicios
 
-### `AnalysisResult.jsx` 
+### `AnalysisResult.jsx`
+
 - Visualización unificada de resultados de IA
 - Soporte para múltiples formatos de respuesta
 - Controles de reproducción de audio
 - Métricas y estadísticas detalladas
 
 ### `VoiceFeedback.jsx`
+
 - Síntesis de voz en español
 - Reproducción de correcciones prioritarias
 - Control de audio (play/stop)
@@ -76,12 +81,14 @@ VideoCorrection/
 ## Integración con Backend
 
 ### Endpoints utilizados:
+
 - **Imagen**: `/api/ai-photo-correction/analyze`
-- **Video**: `/api/ai/analyze-video`  
+- **Video**: `/api/ai/analyze-video`
 - **En vivo**: `/api/ai/advanced-correction`
 - **Ejercicios**: `/api/exercises?limit=500`
 
 ### Formato de datos enviados:
+
 ```javascript
 {
   exercise_name: 'squat',
@@ -102,7 +109,7 @@ VideoCorrection/
 
 1. **Selección de método**: El usuario elige entre imagen o video (que incluye corrección en vivo)
 2. **Configuración**: Selecciona el ejercicio a analizar
-3. **Captura de datos**: 
+3. **Captura de datos**:
    - **Imagen**: Sube fotos desde diferentes ángulos
    - **Video**: Sube archivo de video del ejercicio **O** activa cámara en vivo
 4. **Análisis**: El sistema procesa los datos con IA
@@ -112,20 +119,24 @@ VideoCorrection/
 ## Características Técnicas
 
 ### Autenticación
+
 - Todos los módulos requieren usuario autenticado
 - Contexto de usuario disponible para personalización
 
 ### Manejo de Errores
+
 - Validación de archivos (tamaño, formato)
-- Mensajes de error descriptivos  
+- Mensajes de error descriptivos
 - Fallbacks para API no disponible
 
 ### Accesibilidad
+
 - Soporte para síntesis de voz
 - Controles de teclado
 - Mensajes descriptivos
 
 ### Responsividad
+
 - Diseño adaptativo para móviles
 - Grid layouts flexibles
 - Controles optimizados para touch

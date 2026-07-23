@@ -21,6 +21,28 @@ test("regeneración CrossFit v2 conserva drafts y enruta al especialista", () =>
   assert.match(modal, /planId && !usesImmutableRevisions/);
 });
 
+test("los tres entrypoints genéricos conservan revisiones CrossFit sin romper Hipertrofia", () => {
+  const route = read("../routes/routineGeneration.js");
+  const specialist = route
+    .split("router.post('/specialist/:methodology/generate'")[1]
+    .split("router.post('/ai/methodology'")[0];
+  const ai = route
+    .split("router.post('/ai/methodology'")[1]
+    .split("router.post('/ai/gym-routine'")[0];
+  const manual = route
+    .split("router.post('/manual/methodology'")[1]
+    .split("router.post('/manual/calistenia'")[0];
+
+  assert.match(specialist, /if \(!methodologyUsesImmutableDraftRevisions\(methodology\)\)/);
+  assert.match(manual, /if \(!methodologyUsesImmutableDraftRevisions\(methodology\)\)/);
+  assert.match(ai, /if \(!methodologyUsesImmutableDraftRevisions\(personalizedPlanData\.methodology\)\)/);
+  assert.ok(
+    ai.indexOf("isHipertrofiaMethodology(personalizedPlanData.methodology)") <
+      ai.indexOf("methodologyUsesImmutableDraftRevisions(personalizedPlanData.methodology)"),
+    "Hipertrofia debe delegar antes de la limpieza del flujo genérico"
+  );
+});
+
 test("migración de revisiones es aditiva, idempotente y forma parte del QA efímero", () => {
   const sql = read("../migrations/20260722_crossfit_v2_plan_revisions.sql");
   const workflow = read("../../.github/workflows/ci.yml");
