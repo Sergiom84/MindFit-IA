@@ -13,7 +13,10 @@ import {
 import {
   activateMethodologyPlan
 } from '../../services/methodologyPlansService.js';
-import { confirmCrossfitPlanV2 } from '../../services/crossfit/integration/confirmPlanService.js';
+import {
+  confirmCrossfitPlanV2,
+  crossfitCanonicalStartDate
+} from '../../services/crossfit/integration/confirmPlanService.js';
 import { isCrossfitV2PlanData } from '../../services/trainingLoad/sessionPlanMetadataService.js';
 import {
   ensureMethodologySessions,
@@ -238,20 +241,22 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
         );
         startConfig = startConfigQuery.rows[0] ?? null;
       }
-      let persistedStartDate = resolvedStartDate;
-      if (!persistedStartDate && plan.plan_start_date) {
-        persistedStartDate = new Date(`${formatLocalDate(plan.plan_start_date)}T00:00:00`);
-      }
+      let persistedStartDate = resolvedStartDate
+        ? formatLocalDate(resolvedStartDate)
+        : formatLocalDate(plan.plan_start_date);
+      persistedStartDate ||= crossfitCanonicalStartDate(plan.plan_data);
       if (!persistedStartDate) {
         const now = new Date();
         const dow = now.getDay();
-        persistedStartDate = dow === 0 || dow === 6 ? getNextMonday(now) : now;
+        persistedStartDate = formatLocalDate(
+          dow === 0 || dow === 6 ? getNextMonday(now) : now
+        );
       }
       const confirmation = await confirmCrossfitPlanV2({
         client,
         userId,
         planId: methodology_plan_id,
-        startDate: formatLocalDate(persistedStartDate),
+        startDate: persistedStartDate,
         startConfig
       });
       return res.json({

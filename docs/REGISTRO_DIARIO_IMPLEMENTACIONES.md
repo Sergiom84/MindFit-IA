@@ -531,3 +531,7 @@
 - CrossFit v2: los 32 perfiles sintéticos pasan como casos ejecutables con oráculos de clasificación, programación, seguridad, autorregulación y nutrición; se añade dosificación de fuerza por capacidad asimétrica, prioridad de fatiga/dolor sobre progresión y resolución de fechas en `Europe/Madrid` con cobertura de medianoche y DST.
 - CrossFit v2 E2E: desktop y móvil fijan `Europe/Madrid` para alinear el “hoy” del navegador con el backend alrededor de medianoche UTC y evitar abrir una sesión legacy sin metadata canónica.
 - Seguridad del PR CrossFit: saneado `backend/.env.example` tras el finding GitGuardian sobre la URI PostgreSQL heredada de `main`; credenciales vacías, defaults locales no sensibles, LF y flags CrossFit explícitamente apagados.
+
+## 2026-07-24
+
+- CrossFit v2: la confirmación materializa el calendario desde la fecha canónica ya resuelta por el generador antes de cualquier fallback horario del proceso, evitando el desfase de un día observado en CI alrededor de medianoche `Europe/Madrid`.

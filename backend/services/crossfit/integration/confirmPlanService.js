@@ -29,6 +29,11 @@ function expectedScheduleShape(planData) {
   };
 }
 
+export function crossfitCanonicalStartDate(planData = {}) {
+  const date = planData?.crossfit_v2?.weeks?.[0]?.sessions?.[0]?.date;
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(date ?? "")) ? date : null;
+}
+
 async function readMaterializedShape(client, userId, planId) {
   const result = await client.query(
     `SELECT

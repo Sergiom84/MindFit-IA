@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { generateCrossfitPlanV2 } from "../services/crossfit/generator/planGenerator.js";
-import { confirmCrossfitPlanV2 } from "../services/crossfit/integration/confirmPlanService.js";
+import {
+  confirmCrossfitPlanV2,
+  crossfitCanonicalStartDate
+} from "../services/crossfit/integration/confirmPlanService.js";
 import { presentCrossfitPlanV2 } from "../services/crossfit/integration/legacyPresentationAdapter.js";
 import {
   allCrossfitEquipment,
@@ -53,6 +56,12 @@ function clientFor({ status = "draft", persistedDays = 56, persistedSessions = 2
     }
   };
 }
+
+test("la confirmación conserva la fecha canónica resuelta por el generador", () => {
+  const source = planData();
+  assert.equal(crossfitCanonicalStartDate(source), "2026-07-27");
+  assert.equal(crossfitCanonicalStartDate({ crossfit_v2: { weeks: [] } }), null);
+});
 
 test("confirmación CrossFit activa y materializa de forma atómica", async () => {
   const client = clientFor();
