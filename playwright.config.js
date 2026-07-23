@@ -61,7 +61,10 @@ export default defineConfig({
       testMatch: /crossfit-v2-e2e\.spec\.js/,
       fullyParallel: false,
       retries: 0,
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        timezoneId: "Europe/Madrid",
+      },
     },
     {
       name: "crossfit-v2-mobile",
@@ -73,6 +76,7 @@ export default defineConfig({
         viewport: { width: 375, height: 812 },
         isMobile: true,
         hasTouch: true,
+        timezoneId: "Europe/Madrid",
       },
     },
     /* T8 (doc 03): gates de regresión frontend/UI (source asserts + hit-test 390×844). */
