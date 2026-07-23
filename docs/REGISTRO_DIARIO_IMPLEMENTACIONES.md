@@ -2,7 +2,11 @@
 
 ## 23.07.2026
 
+- **Hipertrofia · E2E real sin estado compartido**: separé las cuentas de prueba de escritorio y móvil para que cada viewport genere su propio plan y no herede el modal de plan activo del anterior. Con ello el recorrido valida ambos tamaños de forma independiente sobre el backend aislado.
+- **Hipertrofia · E2E real ajustado al Historial**: refiné la aserción final del recorrido UI para aceptar el estado visible real de la pantalla de Historial (`Todas las rutinas completadas` o el mensaje vacío), evitando un falso fallo por un badge duplicado. Pendiente reejecutar el E2E completo para confirmar escritorio y móvil.
+- **Hipertrofia · reauditoría xhigh del PR #65**: reforcé el orquestador D1-D5 para aceptar dependencias inyectables en tests y hacer observable la limpieza única, añadí un test de unidad que valida el orden `cleanup → build → BEGIN → cleanUserDrafts → persist → COMMIT`, y rehice el E2E real de Hipertrofia para cubrir `POST /api/methodology/generate` con identidad canónica/aliases, login UI, generación, Hoy, reproductor dedicado, RIR, cierre y pestaña Historial en escritorio y móvil. Pendiente validar lint/build/tests/E2E sobre el backend y el preview local aislado.
 - **Hipertrofia · cierres P1/P2 del PR #65**: el proxy manual `/api/methodology/generate` acepta `hipertrofia` y sus aliases mediante el helper canónico sin caer al generador genérico; `/api/routine-generation/ai/methodology` deja la limpieza de drafts al orquestador dedicado para evitar doble ejecución; `methodologySingleDay` usa el helper en vez de `includes('hipertrofia')`. Se añadieron pruebas HTTP para canónico y aliases, más guards de fuente sobre el orden de limpieza y la ruta single-day. Validación: `npx playwright test tests/hipertrofia-identidad-canonica.spec.js --reporter=list` en verde; `npm run lint` y `npm run build` sin errores. La suite `npm run test:backend` sigue mostrando el rojo preexistente de `backend/tests/calisteniaKnownDefects.test.js` y el E2E real permanece bloqueado aquí por falta de Postgres/Docker local.
+- **Hipertrofia · endurecimiento de puntos críticos de identidad**: `planAutoregService`, `nutritionAdjustmentService` y `homeTraining/preferences` dejan de depender de `includes('hipertrofia')` y usan el helper canónico `isHipertrofiaMethodology`; se amplió la cobertura para el helper de autorregulación y se endurecieron las guards de fuente para runtime. Pendiente revalidar lint/tests/E2E tras esta pasada.
 - **Hipertrofia · CI/GitHub Actions**: se añadió `libvips-dev` en los workflows que ejecutan `npm ci` en Ubuntu (`ci.yml` y `android.yml`) para evitar el fallo de compilación de `sharp` en `build-test`, `dependency-audit`, `a11y-audit` y el build móvil. Validación local: `git diff --check` limpio; pendiente observar el rerun real de GitHub Actions tras el push de esta corrección.
 
 ## 22.07.2026
@@ -492,3 +496,8 @@
 ## 2026-07-18
 
 - Cierre de la auditoría HipertrofiaV2/Nutrición: lecturas de perfil y plan activo deduplicadas mediante caché compartida e invalidación tras mutaciones (B-01), retirada la última redirección ejecutable de Hipertrofia legacy (B-02), ampliado el gate de menús a las 12 comidas del recorrido (A-04) y añadido Playwright móvil 390×844 para verificar que el reproductor captura el toque por encima de la navegación (A-05/M-05).
+
+## 2026-07-23
+
+- Reauditoría del renombrado canónico de Hipertrofia: refuerzo de detección por helper único en rutas de nutrición, progresión y home-training, y consolidación de la limpieza única en el orquestador D1-D5 para evitar dobles borrados en el flujo `/ai/methodology`.
+- E2E real de Hipertrofia ajustada a la UX de jueves (modal de distribución antes del modal MindFeed), reutilizando usuarios API/UI para reducir presión sobre auth y validar login, generación D1-D5, persistencia, Hoy, RIR, cierre y navegación a Historial en un stack local aislado.

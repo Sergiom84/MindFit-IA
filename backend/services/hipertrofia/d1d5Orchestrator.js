@@ -20,6 +20,13 @@ import { logger } from './logger.js';
  * Genera y persiste un plan D1-D5 para un usuario (idéntico a la ruta dedicada).
  * @param {number} userId
  * @param {{nivel?: string, totalWeeks?: number, startConfig?: object, includeWeek0?: boolean}} params
+ * @param {{
+ *   pool?: typeof import('../../db.js').default,
+ *   buildD1D5Plan?: typeof buildD1D5Plan,
+ *   persistD1D5Plan?: typeof persistD1D5Plan,
+ *   cleanUserDrafts?: typeof cleanUserDrafts,
+ *   cleanupUserStaleSessions?: typeof cleanupUserStaleSessions
+ * }} [deps]
  * @returns {Promise<{plan: object, methodologyPlanId: number, planId: number}>}
  */
 export async function generateAndPersistD1D5Plan(userId, {
@@ -27,22 +34,28 @@ export async function generateAndPersistD1D5Plan(userId, {
   totalWeeks,
   startConfig,
   includeWeek0 = true
-} = {}) {
+} = {}, deps = {}) {
+  const orchestratorPool = deps.pool || pool;
+  const buildPlan = deps.buildD1D5Plan || buildD1D5Plan;
+  const persistPlan = deps.persistD1D5Plan || persistD1D5Plan;
+  const cleanDrafts = deps.cleanUserDrafts || cleanUserDrafts;
+  const cleanupSessions = deps.cleanupUserStaleSessions || cleanupUserStaleSessions;
+
   // Limpieza pre-generación: cerrar sesiones huérfanas antes de generar el plan.
-  const cleanupResult = await cleanupUserStaleSessions(userId);
+  const cleanupResult = await cleanupSessions(userId);
   if (cleanupResult.cleaned > 0) {
     logger.info(`🧹 [MINDFEED] Pre-limpieza: ${cleanupResult.cleaned} sesiones/drafts limpiados`);
   }
 
   // Fase 1: construcción (solo lecturas, sobre el pool, sin retener conexión de tx).
-  const built = await buildD1D5Plan(pool, { userId, nivel, totalWeeks, startConfig, includeWeek0 });
+  const built = await buildPlan(orchestratorPool, { userId, nivel, totalWeeks, startConfig, includeWeek0 });
 
   // Fase 2: persistencia atómica en una transacción CORTA.
-  const dbClient = await pool.connect();
+  const dbClient = await orchestratorPool.connect();
   try {
     await dbClient.query('BEGIN');
-    await cleanUserDrafts(userId, dbClient);
-    const result = await persistD1D5Plan(dbClient, built);
+    await cleanDrafts(userId, dbClient);
+    const result = await persistPlan(dbClient, built);
     await dbClient.query('COMMIT');
     return result;
   } catch (txError) {

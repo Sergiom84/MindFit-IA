@@ -54,6 +54,22 @@ test.describe('Hipertrofia · identidad canónica (fuente, CI-safe)', () => {
     expect(utils).toContain('HIPERTROFIA_DISPLAY_NAME');
   });
 
+  test('runtime: los mapeos críticos de Hipertrofia usan helper canónico, no includes laxo', () => {
+    const runtimeSources = [
+      read('backend/services/nutritionV2/menuDataAccess.js'),
+      read('backend/services/nutritionAdjustmentService.js'),
+      read('backend/services/progression/planAutoregService.js'),
+      read('backend/routes/homeTraining/preferences.js'),
+      read('src/components/nutrition/nutritionPlanHelpers.js')
+    ];
+
+    for (const src of runtimeSources) {
+      expect(src).toContain('isHipertrofiaMethodology');
+      expect(src).not.toContain("includes('hipertrofia')");
+      expect(src).not.toContain('includes("hipertrofia")');
+    }
+  });
+
   test('API: router de Hipertrofia montado bajo canónico + alias legacy', () => {
     const server = read('backend/server.js');
     expect(server).toContain("app.use('/api/hipertrofia', hipertrofiaRoutes)");
