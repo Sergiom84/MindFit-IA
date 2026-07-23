@@ -5,42 +5,35 @@ Este directorio contiene componentes reutilizables por todos los módulos de cor
 ## Componentes Disponibles
 
 ### `ExerciseSelector.jsx`
-
 **Propósito**: Selector unificado de ejercicios con información contextual
 
 **Props**:
-
 - `selectedExerciseId` (string): ID del ejercicio seleccionado
 - `onExerciseChange` (function): Callback cuando cambia la selección
 
 **Características**:
-
 - Carga automática desde API `/api/exercises?limit=500`
 - Fallback a ejercicios predefinidos si API no disponible
 - Muestra errores comunes y puntos clave por ejercicio
 - UI consistente con el sistema de diseño
 
 **Uso**:
-
 ```jsx
-<ExerciseSelector
+<ExerciseSelector 
   selectedExerciseId={selectedExerciseId}
   onExerciseChange={setSelectedExerciseId}
 />
 ```
 
-### `AnalysisResult.jsx`
-
+### `AnalysisResult.jsx` 
 **Propósito**: Visualización unificada de resultados de análisis de IA
 
 **Props**:
-
 - `result` (object): Objeto con resultados normalizados de IA
 - `onSpeakCorrections` (function): Callback para reproducir correcciones
 - `onStopSpeaking` (function): Callback para detener síntesis de voz
 
 **Estructura esperada del resultado**:
-
 ```javascript
 {
   ejercicio: string,
@@ -79,17 +72,14 @@ Este directorio contiene componentes reutilizables por todos los módulos de cor
 ```
 
 ### `VoiceFeedback.jsx`
-
 **Propósito**: Hook personalizado para síntesis de voz
 
 **Returns**:
-
 - `speakText(text)`: Reproduce texto específico
 - `stopSpeaking()`: Detiene reproducción actual
 - `speakCorrections(result)`: Reproduce correcciones del resultado de IA
 
 **Características**:
-
 - Soporte para español (es-ES)
 - Configuración optimizada (rate: 0.95, pitch: 1.0, volume: 0.9)
 - Cancelación automática de síntesis previa
@@ -107,12 +97,11 @@ const normalizePhotoAnalysis = (payload, fallbackExercise) => {
 };
 
 const normalizeVideoAnalysis = (payload, fallbackExercise) => {
-  // Normaliza respuesta del endpoint de video
+  // Normaliza respuesta del endpoint de video  
 };
 ```
 
 **Funcionalidades de normalización**:
-
 - Mapeo de niveles de riesgo a confianza
 - Extracción de correcciones desde múltiples fuentes
 - Generación automática de feedback de voz
@@ -122,43 +111,38 @@ const normalizeVideoAnalysis = (payload, fallbackExercise) => {
 ## Patrones de Uso
 
 ### Manejo de Estados
-
 ```javascript
-const [selectedExerciseId, setSelectedExerciseId] = useState("squat");
+const [selectedExerciseId, setSelectedExerciseId] = useState('squat');
 const [isAnalyzing, setIsAnalyzing] = useState(false);
 const [analysisResult, setAnalysisResult] = useState(null);
 const [showResults, setShowResults] = useState(false);
 ```
 
 ### Integración con Contextos
-
 ```javascript
-import { useAuth } from "@/contexts/AuthContext";
-import { useUserContext } from "@/contexts/UserContext";
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserContext } from '@/contexts/UserContext';
 
 const { user } = useAuth();
 const { userData } = useUserContext();
 ```
 
 ### Manejo de Archivos
-
 ```javascript
 // Para imágenes
 const previews = await Promise.all(
-  files.map(
-    (file) =>
-      new Promise((res) => {
-        const reader = new FileReader();
-        reader.onload = () =>
-          res({
-            id: Math.random().toString(36),
-            name: file.name,
-            url: reader.result,
-            file: file,
-          });
-        reader.readAsDataURL(file);
-      }),
-  ),
+  files.map((file) =>
+    new Promise((res) => {
+      const reader = new FileReader();
+      reader.onload = () => res({ 
+        id: Math.random().toString(36),
+        name: file.name, 
+        url: reader.result,
+        file: file
+      });
+      reader.readAsDataURL(file);
+    })
+  )
 );
 
 // Para videos
@@ -168,7 +152,7 @@ const videoInfo = await new Promise((resolve) => {
       duration: video.duration,
       width: video.videoWidth,
       height: video.videoHeight,
-      size: file.size,
+      size: file.size
     });
   };
 });
@@ -177,13 +161,11 @@ const videoInfo = await new Promise((resolve) => {
 ## Estilos Consistentes
 
 ### Colores por Módulo
-
 - **Imagen**: Azul (`blue-400`, `blue-500`)
-- **Video**: Verde (`green-400`, `green-500`)
+- **Video**: Verde (`green-400`, `green-500`) 
 - **En Vivo**: Amarillo (`yellow-400`, `yellow-500`)
 
 ### Cards Informativas
-
 ```jsx
 <div className="flex items-center space-x-3 p-3 bg-blue-500/10 rounded-lg border border-blue-400/20">
   <Icon className="w-8 h-8 text-blue-400" />
@@ -195,7 +177,6 @@ const videoInfo = await new Promise((resolve) => {
 ```
 
 ### Botones de Análisis
-
 ```jsx
 <Button
   onClick={handleAnalyze}
@@ -203,14 +184,13 @@ const videoInfo = await new Promise((resolve) => {
   className="bg-yellow-400 text-black hover:bg-yellow-300 font-semibold"
 >
   <Brain className="w-4 h-4 mr-2" />
-  {isAnalyzing ? "Analizando..." : "Analizar"}
+  {isAnalyzing ? 'Analizando...' : 'Analizar'}
 </Button>
 ```
 
 ## Próximas Mejoras
 
 ### Componentes Adicionales Sugeridos
-
 - `FileUploadZone.jsx`: Zona de arrastrar y soltar universal
 - `ProgressIndicator.jsx`: Indicador de progreso de análisis
 - `ExerciseLibrary.jsx`: Biblioteca expandida con filtros

@@ -19,7 +19,7 @@ You are an expert code analyst and optimizer specializing in the Entrena con IA 
    - Identify syntax errors, logic flaws, and potential runtime issues
    - Detect violations of the project's critical module separation (NEVER mix home_exercise_history with exercise_history)
    - Check for proper error handling and edge case coverage
-   - Verify database operations use the correct schema (app.\*) and tables
+   - Verify database operations use the correct schema (app.*) and tables
    - Ensure API endpoints follow RESTful conventions with /api/ prefix
 
 3. **Code Optimization & Improvement**
