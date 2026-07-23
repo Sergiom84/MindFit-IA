@@ -37,6 +37,22 @@ test("CAL-01: nivel ausente → 'principiante' (default seguro, no lanza)", () =
   assert.equal(resolveCalisteniaLevelKey({ selectedLevel: "   " }), "principiante");
 });
 
+test("CAL-01 F1: profileLevel (ambiental) sucio NO aborta la generación → default seguro", () => {
+  // Un nivel_entrenamiento legacy/no canónico del perfil NO debe lanzar 422 (regresión H-C1):
+  // se ignora y cae al default seguro. Solo el nivel EXPLÍCITO lanza.
+  assert.equal(resolveCalisteniaLevelKey({ profileLevel: "novato" }), "principiante");
+  assert.equal(resolveCalisteniaLevelKey({ profileLevel: "intermedio-avanzado" }), "principiante");
+  // profileLevel canónico sí se respeta.
+  assert.equal(resolveCalisteniaLevelKey({ profileLevel: "avanzado" }), "avanzado");
+  // profileLevel sucio pero con selectedLevel válido: gana el explícito.
+  assert.equal(resolveCalisteniaLevelKey({ selectedLevel: "intermedio", profileLevel: "novato" }), "intermedio");
+});
+
+test("CAL-01 F1: un selectedLevel/aiLevel EXPLÍCITO inválido SÍ lanza 422 (no se degrada)", () => {
+  assert.throws(() => resolveCalisteniaLevelKey({ selectedLevel: "ninja" }), (e) => e.statusCode === 422);
+  assert.throws(() => resolveCalisteniaLevelKey({ aiLevel: "elite" }), (e) => e.statusCode === 422);
+});
+
 test("CAL-01: nivel provisto pero NO reconocido → 422 tipado (no principiante silencioso)", () => {
   assert.throws(
     () => resolveCalisteniaLevelKey({ selectedLevel: "ninja" }),

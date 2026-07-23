@@ -32,6 +32,22 @@ import { buildProfileAwarePlanData } from '../services/userProfileContract.js';
 
 const router = express.Router();
 
+/**
+ * Responde un error de generación honrando un `statusCode` de dominio tipado (p.ej. 422 de
+ * calistenia por nivel no reconocido o assessment 'refer'); el resto se mantiene en 500. Propaga
+ * el `code` si existe. Antes cada handler devolvía 500 fijo, perdiendo la granularidad del error
+ * en 3 de 4 rutas que llaman a la generación (PR-CAL-01, revisión adversarial F2).
+ */
+function respondGenerationError(res, context, error) {
+  const status = Number.isInteger(error?.statusCode) ? error.statusCode : 500;
+  logger.error(`❌ ${context} (${status}):`, error.message);
+  res.status(status).json({
+    success: false,
+    error: error.message,
+    ...(error?.code ? { code: error.code } : {})
+  });
+}
+
 // =========================================
 // SPECIALIST ENDPOINTS - EVALUATION
 // Pattern: /specialist/:methodology/evaluate
@@ -86,15 +102,7 @@ router.post('/specialist/:methodology/generate', authenticateToken, async (req, 
     res.json(result);
 
   } catch (error) {
-    // PR-CAL-01: errores de dominio tipados (p.ej. nivel no reconocido) responden su propio
-    // statusCode (422) en vez de un 500 genérico; el resto se mantiene en 500.
-    const status = Number.isInteger(error?.statusCode) ? error.statusCode : 500;
-    logger.error(`❌ Error generando plan ${methodology} (${status}):`, error.message);
-    res.status(status).json({
-      success: false,
-      error: error.message,
-      ...(error?.code ? { code: error.code } : {})
-    });
+    respondGenerationError(res, `Error generando plan ${methodology}`, error);
   }
 });
 
@@ -131,11 +139,7 @@ router.post('/ai/methodology', authenticateToken, async (req, res) => {
     res.json(result);
 
   } catch (error) {
-    logger.error(`❌ Error en generación IA:`, error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    respondGenerationError(res, 'Error en generación IA', error);
   }
 });
 
@@ -156,11 +160,7 @@ router.post('/ai/gym-routine', authenticateToken, async (req, res) => {
     res.json(result);
 
   } catch (error) {
-    logger.error(`❌ Error en rutina gimnasio IA:`, error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    respondGenerationError(res, 'Error en rutina gimnasio IA', error);
   }
 });
 
@@ -188,11 +188,7 @@ router.post('/manual/methodology', authenticateToken, async (req, res) => {
     res.json(result);
 
   } catch (error) {
-    logger.error(`❌ Error en creación manual:`, error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    respondGenerationError(res, 'Error en creación manual', error);
   }
 });
 
@@ -213,11 +209,7 @@ router.post('/manual/calistenia', authenticateToken, async (req, res) => {
     res.json(result);
 
   } catch (error) {
-    logger.error(`❌ Error en plan calistenia manual:`, error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    respondGenerationError(res, 'Error en plan calistenia manual', error);
   }
 });
 

@@ -72,8 +72,9 @@ const TRAINING_FOCUS_ALIASES = {
   general: "general"
 };
 
-// PR-CAL-01 Subfase B (G4): entorno de entrenamiento. Alimenta el contexto/confianza del
-// assessment de calistenia (parque con barras ≠ casa). Valor desconocido/ausente → null
+// PR-CAL-01 Subfase B (G4): entorno de entrenamiento. Hoy se PERSISTE en plan_data.context
+// (informativo/trazabilidad); todavía NO lo consume el gate del assessment ni la confianza —
+// ese cableado está diferido (requiere UI que lo capture). Valor desconocido/ausente → null
 // (nunca se inventa un entorno). El filtrado por equipo se difiere a CAL-02A (catálogo sucio).
 const TRAINING_ENVIRONMENT_ALIASES = {
   gimnasio: "gimnasio",
@@ -144,8 +145,9 @@ export function normalizeTrainingEnvironment(value) {
   return TRAINING_ENVIRONMENT_ALIASES[toKey(value)] || null;
 }
 
-// Confirmación explícita de que el usuario tiene y sabe usar el equipo con seguridad (gate de
-// seguridad del assessment, Subfase C). true/false explícitos; ausente o ambiguo → null (dato
+// Confirmación explícita de que el usuario tiene y sabe usar el equipo con seguridad. Hoy se
+// PERSISTE en plan_data.context (informativo); todavía NO se pasa a assessCalistenia (el gate no
+// lo consume aún — cableado diferido). true/false explícitos; ausente o ambiguo → null (dato
 // ausente = null: no se asume que el equipo es seguro).
 const SAFETY_TRUE = new Set(["true", "1", "si", "yes", "confirmado", "confirmed"]);
 const SAFETY_FALSE = new Set(["false", "0", "no", "denegado", "denied"]);

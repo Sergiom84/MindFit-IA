@@ -240,17 +240,24 @@ const SESSION_TEMPLATES = {
  * @returns {'principiante'|'intermedio'|'avanzado'}
  */
 export function resolveCalisteniaLevelKey({ selectedLevel = null, aiLevel = null, profileLevel = null } = {}) {
-  const rawLevel = [selectedLevel, aiLevel, profileLevel]
-    .find((v) => v != null && String(v).trim() !== '');
-  if (rawLevel == null) return 'principiante';
-  const level = normalizeMethodologyLevel('calistenia', rawLevel);
-  if (level === null) {
-    const err = new Error(`Nivel de calistenia no reconocido: '${rawLevel}'`);
-    err.statusCode = 422;
-    err.code = 'CALISTHENICS_LEVEL_UNRECOGNIZED';
-    throw err;
+  // Fuentes EXPLÍCITAS (petición del usuario o recomendación de IA): un valor provisto pero no
+  // reconocido → 422 (no principiante silencioso).
+  for (const explicit of [selectedLevel, aiLevel]) {
+    if (explicit != null && String(explicit).trim() !== '') {
+      const level = normalizeMethodologyLevel('calistenia', explicit);
+      if (level === null) {
+        const err = new Error(`Nivel de calistenia no reconocido: '${explicit}'`);
+        err.statusCode = 422;
+        err.code = 'CALISTHENICS_LEVEL_UNRECOGNIZED';
+        throw err;
+      }
+      return level;
+    }
   }
-  return level;
+  // Fuente AMBIENTAL (nivel_entrenamiento del perfil): un valor legacy/sucio NO debe abortar la
+  // generación (regresión H-C1). Si es canónico se respeta; si no, se ignora y cae al default
+  // seguro 'principiante'. Nunca lanza por dato de perfil.
+  return normalizeMethodologyLevel('calistenia', profileLevel) || 'principiante';
 }
 
 /**
