@@ -72,6 +72,26 @@ const TRAINING_FOCUS_ALIASES = {
   general: "general"
 };
 
+// PR-CAL-01 Subfase B (G4): entorno de entrenamiento. Alimenta el contexto/confianza del
+// assessment de calistenia (parque con barras ≠ casa). Valor desconocido/ausente → null
+// (nunca se inventa un entorno). El filtrado por equipo se difiere a CAL-02A (catálogo sucio).
+const TRAINING_ENVIRONMENT_ALIASES = {
+  gimnasio: "gimnasio",
+  gym: "gimnasio",
+  box: "gimnasio",
+  casa: "casa",
+  hogar: "casa",
+  home: "casa",
+  indoor: "casa",
+  exterior: "exterior",
+  aire_libre: "exterior",
+  parque: "exterior",
+  park: "exterior",
+  calle: "exterior",
+  street: "exterior",
+  outdoor: "exterior"
+};
+
 const OBJECTIVE_METHODOLOGY = {
   ganar_fuerza: "powerlifting",
   ganar_masa_muscular: "gimnasio",
@@ -116,6 +136,32 @@ export function normalizePreferredMethodology(value) {
 export function normalizeTrainingFocus(value) {
   if (value === "" || value === undefined || value === null) return null;
   return TRAINING_FOCUS_ALIASES[toKey(value)] || null;
+}
+
+export function normalizeTrainingEnvironment(value) {
+  if (value === "" || value === undefined || value === null) return null;
+  if (typeof value !== "string") return null;
+  return TRAINING_ENVIRONMENT_ALIASES[toKey(value)] || null;
+}
+
+// Confirmación explícita de que el usuario tiene y sabe usar el equipo con seguridad (gate de
+// seguridad del assessment, Subfase C). true/false explícitos; ausente o ambiguo → null (dato
+// ausente = null: no se asume que el equipo es seguro).
+const SAFETY_TRUE = new Set(["true", "1", "si", "yes", "confirmado", "confirmed"]);
+const SAFETY_FALSE = new Set(["false", "0", "no", "denegado", "denied"]);
+export function normalizeEquipmentSafetyConfirmed(value) {
+  if (value === true) return true;
+  if (value === false) return false;
+  if (typeof value === "number") {
+    if (value === 1) return true;
+    if (value === 0) return false;
+    return null;
+  }
+  if (typeof value !== "string") return null;
+  const key = toKey(value);
+  if (SAFETY_TRUE.has(key)) return true;
+  if (SAFETY_FALSE.has(key)) return false;
+  return null;
 }
 
 export function validateOnboardingProfile(profile = {}) {
