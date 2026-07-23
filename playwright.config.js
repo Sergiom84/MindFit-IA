@@ -60,12 +60,14 @@ export default defineConfig({
       name: "crossfit-v2-desktop",
       testMatch: /crossfit-v2-e2e\.spec\.js/,
       fullyParallel: false,
+      retries: 0,
       use: { ...devices["Desktop Chrome"] },
     },
     {
       name: "crossfit-v2-mobile",
       testMatch: /crossfit-v2-e2e\.spec\.js/,
       fullyParallel: false,
+      retries: 0,
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 375, height: 812 },

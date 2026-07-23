@@ -83,6 +83,10 @@ test("CI conecta migraciones y E2E CrossFit solo a PostgreSQL efímero local", (
     2,
   );
   assert.equal(
+    workflow.match(/20260720_phase0_training_nutrition_contract\.sql/g)?.length,
+    2,
+  );
+  assert.equal(
     workflow.match(/20260717_workout_schedule_unique_plan_user_date\.sql/g)
       ?.length,
     2,
@@ -95,4 +99,9 @@ test("CI conecta migraciones y E2E CrossFit solo a PostgreSQL efímero local", (
   assert.match(e2e, /acceptTerms: true/);
   assert.match(e2e, /\.\.\.\(data === null \? \{\} : \{ data \}\)/);
   assert.match(playwright, /width: 375, height: 812/);
+  assert.equal(
+    playwright.match(/name: "crossfit-v2-(?:desktop|mobile)"[\s\S]*?retries: 0/g)
+      ?.length,
+    2,
+  );
 });

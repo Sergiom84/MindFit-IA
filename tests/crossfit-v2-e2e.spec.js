@@ -16,9 +16,27 @@ const CATALOG = loadCrossfitCatalogFixture();
 const FULL_EQUIPMENT = allCrossfitEquipment(CATALOG);
 const SKILL_PERMISSIONS = allCrossfitSkillPermissions(CATALOG);
 const LEVEL_CASES = [
-  { level: "beginner", expected: "beginner", frequency: 3, score: 1 },
-  { level: "intermediate", expected: "intermediate", frequency: 4, score: 2 },
-  { level: "advanced", expected: "advanced", frequency: 5, score: 3 },
+  {
+    level: "beginner",
+    expected: "beginner",
+    frequency: 3,
+    score: 1,
+    substitutionSeed: "e2e-beginner-3",
+  },
+  {
+    level: "intermediate",
+    expected: "intermediate",
+    frequency: 4,
+    score: 2,
+    substitutionSeed: "e2e-intermediate-1",
+  },
+  {
+    level: "advanced",
+    expected: "advanced",
+    frequency: 5,
+    score: 3,
+    substitutionSeed: "e2e-advanced-0",
+  },
 ];
 const PROFILE_COUNT =
   fs
@@ -137,7 +155,13 @@ function assessment(score, { trusted = false } = {}) {
   };
 }
 
-async function provisionPlan(request, projectName, levelCase, tag) {
+async function provisionPlan(
+  request,
+  projectName,
+  levelCase,
+  tag,
+  generationOverrides = {},
+) {
   const email = syntheticEmail(tag, projectName);
   const account = await ensureUser(request, email, levelCase.frequency);
   if (levelCase.level === "advanced") {
@@ -201,6 +225,7 @@ async function provisionPlan(request, projectName, levelCase, tag) {
       crossfitAssessment: publicAssessment,
       startConfig: { startDate: "today" },
       source: "crossfit-v2-e2e",
+      ...generationOverrides,
     },
   });
   expect(
@@ -321,6 +346,10 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
         testInfo.project.name,
         levelCase,
         `api-${levelCase.level}`,
+        {
+          seed: levelCase.substitutionSeed,
+          start_date: "2026-07-27",
+        },
       );
       const scheduled = await firstScheduledSession(
         request,
@@ -587,10 +616,17 @@ test.describe("CrossFit profesional v2 · stack efímero", () => {
       );
       expect(effort.response.status(), JSON.stringify(effort.body)).toBe(200);
       expect(effort.body.registered).toBe(true);
+      const substitutedMovementId =
+        validSubstitution.body.substitution.original_movement_id;
+      const replacementMovementId =
+        validSubstitution.body.substitution.replacement.canonical_movement_id;
       expect(effort.body.result.scales).toEqual(
         canonicalSession.wod.movements.map((movement) => ({
           movement_id: movement.canonical_movement_id,
-          scale_id: "base",
+          scale_id:
+            movement.canonical_movement_id === substitutedMovementId
+              ? `substitution:${replacementMovementId}`
+              : "base",
         })),
       );
       expect([

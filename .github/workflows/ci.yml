@@ -144,7 +144,8 @@ jobs:
             -f backend/db/baseline/app_schema_baseline.sql \
             -f backend/migrations/20260717_workout_schedule_unique_plan_user_date.sql \
             -f backend/migrations/20260718_auth001_refresh_rotativo.sql \
-            -f backend/migrations/20260720_add_consent_columns_users.sql
+            -f backend/migrations/20260720_add_consent_columns_users.sql \
+            -f backend/migrations/20260720_phase0_training_nutrition_contract.sql
 
       - name: Aplicar migraciones CrossFit v2 dos veces (idempotencia)
         run: |
@@ -215,6 +216,7 @@ jobs:
             -f backend/migrations/20260717_workout_schedule_unique_plan_user_date.sql \
             -f backend/migrations/20260718_auth001_refresh_rotativo.sql \
             -f backend/migrations/20260720_add_consent_columns_users.sql \
+            -f backend/migrations/20260720_phase0_training_nutrition_contract.sql \
             -f backend/migrations/20260722_crossfit_v2_assessments.sql \
             -f backend/migrations/20260722_crossfit_v2_catalog.sql \
             -f backend/migrations/20260722_crossfit_v2_nutrition_day_types.sql \
