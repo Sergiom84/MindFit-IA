@@ -143,6 +143,36 @@ test('resuelve today y next_monday con fecha local antes de generar', () => {
   assert.equal(resolveCrossfitStartDate({ start_date: '2026-08-10' }, now), '2026-08-10');
 });
 
+test('resuelve medianoche y DST con calendario Europe/Madrid independiente del proceso', () => {
+  const mondayInMadrid = new Date('2026-07-26T22:30:00.000Z');
+  const sundayInMadrid = new Date('2026-07-26T21:30:00.000Z');
+  const dstMidnight = new Date('2026-03-29T22:30:00.000Z');
+
+  assert.equal(
+    resolveCrossfitStartDate({ startConfig: { startDate: 'today' } }, mondayInMadrid),
+    '2026-07-27'
+  );
+  assert.equal(
+    resolveCrossfitStartDate({ startConfig: { startDate: 'next_monday' } }, sundayInMadrid),
+    '2026-07-27'
+  );
+  assert.equal(
+    resolveCrossfitStartDate({ startConfig: { startDate: 'next_monday' } }, mondayInMadrid),
+    '2026-08-03'
+  );
+  assert.equal(
+    resolveCrossfitStartDate({ startConfig: { startDate: 'today' } }, dstMidnight),
+    '2026-03-30'
+  );
+  assert.equal(
+    resolveCrossfitStartDate({
+      time_zone: 'Invalid/Time_Zone',
+      startConfig: { startDate: 'today' }
+    }, mondayInMadrid),
+    '2026-07-27'
+  );
+});
+
 test('sin evaluación dimensional clasifica principiante provisional aunque se solicite avanzado', async () => {
   const db = fakeDb();
   const result = await generateCrossfitProductPlan({

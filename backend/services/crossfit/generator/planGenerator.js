@@ -1,6 +1,7 @@
 import { buildCrossfitPlannedTrainingLoad } from "../trainingLoadAdapter.js";
 import { getCrossfitFeatureFlags } from "../featureFlags.js";
 import { buildCrossfitProgramBlock } from "../programming/blockBuilder.js";
+import { getCrossfitProgramRules } from "../programming/programRules.js";
 import { CROSSFIT_VERSIONS } from "../versions.js";
 import { crossfitHash, stableCrossfitId } from "./deterministic.js";
 import { validateGeneratedCrossfitPlan } from "./planValidator.js";
@@ -22,6 +23,40 @@ function nextSessionHours(sessions, index) {
   if (!sessions[index + 1]) return null;
   return Math.round((Date.parse(`${sessions[index + 1].scheduled_date}T12:00:00Z`)
     - Date.parse(`${sessions[index].scheduled_date}T12:00:00Z`)) / 3600000);
+}
+
+const LEVEL_ORDER = Object.freeze(["beginner", "intermediate", "advanced"]);
+
+function dimensionLevel(globalLevel, score) {
+  const globalIndex = Math.max(0, LEVEL_ORDER.indexOf(globalLevel));
+  if (!Number.isFinite(Number(score))) return LEVEL_ORDER[globalIndex];
+  const scoreIndex = Math.max(0, Math.min(2, Number(score ?? 1) - 1));
+  return LEVEL_ORDER[Math.min(globalIndex, scoreIndex)];
+}
+
+function strengthBlockDose(globalLevel, dimensionScores, blueprint, week) {
+  const capacityLevel = dimensionLevel(globalLevel, dimensionScores?.strength);
+  const skillDimension = blueprint.secondary_domain === "gymnastics"
+    ? "gymnastics"
+    : blueprint.secondary_domain === "weightlifting"
+      ? "weightlifting"
+      : "technique";
+  const skillLevel = dimensionLevel(globalLevel, dimensionScores?.[skillDimension]);
+  const capacityRules = getCrossfitProgramRules(capacityLevel);
+  const maxRpe = capacityRules.strength.rpe[1];
+  return {
+    capacity_level: capacityLevel,
+    skill_level: skillLevel,
+    strength_sets: [...capacityRules.strength.sets],
+    strength_reps: [...capacityRules.strength.reps],
+    target_rpe: [
+      Math.min(blueprint.target_rpe[0], maxRpe),
+      Math.min(blueprint.target_rpe[1], maxRpe)
+    ],
+    new_skill_allowed: blueprint.new_skill_allowed
+      && skillLevel === globalLevel
+      && !week.is_deload
+  };
 }
 
 export function generateCrossfitPlanV2(input = {}) {
@@ -114,10 +149,13 @@ export function generateCrossfitPlanV2(input = {}) {
       });
       if (!plannedLoad.valid) return { ok: false, ...plannedLoad };
       const dayId = stableCrossfitId("cfd", [planId, blueprint.scheduled_date]);
+      const blockDose = strengthBlockDose(block.level, input.dimension_scores, blueprint, week);
       const sessionTrace = [trace("CF-GEN-SESSION", "session", "compose_validated", {
         week_number: week.week_number,
         day_index: blueprint.day_index,
-        progress_variable: blueprint.progress_variable
+        progress_variable: blueprint.progress_variable,
+        capacity_level: blockDose.capacity_level,
+        skill_level: blockDose.skill_level
       })];
       sessions.push({
         session_id: blueprint.session_id,
@@ -134,9 +172,13 @@ export function generateCrossfitPlanV2(input = {}) {
           type: week.is_deload ? "technique" : "strength_or_skill",
           primary_pattern: blueprint.primary_pattern,
           duration_minutes: 15,
-          target_rpe: blueprint.target_rpe,
+          capacity_level: blockDose.capacity_level,
+          skill_level: blockDose.skill_level,
+          strength_sets: blockDose.strength_sets,
+          strength_reps: blockDose.strength_reps,
+          target_rpe: blockDose.target_rpe,
           progress_variable: blueprint.progress_variable,
-          new_skill_allowed: blueprint.new_skill_allowed
+          new_skill_allowed: blockDose.new_skill_allowed
         }],
         wod: composed.wod,
         cooldown: [{ type: "downregulation", duration_minutes: 5 }],

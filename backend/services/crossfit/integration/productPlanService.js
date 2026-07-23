@@ -28,6 +28,16 @@ const EQUIPMENT_ALIASES = Object.freeze({
   "barra de dominadas": "pull_up_bar"
 });
 const REGENERATION_REASONS = new Set(["too_difficult", "too_easy", "dont_like", "change_focus"]);
+const DEFAULT_CROSSFIT_TIME_ZONE = "Europe/Madrid";
+const WEEKDAY_INDEX = Object.freeze({
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6
+});
 
 function normalizedToken(value) {
   const key = String(value ?? "")
@@ -43,33 +53,65 @@ function asList(value) {
   return value == null || value === "" ? [] : [value];
 }
 
-function localDateKey(value) {
+function resolveTimeZone(value) {
+  const candidate = String(value ?? "").trim() || DEFAULT_CROSSFIT_TIME_ZONE;
+  try {
+    new Intl.DateTimeFormat("en-CA", { timeZone: candidate }).format();
+    return candidate;
+  } catch {
+    return DEFAULT_CROSSFIT_TIME_ZONE;
+  }
+}
+
+function zonedDateParts(value, timeZone) {
   const date = value instanceof Date ? value : new Date(value);
   if (!Number.isFinite(date.getTime())) return null;
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short"
+  }).formatToParts(date).map((part) => [part.type, part.value]));
+  return {
+    date_key: `${parts.year}-${parts.month}-${parts.day}`,
+    weekday: WEEKDAY_INDEX[parts.weekday]
+  };
+}
+
+function addCalendarDays(dateKey, days) {
+  const date = new Date(`${dateKey}T12:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
 export function resolveCrossfitStartDate(planData = {}, now = new Date()) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(String(planData.start_date ?? ""))) return planData.start_date;
   const config = planData.startConfig ?? planData.start_config ?? {};
+  const timeZone = resolveTimeZone(
+    planData.time_zone
+    ?? planData.timezone
+    ?? planData.timeZone
+    ?? config.time_zone
+    ?? config.timezone
+    ?? config.timeZone
+  );
   const local = config.startDateLocal ?? config.start_date_local;
   if (/^\d{4}-\d{2}-\d{2}$/.test(String(local ?? ""))) return local;
   const raw = String(config.startDate ?? config.start_date ?? "").trim().toLowerCase();
-  if (raw === "today" || raw === "home_training_today") return localDateKey(now);
+  const today = zonedDateParts(now, timeZone);
+  if (!today) return null;
+  if (raw === "today" || raw === "home_training_today") return today.date_key;
   if (raw === "next_monday") {
-    const next = new Date(now);
-    const offset = (8 - next.getDay()) % 7 || 7;
-    next.setDate(next.getDate() + offset);
-    return localDateKey(next);
+    const offset = (8 - today.weekday) % 7 || 7;
+    return addCalendarDays(today.date_key, offset);
   }
   if (raw) {
-    const parsed = localDateKey(raw);
-    if (parsed) return parsed;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    const parsed = zonedDateParts(raw, timeZone);
+    if (parsed) return parsed.date_key;
   }
-  return localDateKey(now);
+  return today.date_key;
 }
 
 export function normalizeCrossfitEquipment(values = []) {
@@ -367,6 +409,7 @@ export async function generateCrossfitProductPlan({
     profile: generationProfile,
     check_in: checkIn,
     skill_permissions: classification.skill_permissions,
+    dimension_scores: classification.dimension_scores,
     return_protocol: classification.return_protocol,
     history_ids: planData.history_ids ?? [],
     preferences: generationBasis.preferences,

@@ -25,7 +25,7 @@ function positiveCapacity(event) {
     && event.completion >= 0.9
     && event.rpe >= 6 && event.rpe <= 8
     && event.technique >= 2
-    && painScore(event) <= 1
+    && painScore(event) === 0
     && (readiness === null || readiness >= 3)
     && event.provenance?.adherence_rate >= 0.8;
 }
@@ -157,6 +157,11 @@ export function reduceCrossfitAutoreg({
       state = decide("CF-AUTOREG-REGRESS-HYST", "AUTOREG_HOLD", "regress", { two_checkins_required: true });
     } else if (latest?.provenance?.equipment_signature_changed === true) {
       state = decide("CF-AUTOREG-EQUIPMENT", "AUTOREG_EQUIPMENT_CHANGE", "hold");
+    } else if (fatigue.length === 1 || window.length < 3) {
+      state = decide("CF-AUTOREG-HOLD", "AUTOREG_HOLD", "hold", {
+        signal_count: fatigue.length,
+        event_count: window.length
+      });
     } else {
       const last21Days = window.filter((event) => timestamp(event.recorded_at) >= processedAtMs - 21 * DAY_MS);
       const capacityEvidence = last21Days.filter(positiveCapacity);
@@ -165,8 +170,6 @@ export function reduceCrossfitAutoreg({
         state = decide("CF-AUTOREG-SKILL", "SKILL_PROGRESS", "progress_skill", { evidence_count: skillEvidence.length });
       } else if (capacityEvidence.length >= 3 && latest?.provenance?.skill_progressed_microcycle !== true) {
         state = decide("CF-AUTOREG-CAPACITY", "AUTOREG_BUILD", "progress_capacity", { evidence_count: capacityEvidence.length });
-      } else if (fatigue.length === 1 || window.length < 3) {
-        state = decide("CF-AUTOREG-HOLD", "AUTOREG_HOLD", "hold", { signal_count: fatigue.length, event_count: window.length });
       } else {
         state = decide("CF-AUTOREG-BASELINE", "AUTOREG_HOLD", "baseline");
       }
