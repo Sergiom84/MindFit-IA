@@ -79,6 +79,7 @@ test.describe('Hipertrofia · identidad canónica (fuente, CI-safe)', () => {
 
   test('C2: /ai/methodology DELEGA en el flujo dedicado (no devuelve 409)', () => {
     const route = read('backend/routes/routineGeneration.js');
+    const aiBlock = route.split("router.post('/ai/methodology'")[1].split("router.post('/ai/gym-routine'")[0];
     expect(route).toContain('generateAndPersistD1D5Plan');
     // El error 409 stub ya no existe: el usuario recibe un plan real.
     expect(route).not.toContain('METHODOLOGY_REQUIRES_DEDICATED_FLOW');
@@ -87,6 +88,12 @@ test.describe('Hipertrofia · identidad canónica (fuente, CI-safe)', () => {
     expect(orch).toContain('export async function generateAndPersistD1D5Plan');
     const dedicated = read('backend/routes/hipertrofiaV2.js');
     expect(dedicated).toContain('generateAndPersistD1D5Plan');
+    // Limpieza única: Hipertrofia IA delega primero y solo limpia drafts en el flujo genérico.
+    expect(aiBlock).toContain('if (isHipertrofiaMethodology(personalizedPlanData.methodology))');
+    expect(aiBlock.match(/await cleanUserDrafts\(userId\);/g) || []).toHaveLength(1);
+    expect(aiBlock.indexOf('if (isHipertrofiaMethodology(personalizedPlanData.methodology))')).toBeLessThan(
+      aiBlock.indexOf('await cleanUserDrafts(userId);')
+    );
   });
 
   test('C4: el frontend llama a la ruta canónica /api/hipertrofia (no la legacy)', () => {
@@ -99,6 +106,12 @@ test.describe('Hipertrofia · identidad canónica (fuente, CI-safe)', () => {
       const src = read(rel);
       expect(src).not.toMatch(/hipertrofiav2\//); // ninguna URL legacy en minúsculas
     }
+  });
+
+  test('single-day: la detección de Hipertrofia usa el helper canónico, no includes laxo', () => {
+    const singleDay = read('backend/routes/methodologySingleDay.js');
+    expect(singleDay).toContain('isHipertrofiaMethodology');
+    expect(singleDay).not.toContain("m.includes('hipertrofia')");
   });
 
   test('C5: no queda "HipertrofiaV2" en texto visible (mensaje post-adaptación)', () => {

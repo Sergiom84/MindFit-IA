@@ -61,6 +61,7 @@ import bodyMeasurementsRoutes from './routes/bodyMeasurements.js';
 import carbTimingRoutes from './routes/carbTiming.js';
 import performanceConfirmationRoutes from './routes/performanceConfirmation.js';
 import nutritionSupplementsRoutes from './routes/nutritionSupplements.js';
+import { isHipertrofiaMethodology } from './services/hipertrofia/identity.js';
 
 // ===============================================
 // 🗄️ RUTAS LEGACY (MANTENER TEMPORALMENTE)
@@ -386,14 +387,12 @@ app.post('/api/methodology/generate', authenticateToken, (req, res, next) => {
     if (methodology === 'heavy-duty' || methodology === 'heavy duty') {
       console.log('💪 Heavy Duty manual detectada - specialist/heavy-duty/generate');
       req.url = '/api/routine-generation/specialist/heavy-duty/generate';
-    } else if (methodology === 'hipertrofiav2') {
+    } else if (isHipertrofiaMethodology(methodology)) {
       // El router de Hipertrofia NO expone '/generate' (solo generate-d1d5,
       // generate-fullbody, generate-single-day). Redirigimos al motor D1-D5 con
       // el body PLANO que espera (nivel, totalWeeks, startConfig, includeWeek0).
-      // El cliente envía el id histórico 'hipertrofiav2'; el destino usa la ruta
-      // CANÓNICA '/api/hipertrofia' (alias legacy montado en paralelo). No se añade
-      // una rama 'hipertrofia' aquí: el contrato B-02 reserva ese literal para impedir
-      // el retorno del genérico legacy (los clientes ya envían 'hipertrofiav2').
+      // El helper canónico acepta la identidad pública `hipertrofia` y los alias
+      // históricos, pero nunca cae al generador genérico legacy.
       console.log('🏋️‍♂️ Hipertrofia manual detectada - hipertrofia/generate-d1d5');
       req.url = '/api/hipertrofia/generate-d1d5';
       const src = req.body?.planData || req.body || {};

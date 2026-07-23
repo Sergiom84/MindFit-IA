@@ -115,9 +115,6 @@ router.post('/ai/methodology', authenticateToken, async (req, res) => {
     // Validate request
     validateRoutineRequest(planData);
 
-    // Clean drafts
-    await cleanUserDrafts(userId);
-
     const userProfile = await getUserFullProfile(userId);
     const personalizedPlanData = buildProfileAwarePlanData(planData, userProfile);
 
@@ -146,6 +143,10 @@ router.post('/ai/methodology', authenticateToken, async (req, res) => {
         system_info: { motor: 'MindFeed v1.0', ciclo: 'D1-D5' }
       });
     }
+
+    // Limpieza de drafts para el flujo genérico. Hipertrofia la resuelve dentro
+    // de su orquestador dedicado y transaccional.
+    await cleanUserDrafts(userId);
 
     const result = await generateMethodologyPlan(
       personalizedPlanData.methodology,
