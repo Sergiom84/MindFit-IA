@@ -3,6 +3,7 @@
 ## 23.07.2026
 
 - **Hipertrofia · cierres P1/P2 del PR #65**: el proxy manual `/api/methodology/generate` acepta `hipertrofia` y sus aliases mediante el helper canónico sin caer al generador genérico; `/api/routine-generation/ai/methodology` deja la limpieza de drafts al orquestador dedicado para evitar doble ejecución; `methodologySingleDay` usa el helper en vez de `includes('hipertrofia')`. Se añadieron pruebas HTTP para canónico y aliases, más guards de fuente sobre el orden de limpieza y la ruta single-day. Validación: `npx playwright test tests/hipertrofia-identidad-canonica.spec.js --reporter=list` en verde; `npm run lint` y `npm run build` sin errores. La suite `npm run test:backend` sigue mostrando el rojo preexistente de `backend/tests/calisteniaKnownDefects.test.js` y el E2E real permanece bloqueado aquí por falta de Postgres/Docker local.
+- **Hipertrofia · CI/GitHub Actions**: se añadió `libvips-dev` en los workflows que ejecutan `npm ci` en Ubuntu (`ci.yml` y `android.yml`) para evitar el fallo de compilación de `sharp` en `build-test`, `dependency-audit`, `a11y-audit` y el build móvil. Validación local: `git diff --check` limpio; pendiente observar el rerun real de GitHub Actions tras el push de esta corrección.
 
 ## 22.07.2026
 
