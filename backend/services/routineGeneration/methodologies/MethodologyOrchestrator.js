@@ -88,9 +88,11 @@ function defaultEvaluation(methodology) {
  * Evaluar nivel del usuario según la metodología
  * @param {string} methodology - Tipo de metodología
  * @param {string} userId - ID del usuario
+ * @param {object} [assessmentInput] - Input de evaluación (PR-CAL-01: painStatus/demonstratedLevel/
+ *   context capturados en el frontend); solo lo consume Calistenia por ahora.
  * @returns {Promise<object>} Evaluación del nivel
  */
-export async function evaluateUserLevel(methodology, userId) {
+export async function evaluateUserLevel(methodology, userId, assessmentInput = {}) {
   logger.info(`Evaluando nivel de usuario para metodología: ${methodology}`);
 
   const normalizedMethodology = normalizeMethodologyId(methodology);
@@ -102,7 +104,7 @@ export async function evaluateUserLevel(methodology, userId) {
 
   switch (normalizedMethodology) {
     case METODOLOGIAS.CALISTENIA:
-      return await CalisteniaService.evaluateCalisteniaLevel(userId);
+      return await CalisteniaService.evaluateCalisteniaLevel(userId, assessmentInput);
 
     case METODOLOGIAS.CROSSFIT:
       return await CrossFitService.evaluateCrossFitLevel(userId);
