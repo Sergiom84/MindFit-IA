@@ -114,16 +114,27 @@ test("C-H1b: injuryText string no vacío sigue mandando (sin regresión)", () =>
   assert.ok(a.limiting_patterns.includes("rodilla"));
 });
 
-// ── Flag de activación (rollback por flag; default OFF = lectura legacy) ──────────
-test("C-12: CALISTHENICS_ASSESSMENT_V1_ENABLED default OFF", () => {
-  assert.equal(isCalisthenicsAssessmentEnabled({}), false);
-  assert.equal(isCalisthenicsAssessmentEnabled({ CALISTHENICS_ASSESSMENT_V1_ENABLED: "false" }), false);
-  assert.equal(isCalisthenicsAssessmentEnabled({ CALISTHENICS_ASSESSMENT_V1_ENABLED: "0" }), false);
-  assert.equal(isCalisthenicsAssessmentEnabled({ CALISTHENICS_ASSESSMENT_V1_ENABLED: undefined }), false);
+// ── Flag de activación (PR-CAL-01: assessment determinista es la AUTORIDAD por defecto;
+//    el flag es solo un rollback explícito) ──────────────────────────────────────────
+test("C-12: CALISTHENICS_ASSESSMENT_V1_ENABLED default ON (ausente → true)", () => {
+  assert.equal(isCalisthenicsAssessmentEnabled({}), true);
+  assert.equal(isCalisthenicsAssessmentEnabled({ CALISTHENICS_ASSESSMENT_V1_ENABLED: undefined }), true);
 });
 
-test("C-13: flag ON solo con 'true'/'1' explícito", () => {
+test("C-13: flag ON explícito con 'true'/'1' (case-insensitive)", () => {
   assert.equal(isCalisthenicsAssessmentEnabled({ CALISTHENICS_ASSESSMENT_V1_ENABLED: "true" }), true);
   assert.equal(isCalisthenicsAssessmentEnabled({ CALISTHENICS_ASSESSMENT_V1_ENABLED: "1" }), true);
   assert.equal(isCalisthenicsAssessmentEnabled({ CALISTHENICS_ASSESSMENT_V1_ENABLED: "TRUE" }), true);
+});
+
+test("C-14: rollback explícito con 'false'/'0' → OFF (lectura legacy)", () => {
+  assert.equal(isCalisthenicsAssessmentEnabled({ CALISTHENICS_ASSESSMENT_V1_ENABLED: "false" }), false);
+  assert.equal(isCalisthenicsAssessmentEnabled({ CALISTHENICS_ASSESSMENT_V1_ENABLED: "0" }), false);
+  assert.equal(isCalisthenicsAssessmentEnabled({ CALISTHENICS_ASSESSMENT_V1_ENABLED: "FALSE" }), false);
+});
+
+test("C-15: valor no reconocido (typo) → false por seguridad, no true por accidente", () => {
+  assert.equal(isCalisthenicsAssessmentEnabled({ CALISTHENICS_ASSESSMENT_V1_ENABLED: "yes" }), false);
+  assert.equal(isCalisthenicsAssessmentEnabled({ CALISTHENICS_ASSESSMENT_V1_ENABLED: "enabled" }), false);
+  assert.equal(isCalisthenicsAssessmentEnabled({ CALISTHENICS_ASSESSMENT_V1_ENABLED: "" }), false);
 });

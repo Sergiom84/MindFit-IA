@@ -19,19 +19,29 @@
  */
 import { extractInjuryText, activeInjuryRules } from '../injuryContraindications.js';
 import { normalizeMethodologyLevel } from './methodologyRegistry.js';
+import { logger } from '../logger.js';
 
 export const CALISTHENICS_ASSESSMENT_VERSION = 'calisthenics-assessment/v1';
 
 /**
- * ¿Está activo el assessment determinista? Flag de activación (rollback por flag). Default OFF:
- * la generación mantiene la LECTURA LEGACY (la IA decide el nivel) hasta activarlo explícitamente.
- * Solo 'true'/'1' (case-insensitive) lo encienden.
+ * ¿Está activo el assessment determinista? Flag de rollback (PR-CAL-01: el assessment determinista
+ * es la AUTORIDAD por defecto; el flag existe solo para volver a la lectura legacy si hiciera falta).
+ * Ausente → true (nuevo default). 'true'/'1' (case-insensitive) → true. 'false'/'0' → false
+ * (rollback explícito). Cualquier otro valor (typo) → false + warning: un valor no reconocido NUNCA
+ * debe activar el comportamiento nuevo por accidente, pero tampoco debe fallar en silencio.
  * @param {Record<string,string|undefined>} [env]
  * @returns {boolean}
  */
 export function isCalisthenicsAssessmentEnabled(env = process.env) {
-  const raw = String(env?.CALISTHENICS_ASSESSMENT_V1_ENABLED ?? '').toLowerCase().trim();
-  return raw === 'true' || raw === '1';
+  const rawValue = env?.CALISTHENICS_ASSESSMENT_V1_ENABLED;
+  if (rawValue === undefined) return true;
+  const raw = String(rawValue).toLowerCase().trim();
+  if (raw === 'true' || raw === '1') return true;
+  if (raw === 'false' || raw === '0') return false;
+  logger.warn(
+    `⚠️ CALISTHENICS_ASSESSMENT_V1_ENABLED='${rawValue}' no reconocido; usando 'false' (legacy) por seguridad.`
+  );
+  return false;
 }
 
 const LEVEL_ORDER = ['principiante', 'intermedio', 'avanzado'];
