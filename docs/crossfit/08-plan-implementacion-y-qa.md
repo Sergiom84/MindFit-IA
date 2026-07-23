@@ -67,7 +67,8 @@ DoD: pause/reload/offline, scale por movimiento, cap, completion/abandon, pain/t
 
 ### 6. Training load y nutricion
 
-Estado: `COMPLETADA_TECNICA_FLAG_OFF`, `PENDIENTE_QA_BD_SHADOW`.
+Estado: `COMPLETADA_QA_AISLADA_FLAG_OFF`,
+`PENDIENTE_SHADOW_PRODUCTIVO_Y_APROBACION`.
 
 Implementado: descriptor y rollout por flag, planned load al generar, actual al cerrar,
 outbox con `plan_id + day_id`, repositorio de días de entrenamiento/descanso,
@@ -81,19 +82,24 @@ sin PII y con muestras separadas planned/actual. Preparada, no aplicada, la migr
 de tipos `entreno_normal/entreno_alto`. Activar en orden: generation/results -> shadow training load -> validar
 métricas -> `emits_training_load` -> shadow nutrition -> active nutrition con aprobación expresa.
 
-Verificación local: gate previo 49/49 más 8 casos nuevos de migración, D0 real,
-presentación active/shadow y compras; matriz 3 niveles x 4 objetivos x D0/D1/D2,
-400/400 backend, lint, build y budget. DoD operativo aún pendiente: valid load >=99 %, degraded
-<1 % justificado, cero duplicado outbox, menú idempotente en BD aislada y shadow.
+Verificación final: 480 tests backend sin fallos, 26/26 integración PostgreSQL,
+16/16 E2E, D0/D1/D2 en shadow y menú idempotente en BD aislada. El DoD operativo
+productivo sigue pendiente: valid load >=99 %, degraded <1 % justificado, cero
+duplicado outbox y shadow con muestra real aprobada.
 Rollback: flags nutrition/load off, conservar eventos.
 
 ### 7. Flujos, RLS y observabilidad
 
-Completar cambio de metodologia, regeneracion, empty/error/offline, historial, metrics y admin read-only. DoD: matriz 17 cubierta, alertas y privacy review, cero PII en traces/logs.
+Generación, regeneración, error/offline/retry, historial, métricas y admin
+read-only pasan QA aislada. Cambio de metodología completo, notificaciones/logros
+y alertas operativas siguen como carriles posteriores. DoD de rollout: privacy
+review y cero PII en traces/logs.
 
 ### 8. QA y validacion humana
 
-Ejecutar matriz 09 y perfiles sintéticos. Entrenador/nutricionista revisan muestra y firman. Legal decide nombre. DoD: todos los gates, riesgo residual y rollback drill.
+Matriz 09, 32/32 perfiles y gates técnicos ejecutados. Entrenador y nutricionista
+revisan muestra; legal decide nombre. Son gates preproducción, no firmas
+inventadas ni sustitutos del QA técnico.
 
 ### 9. PR y rollout
 
@@ -112,8 +118,14 @@ Commits revisables por subfase, PR con migraciones/flags/QA/capturas, revision S
 - `src/components/routines/modals/CrossFitEffortModal.jsx`
 - `src/components/routines/tabs/TodayTrainingTab.jsx`
 
-Nuevos servicios se prefieren a inflar los existentes. Hipertrofia actual (renombrada desde HipertrofiaV2) y Calistenia son solo targets de regresion; Hipertrofia legacy fue retirada en `origin/main@3e09559` y no se reintroduce.
+Nuevos servicios se prefieren a inflar los existentes. Hipertrofia actual y
+Calistenia son solo targets de regresion; Hipertrofia legacy fue retirada y no
+se reintroduce. La rama está sincronizada con `origin/main@6493600`.
 
 ## Criterio de merge
 
-DoR/DoD de todas las fases, migraciones autorizadas y reversibles, zero hard invariant, Fase 0 y regresiones verdes, human review sin findings criticos/altos, legal/name decision, observabilidad activa, rollback probado y aprobaciones Sergio/Pablo.
+Para merge técnico: CI final verde, cero hard invariant, regresiones verdes,
+migraciones preparadas/reversibles sin aplicarlas, conversaciones resueltas y
+GitGuardian verde tras rotación/remediación, sin bypass. Validación humana,
+decisión legal, shadow, observabilidad operativa, autorización de migraciones y
+rollback productivo son gates posteriores obligatorios antes de activar.

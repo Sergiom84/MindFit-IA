@@ -3,8 +3,9 @@
 Especificación: `crossfit-product-spec/2.0.0`
 Rama: `codex/crossfit-profesional-v2`
 Base: `origin/main@e7f57116363d9283a27c1d5d375da674414ddf1f`
-Sincronizada con: `origin/main@3e0955921ed75244bd4f205dba20c1878f1b6da4`
-Estado global: `EN_PROGRESO`
+Sincronizada con: `origin/main@649360080325ea4f72182db54bafc8f12799ccba`
+Head validado: `d358d2f9da2ad6138c0b09ae0a266360ecaeb167`
+Estado global: `TECNICO_VERDE_BLOQUEADO_SEGURIDAD`
 
 ## Guardas permanentes
 
@@ -12,42 +13,44 @@ Estado global: `EN_PROGRESO`
 - No tocar `WorkoutContext.generatePlan()`, la redirección ni el frontend agnóstico.
 - No cambiar programación de Hipertrofia actual (renombrada desde HipertrofiaV2) ni Calistenia; no reintroducir Hipertrofia legacy.
 - No escribir en Supabase/Render ni aplicar migraciones/flags sin autorización.
-- No hacer push ni abrir PR sin confirmación expresa de Pablo.
+- No hacer push directo a `main`, force-push ni reescribir historia. PR #63 se
+  mantiene en draft mientras GitGuardian siga rojo.
 - Dolor, red flags y técnica insegura tienen precedencia sobre rendimiento.
 - Elite se conserva como legacy y queda fuera del producto principal.
 
 ## Estado de fases
 
-| Fase                          | Estado                        | Evidencia / gate                                             |
-| ----------------------------- | ----------------------------- | ------------------------------------------------------------ |
-| A. Baseline y DoR             | `COMPLETADA_CON_LIMITACION`   | 231/231 unit, lint, build; integración requiere BD efímera   |
-| B. Contratos/versionado/flags | `COMPLETADA`                  | 8/8 específicos; suite 239/239; lint; flags off              |
-| C. Catálogo/seguridad         | `COMPLETADA_CON_GATE_BD`      | 13/13; 92+104+236; 120/120; SQL/RLS requiere BD efímera      |
-| D. Clasificación              | `COMPLETADA_CON_GATE_BD_E2E`  | level-model + UI 8D + ledger/revisión; 32 focalizados        |
-| E. Programación por nivel     | `COMPLETADA_TECNICA`          | bloques 8/10/12; seis frecuencias; 12/12 tests               |
-| F. Composer/validadores       | `COMPLETADA_TECNICA`          | 30.000 planes + 30.000 regeneraciones; cero hard violation   |
-| G. Flujos de producto         | `COMPLETADA_CON_GATE_E2E`     | cierre terminal/draft durable; 12 E2E preparados             |
-| H. Resultados/autorregulación | `COMPLETADA_CON_GATE_BD`      | siete estados; cierre transaccional; SQL/RLS requiere BD     |
-| I. Training load/nutrición    | `COMPLETADA_TECNICA_FLAG_OFF` | 400/400; active UI/compras; shadow/BD/aprobación pendientes  |
-| J. QA integral                | `PREPARADA_GATE_CI`           | unit/lint/build verdes; BD/RLS/E2E preparados, no ejecutados |
-| K. Validaciones externas      | `GATE_PREPRODUCCION`          | entrenador, nutricionista, clínico si aplica y legal         |
+| Fase                          | Estado                   | Evidencia / gate                                           |
+| ----------------------------- | ------------------------ | ---------------------------------------------------------- |
+| A. Baseline y DoR             | `COMPLETADA`             | baseline y comparación exacta con main                     |
+| B. Contratos/versionado/flags | `COMPLETADA`             | 8/8 específicos; suite 239/239; lint; flags off            |
+| C. Catálogo/seguridad         | `COMPLETADA_QA_BD`       | 92+104+236; 120/120; SQL/RLS efímero verde                 |
+| D. Clasificación              | `COMPLETADA_QA_BD_E2E`   | level-model + UI 8D + ledger; 32/32 perfiles               |
+| E. Programación por nivel     | `COMPLETADA_TECNICA`     | bloques 8/10/12; seis frecuencias; 12/12 tests             |
+| F. Composer/validadores       | `COMPLETADA_TECNICA`     | 30.000 planes + 30.000 regeneraciones; cero hard violation |
+| G. Flujos de producto         | `COMPLETADA_QA_E2E`      | 16/16 desktop/móvil, cero skips                            |
+| H. Resultados/autorregulación | `COMPLETADA_QA_BD_E2E`   | siete estados; cierre, append-only, RLS e idempotencia     |
+| I. Training load/nutrición    | `COMPLETADA_QA_FLAG_OFF` | D0/D1/D2 y shadow QA; active/aprobación pendientes         |
+| J. QA integral                | `COMPLETADA_QA_AISLADA`  | 480 tests, 26 integración, 16 E2E, lint/build/a11y verdes  |
+| K. Validaciones externas      | `GATE_PREPRODUCCION`     | entrenador, nutricionista, clínico si aplica y legal       |
+| Seguridad de merge            | `BLOQUEADA`              | GitGuardian: credencial histórica pendiente de remediación |
 
 ## Baseline reproducible
 
-| Comprobación               | Resultado 2026-07-22                                               |
+| Comprobación               | Resultado vigente                                                  |
 | -------------------------- | ------------------------------------------------------------------ |
 | `origin/main` inicial      | `e7f5711`; baseline desde el que se abrió el worktree              |
-| `origin/main` sincronizado | `3e09559`; retiro legacy y rename interno integrados sin rebase    |
+| `origin/main` sincronizado | `6493600`; Fase 0, CAL-00 e identidad Hipertrofia integradas       |
 | CI `main`                  | CI y Android verdes en el SHA de referencia                        |
 | `npm ci` raíz/backend      | correcto desde lockfiles                                           |
 | `npm run test:backend`     | 231/231                                                            |
-| Regresión actual           | 400/400 tras integración nutricional active/shadow y compras V2    |
+| Regresión actual           | 480 total; 479 pass, 0 fail, 0 skip, 1 todo heredado               |
 | `npm run lint -- --quiet`  | correcto                                                           |
 | `npm run build`            | correcto; warnings preexistentes de chunks/browser data            |
-| Integración backend        | no ejecutada: no hay PostgreSQL/Docker local ni URL QA             |
+| Integración backend        | 26/26 en PostgreSQL 17 efímero; seis migraciones x2 y RLS verde    |
 | Migración 20260721         | registrada en Supabase, checksum coincide; no reescribir           |
 | Deuda histórica            | 29 calendarios sin `day_id`; sesiones se auditan por relación real |
-| Dossier baseline           | 120/120, 92, 44, 45, 32; PDF 43 páginas válido                     |
+| Dossier vigente            | 120/120, 92, 44, 70, 32; PDF A4 de 58 páginas verificado           |
 | Corrección reason codes    | 70: paridad código/CSV, incluidos los cinco estados de terminación |
 
 ## Semáforos de rollout
@@ -58,6 +61,11 @@ Estado global: `EN_PROGRESO`
 - `CROSSFIT_EMITS_TRAINING_LOAD=false` hasta contracts, outbox y métricas verdes.
 - `CROSSFIT_NUTRITION_LOAD=false` hasta shadow, métricas y aprobación.
 - Migraciones nuevas: solo archivo + test aislado; no aplicar en producción.
+
+Los apartados `Gate técnico` siguientes son checkpoints cronológicos de cada
+subfase y conservan sus conteos y pendientes de aquel momento. El estado vigente
+es la tabla superior y el cierre reproducible de
+[`19-cierre-tecnico-y-runbook.md`](./19-cierre-tecnico-y-runbook.md).
 
 ## Gate técnico H
 

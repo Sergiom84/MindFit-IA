@@ -1,6 +1,35 @@
 # QA, oraculos y validacion humana
 
-No se presenta la suite legacy como validacion de v2. La implementación dispone ya de contratos, clasificación, programación, catálogo, seguridad y composer puros; integración BD/E2E y validación humana siguen abiertas.
+No se presenta la suite legacy como validación de v2. La implementación dispone
+de evidencia específica del generador, contratos, PostgreSQL/RLS y E2E; la
+validación humana y el rollout productivo siguen abiertos.
+
+## Cierre ejecutado 2026-07-24
+
+El run de GitHub Actions `30050111128`, sobre
+`d358d2f9da2ad6138c0b09ae0a266360ecaeb167` y
+`origin/main@6493600`, cerró los gates técnicos aplicables:
+
+| Capa                    | Resultado                                                          |
+| ----------------------- | ------------------------------------------------------------------ |
+| Backend                 | 480 total; 479 pass, 0 fail, 0 skip, 1 todo heredado de Calistenia |
+| PostgreSQL/RLS          | 26/26; seis migraciones aplicadas dos veces; cross-user verde      |
+| CrossFit E2E            | 16/16 en desktop y móvil 375x812; cero retries y cero skips        |
+| Generador               | 30.000 planes + 30.000 regeneraciones; cero hard violation         |
+| Perfiles sintéticos     | 32/32 con clasificación, seguridad, autorregulación y nutrición    |
+| Lint/build              | 0 errores; build productivo verde                                  |
+| Dependencias producción | 0 vulnerabilidades raíz y backend con `--omit=dev`                 |
+| Accesibilidad           | 2/2 proyectos Axe verdes                                           |
+
+La integración restauró el baseline en PostgreSQL 17 desechable, importó y
+activó el catálogo solo allí, validó 92 movimientos, 104 variantes, 236 edges y
+120/120 mappings, y descartó el entorno al terminar. No hubo escritura
+productiva. GitGuardian sigue rojo por una credencial histórica real; es un gate
+de seguridad de merge, no un fallo funcional ocultable.
+
+Las secciones con conteos inferiores documentan checkpoints incrementales del
+22 de julio. Se conservan como trazabilidad cronológica y no sustituyen este
+cierre.
 
 ## Resultado ejecutado del gate estadístico
 
@@ -20,7 +49,7 @@ Los ocho formatos de metcon soportados aparecen en cada nivel. El runner usa per
 
 Este gate valida invariantes algorítmicas, no eficacia deportiva ni los flujos persistentes de producto.
 
-## Resultado ejecutado de resultados/autorregulación
+## Checkpoint incremental de resultados/autorregulación
 
 El 2026-07-22 quedaron verdes 18 pruebas focalizadas de resultado y máquina de
 estados, integradas en una suite backend de 307/307:
@@ -34,10 +63,11 @@ estados, integradas en una suite backend de 307/307:
 - ledger/snapshot append-only y migración/RLS validados estáticamente;
 - outbox bajo tres gates y fallo aislado por savepoint.
 
-No se contabilizan como verdes `up`, reejecución de migración ni RLS cross-user:
-este worktree no dispone de PostgreSQL/Docker efímero y producción no se usa.
+En ese checkpoint aún no se contabilizaban `up`, reejecución de migración ni RLS
+cross-user. El cierre del 24 de julio los ejecutó en CI efímero; producción no se
+usó.
 
-## Resultado ejecutado de integración de flujos
+## Checkpoint incremental de integración de flujos
 
 El corte técnico de Fase G ejecuta 51/51 pruebas focalizadas y la regresión
 backend completa queda en 327/327. Los oráculos cubren:
@@ -51,15 +81,14 @@ backend completa queda en 327/327. Los oráculos cubren:
 - prioridad de snapshot bloqueado, ausencia de offsets RIR y outbox gobernado;
 - flags apagados sin cambio de comportamiento y gate COR-F0-04 conservado.
 
-`npm run lint -- --quiet` y `npm run build` están verdes. El build mantiene los
-avisos preexistentes de chunks circulares y browser data desactualizada. Esto no
-equivale a E2E: no se han levantado servidores, creado usuarios ni usado una BD.
+`npm run lint -- --quiet` y `npm run build` quedaron verdes en ese corte. Todavía
+no equivalía a E2E; el cierre superior añade la ejecución real aislada.
 
-## Resultado ejecutado de training load y nutrición
+## Checkpoint incremental de training load y nutrición
 
-La Fase I conserva su gate previo de 49/49 y añade ocho casos de integración
-nutricional; la regresión actual sobre `origin/main@3e09559` queda en 400/400
-backend. Quedan cubiertos:
+La Fase I conservó su gate previo de 49/49 y añadió ocho casos de integración
+nutricional; la regresión de aquel checkpoint sobre `origin/main@3e09559` quedó
+en 400/400 backend. Quedaron cubiertos:
 
 - rollout `legacy -> shadow -> active` con ambos flags y default `false`;
 - matriz estricta de 36 combinaciones: tres niveles, cuatro objetivos y D0/D1/D2;
@@ -74,10 +103,11 @@ backend. Quedan cubiertos:
 - presentación fail-closed: shadow invisible, active autoritativo con timing e hidratación;
 - lista de compra V2 determinista desde los ítems persistidos, conservando sustituciones y estados de pesado.
 
-No se marca verde la activación: faltan PostgreSQL efímero, shadow con muestra,
-menú idempotente persistido, E2E y revisión de nutricionista deportivo.
+En ese corte faltaban PostgreSQL/E2E. El cierre superior valida BD, menú
+idempotente y shadow QA; la activación sigue bloqueada por muestra de rollout y
+revisión de nutricionista deportivo.
 
-## QA integral preparada, pendiente de ejecución efímera
+## QA integral ejecutada en entorno efímero
 
 La rama incorpora una ruta reproducible de CI que no acepta infraestructura
 remota: `localQaGuard` exige acuse explícito y valida como locales API, frontend y
@@ -95,14 +125,16 @@ posibilidad documentada de apuntarla a producción.
 - La matriz API de nivel avanzado registra primero evidencia profesional por la
   ruta admin fail-closed. Se prohíbe usar en QA un payload cliente con
   `technique_verified=true`; principiante/intermedio ejercitan self-report.
-- Playwright descubre doce casos: tres ciclos API por nivel, cierre parcial y tarjeta de
-  evaluacion 8D con Axe y recorrido WOD, repetidos en escritorio y movil 375x812.
-- La regresión local ejecutada queda en 400/400, lint quiet, build y budget de
-  bundle verdes.
+- Playwright ejecuta 16 casos sin skips: tres niveles, plan/single-day,
+  idempotencia, colisión, red flag, sustitución/rechazo, cierre, reload,
+  offline/retry, training load, nutrición shadow y métricas; escritorio y móvil
+  375x812.
+- La regresión final queda en 480 tests, lint quiet, build y budget de bundle
+  verdes.
 
-No se atribuyen resultados de DB/RLS/E2E todavía: este equipo no dispone de
-PostgreSQL/Docker y no había servidores levantados ni autorización para iniciarlos.
-El job será evidencia solo cuando CI lo ejecute y publique su resultado.
+La evidencia DB/RLS/E2E procede del run publicado `30050111128`. Los servicios y
+PostgreSQL fueron efímeros del job; no se reutilizó un backend local ni se apuntó
+a Supabase producción.
 
 ## Perfiles
 

@@ -17,6 +17,7 @@ intermedio y avanzado. Referencias de entrada:
 - `docs/crossfit/13-programacion-avanzado.md`
 - `docs/crossfit/15-contrato-generador-e-invariantes.md`
 - `docs/crossfit/17-matriz-flujos-producto.md`
+- `docs/crossfit/19-cierre-tecnico-y-runbook.md`
 - `docs/crossfit/data/README.md`
 
 La Fase 0 compartida está desbloqueada para desarrollo. No implica rollout:

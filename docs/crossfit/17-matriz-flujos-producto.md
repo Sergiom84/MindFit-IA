@@ -1,43 +1,45 @@
 # Matriz completa de flujos Mindfit
 
-Leyenda: `OK`, `IMPLEMENTADO_GATE_E2E`, `PARCIAL`, `DESCONECTADO`, `FALTA`,
-`RIESGO`. `IMPLEMENTADO_GATE_E2E` significa contrato, persistencia y pruebas
-unit/contract verdes en rama, pero no recorrido Playwright ni BD real.
+Leyenda vigente: `OK_GENERAL`, `OK_QA_AISLADA`, `PARCIAL`, `DESCONECTADO`,
+`FALTA` y `RIESGO_PREPRODUCCION`. `OK_GENERAL` corresponde a un flujo compartido
+ya existente; `OK_QA_AISLADA` significa contrato, persistencia y recorrido
+CrossFit aplicable verificados contra PostgreSQL efímero/Playwright. Ninguno
+implica que las migraciones o flags estén activos en producción.
 
-| Flujo                | Actual                | Objetivo/contrato                                           | Persistencia                           | Error/QA clave                       |
-| -------------------- | --------------------- | ----------------------------------------------------------- | -------------------------------------- | ------------------------------------ |
-| Registro/login       | OK                    | auth existente; no pedir CrossFit aun                       | users/session                          | 401, duplicado, token expirado       |
-| Onboarding           | PARCIAL               | reutilizar objetivo/frecuencia/lesiones; screening separado | users + profile                        | no duplicar valores; consentimiento  |
-| Perfil/edicion       | PARCIAL               | canonico + safety screening versionado                      | users/user_profiles + nuevas entidades | conflicto de version, campos stale   |
-| Seleccion metodo     | OK                    | conservar selector/redireccion                              | preferencia                            | alias interno/nombre neutral         |
-| Cambio metodo        | PARCIAL               | cancelar futuro, conservar historia/carga                   | plan status/events                     | plan activo y nutrition sync         |
-| Evaluacion           | IMPLEMENTADO_GATE_E2E | ocho dimensiones + safety + confianza                       | assessment ledger append-only          | RLS/UI/coach en CI y validacion      |
-| Single-day           | IMPLEMENTADO_GATE_E2E | session v2 determinista                                     | plan/day/session/tracking              | no solution/red flag/reintento       |
-| Plan completo        | IMPLEMENTADO_GATE_E2E | block/week/session v2                                       | methodology plans/days                 | cuotas/contrato/materialización      |
-| Generacion           | IMPLEMENTADO_GATE_E2E | idempotency + trace                                         | draft + snapshot canónico              | same key/different output            |
-| Regeneracion         | IMPLEMENTADO_GATE_E2E | revision/supersedes/reason/hash                             | immutable revisions                    | BD/colisión/revisión stale           |
-| Calendario/Hoy       | IMPLEMENTADO_GATE_E2E | plan_id+day_id + sync states                                | plan days + workout schedule           | timezone/date fallback legacy        |
-| Warm-up              | IMPLEMENTADO_GATE_E2E | especifico a patrones y flags                               | session blocks                         | QA visual/cobertura principal        |
-| WOD player           | IMPLEMENTADO_GATE_E2E | score_type/dose/scale/stop rules v2                         | tracking + result events               | E2E real pendiente                   |
-| Pausa/reanuda        | IMPLEMENTADO_GATE_E2E | monotonic event sequence + local durable queue              | runtime event ledger                   | multi-device fuera de alcance        |
-| Sustitucion          | IMPLEMENTADO_GATE_E2E | same-stimulus validated edge                                | server-created substitution event      | BD/RLS/E2E pendientes                |
-| Finalizacion         | IMPLEMENTADO_GATE_E2E | feedback confirma atomic close + actual load + outbox       | session/result/outbox                  | idempotent duplicate/BD              |
-| Abandono             | IMPLEMENTADO_GATE_E2E | partial/abandoned/cancelled + motivo + completion           | session/result                         | PostgreSQL/Playwright real           |
-| Resultado            | IMPLEMENTADO_GATE_E2E | structured score, scale, technique, pain                    | append-only result                     | invalid score/cap/RLS                |
-| Feedback             | IMPLEMENTADO_GATE_E2E | mínimo obligatorio + draft owner/session durable            | local draft + result/readiness         | E2E real pendiente                   |
-| Autorregulacion      | IMPLEMENTADO_GATE_E2E | event reducer v2                                            | events + snapshot                      | migración/RLS                        |
-| Progresion/reeval    | PARCIAL               | block gates/classification                                  | assessments + plan snapshots           | captura objetiva al cierre pendiente |
-| Historial/metricas   | PARCIAL               | version-aware comparable results                            | results/metrics                        | legacy low confidence                |
-| Nutricion/menu       | IMPLEMENTADO_GATE_E2E | load mapper + canonical engine                              | context/menu by plan_id+day_id         | shadow/active/constraint DB          |
-| Recetas/sustitucion  | OK general            | reuse preferences/macros                                    | nutrition tables                       | allergy hard filter                  |
-| Lista compra         | IMPLEMENTADO_GATE_E2E | derivar cantidades de ítems reales                          | proyección de meal_items, sin tabla    | determinismo/estado pesado/E2E       |
-| Hidratacion          | IMPLEMENTADO_GATE_E2E | rangos educativos solo active autoritativo                  | periodization_context                  | shadow invisible/no sodio universal  |
-| Notificaciones       | DESCONECTADO          | reason-aware reminders only                                 | notification event                     | no medical claim/fatigue spam        |
-| Logros               | RIESGO                | no reward pain/Rx/intensity; reward consistency/skill       | achievement event                      | gamification safety review           |
-| Movil/escritorio     | PARCIAL               | same contract, responsive WOD controls                      | n/a                                    | 375x812 and desktop matrix           |
-| Offline/retry        | IMPLEMENTADO_GATE_E2E | event IDs, cola runtime y feedback durable                  | local queue/draft/outbox               | airplane/CI real pendiente           |
-| RLS/privacidad       | RIESGO                | owner policies + service role + audit                       | policies/logs                          | cross-user tests                     |
-| Observabilidad/admin | PARCIAL               | metricas sin PII + revision fail-closed                     | metrics/assessment audit               | alertas/operacion humana             |
+| Flujo                | Actual        | Objetivo/contrato                                           | Persistencia                           | Error/QA clave                          |
+| -------------------- | ------------- | ----------------------------------------------------------- | -------------------------------------- | --------------------------------------- |
+| Registro/login       | OK_GENERAL    | auth existente; no pedir CrossFit aun                       | users/session                          | 401, duplicado, token expirado          |
+| Onboarding           | PARCIAL       | reutilizar objetivo/frecuencia/lesiones; screening separado | users + profile                        | no duplicar valores; consentimiento     |
+| Perfil/edicion       | PARCIAL       | canonico + safety screening versionado                      | users/user_profiles + nuevas entidades | conflicto de version, campos stale      |
+| Seleccion metodo     | OK_GENERAL    | conservar selector/redireccion                              | preferencia                            | alias interno/nombre neutral            |
+| Cambio metodo        | PARCIAL       | cancelar futuro, conservar historia/carga                   | plan status/events                     | plan activo y nutrition sync            |
+| Evaluacion           | OK_QA_AISLADA | ocho dimensiones + safety + confianza                       | assessment ledger append-only          | RLS/UI verdes; coach preproducción      |
+| Single-day           | OK_QA_AISLADA | session v2 determinista                                     | plan/day/session/tracking              | replay, colisión y red flag verdes      |
+| Plan completo        | OK_QA_AISLADA | block/week/session v2                                       | methodology plans/days                 | tres niveles E2E                        |
+| Generacion           | OK_QA_AISLADA | idempotency + trace                                         | draft + snapshot canónico              | replay/colisión verdes                  |
+| Regeneracion         | OK_QA_AISLADA | revision/supersedes/reason/hash                             | immutable revisions                    | BD, unicidad y stale verdes             |
+| Calendario/Hoy       | OK_QA_AISLADA | plan_id+day_id + sync states                                | plan days + workout schedule           | fallback legacy se conserva             |
+| Warm-up              | OK_QA_AISLADA | especifico a patrones y flags                               | session blocks                         | recorrido UI desktop/móvil              |
+| WOD player           | OK_QA_AISLADA | score_type/dose/scale/stop rules v2                         | tracking + result events               | UI, timer, a11y y reload verdes         |
+| Pausa/reanuda        | OK_QA_AISLADA | monotonic event sequence + local durable queue              | runtime event ledger                   | multi-device fuera de alcance           |
+| Sustitucion          | OK_QA_AISLADA | same-stimulus validated edge o bloqueo                      | server-created substitution event      | éxito/replay y rechazo fail-closed      |
+| Finalizacion         | OK_QA_AISLADA | feedback confirma atomic close + actual load + outbox       | session/result/outbox                  | replay y duplicado verdes               |
+| Abandono             | OK_QA_AISLADA | partial/abandoned/cancelled + motivo + completion           | session/result                         | parcial/replay/colisión verdes          |
+| Resultado            | OK_QA_AISLADA | structured score, scale, technique, pain                    | append-only result                     | RLS e inmutabilidad verdes              |
+| Feedback             | OK_QA_AISLADA | mínimo obligatorio + draft owner/session durable            | local draft + result/readiness         | reload UI verde                         |
+| Autorregulacion      | OK_QA_AISLADA | event reducer v2                                            | events + snapshot                      | siete estados y RLS verdes              |
+| Progresion/reeval    | PARCIAL       | block gates/classification                                  | assessments + plan snapshots           | captura objetiva al cierre pendiente    |
+| Historial/metricas   | PARCIAL       | version-aware comparable results                            | results/metrics                        | legacy low confidence                   |
+| Nutricion/menu       | OK_QA_AISLADA | load mapper + canonical engine                              | context/menu by plan_id+day_id         | D0/D1/D2 shadow verde; active bloqueado |
+| Recetas/sustitucion  | OK_GENERAL    | reuse preferences/macros                                    | nutrition tables                       | allergy hard filter                     |
+| Lista compra         | OK_QA_AISLADA | derivar cantidades de ítems reales                          | proyección de meal_items, sin tabla    | unit/contrato verde                     |
+| Hidratacion          | OK_QA_AISLADA | rangos educativos solo active autoritativo                  | periodization_context                  | shadow invisible/no sodio universal     |
+| Notificaciones       | DESCONECTADO  | reason-aware reminders only                                 | notification event                     | no medical claim/fatigue spam           |
+| Logros               | RIESGO        | no reward pain/Rx/intensity; reward consistency/skill       | achievement event                      | gamification safety review              |
+| Movil/escritorio     | OK_QA_AISLADA | same contract, responsive WOD controls                      | n/a                                    | 16 E2E desktop/375x812                  |
+| Offline/retry        | OK_QA_AISLADA | event IDs, cola runtime y feedback durable                  | local queue/draft/outbox               | caída de red/reintento verde            |
+| RLS/privacidad       | OK_QA_AISLADA | owner policies + service role + audit                       | policies/logs                          | cross-user y append-only verdes         |
+| Observabilidad/admin | OK_QA_AISLADA | metricas sin PII + revision fail-closed                     | metrics/assessment audit               | métricas QA verdes; operación pendiente |
 
 ## Secuencia de evaluacion y confianza
 
@@ -96,7 +98,18 @@ el worker nutricional no reabre el cierre.
 
 ## QA transversal
 
-Cada fila requiere success, empty, unauthorized, invalid, network retry y stale revision donde aplique. Movil y escritorio deben usar los mismos contratos. Regresion obligatoria comprueba Hipertrofia actual (renombrada desde HipertrofiaV2) y Calistenia sin modificar sus artefactos ni reintroducir Hipertrofia legacy.
+Cada fila requiere success, empty, unauthorized, invalid, network retry y stale
+revision donde aplique. Las filas `OK_QA_AISLADA` están demostradas por unit,
+integración o los 16 E2E según su naturaleza; no todos los estados negativos
+pertenecen al mismo recorrido UI. Las filas `PARCIAL` o `DESCONECTADO` no se
+ocultan: onboarding clínico estructurado, cambio de metodología,
+notificaciones/logros y captura objetiva de progresión requieren carriles
+posteriores. Regresión obligatoria comprueba Hipertrofia actual y Calistenia sin
+modificar sus motores ni reintroducir Hipertrofia legacy.
+
+El run `30050111128` fijó navegador y resolución de inicio en `Europe/Madrid`,
+incluyó medianoche/DST y confirmó `16/16` sin skips. El gate de seguridad externo
+de GitGuardian permanece rojo y bloquea el merge aunque estos flujos estén verdes.
 
 | Escenario                     | Respuesta esperada                    | Persistencia/oraculo           |
 | ----------------------------- | ------------------------------------- | ------------------------------ |

@@ -536,3 +536,4 @@
 
 - CrossFit v2: la confirmación materializa el calendario desde la fecha canónica ya resuelta por el generador antes de cualquier fallback horario del proceso, evitando el desfase de un día observado en CI alrededor de medianoche `Europe/Madrid`.
 - CrossFit v2/Nutrición: los días sin decisión CrossFit ya no persisten `crossfit_nutrition: null`, y observabilidad excluye marcadores nulos históricos del muestreo de contratos sin ocultar payloads malformados reales.
+- CrossFit v2/cierre documental: expediente, matriz de flujos, trazabilidad, gap ledger y runbook alineados con `d358d2f9` y el run técnico `30050111128`; regenerado el PDF A4 de 58 páginas y verificados render, extracción y ausencia de referencias obsoletas. PR #63 permanece en draft y no fusionable hasta rotar/remediar la credencial PostgreSQL histórica detectada por GitGuardian y obtener el check verde sin bypass; migraciones y flags productivos siguen sin aplicar/activar.
