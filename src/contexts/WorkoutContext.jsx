@@ -202,10 +202,18 @@ export function WorkoutProvider({ children }) {
           mode: 'manual',
           methodology: 'calistenia',
           userProfile: calisteniaData.userProfile || { id: user.id },
-          selectedLevel: (calisteniaData.level?.toLowerCase?.() || calisteniaData.selectedLevel?.toLowerCase?.() || 'basico'),
+          // PR-CAL-01 F3: sin default 'basico'. Nivel ausente → null; el BACKEND decide
+          // (assessment/default seguro) o responde 422 si es un valor inválido. El frontend
+          // deja de decidir el nivel (agnóstico).
+          selectedLevel: (calisteniaData.level?.toLowerCase?.() || calisteniaData.selectedLevel?.toLowerCase?.() || null),
           goals: calisteniaData.goals || '',
           selectedMuscleGroups: calisteniaData.selectedMuscleGroups || [],
           aiEvaluation: calisteniaData.aiEvaluation || null,
+          // PR-CAL-01 F3: passthrough de señales del assessment y del contexto (antes se
+          // descartaban). El backend las consume (calisteniaAssessment); ausente → null.
+          demonstratedLevel: calisteniaData.demonstratedLevel ?? null,
+          painStatus: calisteniaData.painStatus ?? null,
+          context: calisteniaData.context ?? null,
           source: calisteniaData.source || 'manual_selection',
           version: calisteniaData.version || '5.0'
         };

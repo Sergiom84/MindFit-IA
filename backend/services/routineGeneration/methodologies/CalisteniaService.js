@@ -14,7 +14,9 @@ import { normalizeUserProfile } from '../validators.js';
 import { extractInjuryText, activeInjuryRules, isContraindicated } from '../injuryContraindications.js';
 import {
   getProfileTrainingGoal,
-  resolveTrainingFrequency
+  resolveTrainingFrequency,
+  normalizeTrainingEnvironment,
+  normalizeEquipmentSafetyConfirmed
 } from '../../userProfileContract.js';
 import { normalizeMethodologyLevel } from './methodologyRegistry.js';
 import { assessCalistenia, isCalisthenicsAssessmentEnabled } from './calisteniaAssessment.js';
@@ -313,19 +315,29 @@ async function loadCalisteniaRuleset(dbClient) {
     restDefault: DEFAULT_REST_SECONDS
   };
   try {
+    // G7: se lee también la `version` REAL de la fila activa (antes se descartaba) para poder
+    // persistirla en el plan. La función get_active_mindfeed_ruleset solo devuelve el JSON de
+    // reglas, así que la versión se toma de la fila de app.mindfeed_rulesets.
     const result = await dbClient.query(
-      'SELECT app.get_active_mindfeed_ruleset($1) AS rules',
+      `SELECT r.version, app.get_active_mindfeed_ruleset($1) AS rules
+         FROM app.mindfeed_rulesets r
+        WHERE r.scope = $1 AND r.is_active = true
+        ORDER BY r.version DESC NULLS LAST
+        LIMIT 1`,
       ['calistenia_v2']
     );
-    const rules = result.rows[0]?.rules || {};
+    const row = result.rows[0] || {};
+    const rules = row.rules || {};
     return {
       deloadEvery: Number(rules?.deloadRules?.deloadEvery) || fallback.deloadEvery,
       volumeFactor: Number(rules?.deloadRules?.volumeFactor) || fallback.volumeFactor,
-      restDefault: Number(rules?.restSecondsDefault) || fallback.restDefault
+      restDefault: Number(rules?.restSecondsDefault) || fallback.restDefault,
+      version: row.version ?? rules?.meta?.spec ?? null,
+      scope: 'calistenia_v2'
     };
   } catch (error) {
     logger.warn(`⚠️ [CALISTENIA] No se pudo cargar ruleset calistenia_v2, usando fallback: ${error.message}`);
-    return fallback;
+    return { ...fallback, version: null, scope: 'calistenia_v2' };
   }
 }
 
@@ -622,6 +634,33 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
     });
   }
 
+  // Contexto de entorno/equipo (PR-CAL-01 Subfase B/D, G7). El equipamiento se LEE de la fuente
+  // canónica app.user_equipment (no se duplica). Es INFORMATIVO: el filtro por equipo se difiere a
+  // CAL-02A (vocabulario de app.ejercicios.equipamiento sucio/compuesto). training_environment y
+  // equipment_safety_confirmed salen del perfil (o del passthrough del Card); ausente → null.
+  let availableEquipment = null;
+  try {
+    const eqRes = await pool.query(
+      `SELECT equipment_type FROM app.user_equipment
+        WHERE user_id = $1 AND has_equipment = true
+        ORDER BY equipment_type`,
+      [userId]
+    );
+    availableEquipment = eqRes.rows.map((r) => r.equipment_type);
+  } catch (eqErr) {
+    logger.warn(`⚠️ [CALISTENIA] No se pudo leer user_equipment: ${eqErr.message}`);
+  }
+  const planContext = {
+    training_environment: normalizeTrainingEnvironment(
+      planData.context?.training_environment ?? userProfile?.training_environment
+    ),
+    equipment_safety_confirmed: normalizeEquipmentSafetyConfirmed(
+      planData.context?.equipment_safety_confirmed ?? userProfile?.equipment_safety_confirmed
+    ),
+    available_equipment: availableEquipment,
+    equipment_filter_applied: false // diferido a CAL-02A (catálogo de equipamiento por sanear)
+  };
+
   // 5) Estructura del plan.
   const fechaInicio = new Date().toISOString();
   const plan = {
@@ -650,7 +689,10 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
       ruleset_scope: 'calistenia_v2',
       source: 'calistenia_v2_progressive'
     },
-    // G7: persiste el assessment determinista cuando el flag está activo (null en modo legacy).
+    // G7: versión REAL del ruleset de BD (antes se descartaba) + contexto de entorno/equipo +
+    // assessment determinista (null en modo legacy con el flag off).
+    ruleset_version: ruleset.version ?? null,
+    context: planContext,
     assessment: assessment || null,
     semanas
   };
