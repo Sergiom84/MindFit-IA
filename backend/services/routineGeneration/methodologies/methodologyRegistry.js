@@ -233,6 +233,21 @@ export const METHODOLOGY_DESCRIPTORS = [
 const DESCRIPTOR_BY_ID = new Map(METHODOLOGY_DESCRIPTORS.map((d) => [d.id, d]));
 
 /**
+ * Alias de nivel explícitos (UNIÓN de los normalizadores locales que este canónico sustituye:
+ * `trainingLoadContract`, `bridgeEventOutboxService`). `básico`/`basico`/`basica`/`beginner`
+ * son la variante de entrada → `principiante`; `intermediate`/`advanced` son las inglesas.
+ * Los niveles canónicos (principiante/intermedio/avanzado/elite) NO se listan aquí: se validan
+ * directamente contra `descriptor.levels` de la metodología (elite solo existe en crossfit).
+ */
+const LEVEL_ALIASES = Object.freeze({
+  basico: 'principiante',
+  basica: 'principiante',
+  beginner: 'principiante',
+  intermediate: 'intermedio',
+  advanced: 'avanzado'
+});
+
+/**
  * Normaliza un valor a su ID canónico, o `null` si no lo reconoce (NUNCA a Hipertrofia
  * ni a "general"). Coincidencia exacta por ID y, si no, por SECUENCIA DE TOKENS de los
  * aliases (palabra completa) en orden de precedencia. COR-F0-03: se retiró el matching por
@@ -266,6 +281,33 @@ export function getMethodologyDescriptor(value) {
 /** ¿Existe la metodología en el registro? */
 export function isKnownMethodology(value) {
   return normalizeMethodologyId(value) !== null;
+}
+
+/**
+ * Normaliza un nivel de entrenamiento a la forma canónica de UNA metodología concreta, o `null`.
+ * Fuente ÚNICA de normalización de nivel (PR-CAL-01, defectos A6/G1/G2): sustituye a los
+ * normalizadores locales de `trainingLoadContract`, `bridgeEventOutboxService` y `CalisteniaService`.
+ *
+ * Reglas:
+ *  - `value` no string/number → null.
+ *  - metodología desconocida → null (no se valida a ciegas).
+ *  - se limpia el valor (sin acentos, minúsculas, trim) y se aplican `LEVEL_ALIASES`.
+ *  - el resultado DEBE existir en `descriptor.levels` de la metodología; si no, null
+ *    (p.ej. `elite` es válido en crossfit pero null en calistenia). NUNCA cae a un nivel
+ *    por defecto (el fuzzy legacy que devolvía siempre `principiante` queda retirado).
+ *
+ * @param {string} methodologyId  id o alias de la metodología (se resuelve por el registry)
+ * @param {string|number} value   nivel crudo (frontend, IA, columna legacy)
+ * @returns {string|null}
+ */
+export function normalizeMethodologyLevel(methodologyId, value) {
+  const descriptor = getMethodologyDescriptor(methodologyId);
+  if (!descriptor) return null;
+  if (typeof value !== 'string' && typeof value !== 'number') return null;
+  const key = stripDiacritics(value).toLowerCase().trim();
+  if (!key) return null;
+  const candidate = LEVEL_ALIASES[key] || key;
+  return descriptor.levels.includes(candidate) ? candidate : null;
 }
 
 /**

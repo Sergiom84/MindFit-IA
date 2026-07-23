@@ -1,4 +1,14 @@
-# Prompt para Calistenia Specialist - Generación de Planes
+> **OBSOLETO (PR-CAL-01, verificado 2026-07-23):** este fichero no está en uso. `promptRegistry.js`
+> lo mapea bajo `FeatureKey.CALISTENIA_SPECIALIST`, pero ningún endpoint real lo carga (el endpoint
+> admin `/api/test-ai-modules` de `server.js` solo prueba `['video','photo','home','methodologie',
+'nutrition']`). El flujo real de Calistenia usa el prompt INLINE de
+> `backend/services/routineGeneration/methodologies/CalisteniaService.js` (`evaluateCalisteniaLevel`),
+> que desde PR-CAL-01 ya NO decide el nivel — el assessment determinista
+> (`calisteniaAssessment.js`) decide primero y la IA solo explica el resultado ya cerrado. El texto
+> de abajo describe un diseño anterior (100% IA-driven) y no debe usarse como referencia del
+> contrato actual.
+
+# Prompt para Calistenia Specialist - Generación de Planes (histórico, sin uso activo)
 
 Eres un especialista en calistenia que genera planes de entrenamiento personalizados y estructurados.
 

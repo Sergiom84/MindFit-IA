@@ -14,8 +14,12 @@ import { normalizeUserProfile } from '../validators.js';
 import { extractInjuryText, activeInjuryRules, isContraindicated } from '../injuryContraindications.js';
 import {
   getProfileTrainingGoal,
-  resolveTrainingFrequency
+  resolveTrainingFrequency,
+  normalizeTrainingEnvironment,
+  normalizeEquipmentSafetyConfirmed
 } from '../../userProfileContract.js';
+import { normalizeMethodologyLevel } from './methodologyRegistry.js';
+import { assessCalistenia, isCalisthenicsAssessmentEnabled } from './calisteniaAssessment.js';
 import {
   logSeparator,
   logAPICall,
@@ -27,27 +31,116 @@ import {
 } from '../../../utils/aiLogger.js';
 
 /**
- * Evaluar perfil de usuario para determinar nivel de calistenia
- * @param {string} userId - ID del usuario
- * @returns {Promise<object>} Evaluación con nivel recomendado
+ * Normaliza un campo de la respuesta de la IA que el frontend consume como array de strings
+ * (`.map()`/`.join()`). Blinda la tarjeta contra respuestas con shape incorrecto (P1): si la IA
+ * devuelve JSON válido pero un string/objeto/número en vez de array, se degrada a `[]`; si es
+ * array, se conservan solo los elementos string (descartando objetos/números que romperían el
+ * render). Siempre devuelve un array de strings.
+ * @param {*} value
+ * @returns {string[]}
  */
-export async function evaluateCalisteniaLevel(userId) {
+export function normalizeStringArray(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item) => typeof item === 'string');
+}
+
+/**
+ * Unifica el input de evaluación/generación entre el contrato nuevo (`{ assessmentInput }`) y el
+ * legacy plano (`planData.selectedLevel/demonstratedLevel/painStatus/context`), para que
+ * evaluación, generación multi-semana y single-day compartan una única fuente de verdad
+ * (PR-CAL-01, corrección de Sergio: "no mantener dos contratos").
+ * @param {object} [planData]
+ * @returns {{selfReportedLevel:*, demonstratedLevel:*, painStatus:*, context:*}}
+ */
+export function resolveAssessmentInput(planData = {}) {
+  return planData.assessmentInput ?? {
+    selfReportedLevel: planData.selectedLevel,
+    demonstratedLevel: planData.demonstratedLevel,
+    painStatus: planData.painStatus,
+    context: planData.context
+  };
+}
+
+/**
+ * Construye el error tipado 422 de derivación profesional (`CALISTHENICS_ASSESSMENT_REFER`),
+ * con el body público exacto que espera el frontend (nunca `error.message` crudo).
+ */
+function buildAssessmentReferError(assessment) {
+  const err = new Error('Necesitas una valoración profesional antes de generar el entrenamiento.');
+  err.statusCode = 422;
+  err.code = 'CALISTHENICS_ASSESSMENT_REFER';
+  err.publicEvaluation = {
+    decision: 'refer',
+    recommended_level: null,
+    confidence: assessment.confidence,
+    reasons: assessment.reasons,
+    limiting_patterns: assessment.limiting_patterns,
+    reasoning: null
+  };
+  return err;
+}
+
+/**
+ * Evaluar perfil de usuario para determinar nivel de calistenia (PR-CAL-01).
+ *
+ * El assessment determinista (`assessCalistenia`) SIEMPRE decide primero; la IA solo EXPLICA un
+ * resultado ya cerrado (nunca propone un nivel distinto — cualquier "recommended_level" que
+ * sugiera se ignora). 'refer' lanza un 422 tipado (derivar, no prescribir); 'insufficient_data'
+ * devuelve el envelope con `recommended_level: null` sin invocar a la IA (no se inventa nivel); si
+ * la IA falla en 'ok', se devuelve el assessment sin prosa en vez de un 500.
+ *
+ * @param {string} userId - ID del usuario
+ * @param {object} [assessmentInput] - { selfReportedLevel, demonstratedLevel, painStatus, context }
+ * @returns {Promise<object>} Envelope { success, evaluation: { decision, recommended_level, ... } }
+ */
+export async function evaluateCalisteniaLevel(userId, assessmentInput = {}) {
+  logSeparator('CALISTENIA PROFILE EVALUATION');
+  logAPICall('/specialist/calistenia/evaluate', 'POST', userId);
+
+  let userProfile = null;
   try {
-    logSeparator('CALISTENIA PROFILE EVALUATION');
-    logAPICall('/specialist/calistenia/evaluate', 'POST', userId);
+    userProfile = await getUserFullProfile(userId);
+  } catch (profileError) {
+    logger.warn(`⚠️ [CALISTENIA] No se pudo leer el perfil completo: ${profileError.message}`);
+  }
+  const normalizedProfile = userProfile ? normalizeUserProfile(userProfile) : null;
+  if (normalizedProfile) logUserProfile(normalizedProfile, userId);
 
-    const userProfile = await getUserFullProfile(userId);
-    const normalizedProfile = normalizeUserProfile(userProfile);
+  const assessment = assessCalistenia({
+    selfReportedLevel: assessmentInput.selfReportedLevel ?? userProfile?.nivel_entrenamiento,
+    demonstratedLevel: assessmentInput.demonstratedLevel,
+    experienceYears: userProfile?.anos_experiencia,
+    injuryText: extractInjuryText(userProfile || {}),
+    painStatus: assessmentInput.painStatus
+  });
 
-    logUserProfile(normalizedProfile, userId);
+  if (assessment.decision === 'refer') {
+    throw buildAssessmentReferError(assessment);
+  }
 
-    // Verificar ejercicios disponibles
-    const exerciseCount = await countByDiscipline(pool, 'calistenia', { nivel: 'principiante' });
-    if (exerciseCount === 0) {
-      throw new Error('No se encontraron ejercicios de calistenia en la base de datos');
-    }
+  if (assessment.decision === 'insufficient_data') {
+    return {
+      success: true,
+      evaluation: {
+        decision: 'insufficient_data',
+        recommended_level: null,
+        confidence: assessment.confidence,
+        reasons: assessment.reasons,
+        limiting_patterns: assessment.limiting_patterns,
+        reasoning: null
+      }
+    };
+  }
 
-    // Obtener historial de ejercicios
+  // decision === 'ok': el nivel YA está cerrado (assessment.level). La IA solo explica.
+  let reasoning = null;
+  let key_indicators = [];
+  let suggested_focus_areas = [];
+  let safety_considerations = [];
+  let contraindicated_movements = [];
+  const config = AI_MODULES.CALISTENIA_SPECIALIST;
+
+  try {
     const recentExercisesResult = await pool.query(`
       SELECT DISTINCT exercise_name, used_at
       FROM app.exercise_history
@@ -58,59 +151,38 @@ export async function evaluateCalisteniaLevel(userId) {
 
     const recentExercises = recentExercisesResult.rows.map(row => row.exercise_name);
 
-    // Preparar payload para IA
     const aiPayload = {
-      task: 'evaluate_calistenia_level',
+      task: 'explain_calistenia_level',
+      closed_level: assessment.level,
+      close_reasons: assessment.reasons,
+      limiting_patterns: assessment.limiting_patterns,
       user_profile: {
-        ...normalizedProfile,
+        ...(normalizedProfile || {}),
         recent_exercises: recentExercises
-      },
-      evaluation_criteria: [
-        'Años de entrenamiento en calistenia o peso corporal',
-        'Nivel actual de fuerza relativa (IMC, experiencia)',
-        'Capacidad de realizar movimientos básicos',
-        'Experiencia con ejercicios avanzados',
-        'Objetivos específicos de calistenia',
-        'Limitaciones físicas o lesiones',
-        'Edad y condición física general'
-      ],
-      level_descriptions: {
-        principiante: 'Principiantes: 0-1 años experiencia, enfoque en técnica básica',
-        intermedio: 'Experiencia: 1-3 años, domina movimientos básicos',
-        avanzado: 'Expertos: +3 años, ejecuta ejercicios complejos'
       }
     };
-
     logAIPayload('CALISTENIA_EVALUATION', aiPayload);
 
-    // Llamar a IA
     const client = getModuleOpenAI(AI_MODULES.CALISTENIA_SPECIALIST);
-    const config = AI_MODULES.CALISTENIA_SPECIALIST;
-
     const completion = await client.chat.completions.create({
       model: config.model,
       messages: [
         {
           role: 'system',
-          content: `Eres un especialista en calistenia que evalúa perfiles de usuarios.
+          content: `Eres un especialista en calistenia. El NIVEL YA FUE DECIDIDO por un sistema determinista ("${assessment.level}"); tu ÚNICA tarea es EXPLICARLO con lenguaje humano, NUNCA proponer un nivel distinto (cualquier nivel que sugieras se ignora).
 
 INSTRUCCIONES (OBLIGATORIAS):
-- Evalúa objetivamente basándote SOLO en los datos reales del perfil (experiencia declarada, objetivos, nivel). NO inventes ni asumas capacidades no evidenciadas (no afirmes que domina muscle-ups, planchas o handstands salvo que el perfil lo indique).
-- Ante ambigüedad o falta de datos, sé CONSERVADOR y baja un nivel (la seguridad prima sobre el rendimiento).
-- Sé realista con la confianza (no siempre 100%).
-- LESIONES/LIMITACIONES: revisa "limitaciones_fisicas". Si hay lesión (p.ej. muñeca, codo, hombro, lumbar, rodilla), NO subas el nivel por rendimiento; añade en "safety_considerations" y "contraindicated_movements" los patrones a evitar/escalar (muñeca → planchas/pino/fondos/flexiones en apoyo de manos; codo → dominadas/dips/muscle-up; hombro → pino/pike/HSPU/dips; lumbar → front lever/hollow/L-sit/elevaciones de piernas; rodilla → pistols/saltos/zancadas). "reasoning" debe mencionar la limitación.
-- RESPONDE SOLO EN JSON PURO, SIN MARKDOWN
+- Explica "closed_level" y "close_reasons" con lenguaje claro para el usuario, basándote SOLO en los datos reales del perfil. NO inventes ni asumas capacidades no evidenciadas.
+- Si hay "limiting_patterns" (lesión), menciónalo explícitamente en "reasoning" y añade en "safety_considerations"/"contraindicated_movements" los movimientos a evitar/escalar (muñeca → planchas/pino/fondos/flexiones en apoyo de manos; codo → dominadas/dips/muscle-up; hombro → pino/pike/HSPU/dips; lumbar → front lever/hollow/L-sit/elevaciones de piernas; rodilla → pistols/saltos/zancadas).
+- RESPONDE SOLO EN JSON PURO, SIN MARKDOWN. NO incluyas ningún campo de nivel ("recommended_level", "level", etc.) — se ignorará si lo incluyes.
 
 FORMATO DE RESPUESTA:
 {
-  "recommended_level": "principiante|intermedio|avanzado",
-  "confidence": 0.75,
-  "reasoning": "Explicación basada SOLO en datos reales; menciona cualquier lesión/limitación",
+  "reasoning": "Explicación del nivel ya cerrado, basada SOLO en datos reales; menciona cualquier lesión/limitación",
   "key_indicators": ["Factor 1", "Factor 2"],
   "suggested_focus_areas": ["Área 1", "Área 2"],
   "safety_considerations": ["Advertencia por lesión/limitación 1"],
-  "contraindicated_movements": ["Movimiento a evitar/escalar por lesión"],
-  "progression_timeline": "Tiempo estimado"
+  "contraindicated_movements": ["Movimiento a evitar/escalar por lesión"]
 }`
         },
         {
@@ -126,43 +198,39 @@ FORMATO DE RESPUESTA:
     logAIResponse(aiResponse);
     logTokens(completion.usage);
 
-    // Parsear respuesta
-    let evaluation;
-    try {
-      evaluation = JSON.parse(parseAIResponse(aiResponse));
-    } catch (parseError) {
-      logger.error('Error parseando respuesta IA:', parseError);
-      throw new Error('Respuesta de IA inválida');
-    }
-
-    // Validar respuesta
-    const normalizedLevel = evaluation.recommended_level.toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-
-    return {
-      success: true,
-      evaluation: {
-        recommended_level: normalizedLevel,
-        confidence: evaluation.confidence,
-        reasoning: evaluation.reasoning,
-        key_indicators: evaluation.key_indicators || [],
-        suggested_focus_areas: evaluation.suggested_focus_areas || [],
-        safety_considerations: evaluation.safety_considerations || [],
-        contraindicated_movements: evaluation.contraindicated_movements || [],
-        progression_timeline: evaluation.progression_timeline || 'No especificado'
-      },
-      metadata: {
-        model_used: config.model,
-        evaluation_timestamp: new Date().toISOString()
-      }
-    };
-
-  } catch (error) {
-    logger.error('Error en evaluación de calistenia:', error);
-    logError('CALISTENIA_SPECIALIST', error);
-    throw error;
+    const evaluation = JSON.parse(parseAIResponse(aiResponse));
+    reasoning = evaluation.reasoning || null;
+    // La IA no es fiable: normalizamos cada campo-array antes de que salga del servicio para que
+    // el frontend (que hace .map()/.join()) nunca reciba un string/objeto y crashee (P1).
+    key_indicators = normalizeStringArray(evaluation.key_indicators);
+    suggested_focus_areas = normalizeStringArray(evaluation.suggested_focus_areas);
+    safety_considerations = normalizeStringArray(evaluation.safety_considerations);
+    contraindicated_movements = normalizeStringArray(evaluation.contraindicated_movements);
+  } catch (aiError) {
+    // La IA solo explica; si falla, se devuelve el assessment cerrado sin prosa (nunca 500).
+    logger.warn(`⚠️ [CALISTENIA] IA no disponible para explicar el nivel, se devuelve sin prosa: ${aiError.message}`);
+    logError('CALISTENIA_SPECIALIST', aiError);
   }
+
+  return {
+    success: true,
+    evaluation: {
+      decision: 'ok',
+      recommended_level: assessment.level,
+      confidence: assessment.confidence,
+      reasons: assessment.reasons,
+      limiting_patterns: assessment.limiting_patterns,
+      reasoning,
+      key_indicators,
+      suggested_focus_areas,
+      safety_considerations,
+      contraindicated_movements
+    },
+    metadata: {
+      model_used: config.model,
+      evaluation_timestamp: new Date().toISOString()
+    }
+  };
 }
 
 // Columnas que necesita el motor de calistenia desde app.ejercicios.
@@ -217,17 +285,38 @@ const SESSION_TEMPLATES = {
 };
 
 /**
- * Normaliza el nivel recibido del frontend a las claves de getCalisteniaLevels().
- * El frontend puede enviar 'basico' (default), 'principiante', 'intermedio', 'avanzado'.
+ * Resuelve la clave de nivel de calistenia (PR-CAL-01, defecto G1/G2). Fuente ÚNICA: el
+ * normalizador canónico del registry. Sustituye al fuzzy legacy que hacía pasar cualquier
+ * valor por 'principiante' (default silencioso).
+ *
+ * Precedencia: `selectedLevel` (frontend) → `aiLevel` (evaluación IA) → `profileLevel`.
+ *  - nivel AUSENTE (ninguno de los tres) → 'principiante' (default seguro, el más conservador);
+ *  - nivel PROVISTO pero no reconocido por el registry (incl. 'elite', que es de crossfit) →
+ *    error 422 tipado (`code: CALISTHENICS_LEVEL_UNRECOGNIZED`), NUNCA principiante silencioso.
+ *
+ * Función pura (sin BD): testeable directamente.
+ * @param {{selectedLevel?:*, aiLevel?:*, profileLevel?:*}} sources
+ * @returns {'principiante'|'intermedio'|'avanzado'}
  */
-function normalizeCalisteniaLevel(rawLevel) {
-  const lvl = String(rawLevel || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '');
-  if (lvl.includes('avanz')) return 'avanzado';
-  if (lvl.includes('inter')) return 'intermedio';
-  return 'principiante';
+export function resolveCalisteniaLevelKey({ selectedLevel = null, aiLevel = null, profileLevel = null } = {}) {
+  // Fuentes EXPLÍCITAS (petición del usuario o recomendación de IA): un valor provisto pero no
+  // reconocido → 422 (no principiante silencioso).
+  for (const explicit of [selectedLevel, aiLevel]) {
+    if (explicit != null && String(explicit).trim() !== '') {
+      const level = normalizeMethodologyLevel('calistenia', explicit);
+      if (level === null) {
+        const err = new Error(`Nivel de calistenia no reconocido: '${explicit}'`);
+        err.statusCode = 422;
+        err.code = 'CALISTHENICS_LEVEL_UNRECOGNIZED';
+        throw err;
+      }
+      return level;
+    }
+  }
+  // Fuente AMBIENTAL (nivel_entrenamiento del perfil): un valor legacy/sucio NO debe abortar la
+  // generación (regresión H-C1). Si es canónico se respeta; si no, se ignora y cae al default
+  // seguro 'principiante'. Nunca lanza por dato de perfil.
+  return normalizeMethodologyLevel('calistenia', profileLevel) || 'principiante';
 }
 
 /**
@@ -292,19 +381,29 @@ async function loadCalisteniaRuleset(dbClient) {
     restDefault: DEFAULT_REST_SECONDS
   };
   try {
+    // G7: se lee también la `version` REAL de la fila activa (antes se descartaba) para poder
+    // persistirla en el plan. La función get_active_mindfeed_ruleset solo devuelve el JSON de
+    // reglas, así que la versión se toma de la fila de app.mindfeed_rulesets.
     const result = await dbClient.query(
-      'SELECT app.get_active_mindfeed_ruleset($1) AS rules',
+      `SELECT r.version, app.get_active_mindfeed_ruleset($1) AS rules
+         FROM app.mindfeed_rulesets r
+        WHERE r.scope = $1 AND r.is_active = true
+        ORDER BY r.version DESC NULLS LAST
+        LIMIT 1`,
       ['calistenia_v2']
     );
-    const rules = result.rows[0]?.rules || {};
+    const row = result.rows[0] || {};
+    const rules = row.rules || {};
     return {
       deloadEvery: Number(rules?.deloadRules?.deloadEvery) || fallback.deloadEvery,
       volumeFactor: Number(rules?.deloadRules?.volumeFactor) || fallback.volumeFactor,
-      restDefault: Number(rules?.restSecondsDefault) || fallback.restDefault
+      restDefault: Number(rules?.restSecondsDefault) || fallback.restDefault,
+      version: row.version ?? rules?.meta?.spec ?? null,
+      scope: 'calistenia_v2'
     };
   } catch (error) {
     logger.warn(`⚠️ [CALISTENIA] No se pudo cargar ruleset calistenia_v2, usando fallback: ${error.message}`);
-    return fallback;
+    return { ...fallback, version: null, scope: 'calistenia_v2' };
   }
 }
 
@@ -424,13 +523,58 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
     logger.warn(`⚠️ [CALISTENIA] No se pudo leer el perfil completo: ${profileError.message}`);
   }
 
-  // 1) Nivel: prioriza selectedLevel; fallback a la evaluación IA y al perfil.
-  const rawLevel =
-    planData.selectedLevel ||
-    planData.aiEvaluation?.recommended_level ||
-    userProfile?.nivel_entrenamiento ||
-    'principiante';
-  const levelKey = normalizeCalisteniaLevel(rawLevel);
+  // 1) Nivel. Con el flag OFF = LECTURA LEGACY: prioriza selectedLevel → evaluación IA → perfil
+  //    (nivel provisto no reconocido → 422; ausente → default seguro 'principiante').
+  //    Con el flag ON (default, PR-CAL-01), el assessment determinista es la AUTORIDAD: la IA
+  //    solo explica. 'refer' → 422 (derivar, no prescribir). 'insufficient_data' NUNCA cae a
+  //    'principiante' en silencio: solo admite un fallback provisional si el usuario ya
+  //    seleccionó un nivel explícito o confirmó continuar así; si no, 422
+  //    `CALISTHENICS_LEVEL_REQUIRED`. `levelSource` viaja siempre en el plan para que nunca quede
+  //    oculto que el nivel usado era provisional (corrección de Sergio).
+  const assessmentInput = resolveAssessmentInput(planData);
+  let assessment = null;
+  let levelKey;
+  let levelSource;
+  if (isCalisthenicsAssessmentEnabled()) {
+    assessment = assessCalistenia({
+      selfReportedLevel: assessmentInput.selfReportedLevel ?? userProfile?.nivel_entrenamiento,
+      demonstratedLevel: assessmentInput.demonstratedLevel,
+      experienceYears: userProfile?.anos_experiencia,
+      injuryText: extractInjuryText(userProfile || {}),
+      painStatus: assessmentInput.painStatus
+    });
+
+    if (assessment.decision === 'refer') {
+      throw buildAssessmentReferError(assessment);
+    }
+
+    if (assessment.decision === 'insufficient_data') {
+      const explicitSelected = planData.selectedLevel != null && String(planData.selectedLevel).trim() !== '';
+      const confirmedProvisional = planData.acceptProvisionalLevel === true;
+      if (!explicitSelected && !confirmedProvisional) {
+        const err = new Error(
+          'Selecciona un nivel o confirma continuar con un nivel provisional antes de generar el entrenamiento.'
+        );
+        err.statusCode = 422;
+        err.code = 'CALISTHENICS_LEVEL_REQUIRED';
+        throw err;
+      }
+      levelKey = explicitSelected
+        ? resolveCalisteniaLevelKey({ selectedLevel: planData.selectedLevel, aiLevel: null, profileLevel: null })
+        : 'principiante';
+      levelSource = explicitSelected ? 'user_selected' : 'provisional_safe_fallback';
+    } else {
+      levelKey = assessment.level;
+      levelSource = 'assessment';
+    }
+  } else {
+    levelKey = resolveCalisteniaLevelKey({
+      selectedLevel: planData.selectedLevel,
+      aiLevel: planData.aiEvaluation?.recommended_level,
+      profileLevel: userProfile?.nivel_entrenamiento
+    });
+    levelSource = 'legacy_resolution';
+  }
 
   const levels = getCalisteniaLevels();
   const levelConfig = levels[levelKey] || levels.principiante;
@@ -572,6 +716,33 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
     });
   }
 
+  // Contexto de entorno/equipo (PR-CAL-01 Subfase B/D, G7). El equipamiento se LEE de la fuente
+  // canónica app.user_equipment (no se duplica). Es INFORMATIVO: el filtro por equipo se difiere a
+  // CAL-02A (vocabulario de app.ejercicios.equipamiento sucio/compuesto). training_environment y
+  // equipment_safety_confirmed salen del perfil (o del passthrough del Card); ausente → null.
+  let availableEquipment = null;
+  try {
+    const eqRes = await pool.query(
+      `SELECT equipment_type FROM app.user_equipment
+        WHERE user_id = $1 AND has_equipment = true
+        ORDER BY equipment_type`,
+      [userId]
+    );
+    availableEquipment = eqRes.rows.map((r) => r.equipment_type);
+  } catch (eqErr) {
+    logger.warn(`⚠️ [CALISTENIA] No se pudo leer user_equipment: ${eqErr.message}`);
+  }
+  const planContext = {
+    training_environment: normalizeTrainingEnvironment(
+      planData.context?.training_environment ?? userProfile?.training_environment
+    ),
+    equipment_safety_confirmed: normalizeEquipmentSafetyConfirmed(
+      planData.context?.equipment_safety_confirmed ?? userProfile?.equipment_safety_confirmed
+    ),
+    available_equipment: availableEquipment,
+    equipment_filter_applied: false // diferido a CAL-02A (catálogo de equipamiento por sanear)
+  };
+
   // 5) Estructura del plan.
   const fechaInicio = new Date().toISOString();
   const plan = {
@@ -600,6 +771,13 @@ export async function generateCalisteniaPlan(userId, planData = {}) {
       ruleset_scope: 'calistenia_v2',
       source: 'calistenia_v2_progressive'
     },
+    // G7: versión REAL del ruleset de BD (antes se descartaba) + contexto de entorno/equipo +
+    // assessment determinista (null en modo legacy con el flag off).
+    ruleset_version: ruleset.version ?? null,
+    context: planContext,
+    assessment: assessment || null,
+    resolved_level: levelKey,
+    level_source: levelSource,
     semanas
   };
 

@@ -189,34 +189,18 @@ export function WorkoutProvider({ children }) {
         };
       }
 
-      let requestBody;
-
-      // Mapear datos según el modo específico
-      // Construir payload estándar con campo methodology (lowercase)
-      if (
-        config.mode === 'calistenia' ||
-        (config.mode === 'manual' && String(config.methodology || '').toLowerCase() === 'calistenia')
-      ) {
-        const { calisteniaData = {} } = config;
-        requestBody = {
-          mode: 'manual',
-          methodology: 'calistenia',
-          userProfile: calisteniaData.userProfile || { id: user.id },
-          selectedLevel: (calisteniaData.level?.toLowerCase?.() || calisteniaData.selectedLevel?.toLowerCase?.() || 'basico'),
-          goals: calisteniaData.goals || '',
-          selectedMuscleGroups: calisteniaData.selectedMuscleGroups || [],
-          aiEvaluation: calisteniaData.aiEvaluation || null,
-          source: calisteniaData.source || 'manual_selection',
-          version: calisteniaData.version || '5.0'
-        };
-      } else {
-        // Para otros modos (automático, manual, etc.)
-        requestBody = {
-          ...config,
-          mode: (config.mode || 'automatic'),
-          ...(config.methodology ? { methodology: String(config.methodology).toLowerCase() } : {})
-        };
-      }
+      // Payload estándar con campo methodology (lowercase) para TODAS las metodologías
+      // "manuales" normales (Calistenia incluida, PR-CAL-01: se retira el branch específico que
+      // vivía aquí — `generatePlan()` no debe conocer detalles de ninguna metodología concreta).
+      // El backend (`MethodologyOrchestrator.normalizePlanData`) ya desempaqueta el dato anidado
+      // (p.ej. `calisteniaData`) y deriva `selectedLevel` desde `level` cuando falta; `assessmentInput`
+      // viaja tal cual dentro del dato anidado. La construcción específica de Calistenia (contexto,
+      // painStatus, demonstratedLevel) vive en `useManualPlanGeneration.handleCalisteniaManualGenerate`.
+      const requestBody = {
+        ...config,
+        mode: (config.mode || 'automatic'),
+        ...(config.methodology ? { methodology: String(config.methodology).toLowerCase() } : {})
+      };
 
       // Determinar el endpoint correcto según el modo
       const endpoint = '/methodology/generate';

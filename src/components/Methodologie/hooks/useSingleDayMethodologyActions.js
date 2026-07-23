@@ -24,11 +24,18 @@ export function useSingleDayMethodologyActions({
     selectionMode = 'full_body',
     focusGroup = null,
     nivelOverride = null,
-    equipment = null
+    equipment = null,
+    assessmentInput = null
   }) => {
     const level = nivelOverride || localState.pendingLevel || getUserLevel();
     const methodologyName = localState.pendingMethodology?.name || 'HipertrofiaV2';
     const equipmentList = equipment ?? localState.pendingEquipment ?? null;
+    // PR-CAL-01: canal del assessment determinista de calistenia (painStatus/demonstratedLevel/
+    // context/selfReportedLevel). Sin esto el backend nunca podía derivar por dolor agudo (envelope
+    // 'refer') en el flujo single-day. Se envía el objeto `assessmentInput` tal cual lo construye el
+    // Card (buildAssessmentInput). Fuente: argumento explícito o el capturado en localState. Las demás
+    // metodologías ignoran este campo en la ruta genérica, así que enviarlo cuando existe es inocuo.
+    const assessment = assessmentInput ?? localState.pendingAssessmentInput ?? null;
     updateLocalState({ isGeneratingSingleDay: true });
 
     try {
@@ -38,7 +45,8 @@ export function useSingleDayMethodologyActions({
         isWeekendExtra: true,
         selectionMode,
         focusGroup,
-        ...(equipmentList ? { equipment: equipmentList } : {})
+        ...(equipmentList ? { equipment: equipmentList } : {}),
+        ...(assessment ? { assessmentInput: assessment } : {})
       });
       const data = response.data || response;
       if (!data?.success || !data?.sessionId) {
@@ -76,7 +84,7 @@ export function useSingleDayMethodologyActions({
       ui.setError(detail || error?.message || 'No se pudo generar el entrenamiento para hoy');
       updateLocalState({ isGeneratingSingleDay: false });
     }
-  }, [getUserLevel, localState.pendingEquipment, localState.pendingLevel, localState.pendingMethodology?.name, ui, updateLocalState]);
+  }, [getUserLevel, localState.pendingAssessmentInput, localState.pendingEquipment, localState.pendingLevel, localState.pendingMethodology?.name, ui, updateLocalState]);
 
   const handleWeekendAccept = useCallback(() => {
     const level = getUserLevel();

@@ -24,6 +24,14 @@ import { cleanupUserStaleSessions } from '../services/sessionCleanupService.js';
 
 const router = express.Router();
 
+// Mensajes públicos conocidos por código de error tipado (whitelist deliberada, PR-CAL-01,
+// corrección de Sergio: nunca exponer `error.message` crudo aunque el error traiga `statusCode`).
+const PUBLIC_ERROR_MESSAGES = {
+  CALISTHENICS_ASSESSMENT_REFER: 'Necesitas una valoración profesional antes de generar el entrenamiento.',
+  CALISTHENICS_LEVEL_REQUIRED: 'Selecciona un nivel o confirma continuar con un nivel provisional antes de generar el entrenamiento.',
+  CALISTHENICS_LEVEL_INVALID: 'El nivel indicado no es un nivel válido de calistenia. Selecciona un nivel válido.'
+};
+
 // Normaliza el nombre de metodología recibido del frontend.
 function normalizeMethodology(raw) {
   const m = String(raw || '').toLowerCase().trim();
@@ -86,7 +94,8 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
       isWeekendExtra = false,
       selectionMode = 'full_body',
       focusGroup = null,
-      equipment = null
+      equipment = null,
+      assessmentInput = null
     } = req.body;
 
     const method = normalizeMethodology(methodology);
@@ -107,7 +116,10 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
     } else if (method === 'calistenia') {
       result = await generateCalisteniaSingleDay(dbClient, userId, nivel, isWeekendExtra, {
         selectionMode,
-        focusGroup
+        focusGroup,
+        // PR-CAL-01: painStatus/demonstratedLevel/context capturados en el frontend (antes solo
+        // llegaba `nivel`, sin canal para el assessment determinista).
+        assessmentInput: assessmentInput || {}
       });
     } else if (method === 'crossfit') {
       result = await generateCrossFitSingleDay(dbClient, userId, nivel, isWeekendExtra, {
@@ -167,13 +179,28 @@ router.post('/generate-single-day', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     await dbClient.query('ROLLBACK');
-    logger.error('❌ [METHODOLOGY-SINGLE-DAY] Error:', error);
-    // Faltan valoraciones para el modo por preferencias: error de usuario, no del servidor
-    const status = error?.code === 'INSUFFICIENT_PREFERENCES' ? 400 : 500;
+    logger.error('❌ [METHODOLOGY-SINGLE-DAY] Error:', error?.stack || error?.message);
+
+    // Faltan valoraciones para el modo por preferencias: error de usuario, no del servidor.
+    // `statusCode` tipado (p.ej. CALISTHENICS_ASSESSMENT_REFER/CALISTHENICS_LEVEL_REQUIRED) manda
+    // si existe. Nunca se expone `error.message` crudo salvo que el código esté en la whitelist.
+    const status = Number.isInteger(error?.statusCode)
+      ? error.statusCode
+      : error?.code === 'INSUFFICIENT_PREFERENCES' ? 400 : 500;
+
+    if (status >= 500) {
+      return res.status(500).json({ success: false, error: 'Error al generar entrenamiento.' });
+    }
+
+    const publicMessage = error?.code === 'INSUFFICIENT_PREFERENCES'
+      ? error.message
+      : PUBLIC_ERROR_MESSAGES[error?.code] || 'Solicitud inválida.';
+
     res.status(status).json({
       success: false,
-      error: status === 400 ? error.message : 'Error al generar entrenamiento',
-      details: error.message
+      error: publicMessage,
+      ...(error?.code ? { code: error.code } : {}),
+      ...(error?.publicEvaluation ? { evaluation: error.publicEvaluation } : {})
     });
   } finally {
     dbClient.release();
@@ -209,11 +236,10 @@ router.post('/calistenia/session-result', authenticateToken, async (req, res) =>
     const decision = await applyStallDeload(userId, 'calistenia', result.rows[0].result);
     res.json({ success: true, ...decision });
   } catch (error) {
-    logger.error('❌ [CALISTENIA-AUTOREG] Error:', error);
+    logger.error('❌ [CALISTENIA-AUTOREG] Error:', error?.stack || error?.message);
     res.status(500).json({
       success: false,
-      error: 'Error registrando el resultado de la sesión',
-      details: error.message
+      error: 'Error registrando el resultado de la sesión'
     });
   }
 });
@@ -247,11 +273,10 @@ router.post('/funcional/session-result', authenticateToken, async (req, res) => 
     const decision = await applyStallDeload(userId, 'funcional', result.rows[0].result);
     res.json({ success: true, ...decision });
   } catch (error) {
-    logger.error('❌ [FUNCIONAL-AUTOREG] Error:', error);
+    logger.error('❌ [FUNCIONAL-AUTOREG] Error:', error?.stack || error?.message);
     res.status(500).json({
       success: false,
-      error: 'Error registrando el resultado de la sesión',
-      details: error.message
+      error: 'Error registrando el resultado de la sesión'
     });
   }
 });
@@ -286,11 +311,10 @@ router.post('/casa/session-result', authenticateToken, async (req, res) => {
     const decision = await applyStallDeload(userId, 'casa', result.rows[0].result);
     res.json({ success: true, ...decision });
   } catch (error) {
-    logger.error('❌ [CASA-AUTOREG] Error:', error);
+    logger.error('❌ [CASA-AUTOREG] Error:', error?.stack || error?.message);
     res.status(500).json({
       success: false,
-      error: 'Error registrando el resultado de la sesión',
-      details: error.message
+      error: 'Error registrando el resultado de la sesión'
     });
   }
 });
@@ -324,11 +348,10 @@ router.post('/crossfit/wod-result', authenticateToken, async (req, res) => {
     const decision = await applyStallDeload(userId, 'crossfit', result.rows[0].result);
     res.json({ success: true, ...decision });
   } catch (error) {
-    logger.error('❌ [CROSSFIT-AUTOREG] Error:', error);
+    logger.error('❌ [CROSSFIT-AUTOREG] Error:', error?.stack || error?.message);
     res.status(500).json({
       success: false,
-      error: 'Error registrando el resultado del WOD',
-      details: error.message
+      error: 'Error registrando el resultado del WOD'
     });
   }
 });
@@ -363,11 +386,10 @@ router.post('/halterofilia/session-result', authenticateToken, async (req, res) 
     const decision = await applyStallDeload(userId, 'halterofilia', result.rows[0].result);
     res.json({ success: true, ...decision });
   } catch (error) {
-    logger.error('❌ [HALTEROFILIA-AUTOREG] Error:', error);
+    logger.error('❌ [HALTEROFILIA-AUTOREG] Error:', error?.stack || error?.message);
     res.status(500).json({
       success: false,
-      error: 'Error registrando el resultado de la sesión',
-      details: error.message
+      error: 'Error registrando el resultado de la sesión'
     });
   }
 });
@@ -402,11 +424,10 @@ router.post('/powerlifting/session-result', authenticateToken, async (req, res) 
     const decision = await applyStallDeload(userId, 'powerlifting', result.rows[0].result);
     res.json({ success: true, ...decision });
   } catch (error) {
-    logger.error('❌ [POWERLIFTING-AUTOREG] Error:', error);
+    logger.error('❌ [POWERLIFTING-AUTOREG] Error:', error?.stack || error?.message);
     res.status(500).json({
       success: false,
-      error: 'Error registrando el resultado de la sesión',
-      details: error.message
+      error: 'Error registrando el resultado de la sesión'
     });
   }
 });
@@ -441,11 +462,10 @@ router.post('/heavy-duty/session-result', authenticateToken, async (req, res) =>
     const decision = await applyStallDeload(userId, 'heavy-duty', result.rows[0].result);
     res.json({ success: true, ...decision });
   } catch (error) {
-    logger.error('❌ [HEAVY-DUTY-AUTOREG] Error:', error);
+    logger.error('❌ [HEAVY-DUTY-AUTOREG] Error:', error?.stack || error?.message);
     res.status(500).json({
       success: false,
-      error: 'Error registrando el resultado de la sesión',
-      details: error.message
+      error: 'Error registrando el resultado de la sesión'
     });
   }
 });

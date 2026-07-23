@@ -32,6 +32,44 @@ import { buildProfileAwarePlanData } from '../services/userProfileContract.js';
 
 const router = express.Router();
 
+// Mensajes públicos conocidos por código de error tipado. Whitelist deliberada (PR-CAL-01,
+// corrección de Sergio): un `statusCode` tipado NO basta por sí solo para confiar en
+// `error.message` — solo estos códigos reconocidos exponen texto al cliente; todo lo demás (y
+// cualquier 5xx) cae al mensaje genérico. El log completo (stack/mensaje real) va solo a `logger`.
+const PUBLIC_ERROR_MESSAGES = {
+  CALISTHENICS_ASSESSMENT_REFER: 'Necesitas una valoración profesional antes de generar el entrenamiento.',
+  CALISTHENICS_LEVEL_REQUIRED: 'Selecciona un nivel o confirma continuar con un nivel provisional antes de generar el entrenamiento.',
+  CALISTHENICS_LEVEL_UNRECOGNIZED: 'El nivel indicado no es válido para esta metodología.'
+};
+const GENERIC_CLIENT_ERROR_MESSAGE = 'Solicitud inválida.';
+const GENERIC_SERVER_ERROR_MESSAGE = 'Error interno durante la generación. Inténtalo de nuevo más tarde.';
+
+/**
+ * Responde un error de generación honrando un `statusCode` de dominio tipado (p.ej. 422 de
+ * calistenia por nivel no reconocido o assessment 'refer'). Nunca expone `error.message` crudo:
+ * los 5xx siempre devuelven un mensaje genérico fijo, y los 4xx solo exponen el mensaje si el
+ * `code` está en la whitelist `PUBLIC_ERROR_MESSAGES` (PR-CAL-01, corrección de Sergio — sanear de
+ * raíz, no solo por tener `statusCode`). Si el error trae `publicEvaluation` (p.ej. el envelope de
+ * `CALISTHENICS_ASSESSMENT_REFER`), se propaga tal cual bajo `evaluation`.
+ */
+function respondGenerationError(res, context, error) {
+  const status = Number.isInteger(error?.statusCode) ? error.statusCode : 500;
+  logger.error(`❌ ${context} (${status}):`, error?.stack || error?.message);
+
+  if (status >= 500) {
+    return res.status(500).json({ success: false, error: GENERIC_SERVER_ERROR_MESSAGE });
+  }
+
+  const code = error?.code;
+  const publicMessage = (code && PUBLIC_ERROR_MESSAGES[code]) || GENERIC_CLIENT_ERROR_MESSAGE;
+  res.status(status).json({
+    success: false,
+    error: publicMessage,
+    ...(code ? { code } : {}),
+    ...(error?.publicEvaluation ? { evaluation: error.publicEvaluation } : {})
+  });
+}
+
 // =========================================
 // SPECIALIST ENDPOINTS - EVALUATION
 // Pattern: /specialist/:methodology/evaluate
@@ -45,19 +83,18 @@ const router = express.Router();
 router.post('/specialist/:methodology/evaluate', authenticateToken, async (req, res) => {
   const userId = req.user?.userId || req.user?.id;
   const { methodology } = req.params;
+  // PR-CAL-01: painStatus/demonstratedLevel/context capturados en el frontend viajan aquí y llegan
+  // hasta assessCalistenia (antes solo se pasaba userId y estos campos nunca llegaban al backend).
+  const assessmentInput = req.body?.assessmentInput || {};
 
   try {
     logger.info(`📊 Evaluando nivel de ${methodology} para usuario ${userId}`);
 
-    const evaluation = await evaluateUserLevel(methodology, userId);
+    const evaluation = await evaluateUserLevel(methodology, userId, assessmentInput);
     res.json(evaluation);
 
   } catch (error) {
-    logger.error(`❌ Error en evaluación ${methodology}:`, error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    respondGenerationError(res, `Error en evaluación ${methodology}`, error);
   }
 });
 
@@ -86,11 +123,7 @@ router.post('/specialist/:methodology/generate', authenticateToken, async (req, 
     res.json(result);
 
   } catch (error) {
-    logger.error(`❌ Error generando plan ${methodology}:`, error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    respondGenerationError(res, `Error generando plan ${methodology}`, error);
   }
 });
 
@@ -127,11 +160,7 @@ router.post('/ai/methodology', authenticateToken, async (req, res) => {
     res.json(result);
 
   } catch (error) {
-    logger.error(`❌ Error en generación IA:`, error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    respondGenerationError(res, 'Error en generación IA', error);
   }
 });
 
@@ -152,11 +181,7 @@ router.post('/ai/gym-routine', authenticateToken, async (req, res) => {
     res.json(result);
 
   } catch (error) {
-    logger.error(`❌ Error en rutina gimnasio IA:`, error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    respondGenerationError(res, 'Error en rutina gimnasio IA', error);
   }
 });
 
@@ -184,11 +209,7 @@ router.post('/manual/methodology', authenticateToken, async (req, res) => {
     res.json(result);
 
   } catch (error) {
-    logger.error(`❌ Error en creación manual:`, error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    respondGenerationError(res, 'Error en creación manual', error);
   }
 });
 
@@ -209,11 +230,7 @@ router.post('/manual/calistenia', authenticateToken, async (req, res) => {
     res.json(result);
 
   } catch (error) {
-    logger.error(`❌ Error en plan calistenia manual:`, error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    respondGenerationError(res, 'Error en plan calistenia manual', error);
   }
 });
 

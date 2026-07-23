@@ -373,42 +373,4 @@ export function compareLevels(levelA, levelB) {
   return 0;
 }
 
-/**
- * Verificar si un usuario puede progresar al siguiente nivel
- * @param {string} currentLevel - Nivel actual
- * @param {Array} completedHitos - Hitos completados por el usuario
- * @returns {Object} Información sobre elegibilidad para progresión
- */
-export function canProgressToNextLevel(currentLevel, completedHitos = []) {
-  const config = getLevelConfig(currentLevel);
-  const nextLevel = getNextLevel(currentLevel);
-
-  if (!config) {
-    return { canProgress: false, reason: 'Nivel actual inválido' };
-  }
-
-  if (!nextLevel) {
-    return { canProgress: false, reason: 'Ya estás en el nivel máximo' };
-  }
-
-  const totalHitos = config.hitos.length;
-  const completedCount = completedHitos.length;
-  const completionRate = totalHitos > 0 ? (completedCount / totalHitos) * 100 : 0;
-
-  const canProgress = completionRate >= 80; // Requerimos 80% de hitos completados
-
-  return {
-    canProgress,
-    currentLevel: config.name,
-    nextLevel: nextLevel.name,
-    completionRate: Math.round(completionRate),
-    completedHitos: completedCount,
-    totalHitos,
-    requiredRate: 80,
-    reason: canProgress
-      ? 'Cumples los requisitos para avanzar'
-      : `Necesitas completar al menos ${Math.ceil(totalHitos * 0.8)} hitos (${Math.ceil(totalHitos * 0.8) - completedCount} más)`
-  };
-}
-
 export default CALISTENIA_LEVELS;

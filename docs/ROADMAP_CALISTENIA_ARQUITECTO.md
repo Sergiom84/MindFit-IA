@@ -13,6 +13,7 @@
 Este documento SUSTITUYE el orden y alcance del `06_ROADMAP_IMPLEMENTACION_DETALLADA_CALISTENIA.md` del compañero, y CONSERVA sus límites no negociables (§3 de aquel doc) y sus contratos (docs 02, 04 y 05) salvo donde este documento diga otra cosa explícitamente. Ante contradicción entre ambos roadmaps, manda este.
 
 Reglas para el ejecutor (Opus):
+
 1. Rama nueva desde `origin/main` vigente; registrar SHA en el PR. NUNCA push sin aprobación del arquitecto.
 2. Un PR = una responsabilidad. No mezclar fix quirúrgico con refactor ni con migración.
 3. Antes de tocar un fichero citado aquí, releerlo: main puede haber avanzado.
@@ -29,22 +30,23 @@ Límites heredados que siguen vigentes: no tocar Hipertrofia; no crear catálogo
 
 ### 1.1 Lo que YA existe y funciona (no rehacer)
 
-| Pieza | Evidencia | Estado |
-| --- | --- | --- |
-| Generador real multi-semana | `CalisteniaService.js:415+` — pool desde `app.ejercicios` vía `exerciseRepository.getRandomByLevel`, filtro de lesiones, deload, persistencia draft en `app.methodology_plans` | Operativo. Es fachada + política embebida, no stub |
-| Ruleset en BD con fallback | `loadCalisteniaRuleset` (`CalisteniaService.js:288-309`) lee `app.get_active_mindfeed_ruleset('calistenia_v2')`; fallback 75/6/0.5 con warn | Operativo. OJO: la BD contiene los MISMOS valores que el hardcode; `progression.model` de BD no se consume |
-| Filtro de lesiones compartido | `injuryContraindications.js` — 6 zonas, capas avoid/caution, consumido por Calistenia multi-semana, CrossFit, Gym, Oposiciones, Hipertrofia | Operativo en multi-semana. **NO en single-day** (ver 1.2) |
-| Autorregulación calistenia | `progression/planAutoregService.js:49` — `REP_BASED_KEYS` incluye calistenia; decisión progress/hold/deload vía `app.calistenia_register_session_result`; offsets en `app.plan_progression_offsets` (PK user+plan) | Operativo pero con 0 tests y estado de rachas por-usuario (ver 1.2) |
-| Contrato de carga | `trainingLoad/trainingLoadContract.js` — valida niveles contra `methodologyRegistry.descriptor.levels`, strict/lenient, alias `basico→principiante` | Operativo. No valida demand/recovery/reason codes todavía |
-| Registry canónico | `methodologyRegistry.js:60-73` — descriptor calistenia con 3 niveles, `emits_training_load:false`, desconocido→null | Operativo |
-| Calendario F0 | `ensureScheduleV3.js` — day_id canónico compartido, único `(plan,user,fecha)` en workout_schedule, SAVEPOINT | Operativo |
-| Cierre canónico F0 | `trainingSession/complete.js` — post-update RETURNING, actual load construida en servidor (cliente no inyecta), outbox con SAVEPOINT + event_key idempotente | Operativo (pero hay un segundo cierre que lo esquiva, ver 1.2) |
-| Nutrición por capacidad | `nutritionPeriodizationService.js` — D0/D1/D2 desde el contrato, cero branch nominal por metodología, gate `methodologyEmitsTrainingLoad()` | Operativo |
-| planEngine | `planEngine.js` — primitivas puras (picker, templates, semanas, persistDraft), sin `if methodology===X` | Operativo. No necesita "hooks" nuevos: ya es una librería que cada servicio orquesta |
+| Pieza                         | Evidencia                                                                                                                                                                                                          | Estado                                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Generador real multi-semana   | `CalisteniaService.js:415+` — pool desde `app.ejercicios` vía `exerciseRepository.getRandomByLevel`, filtro de lesiones, deload, persistencia draft en `app.methodology_plans`                                     | Operativo. Es fachada + política embebida, no stub                                                         |
+| Ruleset en BD con fallback    | `loadCalisteniaRuleset` (`CalisteniaService.js:288-309`) lee `app.get_active_mindfeed_ruleset('calistenia_v2')`; fallback 75/6/0.5 con warn                                                                        | Operativo. OJO: la BD contiene los MISMOS valores que el hardcode; `progression.model` de BD no se consume |
+| Filtro de lesiones compartido | `injuryContraindications.js` — 6 zonas, capas avoid/caution, consumido por Calistenia multi-semana, CrossFit, Gym, Oposiciones, Hipertrofia                                                                        | Operativo en multi-semana. **NO en single-day** (ver 1.2)                                                  |
+| Autorregulación calistenia    | `progression/planAutoregService.js:49` — `REP_BASED_KEYS` incluye calistenia; decisión progress/hold/deload vía `app.calistenia_register_session_result`; offsets en `app.plan_progression_offsets` (PK user+plan) | Operativo pero con 0 tests y estado de rachas por-usuario (ver 1.2)                                        |
+| Contrato de carga             | `trainingLoad/trainingLoadContract.js` — valida niveles contra `methodologyRegistry.descriptor.levels`, strict/lenient, alias `basico→principiante`                                                                | Operativo. No valida demand/recovery/reason codes todavía                                                  |
+| Registry canónico             | `methodologyRegistry.js:60-73` — descriptor calistenia con 3 niveles, `emits_training_load:false`, desconocido→null                                                                                                | Operativo                                                                                                  |
+| Calendario F0                 | `ensureScheduleV3.js` — day_id canónico compartido, único `(plan,user,fecha)` en workout_schedule, SAVEPOINT                                                                                                       | Operativo                                                                                                  |
+| Cierre canónico F0            | `trainingSession/complete.js` — post-update RETURNING, actual load construida en servidor (cliente no inyecta), outbox con SAVEPOINT + event_key idempotente                                                       | Operativo (pero hay un segundo cierre que lo esquiva, ver 1.2)                                             |
+| Nutrición por capacidad       | `nutritionPeriodizationService.js` — D0/D1/D2 desde el contrato, cero branch nominal por metodología, gate `methodologyEmitsTrainingLoad()`                                                                        | Operativo                                                                                                  |
+| planEngine                    | `planEngine.js` — primitivas puras (picker, templates, semanas, persistDraft), sin `if methodology===X`                                                                                                            | Operativo. No necesita "hooks" nuevos: ya es una librería que cada servicio orquesta                       |
 
 ### 1.2 Defectos VERIFICADOS con evidencia (esto es lo que hay que arreglar)
 
 **Generación / nivel**
+
 - G1. La IA decide el nivel sin validación: `evaluateCalisteniaLevel` no comprueba que `recommended_level ∈ {principiante,intermedio,avanzado}` (`CalisteniaService.js:139-141`); si la IA devuelve "elite", pasa tal cual; si viene `undefined`, explota.
 - G2. Fallback silencioso a principiante en generación: `normalizeCalisteniaLevel` devuelve `'principiante'` para cualquier valor que no contenga "avanz"/"inter", incluida basura (`CalisteniaService.js:223-231`).
 - G3. Plantillas por frecuencia, no por nivel: `SESSION_TEMPLATES` se indexa solo por frecuencia 3/4/5 (`CalisteniaService.js:198-217, 492`). Entre niveles solo cambian frecuencia default y `duration_weeks`. Sin RIR en el motor multi-semana.
@@ -55,6 +57,7 @@ Límites heredados que siguen vigentes: no tocar Hipertrofia; no crear catálogo
 - G8. **Single-day SIN filtro de lesiones ni equipo**: `calisteniaSingleDay.js` usa SQL propio inline (`:85-120`), niveles acumulativos duplicados (`:56-59`), sin import de `injuryContraindications`. Un usuario con muñeca lesionada recibe flexiones. Este es el hueco de seguridad deportiva más grave del área.
 
 **Sesión (compartido, afecta a todas las metodologías)**
+
 - S1. Dos familias de inicio: el frontend usa `/routines/sessions/start` (`src/components/routines/api.js:39`), NO `/training-session/start/methodology`. La familia B es la mejorada por Fase 0 pero no está cableada.
 - S2. Fallback calistenia cross-metodología CONFIRMADO: si un plan (de cualquier metodología) llega sin ejercicios, el start inyecta 6 aleatorios de disciplina `'calistenia'` hardcodeada (`routines/sessions.js:246-267`).
 - S3. Concurrencia rota: no existe UNIQUE de sesión activa por user/plan/día (verificado en baseline del esquema); el guard es un SELECT bajo READ COMMITTED → dos starts simultáneos crean dos sesiones (`sessions.js:124-141`).
@@ -63,6 +66,7 @@ Límites heredados que siguen vigentes: no tocar Hipertrofia; no crear catálogo
 - S6. `/routines/sessions/:id/effort` valida ownership pero NO rangos de RIR/RPE (`sessions.js:796-808`).
 
 **Autorregulación / reevaluación**
+
 - A1. Estado de rachas por USUARIO, no por plan: `app.calistenia_autoreg_state` PK `user_id` (`20260628_calistenia_autoreg.sql:12-13`). Dos planes del mismo usuario se pisan las rachas. En cambio `plan_progression_offsets` SÍ es por (user, plan) — la dirección correcta ya existe.
 - A2. Migración de `plan_progression_offsets` fuera del ledger fechado: `backend/migrations/create_plan_progression_offsets.sql` (sin prefijo de fecha).
 - A3. **Bug funcional**: el plan guarda semanas con clave `numero` (`CalisteniaService.js:565`), pero la reevaluación busca `w.semana || w.week` (`calisteniaReEvaluator.js:164`; `progressReEvaluation.js:512`). Resultado: la IA reevalúa sin contexto de semana y `/key-exercises` devuelve `[]` siempre (por eso el frontend enseña los pull-ups/push-ups/squats hardcodeados de `CalisteniaReEvalForm.jsx:233-237`).
@@ -71,6 +75,7 @@ Límites heredados que siguen vigentes: no tocar Hipertrofia; no crear catálogo
 - A6. Tres normalizadores de nivel divergentes: `trainingLoadContract` (alias), `bridgeEventOutboxService` (set), `CalisteniaService` (substring). El registry no expone normalizador reutilizable.
 
 **Frontend**
+
 - F1. `CalisteniaLevels.js` NO es solo presentación: tiene autoridad de promoción con umbral 80% hardcodeado (`:382-412`), duplicado en el Card (`CalisteniaManualCard.jsx:34,168-175`), porcentajes skill/strength por nivel, minutos base 45.
 - F2. El Card no recoge ni envía equipo/entorno/lesiones (`CalisteniaManualCard.jsx:236-247, 294-305`); las lesiones solo pueden colarse como texto libre en `goals`.
 - F3. `WorkoutContext.generatePlan` con branch calistenia que descarta datos y default `'basico'` inválido (`WorkoutContext.jsx:196-211`).
@@ -79,11 +84,13 @@ Límites heredados que siguen vigentes: no tocar Hipertrofia; no crear catálogo
 - F6. Cero flujo de readiness/dolor en la ruta calistenia (la infraestructura existe en Hipertrofia, no conectada).
 
 **Cobertura**
+
 - T1. NO existe ningún test de calistenia ni de `planAutoregService` (`backend/tests/`: 43 ficheros, ninguno `*calistenia*` ni `*autoreg*`). El roadmap original acertó aquí; el análisis de Sergio ("PR-CAL-00 ya tiene base") es cierto solo para los contratos genéricos — el comportamiento de calistenia tiene cobertura CERO.
 
 ### 1.3 Correcciones al análisis de Sergio (donde el código dice otra cosa)
 
 Tu análisis es fiable en su mayoría. Tres matices que cambian decisiones:
+
 1. **"Descanso global de 75s"** — matizado: el descanso real sale del `descanso_seg` de cada fila del catálogo; 75s es solo fallback para nulls y es sobreescribible por ruleset BD (`CalisteniaService.js:346,391`). El problema real no es el 75, es que no hay dosificación por nivel/tipo cuando el catálogo no lo trae, y que single-day hardcodea el 75 sin leer ruleset.
 2. **"Selector con relleno seguro"** — el relleno NO es seguro respecto a la intención: pasa el filtro de lesión, pero rompe la categoría (mete tracción donde faltaba empuje) (`CalisteniaService.js:510-523`). Y single-day no tiene NINGÚN filtro de lesión (G8) — esto no estaba en tu análisis y es lo más urgente.
 3. **"El frontend agnóstico está bien y la fachada funciona"** — parcial: la redirección sí, pero `generatePlan` tiene branch calistenia con default inválido (F3) y `CalisteniaLevels` ejerce autoridad de nivel en cliente (F1).
@@ -105,7 +112,7 @@ Cambios respecto al roadmap original, con motivo:
 
 Ruta crítica:
 
-~~~text
+```text
 PR-CAL-00a (caracterización mínima, 0.5d)
 → PR-CAL-00b (fixes quirúrgicos verificados, 0.5-1d)
 → PR-CAL-01 (nivel canónico + assessment determinista, 2-3d)   [decisión de producto: equipo/entorno]
@@ -118,7 +125,7 @@ PR-CAL-00a (caracterización mínima, 0.5d)
 → PR-CAL-06 (training-load + nutrición contenida, 3-4d)
 → PR-CAL-07 (frontend + E2E, 3-4d)
 → PR-CAL-08 (activación, FUERA de este roadmap)
-~~~
+```
 
 Total orientativo: 15-24 días de ingeniería (vs 17-29 del original; la reducción viene de no re-crear lo que ya existe).
 
@@ -152,17 +159,44 @@ Tests: los rojos de 00b en `calisteniaKnownDefects.test.js` pasan a verdes. Roll
 ### PR-CAL-01 · Nivel canónico + assessment determinista (L)
 
 **Subfase A — normalizador único de nivel (A6, G1, G2):**
+
 - Exportar `normalizeMethodologyLevel(methodologyId, value)` desde `methodologyRegistry.js`: valida contra `descriptor.levels`, alias explícitos (`basico→principiante`), desconocido→`null`.
 - Consumirlo desde `trainingLoadContract.js`, `bridgeEventOutboxService.js` y `CalisteniaService.js` con tests de paridad antes de borrar los normalizadores locales.
 - En `CalisteniaService`: nivel desconocido en generación → 422 explícito (no principiante silencioso). `evaluateCalisteniaLevel` valida el `recommended_level` de la IA contra el registry; inválido → error controlado.
 
 **Subfase B — contexto de entorno/equipo (G4). ⚠️ DECISIÓN DE PRODUCTO PREVIA:**
 Los campos NO existen en BD. Opciones (decidir Sergio antes de empezar):
+
 - (a) Snapshot solo en `plan_data.context` alimentado por el frontend en el momento de generar (sin migración; no reutilizable entre planes) — **recomendada para esta fase**;
 - (b) Migración aditiva a `user_profiles` (`training_environment`, `available_equipment jsonb`, `equipment_safety_confirmed`) — mejor a largo plazo, más alcance.
-Con (a): `userProfileContract.js` gana `normalizeTrainingEnvironment` y `normalizeAvailableEquipment` (puras, sin BD); el Card las envía; `CalisteniaService` pasa `equipment` a `getRandomByLevel` (el filtro `equipamiento <@ $n` YA existe en `exerciseRepository.js:99-102` — es cablearlo, no construirlo). Dato ausente → null + confianza reducida; jamás inventar material.
+  Con (a): `userProfileContract.js` gana `normalizeTrainingEnvironment` y `normalizeAvailableEquipment` (puras, sin BD); el Card las envía; `CalisteniaService` pasa `equipment` a `getRandomByLevel` (el filtro `equipamiento <@ $n` YA existe en `exerciseRepository.js:99-102` — es cablearlo, no construirlo). Dato ausente → null + confianza reducida; jamás inventar material.
 
-**Subfase C — `calisteniaAssessment.js` (nuevo, funciones puras):** según contrato §5.2 del roadmap original (gate de seguridad, patrón limitante, confianza, `insufficient_data`/`refer`; años de experiencia nunca elevan solos). La IA pasa a explicar un resultado ya cerrado; si la IA falla, se devuelve el assessment sin prosa. Flag `CALISTHENICS_ASSESSMENT_V1_ENABLED` (off = lectura legacy).
+**Subfase C — `calisteniaAssessment.js` (nuevo, funciones puras):** según contrato §5.2 del roadmap original (gate de seguridad, patrón limitante, confianza, `insufficient_data`/`refer`; años de experiencia nunca elevan solos). La IA pasa a explicar un resultado ya cerrado; si la IA falla, se devuelve el assessment sin prosa. Flag `CALISTHENICS_ASSESSMENT_V1_ENABLED` (default `true` en PR-CAL-01; `false` = rollback explícito a lectura legacy).
+
+**⚠️ EXCEPCIÓN DE PRODUCTO APROBADA (Sergio, 2026-07-23):** el roadmap original (§5.2/§6.2 Subfase C)
+describe un assessment por **6 patrones de movimiento** (empuje horizontal/vertical, tracción
+horizontal/vertical, pierna, core) con rangos 0-4 por patrón y cadena de progresión versionada.
+Para PR-CAL-01, Sergio aprobó explícitamente **no implementar esa granularidad todavía** y cerrar
+la Subfase C con un contrato simplificado de **nivel único global**:
+
+- Nivel efectivo = `demonstratedLevel` (evidencia de skill) > `selfReportedLevel` (autoevaluación
+  validada); años de experiencia declarados NUNCA elevan el nivel por sí solos.
+- Lesión declarada activa (vía `injuryContraindications.js`, zonas hombro/lumbar/rodilla/muñeca/
+  tobillo/codo) = patrón limitante + cap a `'intermedio'` (nunca `'avanzado'`) + confianza ≤ media.
+- Dolor **agudo** → `decision:'refer'` (derivar a valoración profesional, no prescribir).
+- Datos insuficientes → `decision:'insufficient_data'`, `level:null`, confianza `'low'` (honesto:
+  "no lo sé", nunca se inventa un nivel).
+- La IA pasa a EXPLICAR este resultado ya cerrado (nunca a decidirlo).
+
+Implementado en `backend/services/routineGeneration/methodologies/calisteniaAssessment.js` (función
+`assessCalistenia`) y cubierto por `backend/tests/calisteniaAssessment.test.js` (C-01..C-13 +
+hardening H1/H2). **Qué se mueve a CAL-02+:** la evaluación por los 6 patrones de movimiento
+individuales, sus rangos 0-4 y el `progression_chain_id`/grafo de progresión asociado (ver
+PR-CAL-02B, `calisteniaProgressionGraph.js`). **Qué sigue vigente para CAL-01:** el nivel efectivo
+por skill/self-report, el cap por lesión, el gate de dolor agudo, y `requires_ai_explanation` como
+contrato de que la IA nunca decide. Cualquier auditoría futura que marque "falta evaluar los 6
+patrones" como incumplimiento de PR-CAL-01 debe remitirse a esta nota — es una decisión de producto
+tomada y documentada, no una desviación no autorizada.
 
 **Subfase D — frontend mínimo:** el Card envía `assessment`+`context` dentro de `calisteniaData`; fix del branch de `WorkoutContext` (F3): dejar de descartar campos necesarios y eliminar el default `'basico'` (usar null → el backend decide/422). NO retirar aún la autoridad de `CalisteniaLevels` (eso es CAL-07); solo dejar de usarla como fuente del payload.
 
@@ -230,6 +264,7 @@ Flag `CALISTHENICS_PROGRESSION_V2_ENABLED` (off → decisiones en hold). Gate: c
 ### PR-CAL-06 · training-load/v1 + nutrición contenida (XL)
 
 Precondición dura: CAL-03b verde y revalidado. Sin cambios sobre el diseño del roadmap original (§6.7), que es correcto y compatible con lo verificado:
+
 - `calisteniaLoadRules.js` suministra el perfil (D0/D1/D2 por demanda, nivel nunca puntúa); `trainingLoadContract` gana validación de demand/recovery/reason codes de forma genérica (hoy no los valida — verificado), sin `if calistenia`.
 - Carga planificada en `methodology_plan_days.metadata` (el transporte vía `ensureScheduleV3`/`sessionLoadBuilder` ya existe y hoy viaja null); carga real vía `actualLoadBuilder` (el cierre ya la construye en servidor).
 - Todos los flags de emisión/nutrición en default seguro; `emits_training_load` de calistenia sigue false.
@@ -247,17 +282,18 @@ Precondición dura: CAL-03b verde y revalidado. Sin cambios sobre el diseño del
 
 ## 4. Decisiones que necesita tomar Sergio (bloqueantes por PR)
 
-| Decisión | Bloquea | Recomendación |
-| --- | --- | --- |
-| Persistencia de equipo/entorno: snapshot en plan (a) vs migración de perfil (b) | PR-CAL-01B | (a) ahora, (b) como decisión aparte si el producto lo pide |
-| Autorizar migración del índice único de sesión activa | PR-CAL-03a | Sí — es el fix de concurrencia real |
-| Qué hacer con `calistenia_autoreg_state` (legacy congelada vs migrar a PK por plan) | PR-CAL-04 | Congelar como legacy; autoridad nueva = `plan_progression_offsets` |
-| Persistir o no los análisis fallidos de IA (A5) | PR-CAL-00b | No persistir como análisis; guardar solo marca de fallo |
-| Umbrales deportivos (rangos §6.3F, transiciones §6.6) | PR-CAL-02B/05 | Validar con criterio deportivo propio antes de versionarlos |
+| Decisión                                                                            | Bloquea       | Recomendación                                                      |
+| ----------------------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------ |
+| Persistencia de equipo/entorno: snapshot en plan (a) vs migración de perfil (b)     | PR-CAL-01B    | (a) ahora, (b) como decisión aparte si el producto lo pide         |
+| Autorizar migración del índice único de sesión activa                               | PR-CAL-03a    | Sí — es el fix de concurrencia real                                |
+| Qué hacer con `calistenia_autoreg_state` (legacy congelada vs migrar a PK por plan) | PR-CAL-04     | Congelar como legacy; autoridad nueva = `plan_progression_offsets` |
+| Persistir o no los análisis fallidos de IA (A5)                                     | PR-CAL-00b    | No persistir como análisis; guardar solo marca de fallo            |
+| Umbrales deportivos (rangos §6.3F, transiciones §6.6)                               | PR-CAL-02B/05 | Validar con criterio deportivo propio antes de versionarlos        |
 
 ## 5. Criterios de detención (heredados + añadidos)
 
 Los del roadmap original (§14) siguen vigentes. Añadidos:
+
 - Si un fix de la familia `/routines/sessions/*` cambia el shape de respuesta que consume `useRoutineSessionActions.js` → parar (romperías la app Android en prod, que ya sufrió el bug de fetch relativo).
 - Si el ejecutor encuentra que main avanzó sobre un fichero citado aquí → reauditar ese punto antes de implementar, y anotar la divergencia en el PR.
 - Si un test rojo de PR-CAL-00a aparece verde antes de su PR → parar y avisar.

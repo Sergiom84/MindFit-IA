@@ -16,6 +16,11 @@ import {
   activeInjuryRules,
   isContraindicated
 } from '../routineGeneration/injuryContraindications.js';
+import {
+  assessCalistenia,
+  isCalisthenicsAssessmentEnabled
+} from '../routineGeneration/methodologies/calisteniaAssessment.js';
+import { normalizeMethodologyLevel } from '../routineGeneration/methodologies/methodologyRegistry.js';
 
 // Categorías reales en app.ejercicios para disciplina='calistenia'.
 const FULLBODY_CATEGORIES = ['Empuje', 'Tracción', 'Piernas', 'Core'];
@@ -62,6 +67,85 @@ const NIVEL_NORMALIZED = {
 function getAccumulativeLevels(nivel) {
   const idx = LEVEL_HIERARCHY.indexOf(nivel);
   return LEVEL_HIERARCHY.slice(Math.max(0, idx - 1), idx + 1); // ventana deslizante: nivel + 1 por debajo (no acumula desde principiante)
+}
+
+const LEVEL_DISPLAY = { principiante: 'Principiante', intermedio: 'Intermedio', avanzado: 'Avanzado' };
+
+/**
+ * Resuelve el nivel efectivo de single-day usando el MISMO assessment determinista que el flujo
+ * multi-semana (PR-CAL-01, corrección de Sergio: "single-day debe compartir el assessment, no
+ * duplicar la normalización de nivel"). Con el flag OFF, cae al `normalizeLevel` fuzzy legacy
+ * (paridad exacta con el comportamiento previo). Con el flag ON:
+ *  - 'refer' → 422 tipado (derivar, no prescribir), igual que el flujo multi-semana;
+ *  - 'insufficient_data' → solo admite fallback provisional si `rawNivel` es un nivel explícito
+ *    VÁLIDO del selector manual (reconocido por `normalizeMethodologyLevel`) o el frontend confirmó
+ *    continuar (`assessmentInput.acceptProvisionalLevel`); si no hay nivel ni confirmación, 422
+ *    `CALISTHENICS_LEVEL_REQUIRED`; si `rawNivel` viene con un valor explícito pero NO reconocido
+ *    (typo, nivel no soportado), 422 `CALISTHENICS_LEVEL_INVALID` (nunca cae a 'Principiante' en
+ *    silencio vía el normalizador fuzzy);
+ *  - 'ok' → autoridad del assessment.
+ * Recibe `userProfile` ya cargado (una sola lectura de perfil, compartida con el filtro de
+ * lesiones de más abajo — evita duplicar la llamada a `profileLoader`).
+ * @returns {{levelDisplay:string, assessment:object|null, levelSource:string}}
+ */
+function resolveEffectiveLevel(rawNivel, assessmentInput = {}, userProfile = null) {
+  if (!isCalisthenicsAssessmentEnabled()) {
+    return { levelDisplay: normalizeLevel(rawNivel), assessment: null, levelSource: 'legacy_resolution' };
+  }
+
+  const assessment = assessCalistenia({
+    selfReportedLevel: assessmentInput.selfReportedLevel ?? rawNivel ?? userProfile?.nivel_entrenamiento,
+    demonstratedLevel: assessmentInput.demonstratedLevel,
+    experienceYears: userProfile?.anos_experiencia,
+    injuryText: extractInjuryText(userProfile || {}),
+    painStatus: assessmentInput.painStatus
+  });
+
+  if (assessment.decision === 'refer') {
+    const err = new Error('Necesitas una valoración profesional antes de generar el entrenamiento.');
+    err.statusCode = 422;
+    err.code = 'CALISTHENICS_ASSESSMENT_REFER';
+    err.publicEvaluation = {
+      decision: 'refer',
+      recommended_level: null,
+      confidence: assessment.confidence,
+      reasons: assessment.reasons,
+      limiting_patterns: assessment.limiting_patterns,
+      reasoning: null
+    };
+    throw err;
+  }
+
+  if (assessment.decision === 'insufficient_data') {
+    const rawProvided = rawNivel != null && String(rawNivel).trim() !== '';
+    // Nivel explícito → validar contra el registry canónico. Un valor presente pero no reconocido
+    // NO debe caer en silencio a 'Principiante' vía el normalizador fuzzy: es un error del cliente.
+    const canonicalLevel = rawProvided ? normalizeMethodologyLevel('calistenia', rawNivel) : null;
+    const explicitValidSelected = canonicalLevel != null;
+    const confirmedProvisional = assessmentInput.acceptProvisionalLevel === true;
+
+    if (rawProvided && !explicitValidSelected) {
+      const err = new Error('El nivel indicado no es un nivel válido de calistenia.');
+      err.statusCode = 422;
+      err.code = 'CALISTHENICS_LEVEL_INVALID';
+      throw err;
+    }
+    if (!rawProvided && !confirmedProvisional) {
+      const err = new Error(
+        'Selecciona un nivel o confirma continuar con un nivel provisional antes de generar el entrenamiento.'
+      );
+      err.statusCode = 422;
+      err.code = 'CALISTHENICS_LEVEL_REQUIRED';
+      throw err;
+    }
+    return {
+      levelDisplay: explicitValidSelected ? LEVEL_DISPLAY[canonicalLevel] : 'Principiante',
+      assessment,
+      levelSource: explicitValidSelected ? 'user_selected' : 'provisional_safe_fallback'
+    };
+  }
+
+  return { levelDisplay: LEVEL_DISPLAY[assessment.level] || 'Principiante', assessment, levelSource: 'assessment' };
 }
 
 /**
@@ -160,30 +244,36 @@ function toPlanExercise(row, orden) {
  * @param {number} userId
  * @param {string} rawNivel
  * @param {boolean} isWeekendExtra
- * @param {object} options - { selectionMode: 'full_body'|'focus', focusGroup }
+ * @param {object} options - { selectionMode: 'full_body'|'focus', focusGroup, assessmentInput }
  * @returns {Promise<{sessionId:number, workout:object}>}
  */
 export async function generateCalisteniaSingleDay(dbClient, userId, rawNivel, isWeekendExtra = true, options = {}) {
-  const { selectionMode = 'full_body', focusGroup = null, profileLoader = getUserFullProfile } = options || {};
-  const nivel = normalizeLevel(rawNivel);
+  const {
+    selectionMode = 'full_body',
+    focusGroup = null,
+    assessmentInput = {},
+    profileLoader = getUserFullProfile
+  } = options || {};
+
+  // Una sola lectura de perfil, compartida por el assessment de nivel y el filtro de lesiones (antes
+  // se leía dos veces). Si falla, ambos se degradan a su comportamiento sin perfil (nunca bloquea).
+  let userProfile = null;
+  try {
+    userProfile = await profileLoader(userId);
+  } catch (profileError) {
+    logger.warn(`⚠️ [CALISTENIA-SINGLE-DAY] No se pudo leer el perfil completo: ${profileError.message}`);
+  }
+
+  const { levelDisplay: nivel, assessment, levelSource } = resolveEffectiveLevel(rawNivel, assessmentInput, userProfile);
   const niveles = getAccumulativeLevels(nivel);
 
-  logger.info('🤸 [CALISTENIA-SINGLE-DAY] Generando para usuario:', userId, 'Nivel:', nivel, 'Modo:', selectionMode, 'Foco:', focusGroup);
+  logger.info('🤸 [CALISTENIA-SINGLE-DAY] Generando para usuario:', userId, 'Nivel:', nivel, `(${levelSource})`, 'Modo:', selectionMode, 'Foco:', focusGroup);
 
   // 🩹 SEGURIDAD POR LESIÓN (G8): single-day carecía de filtro de lesiones (la
   // generación multi-semana sí lo tiene, ver CalisteniaService.js). Un usuario con
-  // muñeca lesionada recibía flexiones/apoyos de manos. Leemos las limitaciones del
-  // perfil (la función ya recibe userId) y excluimos del pool los movimientos
-  // contraindicados, con el MISMO filtro compartido que las demás metodologías.
-  // Si el perfil no se puede leer, se degrada a "sin reglas" (paridad con multi-semana),
-  // nunca bloquea el flujo.
-  let injuryRules = [];
-  try {
-    const profile = await profileLoader(userId);
-    injuryRules = activeInjuryRules(extractInjuryText(profile));
-  } catch (profileError) {
-    logger.warn(`⚠️ [CALISTENIA-SINGLE-DAY] No se pudo leer el perfil para el filtro de lesiones: ${profileError.message}`);
-  }
+  // muñeca lesionada recibía flexiones/apoyos de manos. Excluimos del pool los
+  // movimientos contraindicados con el MISMO filtro compartido que las demás metodologías.
+  const injuryRules = activeInjuryRules(extractInjuryText(userProfile || {}));
   const filterSafe = (rows) => (injuryRules.length ? rows.filter((r) => !isContraindicated(r, injuryRules)) : rows);
 
   const chosen = [];
@@ -266,6 +356,8 @@ export async function generateCalisteniaSingleDay(dbClient, userId, rawNivel, is
       id: sessionId,
       type: isFocus ? 'calistenia-focus-single' : 'calistenia-fullbody-single',
       nivel,
+      level_source: levelSource,
+      assessment: assessment || null,
       exercises_count: exercises.length,
       exercises
     }
