@@ -61,10 +61,12 @@ test("QA-001 y PERF-001 permanecen como gates reproducibles", () => {
 
 test("OPS-002 conserva build AAB reproducible y UX-001 accesos directos", () => {
   const androidWorkflow = read(".github/workflows/android.yml");
+  const nodeVersion = read(".node-version").trim();
   const navigation = read("src/components/Navigation.jsx");
 
   assert.match(androidWorkflow, /java-version: "21"/);
-  assert.match(androidWorkflow, /node-version: "22"/);
+  assert.match(androidWorkflow, /node-version-file: "\.node-version"/);
+  assert.equal(nodeVersion, "24.14.1");
   assert.match(androidWorkflow, /bundleRelease/);
   assert.match(androidWorkflow, /upload-artifact@v4/);
   assert.match(navigation, /handleNavigate\('\/home-training'\)/);

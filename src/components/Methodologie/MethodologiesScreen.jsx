@@ -12,7 +12,7 @@ import { METHODOLOGIES } from './methodologiesData.js';
 import { LOCAL_STATE_INITIAL, formatLocalDate } from './MethodologiesScreen.helpers.js';
 import { useMousePosition } from './hooks/useMousePosition.js';
 import { useTrace } from '@/contexts/TraceContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 
 // 🎯 HOOKS MODULARES - Refactorización incremental
 import { useMethodologyValidation } from './hooks/useMethodologyValidation';

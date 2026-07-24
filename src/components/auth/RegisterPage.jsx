@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { User, ArrowLeft, ArrowRight, Check, AlertCircle } from 'lucide-react';
 import BasicInfoStep from './steps/BasicInfoStep';
 import BodyMeasurementsStep from './steps/BodyMeasurementsStep';

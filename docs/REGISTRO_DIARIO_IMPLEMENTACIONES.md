@@ -1,5 +1,9 @@
 # Registro diario de implementaciones
 
+## 24.07.2026
+
+- **Seguridad · React Router 8.3.0 y runtime Node reproducible**: corregido `GHSA-qwww-vcr4-c8h2` mediante `react-router@8.3.0`, React/ReactDOM `19.2.7` y retirada completa de `react-router-dom`; los 22 imports declarativos existentes se actualizan sin introducir framework/RSC ni cambios funcionales. El repositorio, CI y Android quedan alineados con Node `24.14.1` (`.node-version`, rango `>=24.14.1 <25`). Validación desde instalación limpia: audit productivo raíz sin high/critical (solo 1 moderate de `tar`), backend 0 vulnerabilidades, lint quiet, build, budget 17/17, suite backend 479 pass/0 fail/1 TODO heredado y contratos focales de navegación 18/18.
+
 ## 23.07.2026
 
 - **CrossFit profesional v2 · oráculos E2E alineados con seguridad y periodización**: el segundo run aislado dejó verdes build, baseline PostgreSQL, integración/RLS, auditoría de dependencias y accesibilidad, y acotó el E2E a dos supuestos erróneos del test. Una sustitución no se fuerza cuando el catálogo no ofrece candidato que preserve estímulo sin conflicto: avanzado mantiene la cobertura positiva con replay y `stimulus_delta <= 0.15`, mientras principiante/intermedio aceptan exclusivamente rechazos tipados y fail-closed. Nutrición valida ahora la semana completa D0/D1/D2, incluyendo correctamente descansos D0, siempre en `shadow` no autoritativo. No se relajan invariantes ni se modifica runtime productivo.
