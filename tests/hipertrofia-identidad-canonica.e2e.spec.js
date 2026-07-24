@@ -107,7 +107,7 @@ async function generateHipertrofiaPlanFromUi(page) {
     // La distribución no apareció en este recorrido: seguimos al modal final.
   }
 
-  await expect(page.getByText('Hipertrofia - MindFeed')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('heading', { name: 'Hipertrofia', exact: true })).toBeVisible({ timeout: 30_000 });
   await domClick(page.getByRole('button', { name: /Evaluar Perfil/i }));
   await expect(page.getByRole('button', { name: /^Generar Plan$/ })).toBeVisible({ timeout: 20_000 });
   await domClick(page.getByRole('button', { name: /^Generar Plan$/ }));

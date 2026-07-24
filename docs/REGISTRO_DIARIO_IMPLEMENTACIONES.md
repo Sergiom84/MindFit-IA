@@ -1,5 +1,9 @@
 # Registro diario de implementaciones
 
+## 24.07.2026
+
+- Hipertrofia/adaptación: corregido el contrato UI de transición a D1-D5 para interpretar la evaluación real del backend, respetar un bloque activo al reevaluar el perfil y evitar que el selector de un bloque nuevo oculte la transición; retirados además los dos literales visibles residuales `HipertrofiaV2`/`Hipertrofia - MindFeed` señalados en producción.
+
 ## 23.07.2026
 
 - **Hipertrofia · E2E real sin estado compartido**: separé las cuentas de prueba de escritorio y móvil para que cada viewport genere su propio plan y no herede el modal de plan activo del anterior. Con ello el recorrido valida ambos tamaños de forma independiente sobre el backend aislado.
