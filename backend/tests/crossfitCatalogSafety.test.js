@@ -224,20 +224,33 @@ test("CrossFit importador: dry-run valida y --apply rechaza host de producción"
 
 test("CrossFit importador: producción solo admite draft con allowlist y doble confirmación", () => {
   const contentHash = "a".repeat(64);
+  const poolerHost = "aws-0-eu-central-1.pooler.supabase.com";
   const baseEnv = {
     NODE_ENV: "production",
     CROSSFIT_CATALOG_APPLY_ACK: "PRODUCTION_DRAFT_ONLY",
     CROSSFIT_CATALOG_CONTENT_HASH_ACK: contentHash,
     CROSSFIT_CATALOG_PROJECT_REF: "projectref",
     CROSSFIT_CATALOG_ALLOWED_PROJECT_REFS: "other,projectref",
-    CROSSFIT_CATALOG_ALLOWED_HOSTS: "aws-0-eu-central-1.pooler.supabase.com"
+    CROSSFIT_CATALOG_ALLOWED_HOSTS: poolerHost
   };
-  const connectionString = "postgresql://postgres.projectref:secret@aws-0-eu-central-1.pooler.supabase.com:5432/postgres";
+  const connectionString = `postgresql://postgres.projectref@${poolerHost}:5432/postgres`;
 
   assert.deepEqual(assertCrossfitCatalogImportTarget({
     mode: "production_draft",
     env: baseEnv,
     connectionString,
+    contentHash
+  }), {
+    mode: "production_draft",
+    appliedTo: "production_draft"
+  });
+  assert.deepEqual(assertCrossfitCatalogImportTarget({
+    mode: "production_draft",
+    env: {
+      ...baseEnv,
+      CROSSFIT_CATALOG_ALLOWED_HOSTS: "db.projectref.supabase.co"
+    },
+    connectionString: "postgresql://postgres@db.projectref.supabase.co:5432/postgres",
     contentHash
   }), {
     mode: "production_draft",
@@ -261,6 +274,28 @@ test("CrossFit importador: producción solo admite draft con allowlist y doble c
     connectionString,
     contentHash
   }), /proyecto no está incluido/);
+
+  for (const invalidConnectionString of [
+    `postgresql://postgres.projectref-otro@${poolerHost}:5432/postgres`,
+    `postgresql://postgres.otro-projectref@${poolerHost}:5432/postgres`,
+    `postgresql://postgres.xxprojectrefxx@${poolerHost}:5432/postgres`
+  ]) {
+    assert.throws(() => assertCrossfitCatalogImportTarget({
+      mode: "production_draft",
+      env: baseEnv,
+      connectionString: invalidConnectionString,
+      contentHash
+    }), /identidad de conexión/);
+  }
+  assert.throws(() => assertCrossfitCatalogImportTarget({
+    mode: "production_draft",
+    env: {
+      ...baseEnv,
+      CROSSFIT_CATALOG_ALLOWED_HOSTS: "db.projectref-otro.supabase.co"
+    },
+    connectionString: "postgresql://postgres@db.projectref-otro.supabase.co:5432/postgres",
+    contentHash
+  }), /identidad de conexión/);
 });
 
 test("CrossFit importador: solo escribe una versión ausente o draft", () => {

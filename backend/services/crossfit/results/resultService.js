@@ -5,7 +5,7 @@ import {
   resolveSessionDurationSeconds
 } from "../../bridgeEventOutboxService.js";
 import { assertCrossfitContract, validateCrossfitAutoreg } from "../contracts/schemas.js";
-import { getCrossfitFeatureFlags } from "../featureFlags.js";
+import { getCrossfitFeatureFlagsForUser } from "../featureFlags.js";
 import { crossfitHash, stableCrossfitId } from "../generator/deterministic.js";
 import { reduceCrossfitAutoreg } from "../autoreg/stateMachine.js";
 import { CROSSFIT_VERSIONS, isCrossfitV2SessionRecord, normalizeCrossfitLevel } from "../versions.js";
@@ -379,7 +379,7 @@ export async function registerCrossfitV2Result(client, {
   clearanceResolved = false,
   allowPendingFeedback = false
 } = {}) {
-  const flags = getCrossfitFeatureFlags(env);
+  const flags = getCrossfitFeatureFlagsForUser(userId, env);
   if (!flags.results) return null;
 
   const sessionQuery = await client.query(LOCK_CROSSFIT_SESSION_SQL, [sessionId, userId]);

@@ -26,6 +26,13 @@ function connectionIdentity(connectionString) {
   }
 }
 
+function matchesExactSupabaseProject({ hostname, username }, projectRef) {
+  const directHost = `db.${projectRef}.supabase.co`;
+  const poolerUsername = `postgres.${projectRef}`;
+  const isCanonicalPooler = hostname.endsWith(".pooler.supabase.com");
+  return hostname === directHost || (isCanonicalPooler && username === poolerUsername);
+}
+
 export function assertCrossfitCatalogImportTarget({
   mode,
   env = process.env,
@@ -64,7 +71,7 @@ export function assertCrossfitCatalogImportTarget({
   if (!allowedHosts.has(hostname)) {
     fail("el host no está incluido en CROSSFIT_CATALOG_ALLOWED_HOSTS");
   }
-  if (!hostname.includes(projectRef) && !username.includes(projectRef)) {
+  if (!matchesExactSupabaseProject({ hostname, username }, projectRef)) {
     fail("la identidad de conexión no coincide con CROSSFIT_CATALOG_PROJECT_REF");
   }
 
