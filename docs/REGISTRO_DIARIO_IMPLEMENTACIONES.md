@@ -3,6 +3,7 @@
 ## 24.07.2026
 
 - **CrossFit v2 · guardrails de rollout productivo**: preparada en rama aislada la carga de catálogo productivo exclusivamente como `draft`, con `dry-run` por defecto, URL explícita, allowlist exacta de proyecto/host, doble confirmación por acuse y hash, bloqueo transaccional y rechazo de versiones no escribibles; el importador nunca activa catálogo. La generación resuelve ahora solo la versión `active` y falla cerrada si no existe; el runtime histórico conserva lectura explícita de su versión congelada. Añadida cohorte `CROSSFIT_V2_QA_USERS`, vacía por defecto, aplicada a capacidades, evaluación, planes, single-day, runtime y revisiones inmutables; el wildcard se limita a CI con `NODE_ENV=test`. Validación focal: 61/61 tests. Sin migraciones, catálogo, flags, Supabase ni Render productivos modificados.
+- **Seguridad · React Router 8.3.0 y runtime Node reproducible**: corregido `GHSA-qwww-vcr4-c8h2` mediante `react-router@8.3.0`, React/ReactDOM `19.2.7` y retirada completa de `react-router-dom`; los 22 imports declarativos existentes se actualizan sin introducir framework/RSC ni cambios funcionales. El repositorio, CI y Android quedan alineados con Node `24.14.1` (`.node-version`, rango `>=24.14.1 <25`). Validación desde instalación limpia: audit productivo raíz sin high/critical (solo 1 moderate de `tar`), backend 0 vulnerabilidades, lint quiet, build, budget 17/17, suite backend 479 pass/0 fail/1 TODO heredado y contratos focales de navegación 18/18.
 
 ## 23.07.2026
 

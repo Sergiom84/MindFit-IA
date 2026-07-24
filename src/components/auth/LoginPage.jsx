@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, User, Lock } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import ErrorPopup from '../ui/ErrorPopup';
 import { useFormValidation } from '../../hooks/useFormValidation';
 import { useAuth } from '../../hooks/useAuth';

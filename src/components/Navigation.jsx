@@ -1,7 +1,7 @@
 import { confirmDialog } from './ui/dialogService.jsx';
 import { motion } from 'framer-motion';
 import { LogOut, Home, UserCircle, BookOpen, Calendar, Apple, Shield, Droplet, MoreHorizontal, Camera, Dumbbell } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router';
 import { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import tokenManager from '../utils/tokenManager';

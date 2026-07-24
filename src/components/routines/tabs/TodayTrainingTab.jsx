@@ -31,7 +31,7 @@ import SafeComponent from '../../ui/SafeComponent';
 import { useTrace } from '@/contexts/TraceContext.jsx';
 import { usePlanConfig } from '../alerts/FirstWeekWarning.jsx';
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 
 // 🎯 UTILS COMPARTIDOS - Helpers extraídos para reutilización
 import { getTodayName, isWeekend, computeDayId, formatDateForDisplay } from '@/utils/training/dateHelpers';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useTrace } from '@/contexts/TraceContext.jsx';
 import FatigueReportModal from '../../Methodologie/methodologies/Hipertrofia/components/FatigueReportModal';
 import WeeklyReviewModal from '../../Methodologie/methodologies/Hipertrofia/components/WeeklyReviewModal';

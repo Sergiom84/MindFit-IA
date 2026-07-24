@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version-file: ".node-version"
 
       - name: Install libvips for sharp
         run: sudo apt-get update && sudo apt-get install -y libvips-dev
@@ -61,7 +61,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version-file: ".node-version"
       - name: Install libvips for sharp
         run: sudo apt-get update && sudo apt-get install -y libvips-dev
       - run: npm ci --prefix backend
@@ -129,7 +129,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version-file: ".node-version"
       - run: npm ci --prefix backend
 
       - name: Preparar stubs Supabase y restaurar baseline
@@ -199,7 +199,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version-file: ".node-version"
       - run: npm ci
       - run: npm ci --prefix backend
       - run: npx playwright install --with-deps chromium
@@ -276,7 +276,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version-file: ".node-version"
       - name: Install libvips for sharp
         run: sudo apt-get update && sudo apt-get install -y libvips-dev
       - run: npm ci
@@ -316,7 +316,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version-file: ".node-version"
       - name: Install libvips for sharp
         run: sudo apt-get update && sudo apt-get install -y libvips-dev
       - run: npm ci
