@@ -16,6 +16,8 @@
  *    null, y el contrato en modo strict lo rechaza explícitamente.
  */
 
+import { isCrossfitRolloutUser } from '../../crossfit/featureFlags.js';
+
 function stripDiacritics(value) {
   return String(value || '')
     .normalize('NFD')
@@ -86,6 +88,7 @@ export const METHODOLOGY_DESCRIPTORS = [
     emits_training_load: false,
     immutable_draft_revisions: true,
     immutable_draft_revisions_flag: 'CROSSFIT_V2_GENERATION',
+    rollout_qa_users_flag: 'CROSSFIT_V2_QA_USERS',
     training_load_flag: 'CROSSFIT_EMITS_TRAINING_LOAD',
     nutrition_load_flag: 'CROSSFIT_NUTRITION_LOAD'
   },
@@ -323,11 +326,14 @@ export function methodologyEmitsTrainingLoad(value, env = process.env) {
 }
 
 /** ¿La metodología conserva revisiones draft en vez de limpiarlas físicamente? */
-export function methodologyUsesImmutableDraftRevisions(value, env = process.env) {
+export function methodologyUsesImmutableDraftRevisions(value, env = process.env, userId = null) {
   const descriptor = getMethodologyDescriptor(value);
   if (!descriptor?.immutable_draft_revisions) return false;
   if (!descriptor.immutable_draft_revisions_flag) return true;
-  return String(env?.[descriptor.immutable_draft_revisions_flag] ?? '').trim().toLowerCase() === 'true';
+  const enabled = String(env?.[descriptor.immutable_draft_revisions_flag] ?? '').trim().toLowerCase() === 'true';
+  if (!enabled) return false;
+  if (!descriptor.rollout_qa_users_flag || userId === null || userId === undefined) return true;
+  return isCrossfitRolloutUser(userId, env);
 }
 
 /**

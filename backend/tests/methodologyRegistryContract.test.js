@@ -73,6 +73,14 @@ test("CrossFit v2: las revisiones inmutables solo se activan con su flag", () =>
   assert.equal(methodologyUsesImmutableDraftRevisions("crossfit", {}), false);
   assert.equal(methodologyUsesImmutableDraftRevisions("crossfit", { CROSSFIT_V2_GENERATION: "true" }), true);
   assert.equal(methodologyUsesImmutableDraftRevisions("crossfit", { CROSSFIT_V2_GENERATION: "TRUE" }), true);
+  assert.equal(methodologyUsesImmutableDraftRevisions("crossfit", {
+    CROSSFIT_V2_GENERATION: "true",
+    CROSSFIT_V2_QA_USERS: "17"
+  }, 99), false);
+  assert.equal(methodologyUsesImmutableDraftRevisions("crossfit", {
+    CROSSFIT_V2_GENERATION: "true",
+    CROSSFIT_V2_QA_USERS: "17"
+  }, 17), true);
   assert.equal(methodologyUsesImmutableDraftRevisions("calistenia", { CROSSFIT_V2_GENERATION: "true" }), false);
   assert.equal(methodologyUsesImmutableDraftRevisions("desconocido", { CROSSFIT_V2_GENERATION: "true" }), false);
 });

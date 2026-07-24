@@ -108,8 +108,8 @@ export class CrossfitCatalogRepository {
     return rows;
   }
 
-  async listForGeneration({ useV2 = false, catalogVersion = CROSSFIT_CATALOG_VERSION, canonicalIdBySource } = {}) {
-    if (useV2) return this.listCanonicalMovements({ catalogVersion });
+  async listForGeneration({ useV2 = false, canonicalIdBySource } = {}) {
+    if (useV2) return this.listCanonicalMovements();
     return this.listLegacyMovements({ canonicalIdBySource });
   }
 }

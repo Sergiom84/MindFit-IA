@@ -1,5 +1,9 @@
 # Registro diario de implementaciones
 
+## 24.07.2026
+
+- **CrossFit v2 · guardrails de rollout productivo**: preparada en rama aislada la carga de catálogo productivo exclusivamente como `draft`, con `dry-run` por defecto, URL explícita, allowlist exacta de proyecto/host, doble confirmación por acuse y hash, bloqueo transaccional y rechazo de versiones no escribibles; el importador nunca activa catálogo. La generación resuelve ahora solo la versión `active` y falla cerrada si no existe; el runtime histórico conserva lectura explícita de su versión congelada. Añadida cohorte `CROSSFIT_V2_QA_USERS`, vacía por defecto, aplicada a capacidades, evaluación, planes, single-day, runtime y revisiones inmutables; el wildcard se limita a CI con `NODE_ENV=test`. Validación focal: 61/61 tests. Sin migraciones, catálogo, flags, Supabase ni Render productivos modificados.
+
 ## 23.07.2026
 
 - **CrossFit profesional v2 · oráculos E2E alineados con seguridad y periodización**: el segundo run aislado dejó verdes build, baseline PostgreSQL, integración/RLS, auditoría de dependencias y accesibilidad, y acotó el E2E a dos supuestos erróneos del test. Una sustitución no se fuerza cuando el catálogo no ofrece candidato que preserve estímulo sin conflicto: avanzado mantiene la cobertura positiva con replay y `stimulus_delta <= 0.15`, mientras principiante/intermedio aceptan exclusivamente rechazos tipados y fail-closed. Nutrición valida ahora la semana completa D0/D1/D2, incluyendo correctamente descansos D0, siempre en `shadow` no autoritativo. No se relajan invariantes ni se modifica runtime productivo.
