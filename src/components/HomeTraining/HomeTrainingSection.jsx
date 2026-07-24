@@ -1,5 +1,5 @@
 import { ArrowLeft, BarChart3 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { memo, useCallback } from 'react';
 import HomeTrainingExerciseModal from './HomeTrainingExerciseModal';
 import HomeTrainingProgress from './HomeTrainingProgress';

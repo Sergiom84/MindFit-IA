@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Flame, Shield, AlertCircle, Info, Loader, Sparkles } from 'lucide-react';
 import { useWorkout } from '@/contexts/WorkoutContext.jsx';
 import { useAuth } from '@/contexts/AuthContext.jsx';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 
 // Importar componentes de metodologías específicas
 import BomberosManualCard from './methodologies/Bomberos/BomberosManualCard.jsx';

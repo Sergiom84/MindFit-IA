@@ -12,7 +12,7 @@
 // =============================================================================
 // 📚 REACT & ROUTER IMPORTS
 // =============================================================================
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router';
 import { Suspense, lazy, useState, useEffect, useMemo } from 'react';
 import { useTrace } from './contexts/TraceContext';
 
