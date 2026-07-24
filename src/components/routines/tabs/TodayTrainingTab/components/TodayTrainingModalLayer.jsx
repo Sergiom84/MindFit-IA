@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button.jsx";
+import apiClient from "@/lib/apiClient";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 import RoutineSessionModal from "../../../RoutineSessionModal";
@@ -27,6 +28,7 @@ export default function TodayTrainingModalLayer({
   effectiveSession,
   activeMethodKey,
   effortModal,
+  userId,
   showPriorityModal,
   currentPriority,
   showTransitionModal,
@@ -93,10 +95,16 @@ export default function TodayTrainingModalLayer({
               session={effectiveSession}
               sessionId={effectiveSessionId}
               onClose={closeSession}
-              onFinishExercise={handleExerciseUpdate}
-              onCompleteSession={(summary) => {
-                handleCompleteSession({ scale: summary?.escala || "rx" });
+              onStartSession={async () => {
+                if (!effectiveSessionId) throw new Error("Sesión CrossFit no disponible");
+                await apiClient.post(`/routines/sessions/${effectiveSessionId}/mark-started`);
               }}
+              onFinishExercise={handleExerciseUpdate}
+              onCompleteSession={(summary) => handleCompleteSession({
+                scale: summary?.escala || (summary?.runtimeVersion ? "base" : "rx"),
+                wodSummary: summary || null,
+                deferCrossfitV2Result: summary?.runtimeVersion === "crossfit-runtime-event/v2"
+              })}
             />
           ) : (
             <RoutineSessionModal
@@ -159,6 +167,7 @@ export default function TodayTrainingModalLayer({
 
       <EffortModals
         effortModal={effortModal}
+        ownerId={userId}
         onSubmit={handleEffortSubmit}
         onClose={handleEffortClose}
       />

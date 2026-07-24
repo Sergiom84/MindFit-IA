@@ -27,6 +27,11 @@ import { DAY_NAMES, MONTH_NAMES } from '../hipertrofia/constants.js';
  * @param {string} params.planLabel
  * @param {boolean} [params.isWeekendExtra=true]
  * @param {object} [params.extraSessionMetadata=null] - Metadatos extra fusionados en session_metadata (p.ej. { wod } en CrossFit)
+ * @param {object|null} [params.planData=null] - Snapshot opcional del plan single-day.
+ * @param {number|null} [params.dayId=null] - Enlace canónico opcional del día.
+ * @param {object|null} [params.planDayMetadata=null] - Metadata para methodology_plan_days.
+ * @param {string|null} [params.idempotencyKey=null] - Identidad estable del single-day.
+ * @param {string|null} [params.requestHash=null] - Hash material para detectar colisiones.
  * @param {Date}   [params.currentDate=new Date()]
  * @returns {Promise<{sessionId:number, planId:number}>}
  */
@@ -42,14 +47,29 @@ export async function persistSingleDaySession(dbClient, {
   planLabel,
   isWeekendExtra = true,
   extraSessionMetadata = null,
-  currentDate = new Date()
+  planData = null,
+  dayId = null,
+  planDayMetadata = null,
+  idempotencyKey = null,
+  requestHash = null,
+  versionType = 'weekend-extra',
+  currentDate = new Date(),
+  startedAt = currentDate
 }) {
+  if (idempotencyKey) {
+    await dbClient.query(
+      'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+      [`single-day:${userId}:${idempotencyKey}`]
+    );
+  }
+
   // Dedupe: si ya hay una sesión single-day sin terminar para este usuario, fecha y
   // metodología, reutilizarla en lugar de crear plan+sesión nuevos. (Cada re-clic en
   // "aceptar entrenamiento de hoy" creaba un plan 'completed' y una sesión duplicados.)
   const existing = await dbClient.query(`
-    SELECT s.id AS session_id, s.methodology_plan_id AS plan_id
+    SELECT s.id AS session_id, s.methodology_plan_id AS plan_id, p.plan_data
     FROM app.methodology_exercise_sessions s
+    JOIN app.methodology_plans p ON p.id = s.methodology_plan_id AND p.user_id = s.user_id
     WHERE s.user_id = $1
       AND s.methodology_type = $2
       AND s.session_type = 'weekend-extra'
@@ -60,6 +80,14 @@ export async function persistSingleDaySession(dbClient, {
   `, [userId, methodologyType, currentDate]);
 
   if (existing.rows.length > 0) {
+    const storedHash = existing.rows[0].plan_data?.generation_request_hash ?? null;
+    if (idempotencyKey && storedHash && requestHash && storedHash !== requestHash) {
+      const error = new Error('Ya existe un single-day pendiente para esta fecha con otra configuración');
+      error.code = 'IDEMPOTENCY_BROKEN';
+      error.reasonCode = 'IDEMPOTENCY_BROKEN';
+      error.status = 409;
+      throw error;
+    }
     return {
       sessionId: existing.rows[0].session_id,
       planId: existing.rows[0].plan_id,
@@ -78,8 +106,9 @@ export async function persistSingleDaySession(dbClient, {
       status,
       total_days,
       generation_mode,
-      version_type
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      version_type,
+      plan_data
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
     RETURNING id
   `, [
     userId,
@@ -90,7 +119,8 @@ export async function persistSingleDaySession(dbClient, {
     'completed',
     1,
     'manual',
-    'weekend-extra'
+    versionType,
+    planData ? JSON.stringify(planData) : null
   ]);
 
   const planId = planResult.rows[0].id;
@@ -100,6 +130,7 @@ export async function persistSingleDaySession(dbClient, {
     INSERT INTO app.methodology_exercise_sessions (
       user_id,
       methodology_plan_id,
+      day_id,
       methodology_type,
       methodology_level,
       session_name,
@@ -115,11 +146,12 @@ export async function persistSingleDaySession(dbClient, {
       year_number,
       exercises_data,
       session_metadata
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
     RETURNING id
   `, [
     userId,
     planId,
+    dayId,
     methodologyType,
     nivel,
     sessionLabel,
@@ -128,7 +160,7 @@ export async function persistSingleDaySession(dbClient, {
     'weekend-extra',
     exercises.length,
     'pending',
-    currentDate,
+    startedAt,
     currentDate.getDate(),
     MONTH_NAMES[currentDate.getMonth()],
     currentDate.getMonth() + 1,
@@ -147,6 +179,29 @@ export async function persistSingleDaySession(dbClient, {
   ]);
 
   const sessionId = sessionResult.rows[0].id;
+
+  if (dayId != null && planDayMetadata) {
+    await dbClient.query(
+      `INSERT INTO app.methodology_plan_days
+         (plan_id, day_id, week_number, day_name, date_local, is_rest,
+          planned_exercises_count, metadata)
+       VALUES ($1, $2, 1, $3, $4, FALSE, $5, $6::jsonb)
+       ON CONFLICT (plan_id, day_id) DO UPDATE SET
+         day_name = EXCLUDED.day_name,
+         date_local = EXCLUDED.date_local,
+         is_rest = FALSE,
+         planned_exercises_count = EXCLUDED.planned_exercises_count,
+         metadata = EXCLUDED.metadata`,
+      [
+        planId,
+        dayId,
+        DAY_NAMES[currentDate.getDay()],
+        currentDate,
+        exercises.length,
+        JSON.stringify(planDayMetadata)
+      ]
+    );
+  }
 
   // Crear tracking para ejercicios
   for (const exercise of exercises) {

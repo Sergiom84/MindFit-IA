@@ -144,6 +144,7 @@ export function buildSessionCompletedEvent({
   sessionId,
   userId,
   methodologyPlanId = null,
+  dayId = null,
   methodologyId = null,
   methodologyLevel = null,
   completedAt = null,
@@ -161,6 +162,7 @@ export function buildSessionCompletedEvent({
     payload: {
       session_id: sessionId,
       methodology_plan_id: methodologyPlanId,
+      day_id: dayId,
       methodology_id: methodologyId,
       methodology_level: methodologyLevel,
       completed_at: completedAt,

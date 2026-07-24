@@ -17,6 +17,8 @@ import {
   generateMethodologyPlan,
   getMethodologyLevels,
   getSupportedMethodologies,
+  CrossFitService,
+  methodologyUsesImmutableDraftRevisions,
 
   // Utilities
   cleanUserDrafts,
@@ -33,6 +35,20 @@ import { isHipertrofiaMethodology } from '../services/hipertrofia/identity.js';
 import { generateAndPersistD1D5Plan } from '../services/hipertrofia/d1d5Orchestrator.js';
 
 const router = express.Router();
+
+function sendRoutineGenerationError(res, error, fallbackMessage) {
+  const status = Number(error?.status) || 500;
+  return res.status(status).json({
+    success: false,
+    error: status >= 500 ? fallbackMessage : error.message,
+    code: error?.code ?? null,
+    details: status < 500 ? error?.details : undefined
+  });
+}
+
+router.get('/specialist/crossfit/capabilities', authenticateToken, (req, res) => {
+  res.json(CrossFitService.getCrossFitV2Capabilities());
+});
 
 // =========================================
 // SPECIALIST ENDPOINTS - EVALUATION
@@ -51,15 +67,12 @@ router.post('/specialist/:methodology/evaluate', authenticateToken, async (req, 
   try {
     logger.info(`📊 Evaluando nivel de ${methodology} para usuario ${userId}`);
 
-    const evaluation = await evaluateUserLevel(methodology, userId);
+    const evaluation = await evaluateUserLevel(methodology, userId, req.body ?? {});
     res.json(evaluation);
 
   } catch (error) {
     logger.error(`❌ Error en evaluación ${methodology}:`, error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return sendRoutineGenerationError(res, error, 'No se pudo evaluar la metodología');
   }
 });
 
@@ -80,8 +93,9 @@ router.post('/specialist/:methodology/generate', authenticateToken, async (req, 
   try {
     logger.info(`🏗️ Generando plan de ${methodology} para usuario ${userId}`);
 
-    // Clean drafts before generation
-    await cleanUserDrafts(userId);
+    if (!methodologyUsesImmutableDraftRevisions(methodology)) {
+      await cleanUserDrafts(userId);
+    }
 
     // Delegate to methodology orchestrator
     const result = await generateMethodologyPlan(methodology, userId, planData);
@@ -89,10 +103,7 @@ router.post('/specialist/:methodology/generate', authenticateToken, async (req, 
 
   } catch (error) {
     logger.error(`❌ Error generando plan ${methodology}:`, error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return sendRoutineGenerationError(res, error, 'No se pudo generar el plan');
   }
 });
 
@@ -144,9 +155,11 @@ router.post('/ai/methodology', authenticateToken, async (req, res) => {
       });
     }
 
-    // Limpieza de drafts para el flujo genérico. Hipertrofia la resuelve dentro
-    // de su orquestador dedicado y transaccional.
-    await cleanUserDrafts(userId);
+    // Hipertrofia limpia dentro de su orquestador. CrossFit v2 conserva el draft
+    // anterior hasta crear la revisión inmutable que lo sustituye.
+    if (!methodologyUsesImmutableDraftRevisions(personalizedPlanData.methodology)) {
+      await cleanUserDrafts(userId);
+    }
 
     const result = await generateMethodologyPlan(
       personalizedPlanData.methodology,
@@ -158,10 +171,7 @@ router.post('/ai/methodology', authenticateToken, async (req, res) => {
 
   } catch (error) {
     logger.error(`❌ Error en generación IA:`, error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return sendRoutineGenerationError(res, error, 'No se pudo generar el plan');
   }
 });
 
@@ -205,20 +215,18 @@ router.post('/manual/methodology', authenticateToken, async (req, res) => {
   try {
     logger.info(`✋ Creación manual de plan para usuario ${userId}`);
 
-    validateRoutineRequest(planData);
-    await cleanUserDrafts(userId);
-
     const methodology = planData.methodology || 'gimnasio';
+    validateRoutineRequest(planData);
+    if (!methodologyUsesImmutableDraftRevisions(methodology)) {
+      await cleanUserDrafts(userId);
+    }
     const result = await generateMethodologyPlan(methodology, userId, planData);
 
     res.json(result);
 
   } catch (error) {
     logger.error(`❌ Error en creación manual:`, error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return sendRoutineGenerationError(res, error, 'No se pudo generar el plan');
   }
 });
 
@@ -337,7 +345,7 @@ router.delete('/draft/:planId', authenticateToken, async (req, res) => {
   try {
     logger.info(`🗑️ Eliminando draft ${planId} para usuario ${userId}`);
 
-    const deleted = await updatePlanStatus(planId, 'cancelled');
+    const deleted = await updatePlanStatus(planId, 'cancelled', userId);
 
     if (deleted) {
       res.json({

@@ -4,6 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { computeGateLogic } from "../../src/components/routines/tabs/TodayTrainingTab/gateLogic.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(__filename), "../..");
 
@@ -83,9 +85,13 @@ test("TodayTrainingTab mantiene cierre 7/7 y CrossFit usa WOD player desde plan"
 
   assert.match(modalLayerSource, /activeMethodKey === "crossfit"/);
   assert.match(modalLayerSource, /<WodSessionModal/);
+  assert.match(modalLayerSource, /onStartSession=\{async \(\) =>/);
+  assert.match(modalLayerSource, /routines\/sessions\/\$\{effectiveSessionId\}\/mark-started/);
   assert.match(effortModalsSource, /defaultScale=\{effortModal\.scale \|\| 'rx'\}/);
+  assert.match(effortModalsSource, /isV2Result=\{effortModal\.crossfitV2 === true\}/);
   assert.match(sessionActionsSource, /methodologyPlanId: methodologyPlanId \|\| null/);
   assert.match(sessionActionsSource, /\.\.\.payload/);
+  assert.match(sessionActionsSource, /isCrossfitV2Presentation\(todaySessionData\)/);
 });
 
 test("TodayTrainingTab prioriza today-status.summary como fuente de verdad del gate", () => {
@@ -109,3 +115,52 @@ test("TodayTrainingTab prioriza today-status.summary como fuente de verdad del g
   assert.match(source, /dataSource: hasBackendSummary \? 'backend \(today-status\.summary\)'/);
 });
 
+test("Today cierra terminales CrossFit v2 sin romper el reintento legacy", () => {
+  const counts = { total: 2, completed: 1, pending: 0, inProgress: 0 };
+  const todayStatus = {
+    session: { session_status: "partial" },
+    summary: { skipped: 0, cancelled: 1, canRetry: true }
+  };
+  const crossfitV2 = computeGateLogic({ counts, todayStatus, immutableTerminal: true });
+  assert.equal(crossfitV2.isFinishedToday, true);
+  assert.equal(crossfitV2.hasUnfinishedWorkToday, false);
+  assert.equal(crossfitV2.canRetryToday, false);
+
+  const legacy = computeGateLogic({ counts, todayStatus, immutableTerminal: false });
+  assert.equal(legacy.isFinishedToday, false);
+  assert.equal(legacy.hasUnfinishedWorkToday, true);
+  assert.equal(legacy.canRetryToday, true);
+});
+
+test("inicio CrossFit serializa reintentos y no reabre historia terminal", () => {
+  const source = readRepoFile("backend/routes/routines/sessions.js");
+
+  assert.match(source, /crossfit-session-start:/);
+  assert.match(source, /pg_advisory_xact_lock/);
+  assert.match(source, /idempotent_replay:\s*true/);
+  assert.match(source, /\['completed', 'partial', 'cancelled', 'skipped', 'missed'\]/);
+  assert.match(source, /HISTORY_IMMUTABLE/);
+});
+
+test("cancelación de drafts filtra por propietario en ruta y repositorio", () => {
+  const route = readRepoFile("backend/routes/routineGeneration.js");
+  const repository = readRepoFile(
+    "backend/services/routineGeneration/database/planRepository.js",
+  );
+
+  assert.match(route, /updatePlanStatus\(planId, 'cancelled', userId\)/);
+  assert.match(repository, /WHERE id = \$2 AND user_id = \$3/);
+  assert.match(repository, /\[newStatus, planId, userId\]/);
+  assert.match(repository, /updatePlanStatus requiere userId/);
+});
+
+test("errores CrossFit no filtran detalles internos en respuestas 5xx", () => {
+  const generation = readRepoFile("backend/routes/routineGeneration.js");
+  const singleDay = readRepoFile("backend/routes/methodologySingleDay.js");
+  const plans = readRepoFile("backend/routes/routines/plans.js");
+
+  assert.match(generation, /status >= 500 \? fallbackMessage : error\.message/);
+  assert.match(generation, /details: status < 500 \? error\?\.details : undefined/);
+  assert.match(singleDay, /details: status < 500 \? error\.message : undefined/);
+  assert.match(plans, /details: error\?\.status && error\.status < 500 \? error\.details : undefined/);
+});

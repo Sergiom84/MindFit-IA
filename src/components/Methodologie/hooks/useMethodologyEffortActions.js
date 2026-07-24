@@ -1,5 +1,10 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import apiClient from '@/lib/apiClient';
+import {
+  clearCrossfitResultDraft,
+  loadCrossfitResultDraft,
+  loadLatestCrossfitResultDraft
+} from '../../routines/crossfit/resultDraftState.js';
 
 const EFFORT_CONFIG = {
   calistenia: {
@@ -21,7 +26,7 @@ const EFFORT_CONFIG = {
     endpoint: '/methodology-session/crossfit/wod-result',
     decisionKey: 'crossfitDecision',
     modalKey: 'showCrossfitEffort',
-    finishState: { crossfitWodScale: 'rx' }
+    finishState: { crossfitWodScale: 'rx', crossfitResultV2: false }
   },
   halterofilia: {
     endpoint: '/methodology-session/halterofilia/session-result',
@@ -40,30 +45,66 @@ const EFFORT_CONFIG = {
   }
 };
 
-export function useMethodologyEffortActions({ localState, updateLocalState, navigate }) {
+export function useMethodologyEffortActions({ localState, updateLocalState, navigate, userId }) {
   const planId = localState.pendingSessionData?.methodology_plan_id
     ?? localState.pendingSessionData?.planId
     ?? null;
+  const sessionId = localState.pendingSessionData?.sessionId ?? null;
+
+  useEffect(() => {
+    const draft = loadLatestCrossfitResultDraft({ surface: 'single-day', ownerId: userId });
+    if (!draft) return;
+    updateLocalState({
+      pendingSessionData: {
+        sessionId: draft.session_id,
+        methodology_plan_id: draft.plan_id,
+        planId: draft.plan_id,
+        discipline: 'crossfit'
+      },
+      showRoutineSessionModal: false,
+      showCrossfitEffort: true,
+      crossfitDecision: null,
+      crossfitEffortError: null,
+      crossfitResultV2: true,
+      crossfitWodScale: 'base',
+      crossfitWodSummary: draft.wod_summary
+    });
+  }, [updateLocalState, userId]);
 
   const submitEffort = useCallback(async (method, payload) => {
     const config = EFFORT_CONFIG[method];
     if (!config) return;
 
     updateLocalState({ isSavingEffort: true });
+    if (method === 'crossfit') updateLocalState({ crossfitEffortError: null });
     try {
-      const response = await apiClient.post(config.endpoint, {
+      const endpoint = method === 'crossfit' && sessionId
+        ? `/routines/sessions/${sessionId}/effort`
+        : config.endpoint;
+      const draft = method === 'crossfit' && sessionId
+        ? loadCrossfitResultDraft(sessionId, userId)
+        : null;
+      const response = await apiClient.post(endpoint, {
         methodologyPlanId: planId,
         ...payload
-      });
+      }, draft ? { headers: { 'idempotency-key': draft.idempotency_key } } : {});
       const data = response?.data || response;
-      updateLocalState({ [config.decisionKey]: data?.decision || 'hold' });
+      if (method === 'crossfit' && sessionId) clearCrossfitResultDraft(sessionId, userId);
+      updateLocalState({
+        [config.decisionKey]: data?.decision || 'hold',
+        ...(method === 'crossfit' ? { crossfitEffortError: null } : {})
+      });
     } catch (error) {
       console.warn(`⚠️ No se pudo registrar la autorregulación ${method}:`, error?.message);
-      updateLocalState({ [config.decisionKey]: 'hold' });
+      if (method === 'crossfit') {
+        updateLocalState({ crossfitEffortError: error?.message || 'No se pudo guardar el resultado. Reintenta.' });
+      } else {
+        updateLocalState({ [config.decisionKey]: 'hold' });
+      }
     } finally {
       updateLocalState({ isSavingEffort: false });
     }
-  }, [planId, updateLocalState]);
+  }, [planId, sessionId, updateLocalState, userId]);
 
   const finishEffort = useCallback((method) => {
     const config = EFFORT_CONFIG[method];
@@ -73,7 +114,9 @@ export function useMethodologyEffortActions({ localState, updateLocalState, navi
       [config.modalKey]: false,
       [config.decisionKey]: null,
       pendingSessionData: null,
-      ...config.finishState
+      ...config.finishState,
+      crossfitWodSummary: null,
+      crossfitEffortError: null
     });
     navigate('/routines', { state: { activeTab: 'today' } });
   }, [navigate, updateLocalState]);
@@ -88,8 +131,7 @@ export function useMethodologyEffortActions({ localState, updateLocalState, navi
     handleCasaEffortSubmit: ({ avgRir, targetMet, feeling = null }) =>
       submitEffort('casa', { avgRir, targetMet, feeling }),
     finishCasaEffort: () => finishEffort('casa'),
-    handleCrossfitEffortSubmit: ({ rpe, completed, scale, feeling = null }) =>
-      submitEffort('crossfit', { rpe, completed, scale, feeling }),
+    handleCrossfitEffortSubmit: (payload) => submitEffort('crossfit', payload),
     finishCrossfitEffort: () => finishEffort('crossfit'),
     handleHalterofiliaEffortSubmit: ({ rpe, targetMet, goodTechnique, feeling = null }) =>
       submitEffort('halterofilia', { rpe, targetMet, goodTechnique, feeling }),

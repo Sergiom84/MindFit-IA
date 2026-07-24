@@ -4,6 +4,7 @@
 // hacerlo testeable de forma aislada; comportamiento byte-equivalente.
 
 const norm = (s) => String(s || '').toLowerCase();
+const IMMUTABLE_TERMINAL_STATUSES = new Set(['partial', 'abandoned', 'cancelled']);
 
 /**
  * Calcula los contadores del gate. Fuente de verdad: `todayStatus.summary`
@@ -86,7 +87,7 @@ export function computeHeaderProgressStats({ todayStatus, todaySessionData, exer
   return { completed, total, skipped, cancelled };
 }
 
-export function computeGateLogic({ counts, todayStatus }) {
+export function computeGateLogic({ counts, todayStatus, immutableTerminal = false }) {
   const { total, completed, pending, inProgress } = counts;
 
   // 1. Hay ejercicios incompletos (no todos están "completed")
@@ -96,12 +97,15 @@ export function computeGateLogic({ counts, todayStatus }) {
   const allProcessedToday = total > 0 && pending === 0 && inProgress === 0;
 
   // 3. Estado desde backend (para validación adicional)
-  const isFinishedToday = todayStatus?.session?.session_status === 'completed';
+  const sessionStatus = norm(todayStatus?.session?.session_status);
+  const isImmutableTerminal = immutableTerminal && IMMUTABLE_TERMINAL_STATUSES.has(sessionStatus);
+  const isFinishedToday = sessionStatus === 'completed' || isImmutableTerminal;
 
   // 4. Calcular si puede reintentar - simplificado
   const hasSkipped = (todayStatus?.summary?.skipped ?? 0) > 0;
   const hasCancelled = (todayStatus?.summary?.cancelled ?? 0) > 0;
-  const canRetryToday = Boolean(todayStatus?.summary?.canRetry) || hasSkipped || hasCancelled;
+  const canRetryToday = !isImmutableTerminal
+    && (Boolean(todayStatus?.summary?.canRetry) || hasSkipped || hasCancelled);
 
   // 5. Sesión completada exitosamente: manda el backend; local solo como fallback.
   const hasCompletedSession = isFinishedToday || (total > 0 && completed === total);

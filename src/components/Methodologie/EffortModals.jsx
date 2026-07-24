@@ -10,7 +10,7 @@ import PowerliftingEffortModal from '../routines/modals/PowerliftingEffortModal.
  * Clúster de modales de autorregulación (auto-evaluación de esfuerzo por disciplina).
  * Extraído de MethodologiesScreen.jsx (ARCH-002) sin cambios de comportamiento.
  */
-export default function EffortModals({ localState, handlers }) {
+export default function EffortModals({ localState, handlers, ownerId }) {
   const {
     handleCalisteniaEffortSubmit,
     finishCalisteniaEffort,
@@ -46,6 +46,11 @@ export default function EffortModals({ localState, handlers }) {
         isLoading={localState.isSavingEffort}
         result={localState.crossfitDecision}
         defaultScale={localState.crossfitWodScale || 'rx'}
+        wodSummary={localState.crossfitWodSummary}
+        submitError={localState.crossfitEffortError}
+        isV2Result={localState.crossfitResultV2 === true}
+        resultSessionId={localState.pendingSessionData?.sessionId ?? null}
+        resultOwnerId={ownerId}
         onSubmit={handleCrossfitEffortSubmit}
         onSkip={finishCrossfitEffort}
         onContinue={finishCrossfitEffort}

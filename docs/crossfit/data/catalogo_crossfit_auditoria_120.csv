@@ -1,0 +1,121 @@
+source_id,nombre_actual,nivel_actual,dominio_actual,accion_propuesta,canonical_id,hallazgo_principal
+1,Remo en anillas,Principiante,Gymnastic,KEEP_VARIANT,ring_row,metadata_backfill
+2,Flexiones,Principiante,Gymnastic,KEEP_CANONICAL,push_up,metadata_backfill
+3,Sentadillas al aire,Principiante,Gymnastic,KEEP_CANONICAL,air_squat,metadata_backfill
+4,Plancha,Principiante,Gymnastic,KEEP_VARIANT,front_plank,isometric_dose_separate
+5,Saltos de tijera,Principiante,Gymnastic,RECLASSIFY,jumping_jack,domain_should_mono
+6,Subidas a cajon,Principiante,Gymnastic,MERGE_DOSAGE,box_step_up,dose_not_identity
+7,Abdominales,Principiante,Gymnastic,RENAME_VARIANT,abmat_sit_up,ambiguous_name
+8,Burpees escalado,Principiante,Gymnastic,MERGE_VARIANT,burpee,scale_not_identity
+9,Sentadilla goblet,Principiante,Weightlifting,KEEP_VARIANT,goblet_squat,metadata_backfill
+10,Press con mancuernas,Principiante,Weightlifting,RENAME_VARIANT,dumbbell_strict_press,press_type_ambiguous
+11,Balanceo KB ruso,Principiante,Weightlifting,KEEP_VARIANT,kettlebell_swing_russian,metadata_backfill
+12,Peso muerto rumano,Principiante,Weightlifting,KEEP_VARIANT,romanian_deadlift,metadata_backfill
+13,Remo mancuerna,Principiante,Weightlifting,KEEP_VARIANT,dumbbell_row,side_and_support_missing
+14,Sentadillas frontales ligero,Principiante,Weightlifting,MERGE_DOSAGE,front_squat,load_not_identity
+15,Lanzamientos pared ligero,Principiante,Weightlifting,MERGE_DOSAGE,wall_ball_shot,load_not_identity
+16,Push press ligero,Principiante,Weightlifting,MERGE_DOSAGE,push_press,load_not_identity
+17,Remo lento,Principiante,Monostructural,MERGE_DOSAGE,row_erg,duration_intensity_not_identity
+18,Assault Bike moderado,Principiante,Monostructural,MERGE_DOSAGE,air_bike,intensity_not_identity
+19,Carrera suave,Principiante,Monostructural,MERGE_DOSAGE,run,intensity_not_identity
+20,Single unders,Principiante,Monostructural,KEEP_VARIANT,single_under,metadata_backfill
+21,Ski Erg moderado,Principiante,Monostructural,MERGE_DOSAGE,ski_erg,intensity_not_identity
+22,Walking lunges,Principiante,Gymnastic,KEEP_VARIANT,walking_lunge,metadata_backfill
+23,Box step-ups cardio,Principiante,Monostructural,MERGE_DOSAGE,box_step_up,density_not_identity
+24,Hollow hold,Principiante,Accessories,KEEP_VARIANT,hollow_hold,isometric_dose_separate
+25,Superman hold,Principiante,Accessories,KEEP_VARIANT,superman_hold,isometric_dose_separate
+26,Glute bridge,Principiante,Accessories,KEEP_VARIANT,glute_bridge,metadata_backfill
+27,Band shoulder opening,Principiante,Accessories,RENAME_VARIANT,band_shoulder_mobility,not_WOD_movement
+28,Dead hang,Principiante,Accessories,KEEP_VARIANT,dead_hang,isometric_dose_separate
+29,Band good mornings,Principiante,Accessories,KEEP_VARIANT,band_good_morning,metadata_backfill
+30,Scap pull-ups,Principiante,Accessories,KEEP_VARIANT,scapular_pull_up,skill_progression
+31,Strict pullups,Intermedio,Gymnastic,RENAME_VARIANT,strict_pull_up,normalise_name
+32,C2B pullups,Intermedio,Gymnastic,RENAME_VARIANT,chest_to_bar_pull_up,skill_permission_required
+33,Hand-release pushups,Intermedio,Gymnastic,RENAME_VARIANT,hand_release_push_up,normalise_name
+34,Box jumps 24/20,Intermedio,Gymnastic,MERGE_DOSAGE,box_jump,height_not_identity
+35,Burpees RX,Intermedio,Gymnastic,MERGE_VARIANT,burpee,rx_not_identity
+36,Toes-to-bar,Intermedio,Gymnastic,KEEP_VARIANT,toes_to_bar,skill_permission_required
+37,Dips,Intermedio,Gymnastic,RENAME_VARIANT,parallel_bar_dip,implement_ambiguous
+38,Pistol,Intermedio,Gymnastic,KEEP_VARIANT,pistol_squat,skill_permission_required
+39,V-ups,Intermedio,Gymnastic,KEEP_VARIANT,v_up,metadata_backfill
+40,Handstand hold wall,Intermedio,Gymnastic,RENAME_VARIANT,wall_handstand_hold,skill_permission_required
+41,Knees-to-elbows,Intermedio,Gymnastic,KEEP_VARIANT,knees_to_elbows,skill_permission_required
+42,Burpee box jump,Intermedio,Gymnastic,KEEP_COMPOSITE,burpee_box_jump,impact_and_composite
+43,Thrusters 43/30,Intermedio,Weightlifting,MERGE_DOSAGE,barbell_thruster,load_not_identity
+44,Power Clean,Intermedio,Weightlifting,KEEP_VARIANT,power_clean,metadata_backfill
+45,Hang power snatch,Intermedio,Weightlifting,KEEP_VARIANT,hang_power_snatch,metadata_backfill
+46,Deadlift 102/70,Intermedio,Weightlifting,MERGE_DOSAGE,deadlift,load_not_identity
+47,OHS,Intermedio,Weightlifting,RENAME_VARIANT,overhead_squat,skill_permission_required
+48,SDHP 34/25,Intermedio,Weightlifting,MERGE_DOSAGE,sumo_deadlift_high_pull,load_not_identity_shoulder_caution
+49,Wall balls 9/6,Intermedio,Weightlifting,MERGE_DOSAGE,wall_ball_shot,load_not_identity
+50,American KB swing 24/16,Intermedio,Weightlifting,MERGE_DOSAGE,kettlebell_swing_american,load_not_identity
+51,DB snatch,Intermedio,Weightlifting,RENAME_VARIANT,dumbbell_snatch,alternation_missing
+52,C&J,Intermedio,Weightlifting,RENAME_VARIANT,clean_and_jerk,skill_permission_required
+53,Front squat 61/43,Intermedio,Weightlifting,MERGE_DOSAGE,front_squat,load_not_identity
+54,Push jerk,Intermedio,Weightlifting,KEEP_VARIANT,push_jerk,skill_permission_required
+55,Back squat 84/61,Intermedio,Weightlifting,MERGE_DOSAGE,back_squat,load_not_identity
+56,Hang squat clean,Intermedio,Weightlifting,KEEP_VARIANT,hang_squat_clean,skill_permission_required
+57,Row 500m,Intermedio,Monostructural,MERGE_DOSAGE,row_erg,distance_not_identity
+58,Assault bike 20/15 cal,Intermedio,Monostructural,MERGE_DOSAGE,air_bike,calories_not_identity
+59,Run 400-800m,Intermedio,Monostructural,MERGE_DOSAGE,run,distance_not_identity
+60,Double unders,Intermedio,Monostructural,KEEP_VARIANT,double_under,skill_permission_required
+61,Ski 500m,Intermedio,Monostructural,MERGE_DOSAGE,ski_erg,distance_not_identity
+62,Burpee broad jump,Intermedio,Gymnastic,KEEP_COMPOSITE,burpee_broad_jump,impact_and_space
+63,Fast box step-ups,Intermedio,Monostructural,MERGE_DOSAGE,box_step_up,density_not_identity
+64,Shuttle runs 25ft,Intermedio,Monostructural,MERGE_DOSAGE,shuttle_run,distance_not_identity
+65,GHD situps,Intermedio,Accessories,RENAME_VARIANT,ghd_sit_up,domain_should_gym_skill
+66,Hollow rocks,Intermedio,Accessories,KEEP_VARIANT,hollow_rock,metadata_backfill
+67,GHD hip extension,Intermedio,Accessories,KEEP_VARIANT,ghd_hip_extension,metadata_backfill
+68,Ring support hold,Intermedio,Accessories,KEEP_VARIANT,ring_support_hold,skill_progression
+69,Heavy farmer carry,Intermedio,Accessories,MERGE_DOSAGE,farmer_carry,load_not_identity
+70,Turkish Get-Up,Intermedio,Accessories,KEEP_VARIANT,turkish_get_up,technical_accessory
+71,Bar muscle-up,Avanzado,Gymnastic,KEEP_VARIANT,bar_muscle_up,high_skill_permission
+72,Ring muscle-up,Avanzado,Gymnastic,KEEP_VARIANT,ring_muscle_up,high_skill_permission
+73,HSPU,Avanzado,Gymnastic,RENAME_VARIANT,handstand_push_up,high_skill_permission
+74,Handstand walk,Avanzado,Gymnastic,KEEP_VARIANT,handstand_walk,high_skill_permission
+75,Rope climb 15ft,Avanzado,Gymnastic,MERGE_DOSAGE,rope_climb,height_not_identity
+76,Deficit HSPU 4in,Avanzado,Gymnastic,KEEP_VARIANT,deficit_handstand_push_up,high_skill_permission
+77,Strict muscle-up,Avanzado,Gymnastic,SPLIT_VARIANT,strict_ring_muscle_up,implement_ambiguous
+78,Weighted pistol,Avanzado,Gymnastic,KEEP_VARIANT,weighted_pistol_squat,high_skill_permission
+79,L-sit,Avanzado,Gymnastic,KEEP_VARIANT,l_sit,isometric_dose_separate
+80,Burpee bar MU,Avanzado,Gymnastic,KEEP_COMPOSITE,burpee_bar_muscle_up,very_high_skill_composite
+81,Full snatch 61/43,Avanzado,Weightlifting,MERGE_DOSAGE,squat_snatch,load_not_identity
+82,Heavy squat snatch,Avanzado,Weightlifting,MERGE_DOSAGE,squat_snatch,load_not_identity
+83,Heavy squat clean 84/61,Avanzado,Weightlifting,MERGE_DOSAGE,squat_clean,load_not_identity
+84,Heavy thruster 61/43,Avanzado,Weightlifting,MERGE_DOSAGE,barbell_thruster,load_not_identity
+85,Heavy OHS,Avanzado,Weightlifting,MERGE_DOSAGE,overhead_squat,load_not_identity
+86,Heavy C&J 84/61,Avanzado,Weightlifting,MERGE_DOSAGE,clean_and_jerk,load_not_identity
+87,Heavy devil press 22.5/15,Avanzado,Weightlifting,MERGE_DOSAGE,devil_press,load_not_identity
+88,Cluster 61/43,Avanzado,Weightlifting,MERGE_DOSAGE,cluster,load_not_identity
+89,Overhead walking lunge heavy,Avanzado,Weightlifting,MERGE_DOSAGE,overhead_walking_lunge,load_not_identity
+90,Heavy deadlift 143/102,Avanzado,Weightlifting,MERGE_DOSAGE,deadlift,load_not_identity
+91,Hang squat snatch,Avanzado,Weightlifting,KEEP_VARIANT,hang_squat_snatch,high_skill_permission
+92,Heavy split jerk,Avanzado,Weightlifting,MERGE_DOSAGE,split_jerk,load_not_identity
+93,Row 1000m,Avanzado,Monostructural,MERGE_DOSAGE,row_erg,distance_not_identity
+94,Assault bike 50/35 cal,Avanzado,Monostructural,MERGE_DOSAGE,air_bike,calories_not_identity
+95,Run mile,Avanzado,Monostructural,MERGE_DOSAGE,run,distance_not_identity
+96,Triple unders,Avanzado,Monostructural,KEEP_VARIANT,triple_under,high_skill_low_product_value
+97,Ski 1000m,Avanzado,Monostructural,MERGE_DOSAGE,ski_erg,distance_not_identity
+98,Strict TTB,Avanzado,Gymnastic,RENAME_VARIANT,strict_toes_to_bar,high_skill_permission
+100,Weighted ring dips,Avanzado,Accessories,KEEP_VARIANT,weighted_ring_dip,domain_should_gym
+101,Freestanding HSPU,Elite,Gymnastic,EXCLUDE_ELITE_CORE,handstand_push_up,legacy_variant_inactive
+102,Legless rope climb,Elite,Gymnastic,EXCLUDE_ELITE_CORE,rope_climb,legacy_variant_inactive
+103,Ring HSPU,Elite,Gymnastic,EXCLUDE_ELITE_CORE,handstand_push_up,legacy_variant_inactive
+104,Pegboard,Elite,Gymnastic,EXCLUDE_ELITE_CORE,rope_climb,legacy_variant_inactive
+105,Strict bar MU,Elite,Gymnastic,EXCLUDE_ELITE_CORE,bar_muscle_up,legacy_variant_inactive
+106,50ft unbroken HSW,Elite,Gymnastic,EXCLUDE_ELITE_CORE,handstand_walk,dose_not_identity
+107,Bar MU to L-sit,Elite,Gymnastic,EXCLUDE_ELITE_CORE,bar_muscle_up,legacy_composite_inactive
+108,Competition snatch 84/61,Elite,Weightlifting,EXCLUDE_ELITE_CORE,squat_snatch,load_not_identity
+109,Competition C&J 111/84,Elite,Weightlifting,EXCLUDE_ELITE_CORE,clean_and_jerk,load_not_identity
+110,Heavy OHS 84/61,Elite,Weightlifting,EXCLUDE_ELITE_CORE,overhead_squat,load_not_identity
+111,Competition thruster 84/61,Elite,Weightlifting,EXCLUDE_ELITE_CORE,barbell_thruster,load_not_identity
+112,Max DL 180+/136+,Elite,Weightlifting,EXCLUDE_ELITE_CORE,deadlift,test_dose_not_identity
+113,Heavy snatch balance,Elite,Weightlifting,EXCLUDE_ELITE_CORE,squat_snatch,legacy_drill_inactive
+114,Squat clean + front squat + jerk complex,Elite,Weightlifting,EXCLUDE_ELITE_CORE,clean_and_jerk,legacy_complex_inactive
+115,Touch-and-go power snatch 61/43,Elite,Weightlifting,EXCLUDE_ELITE_CORE,hang_power_snatch,legacy_dose_inactive
+116,Elite row 2k,Elite,Monostructural,EXCLUDE_ELITE_CORE,row_erg,distance_not_identity
+117,Run 5k,Elite,Monostructural,EXCLUDE_ELITE_CORE,run,distance_not_identity
+118,Assault Bike 100 cal,Elite,Monostructural,EXCLUDE_ELITE_CORE,air_bike,calories_not_identity
+120,Team worm flip,Elite,Weightlifting,EXCLUDE_ELITE_CORE,sandbag_carry,team_equipment_out_of_scope_inactive
+121,Wall walk,Intermedio,Gymnastic,KEEP_VARIANT,wall_walk,skill_permission_required
+122,Sled push,Intermedio,Weightlifting,KEEP_VARIANT,sled_push,load_surface_metadata_missing

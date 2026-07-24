@@ -12,9 +12,11 @@ import {
   Package,
   AlertCircle
 } from 'lucide-react';
+import { buildShoppingList } from './shoppingListBuilder';
 
 export default function ShoppingList({ nutritionPlan }) {
   const [shoppingList, setShoppingList] = useState(null);
+  const [isEmpty, setIsEmpty] = useState(false);
   const [checkedItems, setCheckedItems] = useState({});
   const [copied, setCopied] = useState(false);
 
@@ -25,147 +27,9 @@ export default function ShoppingList({ nutritionPlan }) {
   }, [nutritionPlan]);
 
   const generateShoppingList = () => {
-    if (!nutritionPlan?.plan_data?.daily_plans && !nutritionPlan?.daily_plans) {
-      console.warn('No hay planes diarios disponibles para generar lista de compras');
-      return;
-    }
-
-    const dailyPlans = nutritionPlan.plan_data?.daily_plans || nutritionPlan.daily_plans;
-    const ingredients = new Map();
-
-    // Recorrer todos los días y comidas para extraer ingredientes
-    Object.values(dailyPlans).forEach((day, dayIndex) => {
-      const dayName = day.day_name || `Día ${dayIndex + 1}`;
-
-      day.meals?.forEach(meal => {
-        meal.ingredients?.forEach(ingredient => {
-          const key = ingredient.food.toLowerCase().trim();
-
-          if (ingredients.has(key)) {
-            const existing = ingredients.get(key);
-            // Agregar la cantidad y las comidas donde se usa
-            existing.amounts.push(ingredient.amount);
-            existing.meals.add(`${dayName} - ${meal.meal_type || meal.name}`);
-          } else {
-            ingredients.set(key, {
-              name: ingredient.food,
-              amounts: [ingredient.amount],
-              category: categorizeFood(ingredient.food),
-              meals: new Set([`${dayName} - ${meal.meal_type || meal.name}`])
-            });
-          }
-        });
-      });
-    });
-
-    // Procesar y agrupar por categorías
-    const categorized = {
-      proteinas: [],
-      carbohidratos: [],
-      vegetales: [],
-      frutas: [],
-      lacteos: [],
-      grasas: [],
-      condimentos: [],
-      otros: []
-    };
-
-    ingredients.forEach((item) => {
-      // Combinar cantidades similares
-      const totalAmount = combineAmounts(item.amounts);
-
-      categorized[item.category].push({
-        name: item.name,
-        totalAmount,
-        meals: Array.from(item.meals),
-        occurrences: item.amounts.length
-      });
-    });
-
-    // Limpiar categorías vacías y ordenar alfabéticamente
-    Object.keys(categorized).forEach(key => {
-      if (categorized[key].length === 0) {
-        delete categorized[key];
-      } else {
-        categorized[key].sort((a, b) => a.name.localeCompare(b.name));
-      }
-    });
-
-    setShoppingList(categorized);
-  };
-
-  const combineAmounts = (amounts) => {
-    // Intentar sumar cantidades numéricas similares
-    const numeric = [];
-    const text = [];
-
-    amounts.forEach(amount => {
-      const match = amount.match(/^(\d+(?:\.\d+)?)\s*(.+)?$/);
-      if (match) {
-        numeric.push({ value: parseFloat(match[1]), unit: match[2] || '' });
-      } else {
-        text.push(amount);
-      }
-    });
-
-    // Si todas son numéricas con la misma unidad, sumarlas
-    if (numeric.length > 0) {
-      const units = [...new Set(numeric.map(n => n.unit))];
-      if (units.length === 1) {
-        const total = numeric.reduce((sum, n) => sum + n.value, 0);
-        return `${total}${units[0] ? ' ' + units[0] : ''}`;
-      }
-    }
-
-    // Si no se pueden combinar, mostrar el rango o lista
-    if (amounts.length === 1) {
-      return amounts[0];
-    } else if (amounts.length === 2) {
-      return `${amounts[0]} - ${amounts[1]}`;
-    } else {
-      return `${amounts[0]} (×${amounts.length})`;
-    }
-  };
-
-  const categorizeFood = (foodName) => {
-    const name = foodName.toLowerCase();
-
-    // Proteínas
-    if (name.match(/pollo|pavo|ternera|cerdo|pescado|atún|salmón|merluza|huevo|carne|pechuga|muslo|lomo|chuleta|bistec|jamón|bacon|salchicha/)) {
-      return 'proteinas';
-    }
-
-    // Carbohidratos
-    if (name.match(/arroz|pasta|pan|avena|cereal|quinoa|patata|batata|maíz|trigo|harina|galleta|tostada|couscous|bulgur/)) {
-      return 'carbohidratos';
-    }
-
-    // Vegetales
-    if (name.match(/lechuga|tomate|cebolla|ajo|brócoli|coliflor|espinaca|acelga|zanahoria|pimiento|pepino|calabacín|berenjena|col|apio|puerro|espárrago|alcachofa|champiñon|seta/)) {
-      return 'vegetales';
-    }
-
-    // Frutas
-    if (name.match(/manzana|plátano|naranja|mandarina|pera|melocotón|fresa|frambuesa|arándano|kiwi|mango|piña|sandía|melón|uva|cereza|limón|pomelo|aguacate/)) {
-      return 'frutas';
-    }
-
-    // Lácteos
-    if (name.match(/leche|yogur|queso|nata|mantequilla|requesón|kéfir|cuajada/)) {
-      return 'lacteos';
-    }
-
-    // Grasas
-    if (name.match(/aceite|oliva|girasol|coco|mantequilla|margarina|nuez|almendra|cacahuete|pistacho|avellana|tahini|mantequilla de|frutos secos/)) {
-      return 'grasas';
-    }
-
-    // Condimentos
-    if (name.match(/sal|pimienta|orégano|tomillo|romero|perejil|cilantro|albahaca|curry|pimentón|comino|canela|jengibre|mostaza|vinagre|limón|especias/)) {
-      return 'condimentos';
-    }
-
-    return 'otros';
+    const built = buildShoppingList(nutritionPlan);
+    setShoppingList(built.categories);
+    setIsEmpty(built.itemCount === 0);
   };
 
   const toggleItem = (category, index) => {
@@ -179,7 +43,7 @@ export default function ShoppingList({ nutritionPlan }) {
   const exportToText = () => {
     if (!shoppingList) return;
 
-    let text = '🛒 LISTA DE COMPRAS - ENTRENA CON IA\n';
+    let text = '🛒 LISTA DE COMPRAS - MINDFIT\n';
     text += '═'.repeat(40) + '\n';
     text += `📅 Plan de ${nutritionPlan.plan_data?.plan_summary?.duration_days || nutritionPlan.duration_days || 7} días\n`;
     text += `📊 ${nutritionPlan.plan_data?.plan_summary?.target_calories || 'N/A'} kcal/día\n\n`;
@@ -273,6 +137,20 @@ export default function ShoppingList({ nutritionPlan }) {
         <CardContent className="p-6 text-center">
           <AlertCircle className="mx-auto mb-4 text-yellow-400" size={48} />
           <p className="text-gray-300">Generando lista de compras...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isEmpty) {
+    return (
+      <Card className="bg-neutral-900/70 border-white/10 ring-1 ring-white/5 border-l-2 border-l-yellow-400/30">
+        <CardContent className="p-6 text-center">
+          <Package className="mx-auto mb-4 text-yellow-300" size={48} />
+          <p className="text-gray-200">Aún no hay alimentos en el menú</p>
+          <p className="text-sm text-gray-400 mt-2">
+            Genera los menús de los días que quieras incluir en la lista.
+          </p>
         </CardContent>
       </Card>
     );

@@ -28,6 +28,17 @@ export function extractPlannedSessionLoad(session) {
 }
 
 /**
+ * Extrae metadata de sesión que el motor ya validó y quiere transportar desde
+ * el plan hasta la sesión materializada. No acepta arrays ni valores escalares.
+ */
+export function extractPersistedSessionMetadata(session) {
+  const raw = session?.metadata?.persisted_session_metadata;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const entries = Object.entries(raw).filter(([key]) => /^[a-z][a-z0-9_]{0,63}$/.test(key));
+  return entries.length > 0 ? Object.fromEntries(entries) : null;
+}
+
+/**
  * Construye el objeto `metadata` para `methodology_plan_days` a partir de una sesión.
  * - Sin carga → `null` (no se persiste metadata; la columna queda NULL).
  * - Con carga → `{ session_load, load_contract_status }` (§9.1). La validación es
@@ -38,9 +49,13 @@ export function extractPlannedSessionLoad(session) {
  */
 export function buildPlanDayMetadata(session) {
   const raw = extractPlannedSessionLoad(session);
-  if (!raw) return null;
+  const sessionMetadata = extractPersistedSessionMetadata(session);
+  if (!raw && !sessionMetadata) return null;
+  const metadata = sessionMetadata ? { session_metadata: sessionMetadata } : {};
+  if (!raw) return metadata;
   const result = validateTrainingLoad(raw, { mode: 'lenient' });
   return {
+    ...metadata,
     session_load: result.load,
     load_contract_status: result.degraded ? 'degraded' : 'valid'
   };

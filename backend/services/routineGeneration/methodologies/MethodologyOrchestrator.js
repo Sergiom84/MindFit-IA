@@ -90,7 +90,7 @@ function defaultEvaluation(methodology) {
  * @param {string} userId - ID del usuario
  * @returns {Promise<object>} Evaluación del nivel
  */
-export async function evaluateUserLevel(methodology, userId) {
+export async function evaluateUserLevel(methodology, userId, evaluationData = {}) {
   logger.info(`Evaluando nivel de usuario para metodología: ${methodology}`);
 
   const normalizedMethodology = normalizeMethodologyId(methodology);
@@ -105,7 +105,7 @@ export async function evaluateUserLevel(methodology, userId) {
       return await CalisteniaService.evaluateCalisteniaLevel(userId);
 
     case METODOLOGIAS.CROSSFIT:
-      return await CrossFitService.evaluateCrossFitLevel(userId);
+      return await CrossFitService.evaluateCrossFitLevel(userId, evaluationData);
 
     case METODOLOGIAS.GIMNASIO:
     case METODOLOGIAS.FUNCIONAL:

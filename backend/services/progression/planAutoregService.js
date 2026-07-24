@@ -21,6 +21,8 @@
  * apply_microcycle_progression.
  */
 
+import { getCrossfitFeatureFlags } from '../crossfit/featureFlags.js';
+import { registerCrossfitV2Result } from '../crossfit/results/resultService.js';
 import { isHipertrofiaMethodology } from '../hipertrofia/identity.js';
 
 // Clave normalizada de metodología a partir de methodology_type del plan
@@ -153,10 +155,36 @@ async function accumulateDecision(client, userId, planId, methodologyKey, decisi
  */
 export async function registerSessionAutoreg(client, {
   userId, planId, sessionId, methodologyType,
-  subjective = null, manual = {}
+  subjective = null, manual = {}, requestId = null, idempotencyKey = null
 }) {
   const key = normalizeMethodologyKey(methodologyType);
   if (!SUPPORTED_KEYS.has(key)) return null;
+
+  // CrossFit v2 no comparte la heurística RIR ni los offsets genéricos. El adaptador
+  // comprueba además que la sesión sea realmente crossfit-session/v2; una sesión legacy
+  // sigue exactamente por el camino histórico aunque el flag global esté encendido.
+  if (key === 'crossfit' && getCrossfitFeatureFlags().results) {
+    const v2 = await registerCrossfitV2Result(client, {
+      userId,
+      planId,
+      sessionId,
+      manual,
+      requestId,
+      idempotencyKey,
+      allowPendingFeedback: manual.rpe == null
+    });
+    if (v2) {
+      return {
+        ...v2,
+        registered_at: v2.result?.recorded_at ?? null,
+        schema_version: v2.result?.schema_version ?? 'crossfit-result/v2',
+        source: v2.pendingFeedback ? 'crossfit_v2_pending_feedback' : 'crossfit_v2_result',
+        rpe: v2.result?.rpe ?? null,
+        technique: v2.result?.technique ?? null,
+        pain_score: v2.result?.pain?.score ?? null
+      };
+    }
+  }
 
   // Idempotencia por sesión
   const sesQ = await client.query(
@@ -325,11 +353,73 @@ function roundToPlate(kg) {
  * Consume deload_pending cuando aplica la descarga.
  */
 export async function adjustPrescriptionsForStart(client, {
-  userId, planId, methodologyType, ejercicios
+  userId, planId, sessionId = null, methodologyType, planSchemaVersion = null, ejercicios
 }) {
   const key = normalizeMethodologyKey(methodologyType);
   if (!SUPPORTED_KEYS.has(key) || !Array.isArray(ejercicios) || ejercicios.length === 0) {
     return { ejercicios, meta: null };
+  }
+
+  if (key === 'crossfit' && planSchemaVersion === 'crossfit-plan/v2') {
+    const snapshotQ = await client.query(
+      `SELECT snapshot_id, state, payload
+         FROM app.crossfit_v2_autoreg_snapshots
+        WHERE user_id = $1 AND methodology_plan_id = $2`,
+      [userId, planId]
+    );
+    if (snapshotQ.rowCount === 0) return { ejercicios, meta: null };
+
+    const row = snapshotQ.rows[0];
+    const snapshot = row.payload && typeof row.payload === 'object' ? row.payload : {};
+    const state = row.state || snapshot.state || 'hold';
+    const reasonCodes = Array.isArray(snapshot.reason_codes) ? snapshot.reason_codes : [];
+    if (state === 'blocked') {
+      const error = new Error('La autorregulación CrossFit bloquea esta sesión hasta resolver el criterio de seguridad');
+      error.code = 'CROSSFIT_SESSION_BLOCKED';
+      error.reasonCode = reasonCodes[0] || 'SAFETY_CLEARANCE_REQUIRED';
+      error.status = 423;
+      throw error;
+    }
+
+    const actions = snapshot.actions && typeof snapshot.actions === 'object'
+      ? snapshot.actions
+      : {};
+    const adjustment = {
+      schema_version: 'crossfit-autoreg/v2',
+      snapshot_id: row.snapshot_id || snapshot.snapshot_id || null,
+      state,
+      reason_codes: reasonCodes,
+      actions,
+      applied: ['progress_capacity', 'progress_skill', 'regress', 'deload'].includes(state)
+    };
+    const adjusted = ejercicios.map((exercise) => {
+      if (!exercise || !adjustment.applied) return exercise;
+      const out = { ...exercise, autoreg_adjustment: actions };
+      if (state === 'deload' || state === 'regress') {
+        out.intensidad = 'scaled';
+        out.escala_recomendada = 'scaled';
+        out.notas = appendNote(out.notas, 'Autorregulación v2: reduce volumen o complejidad y preserva el estímulo.');
+      } else if (state === 'progress_capacity') {
+        const variable = actions.capacity?.variable || 'work';
+        const percent = Math.round(Number(actions.capacity?.increment || 0) * 100);
+        out.notas = appendNote(out.notas, `Autorregulación v2: progresa solo ${variable}${percent ? ` +${percent}%` : ''}.`);
+      } else if (state === 'progress_skill') {
+        out.notas = appendNote(out.notas, 'Autorregulación v2: avanza una sola progresión técnica si mantiene los prerrequisitos.');
+      }
+      return out;
+    });
+
+    if (sessionId) {
+      await client.query(
+        `UPDATE app.methodology_exercise_sessions
+            SET session_metadata = COALESCE(session_metadata, '{}'::jsonb)
+              || jsonb_build_object('crossfit_v2_start_adjustment', $2::jsonb),
+                updated_at = NOW()
+          WHERE id = $1 AND user_id = $3`,
+        [sessionId, JSON.stringify(adjustment), userId]
+      );
+    }
+    return { ejercicios: adjusted, meta: adjustment };
   }
 
   const offQ = await client.query(

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import tokenManager from '../../utils/tokenManager';
 import { getApiBaseUrl } from '../../config/api';
 import { isTrainingDay } from '../../utils/dayType';
+import { buildCrossfitNutritionGuidance } from './crossfitNutritionPresentation';
 import {
   X,
   Utensils,
@@ -12,7 +13,8 @@ import {
   Info,
   ChevronDown,
   ChevronRight,
-  MoreVertical
+  MoreVertical,
+  Droplets
 } from "lucide-react";
 
 // ARCH-001: base URL canónica desde el adapter de config (VITE_API_URL o same-origin).
@@ -306,6 +308,7 @@ export default function MealDetailView({
     planInfo?.training_type || null
   ].filter(Boolean).join(" · ");
   const carbCyclingSummary = planInfo?.carb_cycling_summary || null;
+  const crossfitGuidance = buildCrossfitNutritionGuidance(dayState);
 
   useEffect(() => {
     if (!dayMeals.length) {
@@ -503,7 +506,7 @@ export default function MealDetailView({
   if (!dayState) return null;
 
   const dayTypeLabel = isTraining ? "Entrenamiento" : "Descanso";
-  const carbCyclingLabel = isTraining ? "+10% carbos" : "-15% carbos";
+  const carbCyclingLabel = crossfitGuidance?.loadLabel || (isTraining ? "+10% carbos" : "-15% carbos");
 
   return (
     <div
@@ -622,6 +625,45 @@ export default function MealDetailView({
               </p>
             )}
           </section>
+
+          {crossfitGuidance && (
+            <section
+              className="mt-4 rounded-[20px] border px-5 py-5"
+              style={{
+                backgroundColor: "rgb(var(--surface) / 0.9)",
+                borderColor: "rgb(var(--brand) / 0.18)"
+              }}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="flex items-center gap-2 text-[18px] font-semibold text-[rgb(var(--text)/0.98)]">
+                  <Droplets className="h-5 w-5" style={{ color: "rgb(var(--brand) / 0.9)" }} />
+                  Combustible y recuperación
+                </h3>
+                <span className="rounded-full border border-yellow-300/20 bg-yellow-300/10 px-2.5 py-1 text-xs text-yellow-100">
+                  {crossfitGuidance.dayType}
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-[rgb(var(--text-2)/0.95)]">
+                  <span className="block text-xs uppercase tracking-wide text-[rgb(var(--muted)/0.95)]">Rangos diarios</span>
+                  <span className="mt-1 block">HC: {crossfitGuidance.carbohydrateRange || "según objetivo energético"}</span>
+                  <span className="block">Proteína: {crossfitGuidance.proteinRange || "según perfil"}</span>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-[rgb(var(--text-2)/0.95)]">
+                  <span className="block text-xs uppercase tracking-wide text-[rgb(var(--muted)/0.95)]">Hidratación</span>
+                  <span className="mt-1 block">{crossfitGuidance.hydration || "Individual según sed y pérdidas"}</span>
+                  {crossfitGuidance.sodium && <span className="block">{crossfitGuidance.sodium}</span>}
+                </div>
+              </div>
+
+              <div className="mt-3 space-y-1.5 text-sm text-[rgb(var(--text-2)/0.92)]">
+                <p><strong className="text-[rgb(var(--text)/0.95)]">Antes:</strong> {crossfitGuidance.pre}</p>
+                <p><strong className="text-[rgb(var(--text)/0.95)]">Durante:</strong> {crossfitGuidance.intra}</p>
+                <p><strong className="text-[rgb(var(--text)/0.95)]">Después:</strong> {crossfitGuidance.post}</p>
+              </div>
+            </section>
+          )}
 
           <div className="mt-4 flex items-center justify-between">
             <h3 className="flex items-center gap-2 text-[20px] font-semibold text-[rgb(var(--text)/0.98)]">

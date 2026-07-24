@@ -24,6 +24,10 @@ import {
   ensureMethodologySessions,
   createMissingDaySession
 } from './_helpers.js';
+import {
+  hydrateSessionPlanMetadata,
+  isCrossfitV2PlanData
+} from '../../services/trainingLoad/sessionPlanMetadataService.js';
 
 const router = express.Router();
 
@@ -125,47 +129,20 @@ router.post('/start/methodology', authenticateToken, async (req, res) => {
 
     const session = ses.rows[0];
 
-    // PR3 (Nutrición Fase 0, spec §9.3/§15.2): copiar la carga PLANIFICADA del día
-    // (methodology_plan_days.metadata.session_load) a session_metadata.planned_session_load
-    // al iniciar la sesión. En Fase 0 ningún motor emite carga todavía, así que lo normal es
-    // que no exista y esto sea un no-op. NO altera la creación bajo demanda ni la máquina de
-    // estados; es aditivo y no bloqueante.
+    // Transporta carga planificada y metadata validada desde el día canónico.
+    // CrossFit v2 falla cerrado si la materialización no conserva su contrato.
     try {
-      // COR-F0-04 §5: buscar la carga planificada por el ID canónico (plan_id + day_id),
-      // no por (day_name + LIMIT 1), que no garantiza la fila exacta en calendarios
-      // redistribuidos/regenerados. La sesión ya conserva su day_id canónico (copiado en
-      // la precreación / creación bajo demanda). Solo para sesiones históricas sin day_id
-      // se degrada al enlace previo por nombre de día.
-      let loadQ;
-      if (session?.day_id != null) {
-        loadQ = await client.query(
-          `SELECT metadata -> 'session_load' AS session_load
-             FROM app.methodology_plan_days
-            WHERE plan_id = $1 AND day_id = $2 AND is_rest = FALSE
-            LIMIT 1`,
-          [methodology_plan_id, session.day_id]
-        );
-      } else {
-        loadQ = await client.query(
-          `SELECT metadata -> 'session_load' AS session_load
-             FROM app.methodology_plan_days
-            WHERE plan_id = $1 AND week_number = $2 AND day_name = $3 AND is_rest = FALSE
-            LIMIT 1`,
-          [methodology_plan_id, week_number, normalizedDay]
-        );
-      }
-      const plannedLoad = loadQ.rows?.[0]?.session_load ?? null;
-      if (plannedLoad) {
-        await client.query(
-          `UPDATE app.methodology_exercise_sessions
-              SET session_metadata = COALESCE(session_metadata, '{}'::jsonb)
-                                     || jsonb_build_object('planned_session_load', $2::jsonb),
-                  updated_at = NOW()
-            WHERE id = $1`,
-          [session.id, JSON.stringify(plannedLoad)]
-        );
-      }
+      await hydrateSessionPlanMetadata(client, {
+        session,
+        planId: methodology_plan_id,
+        weekNumber: week_number,
+        dayName: normalizedDay,
+        methodologyType,
+        methodologyLevel: planData?.nivel ?? null,
+        required: isCrossfitV2PlanData(planData)
+      });
     } catch (loadErr) {
+      if (loadErr?.code === 'CROSSFIT_SESSION_METADATA_REQUIRED') throw loadErr;
       console.warn('[start/methodology] No se pudo copiar planned_session_load:', loadErr?.message || loadErr);
     }
 
@@ -202,7 +179,7 @@ router.post('/start/methodology', authenticateToken, async (req, res) => {
       const series = ej.series ?? ej.series_total ?? ej.seriesTotal ?? '3';
       const rawExerciseId = ej.exercise_id ?? ej.id ?? null;
       const parsedExerciseId = Number(rawExerciseId);
-      const exerciseId = Number.isFinite(parsedExerciseId) ? parsedExerciseId : null;
+      const exerciseId = Number.isInteger(parsedExerciseId) && parsedExerciseId > 0 ? parsedExerciseId : null;
       await client.query(
         `INSERT INTO app.methodology_exercise_progress (
            methodology_session_id, user_id, exercise_order, exercise_name,
@@ -270,7 +247,11 @@ router.post('/start/methodology', authenticateToken, async (req, res) => {
   } catch (e) {
     await client.query('ROLLBACK');
     console.error('Error starting methodology session:', e);
-    res.status(500).json({ success: false, error: 'Error interno' });
+    res.status(e?.status || 500).json({
+      success: false,
+      error: e?.status ? e.message : 'Error interno',
+      reason_code: e?.reasonCode || e?.code || null
+    });
   } finally {
     client.release();
   }
