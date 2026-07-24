@@ -502,3 +502,7 @@
 
 - Reauditoría del renombrado canónico de Hipertrofia: refuerzo de detección por helper único en rutas de nutrición, progresión y home-training, y consolidación de la limpieza única en el orquestador D1-D5 para evitar dobles borrados en el flujo `/ai/methodology`.
 - E2E real de Hipertrofia ajustada a la UX de jueves (modal de distribución antes del modal MindFeed), reutilizando usuarios API/UI para reducir presión sobre auth y validar login, generación D1-D5, persistencia, Hoy, RIR, cierre y navegación a Historial en un stack local aislado.
+
+## 2026-07-24
+
+- Seguridad: saneada `backend/.env.example` para retirar cualquier URI o credencial histórica y conservar exclusivamente campos vacíos y defaults locales no sensibles; no cambia configuración efectiva, runtime ni infraestructura actual.
