@@ -2,6 +2,28 @@
 
 Fecha de revisión: 2026-03-06
 
+## Implementación CrossFit profesional v2
+
+La línea activa está en `docs/crossfit/` y convierte
+`crossfit-product-spec/2.0.0` en implementación versionada para principiante,
+intermedio y avanzado. Referencias de entrada:
+
+- `docs/crossfit/EXPEDIENTE_MAESTRO_CROSSFIT.md`
+- `docs/crossfit/CHECKPOINTS_IMPLEMENTACION_CROSSFIT_V2.md`
+- `docs/crossfit/MATRIZ_TRAZABILIDAD_IMPLEMENTACION.md`
+- `docs/crossfit/00-auditoria-estado-real.md`
+- `docs/crossfit/11-programacion-principiante.md`
+- `docs/crossfit/12-programacion-intermedio.md`
+- `docs/crossfit/13-programacion-avanzado.md`
+- `docs/crossfit/15-contrato-generador-e-invariantes.md`
+- `docs/crossfit/17-matriz-flujos-producto.md`
+- `docs/crossfit/19-cierre-tecnico-y-runbook.md`
+- `docs/crossfit/data/README.md`
+
+La Fase 0 compartida está desbloqueada para desarrollo. No implica rollout:
+los flags de carga y nutrición permanecen apagados y toda escritura de datos o
+activación en producción requiere autorización separada.
+
 ## Qué leer primero
 
 1. `docs/_active.md`

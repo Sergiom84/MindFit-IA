@@ -23,6 +23,7 @@ const DB_TESTS = new Set([
   'nutritionUndoV2.test.js',
   'nutritionReviewMigration.test.js',
   'routineGenerationEngine.test.js',
+  'crossfitDatabaseIntegration.test.js',
 ]);
 
 const mode = process.argv[2] || 'unit';

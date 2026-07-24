@@ -34,6 +34,11 @@ import {
   adjustPrescriptionsForStart,
   updateSubjective
 } from '../../services/progression/planAutoregService.js';
+import {
+  hydrateSessionPlanMetadata,
+  isCrossfitV2PlanData
+} from '../../services/trainingLoad/sessionPlanMetadataService.js';
+import { isCrossfitV2SessionRecord } from '../../services/crossfit/versions.js';
 
 const router = express.Router();
 
@@ -123,27 +128,7 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
       }
     }
 
-    // Verificar si ya existe una sesión activa para este día
-    const existingActiveSession = await client.query(
-      `SELECT id, session_status FROM app.methodology_exercise_sessions
-       WHERE user_id = $1 AND methodology_plan_id = $2
-       AND week_number = $3 AND day_name = $4
-       AND session_status = 'in_progress'
-       LIMIT 1`,
-      [userId, methodology_plan_id, week_number || 1, normalizeDayAbbrev(day_name || 'lunes')]
-    );
-
-    if (existingActiveSession.rowCount > 0) {
-      console.log(`⚠️ Sesión ya activa para el usuario ${userId}, plan ${methodology_plan_id}, semana ${week_number}, día ${day_name}`);
-      await client.query('ROLLBACK');
-      return res.status(400).json({
-        success: false,
-        error: 'Ya existe una sesión activa para este día',
-        session_id: existingActiveSession.rows[0].id
-      });
-    }
-
-    // Verificar plan y obtener plan_data
+    // Verificar plan y obtener plan_data antes del lock/idempotencia de CrossFit.
     const planQ = await client.query(
       'SELECT plan_data, methodology_type FROM app.methodology_plans WHERE id = $1 AND user_id = $2',
       [methodology_plan_id, userId]
@@ -153,11 +138,50 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Plan no encontrado' });
     }
     const planData = planQ.rows[0].plan_data;
+    const crossfitV2 = isCrossfitV2PlanData(planData);
+    const normalizedDay = normalizeDayAbbrev(day_name || 'lunes');
+
+    if (crossfitV2) {
+      await client.query(
+        'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+        [`crossfit-session-start:${userId}:${methodology_plan_id}:${day_id ?? `${week_number}:${normalizedDay}`}`]
+      );
+    }
+
+    // Tras el lock, un reintento CrossFit devuelve la misma sesión en vez de crear otra.
+    const existingActiveSession = await client.query(
+      `SELECT id, session_status FROM app.methodology_exercise_sessions
+       WHERE user_id = $1 AND methodology_plan_id = $2
+         AND (
+           ($3::int IS NOT NULL AND day_id = $3)
+           OR ($3::int IS NULL AND week_number = $4 AND day_name = $5)
+         )
+         AND session_status = 'in_progress'
+       ORDER BY id DESC
+       LIMIT 1`,
+      [userId, methodology_plan_id, day_id, week_number || 1, normalizedDay]
+    );
+
+    if (existingActiveSession.rowCount > 0) {
+      console.log(`⚠️ Sesión ya activa para el usuario ${userId}, plan ${methodology_plan_id}, semana ${week_number}, día ${day_name}`);
+      await client.query('ROLLBACK');
+      if (crossfitV2) {
+        return res.json({
+          success: true,
+          session_id: existingActiveSession.rows[0].id,
+          session_status: 'in_progress',
+          idempotent_replay: true
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        error: 'Ya existe una sesión activa para este día',
+        session_id: existingActiveSession.rows[0].id
+      });
+    }
 
     // Asegurar sesiones creadas
     await ensureMethodologySessions(client, userId, methodology_plan_id, planData);
-
-    const normalizedDay = normalizeDayAbbrev(day_name);
 
     // Buscar la sesión específica
     let ses = await client.query(
@@ -196,6 +220,28 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
     }
 
     const session = ses.rows[0];
+    if (crossfitV2 && ['completed', 'partial', 'cancelled', 'skipped', 'missed'].includes(session.session_status)) {
+      const error = new Error('Una sesión CrossFit histórica no puede reabrirse');
+      error.code = 'HISTORY_IMMUTABLE';
+      error.reasonCode = 'HISTORY_IMMUTABLE';
+      error.status = 409;
+      throw error;
+    }
+
+    try {
+      await hydrateSessionPlanMetadata(client, {
+        session,
+        planId: methodology_plan_id,
+        weekNumber: week_number,
+        dayName: normalizedDay,
+        methodologyType: planQ.rows[0].methodology_type,
+        methodologyLevel: planData?.nivel ?? null,
+        required: crossfitV2
+      });
+    } catch (metadataError) {
+      if (metadataError?.code === 'CROSSFIT_SESSION_METADATA_REQUIRED') throw metadataError;
+      console.warn('No se pudo hidratar metadata del día del plan:', metadataError?.message);
+    }
 
     // Precrear progreso por ejercicio (si no existe)
     // 1) Preferir ejercicios de la programación (workout_schedule) para este día
@@ -248,6 +294,13 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
 
     // 🛟 Fallback: si no hay ejercicios definidos para este día, tomar aleatorios por nivel desde BD
     if (!Array.isArray(ejercicios) || ejercicios.length === 0) {
+      if (crossfitV2) {
+        const error = new Error('La sesión CrossFit v2 no contiene movimientos materializados');
+        error.code = 'CROSSFIT_SESSION_MOVEMENTS_REQUIRED';
+        error.reasonCode = 'WOD_STIMULUS_MISS';
+        error.status = 409;
+        throw error;
+      }
       try {
         const levelNorm = deriveLevelFromPlan(planData);
         const rnd = await getRandomByLevel(client, { disciplina: 'calistenia', level: levelNorm, limit: 6 });
@@ -277,7 +330,9 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
       const adj = await adjustPrescriptionsForStart(client, {
         userId,
         planId: methodology_plan_id,
+        sessionId: session.id,
         methodologyType: planQ.rows[0].methodology_type || planData?.metodologia,
+        planSchemaVersion: planData?.schema_version,
         ejercicios
       });
       ejercicios = adj.ejercicios;
@@ -286,6 +341,7 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
         console.log('📈 [start] Progresión aplicada a prescripciones', progressionMeta);
       }
     } catch (pe) {
+      if (pe?.code === 'CROSSFIT_SESSION_BLOCKED') throw pe;
       console.warn('⚠️ [start] No se pudo aplicar progresión (se usan prescripciones base):', pe?.message);
     }
 
@@ -294,7 +350,11 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
       const order = i; // 0-based
 
       // 🎯 Extraer exercise_id si está disponible
-      const exerciseId = ej.exercise_id || ej.id || null;
+      const rawExerciseId = ej.exercise_id ?? ej.legacy_exercise_id ?? null;
+      const parsedExerciseId = Number(rawExerciseId);
+      const exerciseId = Number.isInteger(parsedExerciseId) && parsedExerciseId > 0
+        ? parsedExerciseId
+        : null;
       const repsTarget =
         ej.repeticiones ||
         ej.reps_objetivo ||
@@ -340,7 +400,11 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
   } catch (e) {
     await client.query('ROLLBACK');
     console.error('Error starting routine session:', e);
-    res.status(500).json({ success: false, error: 'Error interno' });
+    res.status(e?.status || 500).json({
+      success: false,
+      error: e?.status ? e.message : 'Error interno',
+      reason_code: e?.reasonCode || e?.code || null
+    });
   } finally {
     client.release();
   }
@@ -765,7 +829,8 @@ router.post('/sessions/:sessionId/finish', authenticateToken, async (req, res) =
 // registrada al completarse, aquí solo se matiza lo subjetivo (feeling) y se
 // devuelve la decisión ya tomada. Si aún no está registrada (p.ej. sin series
 // logueadas), se registra usando los valores manuales del modal como fallback.
-// Body: { subjective?, feeling?, avgRir?, rpe?, targetMet?, goodTechnique?, reachedFailure?, completed?, scale? }
+// Body legacy: { subjective?, feeling?, avgRir?, rpe?, targetMet?, goodTechnique?, reachedFailure?, completed?, scale? }
+// Body CrossFit v2: añade technique, pain, readiness, score, scales, status y completion.
 router.post('/sessions/:sessionId/effort', authenticateToken, async (req, res) => {
   const client = await pool.connect();
   try {
@@ -775,7 +840,8 @@ router.post('/sessions/:sessionId/effort', authenticateToken, async (req, res) =
     const { sessionId } = req.params;
     const {
       subjective = null, feeling = null,
-      avgRir, rpe, targetMet, goodTechnique, reachedFailure, completed, scale
+      avgRir, rpe, targetMet, goodTechnique, reachedFailure, completed, scale,
+      technique, pain, readiness, score, scales, status, completion, termination_reason
     } = req.body || {};
 
     const ses = await client.query(
@@ -817,7 +883,12 @@ router.post('/sessions/:sessionId/effort', authenticateToken, async (req, res) =
       sessionId,
       methodologyType: row.methodology_type,
       subjective: subjScore,
-      manual: { avgRir, rpe, targetMet, goodTechnique, reachedFailure, completed, scale }
+      requestId: req.id ?? req.headers['x-request-id'] ?? null,
+      idempotencyKey: req.headers['idempotency-key'] ?? null,
+      manual: {
+        avgRir, rpe, targetMet, goodTechnique, reachedFailure, completed, scale,
+        technique, pain, readiness, score, scales, status, completion, termination_reason
+      }
     });
 
     // Si ya estaba registrada objetivamente, guardar al menos el matiz subjetivo.
@@ -844,7 +915,12 @@ router.post('/sessions/:sessionId/effort', authenticateToken, async (req, res) =
   } catch (e) {
     await client.query('ROLLBACK');
     console.error('Error registrando esfuerzo de sesión:', e);
-    res.status(500).json({ success: false, error: 'Error interno' });
+    const status = Number.isInteger(e?.status) && e.status >= 400 && e.status < 500 ? e.status : 500;
+    res.status(status).json({
+      success: false,
+      error: status === 500 ? 'Error interno' : e.message,
+      code: e?.code ?? 'SESSION_EFFORT_FAILED'
+    });
   } finally {
     client.release();
   }
@@ -1267,7 +1343,9 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
 
     // 🎯 CORRECCIÓN: isFinished debe reflejar la verdad de la BD (session_status)
     // Esta es la única fuente de verdad para determinar si una sesión está realmente completada
-    const isFinished = session.session_status === 'completed';
+    const isImmutableCrossfitV2Terminal = isCrossfitV2SessionRecord(session)
+      && ['partial', 'abandoned', 'cancelled'].includes(session.session_status);
+    const isFinished = session.session_status === 'completed' || isImmutableCrossfitV2Terminal;
     const isCompleteSuccess = totalExercises > 0 && completedExercises === totalExercises;
 
     // Nuevo flag: Todos fueron procesados (no hay pending/in_progress) pero NO necesariamente completados
@@ -1278,10 +1356,10 @@ router.get('/sessions/today-status', authenticateToken, async (req, res) => {
     // - Comenzar si todo sigue pendiente y session_started_at es null
     const hasAnyProgress = (inProgressExercises > 0) || ((completedExercises + skippedExercises + cancelledExercises) > 0);
     const sessionWasStarted = session.session_started_at != null;
-    const canResume = session.session_status !== 'completed' && (hasAnyProgress || sessionWasStarted);
+    const canResume = !isFinished && (hasAnyProgress || sessionWasStarted);
 
     // canRetry: puede reintentar si todos procesados pero no todos completados exitosamente (ej: skipped/cancelled)
-    const canRetry = allProcessed && !isCompleteSuccess;
+    const canRetry = allProcessed && !isCompleteSuccess && !isImmutableCrossfitV2Terminal;
 
     console.log(`🎯 today-status NUEVA LÓGICA INTELIGENTE:`, {
       session_status: session.session_status,

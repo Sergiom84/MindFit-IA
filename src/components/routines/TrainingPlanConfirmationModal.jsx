@@ -81,6 +81,7 @@ export default function TrainingPlanConfirmationModal({
 
   const [isGeneratingAnother, setIsGeneratingAnother] = useState(false);
   const shouldSaveOnly = startConfig?.startDate === 'next_monday';
+  const usesImmutableRevisions = plan?.crossfit_v2?.schema_version === 'crossfit-plan/v2';
 
   // 🗑️ Función para eliminar draft cuando el usuario cancela
   const deleteDraft = async (draftId) => {
@@ -194,7 +195,7 @@ export default function TrainingPlanConfirmationModal({
       track('FEEDBACK_SUBMIT', { source: 'generate_another', reasons: feedbackData?.reasons?.length || 0 }, { component: 'TrainingPlanConfirmationModal' });
 
       // 🗑️ Eliminar draft actual antes de generar nuevo
-      if (planId) {
+      if (planId && !usesImmutableRevisions) {
         console.log('🗑️ Eliminando draft anterior antes de generar nuevo...');
         await deleteDraft(planId);
       }

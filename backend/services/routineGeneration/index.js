@@ -50,3 +50,5 @@ export {
   getMethodologyLevels,
   getSupportedMethodologies
 } from './methodologies/MethodologyOrchestrator.js';
+
+export { methodologyUsesImmutableDraftRevisions } from './methodologies/methodologyRegistry.js';

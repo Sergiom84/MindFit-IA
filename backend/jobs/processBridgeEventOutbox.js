@@ -25,7 +25,16 @@
  * apagado, el evento encolado es puramente aditivo y no cambia nada observable.
  */
 import { validateTrainingLoad } from '../services/trainingLoad/trainingLoadContract.js';
-import { NUTRITION_PERIODIZATION_VERSION } from '../services/nutritionPeriodizationService.js';
+import {
+  getPeriodizationMode,
+  normalizePeriodizationMode,
+  NUTRITION_PERIODIZATION_VERSION
+} from '../services/nutritionPeriodizationService.js';
+import {
+  methodologyEmitsTrainingLoad,
+  resolveMethodologyNutritionPeriodizationMode
+} from '../services/routineGeneration/methodologies/methodologyRegistry.js';
+import { CROSSFIT_VERSIONS } from '../services/crossfit/versions.js';
 import {
   SESSION_COMPLETED_CONTRACT_VERSION,
   claimBatch,
@@ -92,6 +101,14 @@ export async function handleSessionCompletedEvent(client, event, deps = {}) {
     return { status: 'skipped', reason: 'INVALID_EVENT_CONTRACT' };
   }
 
+  const isCrossfit = payload.methodology_id === 'crossfit';
+  if (isCrossfit && (!payload.methodology_plan_id || payload.day_id === null || payload.day_id === undefined)) {
+    return { status: 'skipped', reason: 'CROSSFIT_PLAN_DAY_IDENTITY_MISSING' };
+  }
+  if (isCrossfit && !methodologyEmitsTrainingLoad('crossfit', deps.env ?? process.env)) {
+    return { status: 'skipped', reason: 'CROSSFIT_EMITS_TRAINING_LOAD_DISABLED' };
+  }
+
   // La carga real se valida en modo lenient: nunca rompe; un contrato incompleto se degrada.
   const loadCheck = payload.actual_session_load
     ? validateTrainingLoad(payload.actual_session_load, { mode: 'lenient' })
@@ -105,15 +122,28 @@ export async function handleSessionCompletedEvent(client, event, deps = {}) {
 
   // §13.4.5/§13.5: una decisión idempotente por evento; applied:false (evaluar, no forzar).
   const load = loadCheck?.load || payload.actual_session_load || payload.planned_session_load || {};
+  const requestedNutritionMode = deps.env
+    ? normalizePeriodizationMode(deps.env.NUTRITION_LOAD_PERIODIZATION_MODE)
+    : getPeriodizationMode();
+  const nutritionMode = isCrossfit
+    ? resolveMethodologyNutritionPeriodizationMode(
+      'crossfit',
+      requestedNutritionMode,
+      deps.env ?? process.env
+    )
+    : requestedNutritionMode;
   const decisionLogId = await logDecision(client, {
     userId: event.user_id,
     eventKey: event.event_key,
     trainingInputs: {
       session_id: payload.session_id,
+      methodology_plan_id: payload.methodology_plan_id,
+      day_id: payload.day_id,
       methodology_id: payload.methodology_id,
       methodology_level: payload.methodology_level,
       final_status: payload.final_status,
-      completion_rate: payload.completion_rate
+      completion_rate: payload.completion_rate,
+      actual_session_load: load
     },
     decisionDetails: {
       // §18.2: shape completo del log de decisión (user_id va en la columna de la tabla).
@@ -121,10 +151,16 @@ export async function handleSessionCompletedEvent(client, event, deps = {}) {
       methodology_id: payload.methodology_id ?? null,
       load_contract_version: load?.contract_version ?? null,
       periodization_version: NUTRITION_PERIODIZATION_VERSION,
+      crossfit_nutrition_version: isCrossfit ? CROSSFIT_VERSIONS.nutrition : null,
+      crossfit_nutrition_mode: isCrossfit ? nutritionMode : null,
+      methodology_plan_id: payload.methodology_plan_id ?? null,
+      day_id: payload.day_id ?? null,
       day_type: load?.day_type ?? null,
       load_confidence: load?.provenance?.confidence ?? null,
       degraded: !!loadCheck?.degraded,
-      reason_codes: ['SESSION_COMPLETED_INGESTED'],
+      reason_codes: isCrossfit && ['D0', 'D1', 'D2'].includes(load?.day_type)
+        ? [`NUTR_CF_${load.day_type}`]
+        : ['SESSION_COMPLETED_INGESTED'],
       applied: false
     }
   });

@@ -24,7 +24,20 @@ import {
   resolvePeriodizationModeForUser,
   resolveDayNutritionTargets
 } from '../services/nutritionPeriodizationService.js';
-import { methodologyEmitsTrainingLoad } from '../services/routineGeneration/methodologies/methodologyRegistry.js';
+import {
+  methodologyEmitsTrainingLoad,
+  normalizeMethodologyId,
+  resolveMethodologyNutritionPeriodizationMode
+} from '../services/routineGeneration/methodologies/methodologyRegistry.js';
+import {
+  evaluateCrossfitNutritionSafety,
+  resolveCrossfitNutritionDay
+} from '../services/crossfit/nutrition/nutritionAdapter.js';
+import { loadCrossfitNutritionPlanDays } from '../services/crossfit/nutrition/planDayRepository.js';
+import {
+  loadCrossfitNutritionSafetyContext
+} from '../services/crossfit/nutrition/safetyContextRepository.js';
+import { normalizeCrossfitLevel, CROSSFIT_VERSIONS } from '../services/crossfit/versions.js';
 import { isTrainingDay } from '../services/trainingLoad/dayType.js';
 import {
   SCHEDULE_WITH_LOAD_FALLBACK_QUERY,
@@ -557,12 +570,31 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
     // autoritativo (tipo_dia, macros y comidas del día se reconstruyen).
     // §16 PR6: modo POR USUARIO. El global es `legacy` por defecto; los usuarios de la lista
     // QA (NUTRITION_PERIODIZATION_QA_USERS) reciben el modo escalado un peldaño (canary).
-    const periodizationMode = resolvePeriodizationModeForUser(userId);
+    const requestedPeriodizationMode = resolvePeriodizationModeForUser(userId);
+    const activeMethodology = activePlanResult.rowCount > 0
+      ? normalizeMethodologyId(activePlanResult.rows[0].methodology_type)
+      : null;
+    const periodizationMode = activePlanResult.rowCount > 0
+      ? resolveMethodologyNutritionPeriodizationMode(activeMethodology, requestedPeriodizationMode)
+      : requestedPeriodizationMode;
     // §16 PR6 (punto 3): gate por metodología. Si la metodología del plan activo NO emite carga
     // validada, el contrato de los metadatos NO se honra y se cae a la política conservadora.
     const methodologyEmitsLoad = activePlanResult.rowCount > 0
-      ? methodologyEmitsTrainingLoad(activePlanResult.rows[0].methodology_type)
+      ? methodologyEmitsTrainingLoad(activeMethodology)
       : false;
+    const crossfitSafetyContext = activeMethodology === 'crossfit'
+      ? await loadCrossfitNutritionSafetyContext(pool, userId)
+      : {};
+    const crossfitNutritionSafety = activeMethodology === 'crossfit'
+      ? evaluateCrossfitNutritionSafety(crossfitSafetyContext)
+      : null;
+    if (planData.meta === 'cut' && crossfitNutritionSafety?.deficit_allowed === false) {
+      return res.status(422).json({
+        error: 'El déficit automático requiere valoración profesional con las señales de seguridad actuales',
+        code: 'CROSSFIT_NUTRITION_DEFICIT_BLOCKED',
+        reason_codes: crossfitNutritionSafety.reason_codes
+      });
+    }
     let periodizationByDayIndex = null;
 
     if (periodizationMode !== 'legacy') {
@@ -571,32 +603,44 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
       // Cargar la carga planificada del calendario enriquecido (§12.1), solo si hay plan activo.
       const loadByDate = new Map();
       if (activePlanResult.rowCount > 0) {
-        const methodologyPlanId = activePlanResult.rows[0].methodology_plan_id;
+        const activePlan = activePlanResult.rows[0];
+        const methodologyPlanId = activePlan.methodology_plan_id;
         const periodStart = new Date();
         periodStart.setHours(0, 0, 0, 0);
         const periodEnd = new Date(periodStart);
         periodEnd.setDate(periodStart.getDate() + (duracion_dias - 1));
         try {
-          // COR-F0-04 §4: query con fallback histórico REAL por (plan_id + fecha) para las
-          // filas sin day_id; el fallback solo resuelve cuando la correspondencia es unívoca.
-          const enrichedResult = await pool.query(SCHEDULE_WITH_LOAD_FALLBACK_QUERY, [
-            methodologyPlanId,
-            userId,
-            formatLocalDate(periodStart),
-            formatLocalDate(periodEnd)
-          ]);
-          for (const row of enrichedResult.rows) {
-            const key = formatLocalDate(row.scheduled_date);
-            if (!key) continue;
-            loadByDate.set(key, { session_load: row.session_load || null, day_id: row.day_id });
-          }
-          // Observabilidad §12.1: nº de días que recuperaron carga por el fallback por fecha
-          // (day_id NULL + correspondencia unívoca). Retirar el fallback cuando llegue a 0.
-          const fallbackByDateCount = countDateFallbacks(enrichedResult.rows);
-          if (fallbackByDateCount > 0) {
-            console.warn(
-              `⚠️ periodización: ${fallbackByDateCount} día(s) recuperados por fallback histórico por fecha (§12.1)`
-            );
+          const isCrossfitV2 = activeMethodology === 'crossfit'
+            && activePlan.plan_data?.crossfit_v2?.schema_version === CROSSFIT_VERSIONS.plan;
+          if (isCrossfitV2) {
+            const level = normalizeCrossfitLevel(activePlan.plan_data?.crossfit_v2?.level);
+            const crossfitDays = await loadCrossfitNutritionPlanDays(pool, {
+              planId: methodologyPlanId,
+              userId,
+              startDate: formatLocalDate(periodStart),
+              endDate: formatLocalDate(periodEnd),
+              level
+            });
+            for (const [date, entry] of crossfitDays) loadByDate.set(date, entry);
+          } else {
+            // COR-F0-04 §4: fallback histórico real por (plan_id + fecha), solo unívoco.
+            const enrichedResult = await pool.query(SCHEDULE_WITH_LOAD_FALLBACK_QUERY, [
+              methodologyPlanId,
+              userId,
+              formatLocalDate(periodStart),
+              formatLocalDate(periodEnd)
+            ]);
+            for (const row of enrichedResult.rows) {
+              const key = formatLocalDate(row.scheduled_date);
+              if (!key) continue;
+              loadByDate.set(key, { session_load: row.session_load || null, day_id: row.day_id });
+            }
+            const fallbackByDateCount = countDateFallbacks(enrichedResult.rows);
+            if (fallbackByDateCount > 0) {
+              console.warn(
+                `⚠️ periodización: ${fallbackByDateCount} día(s) recuperados por fallback histórico por fecha (§12.1)`
+              );
+            }
           }
         } catch (enrichErr) {
           console.warn('⚠️ periodización: no se pudo leer el calendario enriquecido:', enrichErr.message);
@@ -611,8 +655,36 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
         const dateKey = formatLocalDate(dayDate);
         const isTraining = isTrainingDay(day.tipo_dia);
         const loadEntry = loadByDate.get(dateKey);
-        const sessionLoad = loadEntry?.session_load || { is_training: isTraining };
-        const source = loadEntry?.session_load ? 'planned_session_load' : 'boolean_fallback';
+        const sessionLoad = loadEntry?.training_load || loadEntry?.session_load || { is_training: isTraining };
+        const source = loadEntry?.source || (loadEntry?.session_load ? 'planned_session_load' : 'boolean_fallback');
+
+        if (activeMethodology === 'crossfit' && loadEntry?.plan_id && loadEntry?.day_id) {
+          const activePlan = activePlanResult.rows[0];
+          const level = normalizeCrossfitLevel(activePlan.plan_data?.crossfit_v2?.level);
+          const crossfitNutrition = resolveCrossfitNutritionDay({
+            userId,
+            planId: loadEntry.plan_id,
+            dayId: loadEntry.day_id,
+            requestId: `cf-nutrition-${userId}-${loadEntry.plan_id}-${loadEntry.day_id}`,
+            level,
+            goal: planData.meta,
+            baseMacros: planData.macros_objetivo,
+            kcalTarget: planData.kcal_objetivo,
+            weightKg: profile.peso_kg,
+            metabolicProfile: profile.metabolic_type,
+            trainingLoad: sessionLoad,
+            mode: periodizationMode,
+            safetyContext: crossfitSafetyContext,
+            sessionTime: loadEntry.metadata?.session_time ?? null
+          });
+          periodizationByDayIndex.set(day.day_index, {
+            resolved: crossfitNutrition.resolved,
+            source,
+            crossfitNutrition: crossfitNutrition.contract,
+            authoritativeAllowed: crossfitNutrition.authoritative_allowed
+          });
+          continue;
+        }
 
         const resolved = resolveDayNutritionTargets({
           baseMacros: planData.macros_objetivo,
@@ -689,8 +761,9 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
           // entreno_normal/entreno_alto como resultado autoritativo. Si la metodología no está
           // activada, aunque el modo global sea `active` se calcula/persiste el shadow pero la
           // salida VISIBLE (tipo_dia/macros/comidas) sigue siendo legacy.
-          const servesAuthoritative = periodizationMode === 'active' && methodologyEmitsLoad === true;
-          periodizationContextJson = JSON.stringify({
+          const servesAuthoritative = periodizationMode === 'active' && methodologyEmitsLoad === true
+            && periodization.authoritativeAllowed !== false;
+          const periodizationContext = {
             ruleset: resolved.policy_version,
             source,
             day_type: resolved.day_type,
@@ -710,10 +783,15 @@ router.post('/generate-plan', authenticateToken, async (req, res) => {
             clamps: resolved.audit.clamps,
             reason_codes: resolved.audit.reason_codes,
             mode: periodizationMode,
+            requested_mode: requestedPeriodizationMode,
             // Si el reparto nuevo se sirvió como autoritativo al usuario o quedó en shadow.
             authoritative: servesAuthoritative,
             methodology_emits_load: methodologyEmitsLoad
-          });
+          };
+          if (periodization.crossfitNutrition) {
+            periodizationContext.crossfit_nutrition = periodization.crossfitNutrition;
+          }
+          periodizationContextJson = JSON.stringify(periodizationContext);
 
           if (servesAuthoritative) {
             // §12.3: tipo_dia con nuevos valores (compatibilidad de lectura para 'entreno').
@@ -818,6 +896,7 @@ router.get('/active-plan', authenticateToken, async (req, res) => {
               'tipo_dia', d.tipo_dia,
               'kcal', d.kcal,
               'macros', d.macros,
+              'periodization_context', d.periodization_context,
               'day_id', d.id,
               'meals', (
                 SELECT json_agg(

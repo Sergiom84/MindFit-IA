@@ -8,6 +8,12 @@ import {
   SCHEDULE_WITH_LOAD_FALLBACK_QUERY,
   countDateFallbacks
 } from "../services/trainingLoad/sessionLoadBuilder.js";
+import {
+  createMissingDaySession as createCanonicalMissingDaySession
+} from "../routes/trainingSession/_helpers.js";
+import {
+  createMissingDaySession as createRoutineMissingDaySession
+} from "../routes/routines/_helpers.js";
 
 // COR-F0-04: enlace canónico por day_id + fallback histórico. Ningún test toca la BD:
 // solo funciones puras y SQL/fuente como texto (patrón unit del repo).
@@ -20,7 +26,10 @@ const read = (rel) => fs.readFileSync(path.join(__dirname, rel), "utf8");
 const ensureSrc = read("../utils/ensureScheduleV3.js");
 const plansSrc = read("../routes/routines/plans.js");
 const helpersSrc = read("../routes/trainingSession/_helpers.js");
+const routinesHelpersSrc = read("../routes/routines/_helpers.js");
+const scheduleSrc = read("../routes/routines/schedule.js");
 const startSrc = read("../routes/trainingSession/start.js");
+const metadataServiceSrc = read("../services/trainingLoad/sessionPlanMetadataService.js");
 const migrationSrc = read("../migrations/20260721_backfill_mes_day_id.sql");
 
 // ── §2/§3: day_id canónico en ensureScheduleV3 (RETURNING + recuperación en conflicto) ──
@@ -77,16 +86,66 @@ test("_helpers.js: createMissingDaySession traslada day_id y fecha exacta del ca
   assert.match(helpersSrc, /canonicalDate/);
 });
 
-// ── §5: iniciar sesión busca la carga por plan_id + day_id (no day_name + LIMIT 1) ──
-test("start.js: busca planned_session_load por plan_id + day_id cuando existe", () => {
-  assert.match(startSrc, /if \(session\?\.day_id != null\)/);
+test("routines reutiliza el helper canónico y el calendario transporta day_id", () => {
   assert.match(
-    startSrc,
+    routinesHelpersSrc,
+    /from '\.\.\/trainingSession\/_helpers\.js'/
+  );
+  assert.doesNotMatch(
+    routinesHelpersSrc,
+    /INSERT INTO app\.methodology_exercise_sessions/
+  );
+  assert.match(scheduleSrc, /SELECT\s+day_id,\s+week_number,/);
+  assert.match(scheduleSrc, /day_id: row\.day_id/);
+});
+
+test("la creación bajo demanda persiste el day_id y la fecha canónicos", async () => {
+  assert.equal(createRoutineMissingDaySession, createCanonicalMissingDaySession);
+  const calls = [];
+  const client = {
+    async query(sql, params) {
+      calls.push({ sql, params });
+      if (calls.length === 1) return { rowCount: 0, rows: [] };
+      if (calls.length === 2) {
+        return {
+          rowCount: 1,
+          rows: [{ day_id: 9, scheduled_date: "2026-07-30" }]
+        };
+      }
+      return { rowCount: 1, rows: [{ id: 77 }] };
+    }
+  };
+  const sessionId = await createRoutineMissingDaySession(
+    client,
+    3,
+    5,
+    {
+      metodologia: "CrossFit",
+      semanas: [{ semana: 2, sesiones: [{ dia: "Jue", ejercicios: [{}] }] }]
+    },
+    "Jue",
+    2
+  );
+
+  assert.equal(sessionId, 77);
+  assert.match(calls[1].sql, /SELECT day_id, scheduled_date/);
+  assert.deepEqual(calls[1].params, [5, 3, 2, "Jue"]);
+  assert.match(calls[2].sql, /methodology_plan_id, day_id,/);
+  assert.equal(calls[2].params[2], 9);
+  assert.equal(calls[2].params[8], "2026-07-30");
+});
+
+// ── §5: iniciar sesión busca la carga por plan_id + day_id (no day_name + LIMIT 1) ──
+test("start.js: delega y el adaptador busca carga por plan_id + day_id cuando existe", () => {
+  assert.match(startSrc, /hydrateSessionPlanMetadata\(client/);
+  assert.match(metadataServiceSrc, /session\.day_id != null/);
+  assert.match(
+    metadataServiceSrc,
     /WHERE plan_id = \$1 AND day_id = \$2 AND is_rest = FALSE/
   );
   // Mantiene el enlace previo por nombre de día SOLO como degradación para históricos.
   assert.match(
-    startSrc,
+    metadataServiceSrc,
     /WHERE plan_id = \$1 AND week_number = \$2 AND day_name = \$3 AND is_rest = FALSE/
   );
 });

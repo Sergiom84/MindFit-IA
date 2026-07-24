@@ -128,7 +128,19 @@ export function useMethodologyPlanLifecycle({
 
   const handleGenerateAnother = useCallback(async (feedbackData) => {
     try {
-      const result = await generatePlan({
+      const canonical = plan.currentPlan?.crossfit_v2;
+      const isCrossfitV2 = canonical?.schema_version === 'crossfit-plan/v2';
+      const token = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+      const result = await generatePlan(isCrossfitV2 ? {
+        mode: 'regenerate',
+        methodology: 'crossfit',
+        previous_plan_id: plan.methodologyPlanId,
+        expected_revision: canonical.generation.revision,
+        regeneration_reasons: feedbackData?.reasons ?? [],
+        crossfit_assessment_id: plan.currentPlan?.crossfit_assessment_id ?? null,
+        request_id: `crossfit-regeneration-request-${token}`,
+        idempotency_key: `crossfit-regeneration-idempotency-${token}`
+      } : {
         mode: 'regenerate',
         feedback: feedbackData,
         previousPlan: plan.currentPlan
@@ -144,7 +156,7 @@ export function useMethodologyPlanLifecycle({
       console.error('❌ Error al generar nuevo plan:', error);
       ui.setError(error.message || 'Error al generar nuevo plan');
     }
-  }, [generatePlan, plan.currentPlan, ui, validatePlanData]);
+  }, [generatePlan, plan.currentPlan, plan.methodologyPlanId, ui, validatePlanData]);
 
   const handleWeekendContinueRegular = useCallback(async () => {
     updateLocalState({ showWeekendWarning: false, weekendGenerationData: null });

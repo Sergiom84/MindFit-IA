@@ -14,6 +14,11 @@ import {
   activateMethodologyPlan
 } from '../../services/methodologyPlansService.js';
 import {
+  confirmCrossfitPlanV2,
+  crossfitCanonicalStartDate
+} from '../../services/crossfit/integration/confirmPlanService.js';
+import { isCrossfitV2PlanData } from '../../services/trainingLoad/sessionPlanMetadataService.js';
+import {
   ensureMethodologySessions,
   extractExercisesFromPlanData
 } from './_helpers.js';
@@ -211,7 +216,7 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
 
     // Verificar que el plan pertenece al usuario y está en estado draft
     const planCheck = await client.query(
-      `SELECT id, status, methodology_type, plan_data
+      `SELECT id, status, methodology_type, plan_data, plan_start_date
        FROM app.methodology_plans
        WHERE id = $1 AND user_id = $2`,
       [methodology_plan_id, userId]
@@ -226,6 +231,49 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
 
     const plan = planCheck.rows[0];
     console.log("🔍 [confirm-plan] Plan encontrado:", { id: plan.id, status: plan.status, methodology_type: plan.methodology_type, userId });
+
+    if (isCrossfitV2PlanData(plan.plan_data)) {
+      let startConfig = startConfigOverride;
+      if (!startConfig) {
+        const startConfigQuery = await client.query(
+          'SELECT * FROM app.plan_start_config WHERE methodology_plan_id = $1',
+          [methodology_plan_id]
+        );
+        startConfig = startConfigQuery.rows[0] ?? null;
+      }
+      let persistedStartDate = resolvedStartDate
+        ? formatLocalDate(resolvedStartDate)
+        : formatLocalDate(plan.plan_start_date);
+      persistedStartDate ||= crossfitCanonicalStartDate(plan.plan_data);
+      if (!persistedStartDate) {
+        const now = new Date();
+        const dow = now.getDay();
+        persistedStartDate = formatLocalDate(
+          dow === 0 || dow === 6 ? getNextMonday(now) : now
+        );
+      }
+      const confirmation = await confirmCrossfitPlanV2({
+        client,
+        userId,
+        planId: methodology_plan_id,
+        startDate: persistedStartDate,
+        startConfig
+      });
+      return res.json({
+        success: true,
+        message: confirmation.idempotentReplay
+          ? 'Plan CrossFit ya confirmado (idempotente)'
+          : 'Plan CrossFit confirmado y materializado',
+        confirmed_at: new Date().toISOString(),
+        methodology_plan_id,
+        status: 'active',
+        idempotent_replay: confirmation.idempotentReplay,
+        schedule: {
+          total_days: confirmation.totalDays,
+          total_sessions: confirmation.totalSessions
+        }
+      });
+    }
 
     // Si ya está activo, considerar la operación idempotente
     if (String(plan.status).toLowerCase() === 'active') {
@@ -429,7 +477,11 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
                 const exercise = exercises[i];
 
                 // 🎯 Guardar también el exercise_id para tracking RIR
-                const exerciseId = exercise.exercise_id || exercise.id || null;
+                const rawExerciseId = exercise.exercise_id ?? exercise.legacy_exercise_id ?? null;
+                const parsedExerciseId = Number(rawExerciseId);
+                const exerciseId = Number.isInteger(parsedExerciseId) && parsedExerciseId > 0
+                  ? parsedExerciseId
+                  : null;
 
                 await client.query(
                   `INSERT INTO app.methodology_exercise_progress (
@@ -492,10 +544,11 @@ router.post('/confirm-plan', authenticateToken, async (req, res) => {
     console.error('❌ [confirm-plan] Error confirmando rutina:', error);
     console.error('Stack:', error.stack);
 
-    res.status(500).json({
+    res.status(error?.status || 500).json({
       success: false,
-      error: 'Error interno del servidor',
-      details: error.message
+      error: error?.status ? error.message : 'Error interno del servidor',
+      code: error?.code ?? null,
+      details: error?.status && error.status < 500 ? error.details : undefined
     });
   } finally {
     // FUGA HISTÓRICA: el camino de ÉXITO nunca liberaba el cliente (solo los

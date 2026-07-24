@@ -285,7 +285,7 @@ export default function MethodologiesScreen() {
     finishPowerliftingEffort,
     handleHeavyDutyEffortSubmit,
     finishHeavyDutyEffort
-  } = useMethodologyEffortActions({ localState, updateLocalState, navigate });
+  } = useMethodologyEffortActions({ localState, updateLocalState, navigate, userId: user?.id });
 
   // ===============================================
   // 🎨 RENDER

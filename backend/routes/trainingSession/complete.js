@@ -20,6 +20,7 @@ import {
   createSessionContext
 } from '../../services/sessionStateMachine.js';
 import { buildActualSessionLoad } from '../../services/trainingLoad/actualLoadBuilder.js';
+import { getCrossfitFeatureFlags } from '../../services/crossfit/featureFlags.js';
 import {
   buildSessionCompletedEvent,
   enqueueEvent,
@@ -68,6 +69,20 @@ async function safeEnqueueSessionCompleted(client, params) {
       return { enqueued: false, skipped: true, reason: 'NON_REGISTERED_METHODOLOGY' };
     }
 
+    // CrossFit v2 cierra el contrato real después del feedback específico (RPE,
+    // técnica, dolor, readiness y escala). Emitir aquí fabricaría un evento incompleto
+    // y su event_key idempotente impediría reemplazarlo por el resultado validado.
+    if (methodologyId === 'crossfit') {
+      const crossfitFlags = getCrossfitFeatureFlags();
+      if (!crossfitFlags.emitsTrainingLoad) {
+        return { enqueued: false, skipped: true, reason: 'CROSSFIT_EMITS_TRAINING_LOAD_DISABLED' };
+      }
+      if (!crossfitFlags.results) {
+        return { enqueued: false, skipped: true, reason: 'CROSSFIT_V2_RESULTS_REQUIRED' };
+      }
+      return { enqueued: false, skipped: true, reason: 'CROSSFIT_V2_RESULT_OWNS_OUTBOX' };
+    }
+
     // COR-F0-02 §5: nivel en orden carga planificada válida → session.methodology_level →
     // metadata legacy normalizada → null. Normalización explícita (básico/basico → principiante).
     const methodologyLevel = resolveMethodologyLevel({
@@ -100,6 +115,7 @@ async function safeEnqueueSessionCompleted(client, params) {
       sessionId,
       userId,
       methodologyPlanId: session?.methodology_plan_id ?? null,
+      dayId: session?.day_id ?? null,
       methodologyId,
       methodologyLevel,
       completedAt: completedAtIso,

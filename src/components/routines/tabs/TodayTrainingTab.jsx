@@ -54,6 +54,8 @@ import { resolveEffortMethodKey } from './TodayTrainingTab/effortConfig.js';
 import { computeGateCounts, computeGateLogic, computeHeaderProgressStats } from './TodayTrainingTab/gateLogic.js';
 import { useRoutineSessionActions } from './TodayTrainingTab/hooks/useRoutineSessionActions.js';
 import { useRoutineAuxiliaryActions } from './TodayTrainingTab/hooks/useRoutineAuxiliaryActions.js';
+import { loadCrossfitResultDraft } from '../crossfit/resultDraftState.js';
+import { isCrossfitV2Presentation } from '../crossfit/runtimeState.js';
 
 // 🎯 ADAPTACIÓN - Evaluación de transición
 import { useAdaptationEvaluation } from '@/hooks/useAdaptationEvaluation';
@@ -177,8 +179,11 @@ export default function TodayTrainingTab({
     show: false,
     decision: null,
     saving: false,
+    error: null,
     scale: 'rx',
-    sessionId: null
+    sessionId: null,
+    wodSummary: null,
+    crossfitV2: false
   });
 
   // 🎯 Metodología del plan activo (para elegir player y modal de cierre correctos).
@@ -186,6 +191,24 @@ export default function TodayTrainingTab({
     plan?.metodologia || plan?.methodology_type || plan?.methodologyType ||
     routinePlan?.metodologia || routinePlan?.methodology_type || ''
   ), [plan?.metodologia, plan?.methodology_type, plan?.methodologyType, routinePlan?.metodologia, routinePlan?.methodology_type]);
+
+  useEffect(() => {
+    const sid = todayStatus?.session?.id;
+    if (activeMethodKey !== 'crossfit' || sid == null) return;
+    const draft = loadCrossfitResultDraft(sid, userId);
+    if (!draft || draft.surface !== 'today') return;
+    setEffortModal((current) => current.show ? current : {
+      method: 'crossfit',
+      show: true,
+      decision: null,
+      saving: false,
+      error: null,
+      scale: 'base',
+      sessionId: sid,
+      wodSummary: draft.wod_summary,
+      crossfitV2: true
+    });
+  }, [activeMethodKey, todayStatus?.session?.id, userId]);
 
   // 🎯 Guarda para no abrir dos veces el modal de esfuerzo de la misma sesión.
   // RoutineSessionModal filtra los ejercicios completados, así que se cierra tras
@@ -685,6 +708,7 @@ export default function TodayTrainingTab({
     todaySessionData,
     todayStatus,
     track,
+    userId,
     updateExercise,
     updateLocalState,
     warmupShownSessionsRef
@@ -845,8 +869,12 @@ export default function TodayTrainingTab({
 
   // 🎯 CORRECCIÓN VISUAL: Lógica robusta estabilizada con useMemo para evitar recálculos
   const gateLogic = useMemo(
-    () => computeGateLogic({ counts: gateCounts, todayStatus }),
-    [gateCounts, todayStatus]
+    () => computeGateLogic({
+      counts: gateCounts,
+      todayStatus,
+      immutableTerminal: activeMethodKey === 'crossfit' && isCrossfitV2Presentation(todaySessionData)
+    }),
+    [activeMethodKey, gateCounts, todaySessionData, todayStatus]
   );
 
   // Extraer valores del objeto memoizado
@@ -901,7 +929,7 @@ export default function TodayTrainingTab({
     // Estados derivados (corregidos y robustos con useMemo)
     hasIncompleteExercises,    // hay ejercicios sin completar
     allProcessedToday,         // no quedan pending/in_progress
-    isFinishedToday,           // session_status === 'completed' (backend)
+    isFinishedToday,           // completed o terminal V2 inmutable (backend)
     hasCompletedSession,       // session completada exitosamente
     allProcessedIncomplete,    // procesados pero no todos completed
     hasUnfinishedWorkToday,    // hay trabajo sin terminar (botón de reanudar)
@@ -1059,8 +1087,7 @@ export default function TodayTrainingTab({
               (hasToday && hasActivePlan && loadingTodayStatus && !todayStatus) ||
               (hasToday && hasActivePlan && !loadingTodayStatus && todaySessionData?.ejercicios?.length > 0)) &&
               // Día ya completado: no ofrecer "Reanudar Entrenamiento"
-              !(todayStatus?.session?.session_status === 'completed' &&
-                (todayStatus?.summary?.isComplete || todayStatus?.summary?.isFinished)) ? (
+              !isFinishedToday ? (
               <StartSessionSection
                 currentTodayName={currentTodayName}
                 todaySessionData={todaySessionData}
@@ -1189,6 +1216,7 @@ export default function TodayTrainingTab({
         effectiveSession={effectiveSession}
         activeMethodKey={activeMethodKey}
         effortModal={effortModal}
+        userId={userId}
         showPriorityModal={showPriorityModal}
         currentPriority={currentPriority}
         showTransitionModal={showTransitionModal}

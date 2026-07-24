@@ -1,16 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 
 import {
   normalizeMethodologyId,
   getMethodologyDescriptor,
   getSupportedMethodologies,
   isOppositionMethodology,
+  methodologyUsesImmutableDraftRevisions,
   resolveDemandFamily,
   METHODOLOGY_DESCRIPTORS
 } from "../services/routineGeneration/methodologies/methodologyRegistry.js";
-import { normalizeMethodologyId as orchestratorNormalize, getSupportedMethodologies as orchestratorList }
-  from "../services/routineGeneration/methodologies/MethodologyOrchestrator.js";
 import {
   validateTrainingLoad,
   buildConservativeTrainingLoad,
@@ -69,15 +69,24 @@ test("§17.1: oposiciones y familia de demanda", () => {
   assert.equal(resolveDemandFamily("desconocido"), null);
 });
 
+test("CrossFit v2: las revisiones inmutables solo se activan con su flag", () => {
+  assert.equal(methodologyUsesImmutableDraftRevisions("crossfit", {}), false);
+  assert.equal(methodologyUsesImmutableDraftRevisions("crossfit", { CROSSFIT_V2_GENERATION: "true" }), true);
+  assert.equal(methodologyUsesImmutableDraftRevisions("crossfit", { CROSSFIT_V2_GENERATION: "TRUE" }), true);
+  assert.equal(methodologyUsesImmutableDraftRevisions("calistenia", { CROSSFIT_V2_GENERATION: "true" }), false);
+  assert.equal(methodologyUsesImmutableDraftRevisions("desconocido", { CROSSFIT_V2_GENERATION: "true" }), false);
+});
+
 // ── §7.4: el orquestador delega sin cambiar su contrato ─────────────────────────
-test("§7.4: el orquestador delega en el registro (misma normalización canónica)", () => {
-  for (const v of ["Calistenia", "crossfit", "heavy duty", "Guardia Civil", "gimnasio"]) {
-    assert.equal(orchestratorNormalize(v), normalizeMethodologyId(v));
-  }
-  // Desconocido: el orquestador preserva su fallback histórico (valor normalizado tal cual).
-  assert.equal(orchestratorNormalize("desconocido-xyz"), "desconocido-xyz");
-  // El listado del orquestador ya no incluye gimnasio.
-  assert.ok(!orchestratorList().some((m) => m.id === "gimnasio"));
+test("§7.4: el orquestador delega en el registro sin cargar servicios con BD", () => {
+  const source = fs.readFileSync(
+    new URL("../services/routineGeneration/methodologies/MethodologyOrchestrator.js", import.meta.url),
+    "utf8"
+  );
+  assert.match(source, /normalizeMethodologyId as registryNormalizeMethodologyId/);
+  assert.match(source, /getSupportedMethodologies as registryGetSupportedMethodologies/);
+  assert.match(source, /const canonical = registryNormalizeMethodologyId\(methodology\)/);
+  assert.match(source, /return registryGetSupportedMethodologies\(opts\)/);
 });
 
 // ── §17.2 Contrato de carga ─────────────────────────────────────────────────────

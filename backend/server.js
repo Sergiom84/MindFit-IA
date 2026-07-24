@@ -34,6 +34,7 @@ import aiPhotoCorrection from './routes/aiPhotoCorrection.js';
 // 🎯 RUTAS CONSOLIDADAS (NUEVA ARQUITECTURA)
 // ===============================================
 import routineGenerationRoutes from './routes/routineGeneration.js';
+import crossfitV2RuntimeRoutes from './routes/crossfitV2Runtime.js';
 import trainingSessionRoutes from './routes/trainingSession.js';
 import exerciseCatalogRoutes from './routes/exerciseCatalog.js';
 import trainingStateRoutes from './routes/trainingState.js';
@@ -182,6 +183,7 @@ app.use(cors({
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:5175',
+    'http://localhost:4173',
     'http://localhost:3000',
     'http://192.168.1.68:5173',
     'https://entrenaconia.onrender.com'
@@ -436,6 +438,9 @@ app.post('/api/methodology/generate', authenticateToken, (req, res, next) => {
       // Metodología manual genérica
       req.url = '/api/routine-generation/manual/methodology';
     }
+  } else if (mode === 'regenerate' && methodology === 'crossfit') {
+    console.log('🤸 Regeneración CrossFit v2 - specialist/crossfit/generate');
+    req.url = '/api/routine-generation/specialist/crossfit/generate';
   } else if (mode === 'automatic' || mode === 'regenerate') {
     // AUTOMÁTICO: IA decide la metodología
     req.url = '/api/routine-generation/ai/methodology';
@@ -473,6 +478,7 @@ app.use('/api/nutrition-v2/generate-full-day-menus', aiLimiter);
 app.use('/api/progress/re-evaluation', aiLimiter);
 
 app.use('/api/routine-generation', routineGenerationRoutes);
+app.use('/api/crossfit-v2/runtime', crossfitV2RuntimeRoutes);
 app.use('/api/training-session', trainingSessionRoutes);
 app.use('/api/training', trainingStateRoutes);
 app.use('/api/exercise-catalog', exerciseCatalogRoutes);
@@ -576,6 +582,71 @@ app.get('/api/admin/phase0/metrics', requireAdmin, async (req, res) => {
     res.status(500).json({
       error: 'Error obteniendo métricas de la Fase 0',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Observabilidad CrossFit v2. Solo agregados técnicos y sin contenido de perfil/usuario.
+app.get('/api/admin/crossfit-v2/metrics', requireAdmin, async (req, res) => {
+  try {
+    const { collectCrossfitV2Metrics } = await import('./services/crossfit/observability/metrics.js');
+    res.json(await collectCrossfitV2Metrics(pool));
+  } catch (error) {
+    res.status(500).json({
+      error: 'Error obteniendo métricas de CrossFit v2',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Evidencia profesional CrossFit v2. ADMIN_TOKEN es fail-closed y la operación
+// solo añade un evento al ledger; nunca muta una evaluación histórica.
+app.post('/api/admin/crossfit-v2/assessments/review', requireAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.body?.user_id);
+    const action = req.body?.action ?? 'verify';
+    const reviewerReference = String(req.body?.reviewer_reference ?? '').trim();
+    const requestId = String(req.body?.request_id ?? '').trim();
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(422).json({ error: 'user_id no válido', code: 'CROSSFIT_ASSESSMENT_INVALID' });
+    }
+    if (!['verify', 'revoke'].includes(action) || reviewerReference.length < 3 || requestId.length < 8) {
+      return res.status(422).json({ error: 'Revisión profesional incompleta', code: 'CROSSFIT_ASSESSMENT_INVALID' });
+    }
+    const [{ evaluateTrustedCrossfitAssessment, sanitizeTrustedCrossfitAssessment }, { recordCrossfitAssessment }] = await Promise.all([
+      import('./services/crossfit/classification/assessmentService.js'),
+      import('./services/crossfit/classification/assessmentRepository.js')
+    ]);
+    const assessment = sanitizeTrustedCrossfitAssessment(req.body?.assessment);
+    const evaluated = evaluateTrustedCrossfitAssessment({
+      assessment,
+      requestId
+    });
+    const persisted = await recordCrossfitAssessment({
+      db: pool,
+      userId,
+      assessment,
+      classification: evaluated.evaluation.classification,
+      safety: evaluated.evaluation.safety,
+      requestId,
+      idempotencyKey: req.headers['idempotency-key'] || requestId,
+      requestPayload: { action, assessment, reviewer_reference: reviewerReference },
+      source: 'professional_review',
+      verificationStatus: action === 'verify' ? 'verified' : 'revoked',
+      reviewerReference
+    });
+    res.status(persisted.idempotent_replay ? 200 : 201).json({
+      success: true,
+      assessment_id: persisted.assessment_id,
+      idempotent_replay: persisted.idempotent_replay,
+      verification_status: action === 'verify' ? 'verified' : 'revoked',
+      global_level: evaluated.evaluation.classification.global_level,
+      confidence: evaluated.evaluation.classification.confidence
+    });
+  } catch (error) {
+    res.status(error.status || 500).json({
+      error: error.message,
+      code: error.code
     });
   }
 });

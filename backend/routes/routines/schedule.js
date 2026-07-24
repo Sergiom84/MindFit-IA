@@ -58,6 +58,7 @@ router.get('/calendar-schedule/:planId', authenticateToken, async (req, res) => 
     console.log(`[calendar-schedule] Buscando sesiones en workout_schedule para plan ${planId}, user ${userId}`);
     let scheduleQuery = await pool.query(
       `SELECT
+        day_id,
         week_number,
         day_abbrev as dia,
         scheduled_date,
@@ -86,6 +87,7 @@ router.get('/calendar-schedule/:planId', authenticateToken, async (req, res) => 
       // Reintentar consulta después de regenerar
       scheduleQuery = await pool.query(
         `SELECT
+          day_id,
           week_number,
           day_abbrev as dia,
           scheduled_date,
@@ -143,6 +145,7 @@ router.get('/calendar-schedule/:planId', authenticateToken, async (req, res) => 
 
       // Agregar sesión con el día real asignado
       semanasMap.get(weekNum).sesiones.push({
+        day_id: row.day_id,
         dia: row.dia,
         fecha: formatLocalDate(row.scheduled_date),
         titulo: row.titulo || `Sesión del ${row.dia}`,
