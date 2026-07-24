@@ -47,6 +47,7 @@ export default function HipertrofiaManualCard({ onGenerate, isLoading, error, st
   });
   const [showAdaptationSelect, setShowAdaptationSelect] = useState(false);
   const [showTransitionModal, setShowTransitionModal] = useState(false);
+  const [transitionEvaluation, setTransitionEvaluation] = useState(null);
   const [showAdaptationDashboard, setShowAdaptationDashboard] = useState(false);
 
   // Helpers: carga de progreso de adaptación
@@ -69,25 +70,30 @@ export default function HipertrofiaManualCard({ onGenerate, isLoading, error, st
       }
 
       if (data.hasActiveBlock) {
-        setAdaptation({
+        const nextAdaptation = {
           loading: false,
           hasBlock: true,
           readyForTransition: data.block?.readyForTransition || false,
           block: data.block || null,
           weeks: data.weeks || []
-        });
+        };
+        setAdaptation(nextAdaptation);
+        return nextAdaptation;
       } else {
-        setAdaptation({
+        const nextAdaptation = {
           loading: false,
           hasBlock: false,
           readyForTransition: false,
           block: null,
           weeks: []
-        });
+        };
+        setAdaptation(nextAdaptation);
+        return nextAdaptation;
       }
     } catch (err) {
       console.error('❌ [ADAPTACIÓN] Error cargando progreso:', err);
       setAdaptation((prev) => ({ ...prev, loading: false }));
+      return null;
     }
   };
 
@@ -137,6 +143,23 @@ export default function HipertrofiaManualCard({ onGenerate, isLoading, error, st
         experience: data.experiencia || 'Sin experiencia',
         recommendation: data.recomendacion || 'Full Body 3x/semana'
       });
+
+      const currentAdaptation = data.nivel_hipertrofia === 'Principiante'
+        ? (await fetchAdaptationProgress()) || adaptation
+        : null;
+
+      if (currentAdaptation?.hasBlock) {
+        track('hipertrofia_adaptation_existing_block', {
+          userId: user.id,
+          readyForTransition: currentAdaptation.readyForTransition,
+          blockId: currentAdaptation.block?.id,
+          component: 'HipertrofiaManualCard'
+        });
+        setShowAdaptationSelect(false);
+        setShowAdaptationDashboard(!currentAdaptation.readyForTransition);
+        setStep('adaptation');
+        return;
+      }
 
       // Si es principiante absoluto, mostrar modal de selección de bloque de adaptación
       if (data.nivel_hipertrofia === 'Principiante' && data.tags_adaptacion?.includes('novato')) {
@@ -361,31 +384,31 @@ export default function HipertrofiaManualCard({ onGenerate, isLoading, error, st
     }
   };
 
-  // Transicionar a D1-D5
-  const handleTransition = async () => {
+  const closeTransitionModal = () => {
+    setShowTransitionModal(false);
+    setTransitionEvaluation(null);
+  };
+
+  const handleOpenTransition = async () => {
     try {
       const token = tokenManager.getToken();
       const resp = await fetch(
-        `${API_URL}/api/adaptation/transition`,
+        `${API_URL}/api/adaptation/evaluate`,
         {
-          method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`
           }
         }
       );
       const data = await resp.json();
       if (!resp.ok || data.success === false) {
-        throw new Error(data.error || 'No se pudo transicionar');
+        throw new Error(data.error || 'No se pudo evaluar la transición');
       }
-      // Una vez listo, generar D1-D5
-      await handleGenerate();
-      setShowTransitionModal(false);
-      await fetchAdaptationProgress();
+      setTransitionEvaluation(data);
+      setShowTransitionModal(true);
     } catch (err) {
-      console.error('❌ [ADAPTACIÓN] Error en transición:', err);
-      alertDialog(err.message || 'Error al transicionar a D1-D5');
+      console.error('❌ [ADAPTACIÓN] Error evaluando transición:', err);
+      alertDialog(err.message || 'Error al evaluar la transición a D1-D5');
     }
   };
 
@@ -398,7 +421,7 @@ export default function HipertrofiaManualCard({ onGenerate, isLoading, error, st
           <Dumbbell className="w-8 h-8 text-yellow-300" />
           <div>
             <h2 className="text-2xl font-bold text-white">
-              Hipertrofia - MindFeed
+              Hipertrofia
             </h2>
             <p className="text-gray-300/70 text-sm">
               Sistema de Periodización Inteligente D1-D5
@@ -415,7 +438,7 @@ export default function HipertrofiaManualCard({ onGenerate, isLoading, error, st
               block={adaptation.block}
               readyForTransition={adaptation.readyForTransition}
               onReload={fetchAdaptationProgress}
-              onTransition={() => setShowTransitionModal(true)}
+              onTransition={handleOpenTransition}
             />
           </div>
         )}
@@ -599,10 +622,15 @@ export default function HipertrofiaManualCard({ onGenerate, isLoading, error, st
       />
 
       <AdaptationTransitionModal
-        show={showTransitionModal}
-        onClose={() => setShowTransitionModal(false)}
-        onConfirm={handleTransition}
-        block={adaptation.block}
+        isOpen={showTransitionModal}
+        onClose={closeTransitionModal}
+        evaluation={transitionEvaluation}
+        onTransitionSuccess={() => {
+          closeTransitionModal();
+          fetchAdaptationProgress();
+          handleGenerate();
+        }}
+        onRepeatBlock={closeTransitionModal}
       />
 
     </div>

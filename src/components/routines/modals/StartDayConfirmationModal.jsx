@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Zap, Target, AlertCircle } from 'lucide-react';
+import {
+  HIPERTROFIA_DISPLAY_NAME,
+  isHipertrofiaMethodology
+} from '../../../utils/hipertrofiaIdentity';
 
 /**
  * Modal de Confirmación de Día de Inicio
@@ -9,6 +13,9 @@ const StartDayConfirmationModal = ({ isOpen, onClose, onConfirm, methodology }) 
   const [selectedOption, setSelectedOption] = useState(null);
   const [currentDay, setCurrentDay] = useState('');
   const [options, setOptions] = useState([]);
+  const methodologyDisplayName = isHipertrofiaMethodology(methodology)
+    ? HIPERTROFIA_DISPLAY_NAME
+    : methodology;
 
   useEffect(() => {
     if (isOpen) {
@@ -168,7 +175,7 @@ const StartDayConfirmationModal = ({ isOpen, onClose, onConfirm, methodology }) 
               Hoy es {currentDay}
             </h2>
             <p className="text-sm text-gray-300/70 mt-2">
-              ¿Cuándo quieres comenzar tu plan de {methodology}?
+              ¿Cuándo quieres comenzar tu plan de {methodologyDisplayName}?
             </p>
           </div>
           <button
@@ -253,4 +260,3 @@ const StartDayConfirmationModal = ({ isOpen, onClose, onConfirm, methodology }) 
 };
 
 export default StartDayConfirmationModal;
-

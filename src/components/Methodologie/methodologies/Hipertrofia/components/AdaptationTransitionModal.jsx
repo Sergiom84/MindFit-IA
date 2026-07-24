@@ -15,6 +15,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import apiClient from '@/lib/apiClient';
+import { normalizeAdaptationEvaluation } from './adaptationTransitionModel';
 
 export default function AdaptationTransitionModal({
   isOpen,
@@ -28,7 +29,12 @@ export default function AdaptationTransitionModal({
 
   if (!isOpen || !evaluation) return null;
 
-  const { is_ready: isReady, evaluation: evalDetails } = evaluation;
+  const { isReady, details: evalDetails } = normalizeAdaptationEvaluation(evaluation);
+
+  const formatMetric = (value, suffix = '') => {
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? `${numericValue.toFixed(1)}${suffix}` : '—';
+  };
 
   const handleTransition = async () => {
     try {
@@ -49,7 +55,9 @@ export default function AdaptationTransitionModal({
 
   const CriterionDisplay = ({ icon: Icon, label, value, met, threshold }) => (
     <div className="flex items-center gap-3 py-2 border-b border-gray-700 last:border-b-0">
-      <Icon className={"w-4 h-4 " + (met ? 'text-green-400' : 'text-red-400')} />
+      {React.createElement(Icon, {
+        className: "w-4 h-4 " + (met ? 'text-green-400' : 'text-red-400')
+      })}
       <div className="flex-1">
         <p className="text-sm text-gray-300">{label}</p>
         <p className="text-xs text-gray-500">{value} ({met ? '✓' : '✗'} {threshold})</p>
@@ -74,10 +82,16 @@ export default function AdaptationTransitionModal({
         <div className="p-6 space-y-4">
           {evalDetails && (
             <div className="bg-gray-800/50 rounded-lg p-3 space-y-1">
-              <CriterionDisplay icon={Zap} label="Adherencia" value="4/5" met={evalDetails.adherence?.met} threshold="≥80%" />
-              <CriterionDisplay icon={Target} label="RIR" value={evalDetails.rir?.value?.toFixed(1)} met={evalDetails.rir?.met} threshold="≤4" />
+              <CriterionDisplay
+                icon={Zap}
+                label="Adherencia"
+                value={`${formatMetric(evalDetails.adherence?.value, '%')} (${evalDetails.adherence?.sessions || '—'})`}
+                met={evalDetails.adherence?.met}
+                threshold="≥80%"
+              />
+              <CriterionDisplay icon={Target} label="RIR" value={formatMetric(evalDetails.rir?.value)} met={evalDetails.rir?.met} threshold="≤4" />
               <CriterionDisplay icon={AlertCircle} label="Técnica" value={evalDetails.technique?.flags || 0} met={evalDetails.technique?.met} threshold="<1" />
-              <CriterionDisplay icon={TrendingUp} label="Progreso" value={evalDetails.progress?.value?.toFixed(1) + "%"} met={evalDetails.progress?.met} threshold="≥8%" />
+              <CriterionDisplay icon={TrendingUp} label="Progreso" value={formatMetric(evalDetails.progress?.value, '%')} met={evalDetails.progress?.met} threshold="≥8%" />
             </div>
           )}
         </div>
