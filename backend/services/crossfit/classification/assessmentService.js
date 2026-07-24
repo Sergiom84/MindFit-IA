@@ -1,4 +1,4 @@
-import { getCrossfitFeatureFlags } from "../featureFlags.js";
+import { getCrossfitFeatureFlagsForUser } from "../featureFlags.js";
 import { getCrossfitProgramRules } from "../programming/programRules.js";
 import { evaluateCrossfitSafety } from "../safety/safetyEvaluator.js";
 import { CROSSFIT_LEVELS, CROSSFIT_VERSIONS } from "../versions.js";
@@ -144,8 +144,8 @@ function sanitizeCheckIn(checkIn = {}) {
   return { ...checkIn };
 }
 
-export function getCrossfitAssessmentCapabilities(env = process.env) {
-  const flags = getCrossfitFeatureFlags(env);
+export function getCrossfitAssessmentCapabilities(userId, env = process.env) {
+  const flags = getCrossfitFeatureFlagsForUser(userId, env);
   return {
     success: true,
     schema_version: CROSSFIT_ASSESSMENT_CAPABILITIES_VERSION,

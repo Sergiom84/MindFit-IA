@@ -191,18 +191,59 @@ Requiere autorización individual y backup/verificación previa.
 3. Aplicar las seis migraciones en el orden listado, con `ON_ERROR_STOP`.
 4. Validar tablas, constraints, RLS/policies, grants e índices.
 5. Ejecutar importador en `dry-run`; revisar 92/104/236/120 y hashes.
-6. Aplicar catálogo con el mecanismo autorizado y revisar antes de activar su
-   versión. Nunca inventar media ni marcarla verificada.
+6. Aplicar catálogo exclusivamente como `draft` mediante el modo productivo
+   protegido descrito abajo. La activación es una escritura separada.
 7. Mantener Elite histórico y las 29 filas/1.414 sesiones sin `day_id`.
 8. Si falla una migración, detener; no activar flags. Como rollback, conservar
    datos/ledgers, retirar versión activa si procede y corregir con migración
    aditiva.
 
+### Guardrails operativos de catálogo y cohorte
+
+El importador hace `dry-run` por defecto. `--apply` sigue limitado a PostgreSQL
+local efímero. El único modo productivo es `--apply-production-draft`: exige
+`NODE_ENV=production`, URL dedicada, allowlist exacta de proyecto y host, acuse
+`PRODUCTION_DRAFT_ONLY` y un segundo acuse igual al `content_hash` calculado.
+Serializa la escritura y solo admite versión ausente o `draft`; nunca cambia el
+estado a `active`.
+
+```bash
+node backend/scripts/import-crossfit-v2-catalog.mjs
+
+NODE_ENV=production \
+CROSSFIT_CATALOG_DATABASE_URL="$DATABASE_URL_AUTORIZADA" \
+CROSSFIT_CATALOG_APPLY_ACK=PRODUCTION_DRAFT_ONLY \
+CROSSFIT_CATALOG_CONTENT_HASH_ACK="$CONTENT_HASH_DEL_DRY_RUN" \
+CROSSFIT_CATALOG_PROJECT_REF="$PROJECT_REF_AUTORIZADO" \
+CROSSFIT_CATALOG_ALLOWED_PROJECT_REFS="$PROJECT_REF_AUTORIZADO" \
+CROSSFIT_CATALOG_ALLOWED_HOSTS="$HOST_AUTORIZADO" \
+node backend/scripts/import-crossfit-v2-catalog.mjs --apply-production-draft
+```
+
+Después de cargar el borrador:
+
+1. Verificar en una transacción `READ ONLY` versión, estado `draft`, hash y
+   conteos 92 movimientos, 104 variantes, 236 edges y 120 mappings.
+2. Conservar un `pg_dump` de las tablas CrossFit v2 y un snapshot del ledger.
+3. Activar esa versión en una transacción separada y autorizada, condicionada
+   por versión, estado `draft` y hash esperado.
+4. Confirmar que existe una única versión `active`; la generación consulta
+   exclusivamente ese puntero y devuelve `CROSSFIT_CATALOG_UNAVAILABLE` si no
+   existe.
+5. Definir primero `CROSSFIT_V2_QA_USERS` con IDs internos explícitos. La lista
+   vacía es el default y `*` solo funciona con `NODE_ENV=test`.
+6. Habilitar después `CROSSFIT_V2_GENERATION`; flag encendido sin usuario en
+   cohorte conserva generación, evaluación, single-day y runtime legacy/off.
+7. Ante incidente, apagar primero los cuatro flags. No editar filas de una
+   versión activa; retirar el puntero solo mediante operación autorizada y
+   conservar datos para auditoría.
+
 ## Secuencia de activación futura
 
 Cada paso exige métricas y autorización separada:
 
-1. `CROSSFIT_V2_GENERATION=true` para cohorte QA interna.
+1. `CROSSFIT_V2_QA_USERS=<ids QA>` y después
+   `CROSSFIT_V2_GENERATION=true`.
 2. `CROSSFIT_V2_RESULTS=true` tras confirmar cierre/resultados.
 3. Training load en shadow con emisión externa todavía apagada.
 4. Exigir carga válida >=99 %, degradada <1 % justificada, cero duplicados y

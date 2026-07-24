@@ -12,7 +12,14 @@ import {
   validateCrossfitSession,
   validateCrossfitWod
 } from "../services/crossfit/contracts/index.js";
-import { CROSSFIT_FEATURE_FLAGS, getCrossfitFeatureFlags, isCrossfitFeatureEnabled } from "../services/crossfit/featureFlags.js";
+import {
+  CROSSFIT_FEATURE_FLAGS,
+  getCrossfitFeatureFlags,
+  getCrossfitFeatureFlagsForUser,
+  getCrossfitRolloutQaUsers,
+  isCrossfitFeatureEnabled,
+  isCrossfitRolloutUser
+} from "../services/crossfit/featureFlags.js";
 import { CROSSFIT_REASON_CODES, isCrossfitReasonCode } from "../services/crossfit/reasonCodes.js";
 import {
   buildCrossfitActualTrainingLoad,
@@ -144,6 +151,27 @@ test("CrossFit v2: los cuatro flags son independientes y false por defecto", () 
     assert.equal(Object.values(state).filter(Boolean).length, 1);
   }
   assert.equal(isCrossfitFeatureEnabled("unknown", { CROSSFIT_V2_GENERATION: "true" }), false);
+});
+
+test("CrossFit v2: el rollout exige flag y usuario incluido en la cohorte QA", () => {
+  const env = {
+    CROSSFIT_V2_GENERATION: "true",
+    CROSSFIT_V2_RESULTS: "true",
+    CROSSFIT_V2_QA_USERS: " 17,23,17 "
+  };
+  assert.deepEqual(getCrossfitRolloutQaUsers(env), ["17", "23"]);
+  assert.equal(isCrossfitRolloutUser(17, env), true);
+  assert.equal(isCrossfitRolloutUser(99, env), false);
+  assert.equal(getCrossfitFeatureFlagsForUser(99, env).generation, false);
+  assert.deepEqual(getCrossfitFeatureFlagsForUser(17, env), {
+    generation: true,
+    results: true,
+    emitsTrainingLoad: false,
+    nutritionLoad: false
+  });
+  assert.equal(isCrossfitRolloutUser(17, { ...env, CROSSFIT_V2_QA_USERS: "" }), false);
+  assert.equal(isCrossfitRolloutUser(17, { ...env, CROSSFIT_V2_QA_USERS: "*" }), false);
+  assert.equal(isCrossfitRolloutUser(17, { ...env, NODE_ENV: "test", CROSSFIT_V2_QA_USERS: "*" }), true);
 });
 
 test("CrossFit v2: catálogo de reason codes coincide con CSV y cubre invariantes", () => {

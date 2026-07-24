@@ -21,8 +21,9 @@
  * apply_microcycle_progression.
  */
 
-import { getCrossfitFeatureFlags } from '../crossfit/featureFlags.js';
+import { getCrossfitFeatureFlagsForUser } from '../crossfit/featureFlags.js';
 import { registerCrossfitV2Result } from '../crossfit/results/resultService.js';
+import { isCrossfitV2SessionRecord } from '../crossfit/versions.js';
 import { isHipertrofiaMethodology } from '../hipertrofia/identity.js';
 
 // Clave normalizada de metodología a partir de methodology_type del plan
@@ -155,15 +156,14 @@ async function accumulateDecision(client, userId, planId, methodologyKey, decisi
  */
 export async function registerSessionAutoreg(client, {
   userId, planId, sessionId, methodologyType,
-  subjective = null, manual = {}, requestId = null, idempotencyKey = null
+  subjective = null, manual = {}, requestId = null, idempotencyKey = null,
+  env = process.env
 }) {
   const key = normalizeMethodologyKey(methodologyType);
   if (!SUPPORTED_KEYS.has(key)) return null;
 
-  // CrossFit v2 no comparte la heurística RIR ni los offsets genéricos. El adaptador
-  // comprueba además que la sesión sea realmente crossfit-session/v2; una sesión legacy
-  // sigue exactamente por el camino histórico aunque el flag global esté encendido.
-  if (key === 'crossfit' && getCrossfitFeatureFlags().results) {
+  // CrossFit v2 no comparte la heurística RIR ni los offsets genéricos.
+  if (key === 'crossfit' && getCrossfitFeatureFlagsForUser(userId, env).results) {
     const v2 = await registerCrossfitV2Result(client, {
       userId,
       planId,
@@ -171,6 +171,7 @@ export async function registerSessionAutoreg(client, {
       manual,
       requestId,
       idempotencyKey,
+      env,
       allowPendingFeedback: manual.rpe == null
     });
     if (v2) {
@@ -193,6 +194,7 @@ export async function registerSessionAutoreg(client, {
     [sessionId, userId]
   );
   if (sesQ.rowCount === 0) return null;
+  if (key === 'crossfit' && isCrossfitV2SessionRecord(sesQ.rows[0])) return null;
   const existing = sesQ.rows[0].session_metadata?.autoreg;
   if (existing?.registered_at) {
     return { ...existing, alreadyRegistered: true };

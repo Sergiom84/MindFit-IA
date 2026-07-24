@@ -52,10 +52,18 @@ function request(crossfitAssessment = assessment(), checkIn = {}) {
 }
 
 test("capacidades v2 reflejan el flag del servidor y excluyen Elite", () => {
-  const disabled = getCrossfitAssessmentCapabilities({});
-  const enabled = getCrossfitAssessmentCapabilities({ CROSSFIT_V2_GENERATION: "true" });
+  const disabled = getCrossfitAssessmentCapabilities(17, {});
+  const excluded = getCrossfitAssessmentCapabilities(99, {
+    CROSSFIT_V2_GENERATION: "true",
+    CROSSFIT_V2_QA_USERS: "17"
+  });
+  const enabled = getCrossfitAssessmentCapabilities(17, {
+    CROSSFIT_V2_GENERATION: "true",
+    CROSSFIT_V2_QA_USERS: "17"
+  });
 
   assert.equal(disabled.enabled, false);
+  assert.equal(excluded.enabled, false);
   assert.equal(enabled.enabled, true);
   assert.deepEqual(enabled.levels, [
     { id: "beginner", frequencies: [2, 3] },

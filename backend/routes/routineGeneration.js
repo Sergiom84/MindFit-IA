@@ -47,7 +47,8 @@ function sendRoutineGenerationError(res, error, fallbackMessage) {
 }
 
 router.get('/specialist/crossfit/capabilities', authenticateToken, (req, res) => {
-  res.json(CrossFitService.getCrossFitV2Capabilities());
+  const userId = req.user?.userId || req.user?.id;
+  res.json(CrossFitService.getCrossFitV2Capabilities(userId));
 });
 
 // =========================================
@@ -93,7 +94,7 @@ router.post('/specialist/:methodology/generate', authenticateToken, async (req, 
   try {
     logger.info(`🏗️ Generando plan de ${methodology} para usuario ${userId}`);
 
-    if (!methodologyUsesImmutableDraftRevisions(methodology)) {
+    if (!methodologyUsesImmutableDraftRevisions(methodology, process.env, userId)) {
       await cleanUserDrafts(userId);
     }
 
@@ -157,7 +158,7 @@ router.post('/ai/methodology', authenticateToken, async (req, res) => {
 
     // Hipertrofia limpia dentro de su orquestador. CrossFit v2 conserva el draft
     // anterior hasta crear la revisión inmutable que lo sustituye.
-    if (!methodologyUsesImmutableDraftRevisions(personalizedPlanData.methodology)) {
+    if (!methodologyUsesImmutableDraftRevisions(personalizedPlanData.methodology, process.env, userId)) {
       await cleanUserDrafts(userId);
     }
 
@@ -217,7 +218,7 @@ router.post('/manual/methodology', authenticateToken, async (req, res) => {
 
     const methodology = planData.methodology || 'gimnasio';
     validateRoutineRequest(planData);
-    if (!methodologyUsesImmutableDraftRevisions(methodology)) {
+    if (!methodologyUsesImmutableDraftRevisions(methodology, process.env, userId)) {
       await cleanUserDrafts(userId);
     }
     const result = await generateMethodologyPlan(methodology, userId, planData);

@@ -11,12 +11,25 @@ import {
   validateCanonicalCatalog,
   validateLegacyMappings,
 } from "../services/crossfit/catalog/catalogValidator.js";
+import {
+  assertCrossfitCatalogImportTarget,
+  resolveCrossfitCatalogWriteAction,
+} from "../services/crossfit/catalog/catalogImportGuard.js";
 import { CROSSFIT_VERSIONS } from "../services/crossfit/versions.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "../..");
 const dataDir = path.join(repoRoot, "docs/crossfit/data");
 const apply = process.argv.includes("--apply");
+const applyProductionDraft = process.argv.includes("--apply-production-draft");
+if (apply && applyProductionDraft) {
+  throw new Error("Importación abortada: elige un único modo de escritura");
+}
+const writeMode = apply
+  ? "local_ephemeral"
+  : applyProductionDraft
+    ? "production_draft"
+    : null;
 
 const canonicalRows = parseCsv(
   fs.readFileSync(
@@ -68,7 +81,7 @@ if (!catalog.valid || !mappings.valid) {
 }
 
 const summary = {
-  mode: apply ? "apply" : "dry-run",
+  mode: writeMode ?? "dry-run",
   catalog_version: CROSSFIT_CATALOG_VERSION,
   content_hash: catalog.content_hash,
   canonical_rows: catalog.movements.length,
@@ -79,44 +92,48 @@ const summary = {
   activation: "not_performed",
 };
 
-if (!apply) {
+if (!writeMode) {
   console.log(JSON.stringify(summary, null, 2));
   process.exit(0);
 }
 
-dotenv.config({ path: path.join(repoRoot, "backend/.env"), quiet: true });
-const connectionString =
-  process.env.CROSSFIT_CATALOG_DATABASE_URL ?? process.env.DATABASE_URL;
+if (writeMode === "local_ephemeral") {
+  dotenv.config({ path: path.join(repoRoot, "backend/.env"), quiet: true });
+}
+const connectionString = writeMode === "production_draft"
+  ? process.env.CROSSFIT_CATALOG_DATABASE_URL
+  : process.env.CROSSFIT_CATALOG_DATABASE_URL ?? process.env.DATABASE_URL;
 if (!connectionString)
   throw new Error("CROSSFIT_CATALOG_DATABASE_URL no está definida");
-const url = new URL(connectionString);
-const localHost = ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
-if (
-  !localHost ||
-  process.env.NODE_ENV !== "test" ||
-  process.env.CROSSFIT_CATALOG_APPLY_ACK !== "EPHEMERAL_ONLY"
-) {
-  throw new Error(
-    "Importación abortada: --apply exige BD local, NODE_ENV=test y CROSSFIT_CATALOG_APPLY_ACK=EPHEMERAL_ONLY",
-  );
-}
+const importTarget = assertCrossfitCatalogImportTarget({
+  mode: writeMode,
+  env: process.env,
+  connectionString,
+  contentHash: catalog.content_hash,
+});
 
 const client = new pg.Client({ connectionString });
 await client.connect();
 let transactionOpen = false;
 try {
+  await client.query("BEGIN");
+  transactionOpen = true;
+  await client.query(
+    "SELECT pg_advisory_xact_lock(hashtext('crossfit_catalog:' || $1))",
+    [CROSSFIT_CATALOG_VERSION],
+  );
   const existing = await client.query(
     `SELECT status, content_hash
        FROM app.crossfit_catalog_versions
-      WHERE catalog_version = $1`,
+      WHERE catalog_version = $1
+      FOR UPDATE`,
     [CROSSFIT_CATALOG_VERSION],
   );
-  if (existing.rows[0]?.status === "active") {
-    if (existing.rows[0].content_hash !== catalog.content_hash) {
-      throw new Error(
-        "El catálogo activo tiene un hash distinto; crea una versión nueva",
-      );
-    }
+  const writeAction = resolveCrossfitCatalogWriteAction(
+    existing.rows[0] ?? null,
+    catalog.content_hash,
+  );
+  if (writeAction === "verify_active") {
     const verified = await client.query(
       `SELECT
          (SELECT count(*)::int FROM app.crossfit_movements WHERE catalog_version = $1) AS movements,
@@ -137,20 +154,20 @@ try {
         `El catálogo activo está incompleto: ${JSON.stringify({ counts, expected })}`,
       );
     }
+    await client.query("COMMIT");
+    transactionOpen = false;
     console.log(
       JSON.stringify(
         {
           ...summary,
           activation: "already_active_verified",
-          applied_to: "local_ephemeral_noop",
+          applied_to: `${importTarget.appliedTo}_noop`,
         },
         null,
         2,
       ),
     );
   } else {
-    await client.query("BEGIN");
-    transactionOpen = true;
     await client.query(
       `INSERT INTO app.crossfit_catalog_versions
        (catalog_version, ruleset_version, status, content_hash, source)
@@ -286,7 +303,7 @@ try {
     transactionOpen = false;
     console.log(
       JSON.stringify(
-        { ...summary, applied_to: "local_ephemeral_draft" },
+        { ...summary, applied_to: importTarget.appliedTo },
         null,
         2,
       ),

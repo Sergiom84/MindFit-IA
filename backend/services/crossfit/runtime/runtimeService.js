@@ -652,7 +652,7 @@ export async function registerCrossfitSubstitution(client, {
   const repository = new CrossfitCatalogRepository(client);
   const catalogVersion = context.canonical_session.catalog_version;
   const [catalog, edges, profile, equipment] = await Promise.all([
-    repository.listForGeneration({ useV2: true, catalogVersion }),
+    repository.listCanonicalMovements({ catalogVersion }),
     repository.listSubstitutionEdges(request.movement_id, { catalogVersion }),
     profileLoader(userId),
     equipmentLoader(client, userId, [])

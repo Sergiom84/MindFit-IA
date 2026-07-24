@@ -72,6 +72,7 @@ test("CI conecta migraciones y E2E CrossFit solo a PostgreSQL efímero local", (
   assert.match(workflow, /POSTGRES_DB: crossfit_e2e/);
   assert.match(workflow, /CROSSFIT_CATALOG_APPLY_ACK=EPHEMERAL_ONLY/);
   assert.match(workflow, /CROSSFIT_V2_GENERATION: "true"/);
+  assert.match(workflow, /CROSSFIT_V2_QA_USERS: "\*"/);
   assert.match(workflow, /CROSSFIT_EMITS_TRAINING_LOAD: "true"/);
   assert.match(workflow, /CROSSFIT_NUTRITION_LOAD: "false"/);
   assert.match(workflow, /NUTRITION_LOAD_PERIODIZATION_MODE: "active"/);

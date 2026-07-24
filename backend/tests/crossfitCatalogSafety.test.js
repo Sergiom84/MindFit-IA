@@ -9,6 +9,10 @@ import {
   validateLegacyMappings
 } from "../services/crossfit/catalog/catalogValidator.js";
 import {
+  assertCrossfitCatalogImportTarget,
+  resolveCrossfitCatalogWriteAction
+} from "../services/crossfit/catalog/catalogImportGuard.js";
+import {
   ACTIVE_CROSSFIT_CATALOG_QUERY,
   CrossfitCatalogRepository,
   LEGACY_CROSSFIT_CATALOG_QUERY,
@@ -134,7 +138,37 @@ test("CrossFit catálogo: repositorio alterna v2/legacy sin RANDOM ni fallback c
   const canonical = await repository.listForGeneration({ useV2: true });
   assert.equal(legacy[0].provenance.source, "legacy_adapter");
   assert.equal(canonical[0].canonical_id, "ring_row");
+  assert.equal(calls.filter((call) => call.sql === ACTIVE_CROSSFIT_CATALOG_QUERY).length, 1);
   assert.equal(calls.some((call) => /ORDER BY RANDOM/i.test(call.sql)), false);
+});
+
+test("CrossFit catálogo: generación falla cerrada cuando no existe versión active", async () => {
+  const calls = [];
+  const repository = new CrossfitCatalogRepository({
+    async query(sql) {
+      calls.push(sql);
+      return { rows: [] };
+    }
+  });
+
+  assert.deepEqual(await repository.listForGeneration({ useV2: true }), []);
+  assert.deepEqual(calls, [ACTIVE_CROSSFIT_CATALOG_QUERY]);
+});
+
+test("CrossFit catálogo: runtime histórico lee su versión congelada sin convertirla en generación", async () => {
+  const calls = [];
+  const repository = new CrossfitCatalogRepository({
+    async query(sql, params = []) {
+      calls.push({ sql, params });
+      return { rows: [{ canonical_id: "ring_row", catalog_version: "crossfit-catalog/2.0.0" }] };
+    }
+  });
+
+  const rows = await repository.listCanonicalMovements({ catalogVersion: "crossfit-catalog/2.0.0" });
+  assert.equal(rows[0].canonical_id, "ring_row");
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].params, ["crossfit-catalog/2.0.0"]);
+  assert.notEqual(calls[0].sql, ACTIVE_CROSSFIT_CATALOG_QUERY);
 });
 
 test("CrossFit migración: aditiva, idempotente, RLS y catálogo activo inmutable", () => {
@@ -158,8 +192,11 @@ test("CrossFit migración: aditiva, idempotente, RLS y catálogo activo inmutabl
 test("CrossFit importador: dry-run valida y --apply rechaza host de producción", () => {
   const source = fs.readFileSync(new URL("../scripts/import-crossfit-v2-catalog.mjs", import.meta.url), "utf8");
   assert.match(source, /already_active_verified/);
-  assert.match(source, /content_hash !== catalog\.content_hash/);
-  assert.match(source, /local_ephemeral_noop/);
+  assert.match(source, /resolveCrossfitCatalogWriteAction/);
+  assert.match(source, /applied_to: `\$\{importTarget\.appliedTo\}_noop`/);
+  assert.match(source, /pg_advisory_xact_lock/);
+  assert.match(source, /FOR UPDATE/);
+  assert.doesNotMatch(source, /UPDATE app\.crossfit_catalog_versions SET status\s*=\s*'active'/i);
 
   const dry = spawnSync(process.execPath, ["scripts/import-crossfit-v2-catalog.mjs"], {
     cwd: new URL("..", import.meta.url),
@@ -183,6 +220,103 @@ test("CrossFit importador: dry-run valida y --apply rechaza host de producción"
   });
   assert.notEqual(blocked.status, 0);
   assert.match(blocked.stderr, /Importación abortada/);
+});
+
+test("CrossFit importador: producción solo admite draft con allowlist y doble confirmación", () => {
+  const contentHash = "a".repeat(64);
+  const poolerHost = "aws-0-eu-central-1.pooler.supabase.com";
+  const baseEnv = {
+    NODE_ENV: "production",
+    CROSSFIT_CATALOG_APPLY_ACK: "PRODUCTION_DRAFT_ONLY",
+    CROSSFIT_CATALOG_CONTENT_HASH_ACK: contentHash,
+    CROSSFIT_CATALOG_PROJECT_REF: "projectref",
+    CROSSFIT_CATALOG_ALLOWED_PROJECT_REFS: "other,projectref",
+    CROSSFIT_CATALOG_ALLOWED_HOSTS: poolerHost
+  };
+  const connectionString = `postgresql://postgres.projectref@${poolerHost}:5432/postgres`;
+
+  assert.deepEqual(assertCrossfitCatalogImportTarget({
+    mode: "production_draft",
+    env: baseEnv,
+    connectionString,
+    contentHash
+  }), {
+    mode: "production_draft",
+    appliedTo: "production_draft"
+  });
+  assert.deepEqual(assertCrossfitCatalogImportTarget({
+    mode: "production_draft",
+    env: {
+      ...baseEnv,
+      CROSSFIT_CATALOG_ALLOWED_HOSTS: "db.projectref.supabase.co"
+    },
+    connectionString: "postgresql://postgres@db.projectref.supabase.co:5432/postgres",
+    contentHash
+  }), {
+    mode: "production_draft",
+    appliedTo: "production_draft"
+  });
+  assert.throws(() => assertCrossfitCatalogImportTarget({
+    mode: "production_draft",
+    env: { ...baseEnv, CROSSFIT_CATALOG_CONTENT_HASH_ACK: "b".repeat(64) },
+    connectionString,
+    contentHash
+  }), /segunda confirmación/);
+  assert.throws(() => assertCrossfitCatalogImportTarget({
+    mode: "production_draft",
+    env: { ...baseEnv, CROSSFIT_CATALOG_ALLOWED_HOSTS: "db.example.com" },
+    connectionString,
+    contentHash
+  }), /host no está incluido/);
+  assert.throws(() => assertCrossfitCatalogImportTarget({
+    mode: "production_draft",
+    env: { ...baseEnv, CROSSFIT_CATALOG_ALLOWED_PROJECT_REFS: "other" },
+    connectionString,
+    contentHash
+  }), /proyecto no está incluido/);
+
+  for (const invalidConnectionString of [
+    `postgresql://postgres.projectref-otro@${poolerHost}:5432/postgres`,
+    `postgresql://postgres.otro-projectref@${poolerHost}:5432/postgres`,
+    `postgresql://postgres.xxprojectrefxx@${poolerHost}:5432/postgres`
+  ]) {
+    assert.throws(() => assertCrossfitCatalogImportTarget({
+      mode: "production_draft",
+      env: baseEnv,
+      connectionString: invalidConnectionString,
+      contentHash
+    }), /identidad de conexión/);
+  }
+  assert.throws(() => assertCrossfitCatalogImportTarget({
+    mode: "production_draft",
+    env: {
+      ...baseEnv,
+      CROSSFIT_CATALOG_ALLOWED_HOSTS: "db.projectref-otro.supabase.co"
+    },
+    connectionString: "postgresql://postgres@db.projectref-otro.supabase.co:5432/postgres",
+    contentHash
+  }), /identidad de conexión/);
+});
+
+test("CrossFit importador: solo escribe una versión ausente o draft", () => {
+  const contentHash = "a".repeat(64);
+  assert.equal(resolveCrossfitCatalogWriteAction(null, contentHash), "write_draft");
+  assert.equal(resolveCrossfitCatalogWriteAction({
+    status: "draft",
+    content_hash: "b".repeat(64)
+  }, contentHash), "write_draft");
+  assert.equal(resolveCrossfitCatalogWriteAction({
+    status: "active",
+    content_hash: contentHash
+  }, contentHash), "verify_active");
+  assert.throws(() => resolveCrossfitCatalogWriteAction({
+    status: "active",
+    content_hash: "b".repeat(64)
+  }, contentHash), /active tiene un content_hash distinto/);
+  assert.throws(() => resolveCrossfitCatalogWriteAction({
+    status: "retired",
+    content_hash: contentHash
+  }, contentHash), /estado no escribible/);
 });
 
 test("CrossFit safety: red flag y dolor severo bloquean antes de rendimiento", () => {

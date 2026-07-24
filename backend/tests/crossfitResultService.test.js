@@ -11,6 +11,10 @@ import { buildCrossfitPlannedTrainingLoad } from "../services/crossfit/trainingL
 import { CROSSFIT_VERSIONS } from "../services/crossfit/versions.js";
 
 const NOW = new Date("2026-07-22T12:00:00.000Z");
+const RESULTS_ENV = Object.freeze({
+  CROSSFIT_V2_RESULTS: "true",
+  CROSSFIT_V2_QA_USERS: "7"
+});
 
 function plannedLoad() {
   return buildCrossfitPlannedTrainingLoad({
@@ -121,6 +125,12 @@ class ResultClient {
       if (this.failOutbox) throw new Error("outbox unavailable");
       return { rowCount: 1, rows: [{ id: "outbox-1" }] };
     }
+    if (text.includes("app.crossfit_register_wod_result")) {
+      return { rowCount: 1, rows: [{ result: { decision: "hold" } }] };
+    }
+    if (text.includes("app.apply_stall_deload")) {
+      return { rowCount: 1, rows: [{ s: { decision: "hold" } }] };
+    }
     return { rowCount: 1, rows: [] };
   }
 }
@@ -138,6 +148,24 @@ test("servicio de resultado permanece completamente apagado por defecto", async 
   assert.equal(client.calls.length, 0);
 });
 
+test("frontera v2 rechaza usuarios excluidos o retirados antes de consultar", async () => {
+  for (const qaUsers of ["9", ""]) {
+    const client = new ResultClient();
+    const result = await registerCrossfitV2Result(client, {
+      userId: 7,
+      planId: 22,
+      sessionId: 101,
+      manual: manual(),
+      env: {
+        CROSSFIT_V2_RESULTS: "true",
+        CROSSFIT_V2_QA_USERS: qaUsers
+      }
+    });
+    assert.equal(result, null);
+    assert.equal(client.calls.length, 0);
+  }
+});
+
 test("sesión v2 se reconoce por contrato, nunca solo por nombre de metodología", () => {
   assert.equal(isCrossfitV2Session(session()), true);
   assert.equal(isCrossfitV2Session(session({ session_metadata: {} })), false);
@@ -151,7 +179,7 @@ test("resultado v2 persiste ledger, snapshot y actual load sin consultar RIR", a
     sessionId: 101,
     manual: manual(),
     now: NOW,
-    env: { CROSSFIT_V2_RESULTS: "true" }
+    env: RESULTS_ENV
   });
 
   assert.equal(output.registered, true);
@@ -193,7 +221,7 @@ test("feedback parcial cierra sesión, conserva porcentaje y traza el motivo", a
       termination_reason: "fatigue"
     }),
     now: NOW,
-    env: { CROSSFIT_V2_RESULTS: "true" }
+    env: RESULTS_ENV
   });
 
   assert.equal(output.result.status, "partial");
@@ -232,7 +260,7 @@ test("cancelación sin exposición no inventa métricas y emite carga real D0", 
       score: { type: "none" }
     },
     now: NOW,
-    env: { CROSSFIT_V2_RESULTS: "true" }
+    env: RESULTS_ENV
   });
 
   assert.equal(output.result.status, "cancelled");
@@ -267,7 +295,7 @@ test("cancelación declarada por dolor exige contexto de dolor", async () => {
         termination_reason: "pain",
         score: { type: "none" }
       },
-      env: { CROSSFIT_V2_RESULTS: "true" }
+      env: RESULTS_ENV
     }),
     (error) => error.code === "CROSSFIT_PAIN_REQUIRED"
   );
@@ -280,7 +308,7 @@ test("estados terminales exigen porcentajes coherentes y no se pueden reescribir
       planId: 22,
       sessionId: 101,
       manual: manual({ status: "cancelled", completion: 0.2, termination_reason: "time" }),
-      env: { CROSSFIT_V2_RESULTS: "true" }
+      env: RESULTS_ENV
     }),
     (error) => error.code === "CROSSFIT_COMPLETION_INVALID"
   );
@@ -290,7 +318,7 @@ test("estados terminales exigen porcentajes coherentes y no se pueden reescribir
       planId: 22,
       sessionId: 101,
       manual: manual({ status: "partial", completion: 0.5, termination_reason: "fatigue" }),
-      env: { CROSSFIT_V2_RESULTS: "true" }
+      env: RESULTS_ENV
     }),
     (error) => error.code === "HISTORY_IMMUTABLE" && error.status === 409
   );
@@ -300,7 +328,7 @@ test("estados terminales exigen porcentajes coherentes y no se pueden reescribir
       planId: 22,
       sessionId: 101,
       manual: manual({ status: "partial", completion: 0.5, termination_reason: "time" }),
-      env: { CROSSFIT_V2_RESULTS: "true" }
+      env: RESULTS_ENV
     }),
     (error) => error.code === "CROSSFIT_SESSION_NOT_STARTED" && error.status === 409
   );
@@ -326,7 +354,7 @@ test("escalas de resultado proceden del ledger y no del payload cliente", async 
       scales: [{ movement_id: "air_squat", scale_id: "rxplus" }]
     }),
     now: NOW,
-    env: { CROSSFIT_V2_RESULTS: "true" }
+    env: RESULTS_ENV
   });
 
   assert.deepEqual(output.result.scales, [
@@ -355,7 +383,7 @@ test("resultado single-day obtiene la carga real del tracking de fin de semana",
     sessionId: 101,
     manual: manual(),
     now: NOW,
-    env: { CROSSFIT_V2_RESULTS: "true" }
+    env: RESULTS_ENV
   });
 
   assert.equal(output.result.actual_training_load.work.sets_total, 4);
@@ -365,22 +393,75 @@ test("resultado single-day obtiene la carga real del tracking de fin de semana",
 
 test("cierre automático v2 espera feedback y no cae al motor legacy", async () => {
   const client = new ResultClient();
-  const original = process.env.CROSSFIT_V2_RESULTS;
-  process.env.CROSSFIT_V2_RESULTS = "true";
-  try {
-    const output = await registerSessionAutoreg(client, {
-      userId: 7,
-      planId: 22,
-      sessionId: 101,
-      methodologyType: "CrossFit"
-    });
-    assert.equal(output.pendingFeedback, true);
-    assert.equal(output.source, "crossfit_v2_pending_feedback");
-    assert.equal(client.calls.some((call) => /crossfit_register_wod_result|hypertrophy_set_logs/i.test(call.sql)), false);
-  } finally {
-    if (original === undefined) delete process.env.CROSSFIT_V2_RESULTS;
-    else process.env.CROSSFIT_V2_RESULTS = original;
-  }
+  const output = await registerSessionAutoreg(client, {
+    userId: 7,
+    planId: 22,
+    sessionId: 101,
+    methodologyType: "CrossFit",
+    env: RESULTS_ENV
+  });
+  assert.equal(output.pendingFeedback, true);
+  assert.equal(output.source, "crossfit_v2_pending_feedback");
+  assert.equal(client.calls.some((call) => /crossfit_register_wod_result|hypertrophy_set_logs/i.test(call.sql)), false);
+});
+
+test("caller excluido bloquea sesión v2 tras una lectura y sin fallback legacy", async () => {
+  const client = new ResultClient();
+  const output = await registerSessionAutoreg(client, {
+    userId: 7,
+    planId: 22,
+    sessionId: 101,
+    methodologyType: "CrossFit",
+    manual: manual(),
+    env: {
+      CROSSFIT_V2_RESULTS: "true",
+      CROSSFIT_V2_QA_USERS: "9"
+    }
+  });
+
+  assert.equal(output, null);
+  assert.equal(client.calls.length, 1);
+  assert.match(client.calls[0].sql, /SELECT session_metadata/);
+  assert.equal(client.calls.some((call) =>
+    /crossfit_register_wod_result|hypertrophy_set_logs|INSERT INTO|UPDATE app\./i.test(call.sql)), false);
+});
+
+test("caller excluido conserva la autorregulación CrossFit legacy", async () => {
+  const client = new ResultClient({
+    sessionRow: session({ session_metadata: {} })
+  });
+  const output = await registerSessionAutoreg(client, {
+    userId: 7,
+    planId: 22,
+    sessionId: 101,
+    methodologyType: "CrossFit",
+    manual: { rpe: 7, completed: true, scale: "scaled" },
+    env: {
+      CROSSFIT_V2_RESULTS: "true",
+      CROSSFIT_V2_QA_USERS: "9"
+    }
+  });
+
+  assert.equal(output.decision, "hold");
+  assert.equal(client.calls.some((call) => /app\.crossfit_register_wod_result/.test(call.sql)), true);
+  assert.equal(client.calls.some((call) => /UPDATE app\.methodology_exercise_sessions/.test(call.sql)), true);
+});
+
+test("caller incluido conserva el resultado CrossFit v2", async () => {
+  const client = new ResultClient();
+  const output = await registerSessionAutoreg(client, {
+    userId: 7,
+    planId: 22,
+    sessionId: 101,
+    methodologyType: "CrossFit",
+    manual: manual(),
+    env: RESULTS_ENV
+  });
+
+  assert.equal(output.registered, true);
+  assert.equal(output.source, "crossfit_v2_result");
+  assert.equal(client.calls.some((call) => /INSERT INTO app\.crossfit_v2_results/.test(call.sql)), true);
+  assert.equal(client.calls.some((call) => /crossfit_register_wod_result|hypertrophy_set_logs/i.test(call.sql)), false);
 });
 
 test("idempotencia devuelve el resultado y snapshot existentes sin reinsertar", async () => {
@@ -391,7 +472,7 @@ test("idempotencia devuelve el resultado y snapshot existentes sin reinsertar", 
     planId: 22,
     sessionId: 101,
     manual: manual(),
-    env: { CROSSFIT_V2_RESULTS: "true" }
+    env: RESULTS_ENV
   });
   assert.equal(output.alreadyRegistered, true);
   assert.equal(output.result, existing);
@@ -404,7 +485,7 @@ test("idempotencia rechaza un segundo payload materialmente distinto", async () 
     planId: 22,
     sessionId: 101,
     manual: manual(),
-    env: { CROSSFIT_V2_RESULTS: "true" }
+    env: RESULTS_ENV
   });
   await assert.rejects(
     registerCrossfitV2Result(new ResultClient({ existing: first.result }), {
@@ -412,7 +493,7 @@ test("idempotencia rechaza un segundo payload materialmente distinto", async () 
       planId: 22,
       sessionId: 101,
       manual: manual({ rpe: 9 }),
-      env: { CROSSFIT_V2_RESULTS: "true" }
+      env: RESULTS_ENV
     }),
     (error) => error.code === "IDEMPOTENCY_BROKEN" && error.status === 409
   );
@@ -424,7 +505,7 @@ test("idempotencia rechaza una clave ligada a otra sesión aunque coincida el fe
     planId: 22,
     sessionId: 101,
     manual: manual(),
-    env: { CROSSFIT_V2_RESULTS: "true" }
+    env: RESULTS_ENV
   });
   await assert.rejects(
     registerCrossfitV2Result(new ResultClient({
@@ -436,7 +517,7 @@ test("idempotencia rechaza una clave ligada a otra sesión aunque coincida el fe
       planId: 22,
       sessionId: 101,
       manual: manual(),
-      env: { CROSSFIT_V2_RESULTS: "true" }
+      env: RESULTS_ENV
     }),
     (error) => error.code === "IDEMPOTENCY_BROKEN" && error.status === 409
   );
@@ -446,21 +527,21 @@ test("resultado v2 rechaza payload incompleto, cruce de plan y sesión sin day_i
   await assert.rejects(
     registerCrossfitV2Result(new ResultClient(), {
       userId: 7, planId: 22, sessionId: 101, manual: manual({ technique: undefined }),
-      env: { CROSSFIT_V2_RESULTS: "true" }
+      env: RESULTS_ENV
     }),
     { code: "CROSSFIT_TECHNIQUE_REQUIRED" }
   );
   await assert.rejects(
     registerCrossfitV2Result(new ResultClient(), {
       userId: 7, planId: 999, sessionId: 101, manual: manual(),
-      env: { CROSSFIT_V2_RESULTS: "true" }
+      env: RESULTS_ENV
     }),
     { code: "CROSSFIT_PLAN_SESSION_MISMATCH" }
   );
   await assert.rejects(
     registerCrossfitV2Result(new ResultClient({ sessionRow: session({ day_id: null }) }), {
       userId: 7, planId: 22, sessionId: 101, manual: manual(),
-      env: { CROSSFIT_V2_RESULTS: "true" }
+      env: RESULTS_ENV
     }),
     { code: "CROSSFIT_DAY_ID_REQUIRED" }
   );
@@ -475,7 +556,7 @@ test("outbox CrossFit requiere ambos flags y conserva RPE real", async () => {
     manual: manual({ rpe: 8 }),
     now: NOW,
     env: {
-      CROSSFIT_V2_RESULTS: "true",
+      ...RESULTS_ENV,
       CROSSFIT_EMITS_TRAINING_LOAD: "true",
       BRIDGE_OUTBOX_EMIT_ENABLED: "true"
     }
@@ -495,7 +576,7 @@ test("fallo del outbox revierte su savepoint pero conserva el resultado", async 
     sessionId: 101,
     manual: manual(),
     env: {
-      CROSSFIT_V2_RESULTS: "true",
+      ...RESULTS_ENV,
       CROSSFIT_EMITS_TRAINING_LOAD: "true",
       BRIDGE_OUTBOX_EMIT_ENABLED: "true"
     }

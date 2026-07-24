@@ -12,7 +12,7 @@ test("regeneración CrossFit v2 conserva drafts y enruta al especialista", () =>
   const lifecycle = read("../../src/components/Methodologie/hooks/useMethodologyPlanLifecycle.js");
   const modal = read("../../src/components/routines/TrainingPlanConfirmationModal.jsx");
 
-  assert.match(route, /if \(!methodologyUsesImmutableDraftRevisions\(methodology\)\)/);
+  assert.match(route, /if \(!methodologyUsesImmutableDraftRevisions\(methodology, process\.env, userId\)\)/);
   assert.match(server, /mode === 'regenerate' && methodology === 'crossfit'/);
   assert.match(server, /specialist\/crossfit\/generate/);
   assert.match(lifecycle, /previous_plan_id: plan\.methodologyPlanId/);
@@ -33,12 +33,12 @@ test("los tres entrypoints genéricos conservan revisiones CrossFit sin romper H
     .split("router.post('/manual/methodology'")[1]
     .split("router.post('/manual/calistenia'")[0];
 
-  assert.match(specialist, /if \(!methodologyUsesImmutableDraftRevisions\(methodology\)\)/);
-  assert.match(manual, /if \(!methodologyUsesImmutableDraftRevisions\(methodology\)\)/);
-  assert.match(ai, /if \(!methodologyUsesImmutableDraftRevisions\(personalizedPlanData\.methodology\)\)/);
+  assert.match(specialist, /if \(!methodologyUsesImmutableDraftRevisions\(methodology, process\.env, userId\)\)/);
+  assert.match(manual, /if \(!methodologyUsesImmutableDraftRevisions\(methodology, process\.env, userId\)\)/);
+  assert.match(ai, /if \(!methodologyUsesImmutableDraftRevisions\(personalizedPlanData\.methodology, process\.env, userId\)\)/);
   assert.ok(
     ai.indexOf("isHipertrofiaMethodology(personalizedPlanData.methodology)") <
-      ai.indexOf("methodologyUsesImmutableDraftRevisions(personalizedPlanData.methodology)"),
+      ai.indexOf("methodologyUsesImmutableDraftRevisions(personalizedPlanData.methodology, process.env, userId)"),
     "Hipertrofia debe delegar antes de la limpieza del flujo genérico"
   );
 });

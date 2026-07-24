@@ -15,7 +15,7 @@ import {
   getProfileTrainingGoal,
   resolveTrainingFrequency
 } from '../../userProfileContract.js';
-import { getCrossfitFeatureFlags } from '../../crossfit/featureFlags.js';
+import { getCrossfitFeatureFlagsForUser } from '../../crossfit/featureFlags.js';
 import { generateCrossfitProductPlan } from '../../crossfit/integration/productPlanService.js';
 import {
   evaluatePublicCrossfitAssessment,
@@ -165,12 +165,12 @@ FORMATO EXACTO:
   }
 }
 
-export function getCrossFitV2Capabilities() {
-  return getCrossfitAssessmentCapabilities();
+export function getCrossFitV2Capabilities(userId) {
+  return getCrossfitAssessmentCapabilities(userId);
 }
 
 export async function evaluateCrossFitLevel(userId, evaluationData = {}) {
-  if (!getCrossfitFeatureFlags().generation) {
+  if (!getCrossfitFeatureFlagsForUser(userId).generation) {
     return evaluateCrossFitLevelLegacy(userId);
   }
 
@@ -322,7 +322,7 @@ export async function generateCrossFitPlan(userId, planData = {}) {
   logSeparator('CROSSFIT PLAN GENERATION');
   logAPICall('/specialist/crossfit/generate', 'POST', userId);
 
-  if (getCrossfitFeatureFlags().generation) {
+  if (getCrossfitFeatureFlagsForUser(userId).generation) {
     const assessment = planData.crossfitAssessment ?? planData.crossfit_assessment;
     const referencedAssessmentId = planData.crossfitAssessmentId ?? planData.crossfit_assessment_id;
     const publicAssessment = assessment

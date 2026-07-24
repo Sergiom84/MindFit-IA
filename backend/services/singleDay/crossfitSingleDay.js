@@ -30,7 +30,7 @@
 
 import { persistSingleDaySession } from './persistSingleDaySession.js';
 import { logger } from '../hipertrofia/logger.js';
-import { getCrossfitFeatureFlags } from '../crossfit/featureFlags.js';
+import { getCrossfitFeatureFlagsForUser } from '../crossfit/featureFlags.js';
 import { generateCrossfitSingleDayV2 } from '../crossfit/integration/singleDayService.js';
 
 // Dominios reales en "Ejercicios_CrossFit".
@@ -204,7 +204,7 @@ function toWodMovement(row, orden, formato) {
  * @returns {Promise<{sessionId:number, workout:object}>}
  */
 export async function generateCrossFitSingleDay(dbClient, userId, rawNivel, isWeekendExtra = true, options = {}) {
-  if (getCrossfitFeatureFlags().generation) {
+  if (getCrossfitFeatureFlagsForUser(userId).generation) {
     return generateCrossfitSingleDayV2({
       db: dbClient,
       userId,

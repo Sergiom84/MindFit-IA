@@ -2,7 +2,7 @@ import express from "express";
 
 import { pool } from "../db.js";
 import authenticateToken from "../middleware/auth.js";
-import { getCrossfitFeatureFlags } from "../services/crossfit/featureFlags.js";
+import { getCrossfitFeatureFlagsForUser } from "../services/crossfit/featureFlags.js";
 import { loadCrossfitEquipment } from "../services/crossfit/integration/productPlanService.js";
 import {
   loadCrossfitRuntimeSession,
@@ -15,7 +15,8 @@ import { getUserFullProfile } from "../services/routineGeneration/database/userR
 const router = express.Router();
 
 function runtimeEnabled(req, res, next) {
-  if (!getCrossfitFeatureFlags().generation) {
+  const userId = req.user?.userId || req.user?.id;
+  if (!getCrossfitFeatureFlagsForUser(userId).generation) {
     return res.status(404).json({ success: false, code: "CROSSFIT_V2_DISABLED", error: "Not found" });
   }
   next();
